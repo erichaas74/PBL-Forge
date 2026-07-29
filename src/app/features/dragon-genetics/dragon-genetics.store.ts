@@ -46,6 +46,7 @@ import {
 import { DragonGeneticsRepository } from './dragon-genetics.repository';
 
 const STORAGE_KEY = 'pbl-forge.dragon-genetics.v3';
+const LEGACY_STORAGE_KEY = 'pbl-forge.dragon-genetics.v2';
 const MAX_EVENTS = 120;
 
 @Injectable()
@@ -634,8 +635,8 @@ export class DragonGeneticsStore {
 
   private async hydrate(): Promise<void> {
     try {
-      const remote = await this.repository.load();
-      if (remote?.schemaVersion === 3 && remote.updatedAtIso > this.snapshot().updatedAtIso) {
+      const remote = migrateDragonSnapshot(await this.repository.load());
+      if (remote && remote.updatedAtIso > this.snapshot().updatedAtIso) {
         this.snapshotSignal.set(remote);
       }
       this.persistenceState.set('saved');
@@ -665,8 +666,8 @@ export class DragonGeneticsStore {
 function loadLocalSnapshot(): DragonGeneticsSnapshot {
   if (typeof localStorage === 'undefined') return createDefaultDragonSnapshot();
   try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as DragonGeneticsSnapshot | null;
-    return parsed?.schemaVersion === 3 ? parsed : createDefaultDragonSnapshot();
+    const serialized = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
+    return migrateDragonSnapshot(JSON.parse(serialized ?? 'null')) ?? createDefaultDragonSnapshot();
   } catch {
     return createDefaultDragonSnapshot();
   }
@@ -676,6 +677,29 @@ function saveLocalSnapshot(snapshot: DragonGeneticsSnapshot): void {
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
   }
+}
+
+export function migrateDragonSnapshot(value: unknown): DragonGeneticsSnapshot | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Record<string, unknown>;
+  const version = candidate['schemaVersion'];
+  if (version !== 2 && version !== 3) return null;
+  const migrated = {
+    ...createDefaultDragonSnapshot(),
+    ...candidate,
+    schemaVersion: 3,
+  } as DragonGeneticsSnapshot;
+  if (version === 2) {
+    return {
+      ...migrated,
+      activeModule: 1,
+      completedModules: [],
+      week1Passed: false,
+      week2Passed: false,
+      finalSubmitted: false,
+    };
+  }
+  return migrated;
 }
 
 function countMatchingPositions(actual: readonly string[], expected: readonly string[]): number {

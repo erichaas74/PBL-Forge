@@ -6,6 +6,8 @@ This experience implements the supplied three-week lesson plan and teaching/asse
 
 Open `/dragon-genetics`. Work is saved immediately to local storage and, after the anonymous or district user session is ready, to `dragonLabProgress/{uid}` in Firestore.
 
+Schema-v2 trial records are migrated without discarding prior responses. Their module completion is revalidated from Module 1 so the newly required diagnostic, weekly mastery checks, genotype predictions, peer review, and reflection cannot be bypassed.
+
 Modules unlock in sequence. Local emulator mode includes a teacher-preview navigation switch, but it does not bypass evidence checks, the breeder license, prediction locks, or the official-attempt limit.
 
 | Week | Module | Student evidence | Primary skills |

@@ -11,14 +11,16 @@ import {
   WEEK1_MASTERY_QUESTIONS,
   WEEK2_MASTERY_QUESTIONS,
 } from './dragon-genetics.content';
+import { createDefaultDragonSnapshot } from './dragon-genetics.domain';
 import { DragonGeneticsRepository } from './dragon-genetics.repository';
-import { DragonGeneticsStore } from './dragon-genetics.store';
+import { DragonGeneticsStore, migrateDragonSnapshot } from './dragon-genetics.store';
 
 describe('DragonGeneticsStore', () => {
   let store: DragonGeneticsStore;
 
   beforeEach(() => {
     localStorage.removeItem('pbl-forge.dragon-genetics.v3');
+    localStorage.removeItem('pbl-forge.dragon-genetics.v2');
     TestBed.configureTestingModule({
       providers: [
         DragonGeneticsStore,
@@ -32,6 +34,31 @@ describe('DragonGeneticsStore', () => {
       ],
     });
     store = TestBed.inject(DragonGeneticsStore);
+  });
+
+  it('preserves v2 responses but revalidates completion through the new v3 gates', () => {
+    const legacy = {
+      ...createDefaultDragonSnapshot(),
+      schemaVersion: 2,
+      activeModule: 7,
+      completedModules: [1, 2, 3, 4, 5, 6],
+      sortAnswers: { scar: 'learned-environmental' },
+    };
+    const migrated = migrateDragonSnapshot(legacy);
+    expect(migrated?.schemaVersion).toBe(3);
+    expect(migrated?.activeModule).toBe(1);
+    expect(migrated?.completedModules).toEqual([]);
+    expect(migrated?.sortAnswers['scar']).toBe('learned-environmental');
+  });
+
+  it('keeps Week 1 locked when the mission diagnostic or prediction evidence is missing', () => {
+    for (const card of TRAIT_SORT_CARDS) store.setTraitSortAnswer(card.id, card.category);
+    expect(store.checkTraitSort().complete).toBeFalse();
+
+    for (const question of WEEK1_MASTERY_QUESTIONS) {
+      store.setWeek1Answer(question.id, question.correctOptionId);
+    }
+    expect(store.submitWeek1Mastery().passed).toBeFalse();
   });
 
   it('enforces the complete three-week evidence sequence through the final challenge', () => {

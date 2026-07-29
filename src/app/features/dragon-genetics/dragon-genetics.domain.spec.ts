@@ -4,6 +4,7 @@ import {
   challengeScore,
   createDefaultDragonSnapshot,
   expectedPredictions,
+  genotypeDistribution,
   materializeDragon,
   runDragonBatch,
 } from './dragon-genetics.domain';
@@ -13,6 +14,10 @@ describe('Dragon Genetics domain', () => {
   it('predicts a 50 percent winged phenotype for Ww × ww', () => {
     const predictions = expectedPredictions(DRAGON_PARENTS[0], DRAGON_PARENTS[1]);
     expect(predictions.wings).toBe(50);
+  });
+
+  it('predicts the complete genotype distribution for Ww × ww', () => {
+    expect(genotypeDistribution(DRAGON_PARENTS[0], DRAGON_PARENTS[1], 'wings')).toBe('0-50-50');
   });
 
   it('runs deterministic batches for the same parents and run number', () => {
