@@ -262,6 +262,10 @@ export class DragonGeneticsPage {
     return size ? Math.round(100 * count / size) : 0;
   }
 
+  diagnosticAnswer(promptId: string): string {
+    return this.store.snapshot().diagnosticAnswers[promptId] || '';
+  }
+
   pairParents(pairId: string): DragonParentProfile[] {
     const ids = pairId.split('--');
     return ids.map(id => this.parents.find(parent => parent.id === id) ?? this.parents[0]);

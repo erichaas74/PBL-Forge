@@ -92,8 +92,8 @@
               <p>A hatchling appears to have characteristics that do not look exactly like either parent. Explain your starting ideas now; you will revisit one misconception after sorting the evidence.</p>
               @for (prompt of diagnosticPrompts; track prompt.id) {
                 <label class="writing-prompt compact">{{ $index + 1 }}. {{ prompt.prompt }}
-                  <textarea rows="2" [value]="store.snapshot().diagnosticAnswers[prompt.id] ?? ''" (input)="store.setDiagnosticAnswer(prompt.id, $any($event.target).value)"></textarea>
-                  <i>{{ (store.snapshot().diagnosticAnswers[prompt.id] ?? '').length }}/10 minimum</i>
+                  <textarea rows="2" [value]="diagnosticAnswer(prompt.id)" (input)="store.setDiagnosticAnswer(prompt.id, $any($event.target).value)"></textarea>
+                  <i>{{ diagnosticAnswer(prompt.id).length }}/10 minimum</i>
                 </label>
               }
             </article>
