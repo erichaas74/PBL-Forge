@@ -9,12 +9,14 @@ import {
   signOut,
   User
 } from '@angular/fire/auth';
+import { doc, Firestore, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   private readonly auth = inject(Auth);
+  private readonly firestore = inject(Firestore);
   private readonly initialization = this.initializeSession().catch((error: unknown) => {
     console.error('Firebase session initialization failed.', error);
   });
@@ -37,7 +39,8 @@ export class SessionService {
   }
 
   async signInWithGoogle(): Promise<void> {
-    await signInWithPopup(this.auth, new GoogleAuthProvider());
+    const credential = await signInWithPopup(this.auth, new GoogleAuthProvider());
+    await this.ensureUserProfile(credential.user);
   }
 
   async signOut(): Promise<void> {
@@ -60,6 +63,21 @@ export class SessionService {
     await this.auth.authStateReady();
     if (this.isLocal && !this.auth.currentUser) {
       await signInAnonymously(this.auth);
+    } else if (!this.isLocal && this.auth.currentUser) {
+      await this.ensureUserProfile(this.auth.currentUser);
     }
+  }
+
+  private async ensureUserProfile(user: User): Promise<void> {
+    const reference = doc(this.firestore, `users/${user.uid}`);
+    const profile = await getDoc(reference);
+    const publicProfile = {
+      displayName: user.displayName ?? user.email ?? 'Student',
+      photoURL: user.photoURL ?? null,
+      lastSeenAt: serverTimestamp(),
+    };
+    await setDoc(reference, profile.exists()
+      ? publicProfile
+      : { ...publicProfile, role: 'student' }, { merge: true });
   }
 }

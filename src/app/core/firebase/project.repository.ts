@@ -13,6 +13,22 @@ import {
 import { catchError, map, Observable, of, shareReplay } from 'rxjs';
 import { ActivityResponse, PblActivity, PblProject } from '../models/pbl.models';
 
+const BUILT_IN_PROJECTS: readonly PblProject[] = [{
+  id: 'dragon-genetics-lab',
+  title: 'Dragon Genetics: Breed for the Arena',
+  summary: 'Decode heredity, predict offspring, protect genetic diversity, and defend a team-bred dragon in a physics arena.',
+  essentialQuestion: 'How are traits passed from parents to offspring, why do siblings vary, and how can evidence guide responsible breeding?',
+  status: 'published',
+  ownerId: 'pbl-forge',
+  subject: ['Life Science', 'Genetics'],
+  gradeBand: '7',
+  durationMinutes: 900,
+  durationLabel: '3 weeks',
+  activityCount: 10,
+  accent: 'gold',
+  experienceType: 'dragon-genetics',
+}];
+
 @Injectable({ providedIn: 'root' })
 export class ProjectRepository {
   private readonly firestore = inject(Firestore);
@@ -23,11 +39,15 @@ export class ProjectRepository {
     query(collection(this.firestore, 'projects'), where('status', '==', 'published')),
     { idField: 'id' }
   ).pipe(
-    map((projects) => (projects as PblProject[]).sort((a, b) => a.title.localeCompare(b.title))),
+    map((projects) => {
+      const merged = new Map(BUILT_IN_PROJECTS.map(project => [project.id, project]));
+      for (const project of projects as PblProject[]) merged.set(project.id, project);
+      return [...merged.values()].sort((a, b) => a.title.localeCompare(b.title));
+    }),
     catchError((error: unknown) => {
       console.error(error);
-      this.error.set('The project catalog could not be loaded. Check that the Firebase emulators are running.');
-      return of([]);
+      this.error.set('Firestore could not be reached. Built-in learning experiences remain available.');
+      return of([...BUILT_IN_PROJECTS]);
     }),
     shareReplay({ bufferSize: 1, refCount: true })
   );
