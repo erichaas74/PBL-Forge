@@ -12,9 +12,9 @@
   <main>
     <section class="summary-grid">
       <article><span>Student records</span><strong>{{ students.length }}</strong></article>
-      <article><span>Licenses earned</span><strong>{{ countLicensed(students) }}</strong><small>See individual status below</small></article>
-      <article><span>Official breeders</span><strong>{{ countOfficialBreeders(students) }}</strong><small>Attempts remain equal at 3/team</small></article>
-      <article><span>Battle reporting</span><strong>Separate</strong><small>Never substitutes for GEN mastery</small></article>
+      <article><span>Week 1 mastery</span><strong>{{ countWeekPassed(students, 1) }}</strong><small>10-question check + prediction gate</small></article>
+      <article><span>Week 2 mastery</span><strong>{{ countWeekPassed(students, 2) }}</strong><small>12-question check + evidence gate</small></article>
+      <article><span>Licenses earned</span><strong>{{ countLicensed(students) }}</strong><small>Individual GEN-1–GEN-8 check</small></article>
     </section>
 
     <section class="panel">
@@ -33,7 +33,7 @@
         @if (misconceptionCounts(students).length) { <ol class="misconceptions">@for (item of misconceptionCounts(students); track item.flag) { <li><span>{{ item.flag }}</span><strong>{{ item.count }}</strong></li> }</ol> } @else { <div class="empty"><p>No repeated flags recorded yet.</p></div> }
       </section>
       <section class="panel"><div class="panel-heading"><div><p>Readiness and outcomes</p><h2>Official challenge</h2></div></div>
-        <div class="student-list">@for (student of students; track student.id) { <article><div><strong>{{ studentLabel(student.studentId) }}</strong><small>{{ student.completedModules.length }}/10 modules · {{ student.officialAttemptsUsed }}/3 official crosses</small></div><span [class.ready]="student.licensePassed">{{ student.licensePassed ? 'Licensed' : 'Not ready' }}</span><b>{{ student.battleResult ? (student.battleResult.won ? 'Arena win' : 'Arena loss') : 'No battle' }}</b></article> }</div>
+        <div class="student-list">@for (student of students; track student.id) { <article><div><strong>{{ studentLabel(student.studentId) }}</strong><small>{{ student.completedModules.length }}/10 modules · W1 {{ student.week1Score ?? '—' }}/10 · W2 {{ student.week2Score ?? '—' }}/12 · {{ student.officialAttemptsUsed }}/3 official crosses</small></div><span [class.ready]="student.licensePassed">{{ student.licensePassed ? 'Licensed' : 'Not ready' }}</span><b>{{ student.finalSubmitted ? 'Final submitted' : student.battleResult ? (student.battleResult.won ? 'Arena win' : 'Arena loss') : 'No battle' }}</b></article> }</div>
         <p class="guardrail"><strong>Assessment guardrail:</strong> battle outcome is displayed for motivation only. Use the mastery matrix, prediction history, and individual evidence defense for academic decisions.</p>
       </section>
     </div>

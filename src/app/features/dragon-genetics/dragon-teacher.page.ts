@@ -14,10 +14,16 @@ interface ProgressDocument {
   completedModules: number[];
   mastery: Partial<Record<GeneticsSkill, MasteryRecord>>;
   misconceptionFlags: string[];
+  teamRole: string;
+  week1Score: number | null;
+  week1Passed: boolean;
+  week2Score: number | null;
+  week2Passed: boolean;
   licensePassed: boolean;
   officialAttemptsUsed: number;
   championId: string | null;
   battleResult: { won: boolean } | null;
+  finalSubmitted: boolean;
 }
 
 @Component({
@@ -73,8 +79,8 @@ export class DragonTeacherPage {
     return students.filter(student => student.licensePassed).length;
   }
 
-  countOfficialBreeders(students: ProgressDocument[]): number {
-    return students.filter(student => student.officialAttemptsUsed > 0).length;
+  countWeekPassed(students: ProgressDocument[], week: 1 | 2): number {
+    return students.filter(student => week === 1 ? student.week1Passed : student.week2Passed).length;
   }
 
   misconceptionCounts(students: ProgressDocument[]): { flag: string; count: number }[] {

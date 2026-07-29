@@ -10,26 +10,30 @@ Modules unlock in sequence. Local emulator mode includes a teacher-preview navig
 
 | Week | Module | Student evidence | Primary skills |
 | --- | --- | --- | --- |
-| 1 | 1. Trait Detective | Eight inherited/acquired classifications | GEN-1 |
-| 1 | 2. Genome Decoder | Dragon-to-allele information pathway | GEN-2 |
+| 1 | 1. Trait Detective | Impossible Hatchling diagnostic, rotating role, eight classifications, misconception correction | GEN-1 |
+| 1 | 2. Genome Decoder | Dragon-to-allele pathway plus four-question quick check | GEN-2 |
 | 1 | 3. Genotype → Phenotype | Phenotype-first and genotype-first evidence | GEN-3 |
 | 1 | 4. Trait Rule Lab | Four predict-before-reveal dominance trials | GEN-4 |
-| 1 | 5. Breeding Predictor | Four locked Punnett probabilities | GEN-3–5 |
+| 1 | 5. Breeding Predictor | Four locked genotype/phenotype distributions plus 10-question Week 1 mastery | GEN-1–5 |
 | 2 | 6. Probability vs. Actual | 8-offspring and 100-offspring comparisons | GEN-5, GEN-7 |
 | 2 | 7. Sexual vs. Asexual | Two-parent versus clone-style model | GEN-6, GEN-7 |
 | 2 | 8. Sibling Variation | Two-sibling allele-path explanation | GEN-5, GEN-7 |
-| 2 | 9. Diversity Manager | Data-backed parent-pair recommendation | GEN-8 |
-| 3 | 10. License & Arena | License, official crosses, battle, evidence defense | GEN-1–8 |
+| 2 | 9. Diversity Manager | Two-strategy comparison, parent-pair evidence, peer review, 12-question Week 2 mastery | GEN-3–8 |
+| 3 | 10. License & Arena | License, official crosses, battle, evidence defense, five-part reflection | GEN-1–8 |
 
 ## Non-negotiable assessment behavior
 
 - Learn and Practice modes provide instruction and feedback. Official mode unlocks only after the individual breeder license.
+- Week 1 requires at least 8/10, evidence on GEN-1–GEN-4, and at least 75% combined genotype/phenotype prediction accuracy. Week 2 requires at least 9/12, evidence on GEN-3–GEN-8, the balanced diversity recommendation, and a peer review.
 - The license contains 12 questions spanning every GEN skill. Passing requires at least 9/12 and evidence on every skill; missed skills generate targeted misconception flags and a retake path.
-- Every official cross requires four predictions before the offspring are generated.
+- Every practice and official cross requires genotype-distribution and phenotype-probability predictions for all four genes before offspring are generated.
 - Every student/team receives exactly three official breeding opportunities.
 - The motivational challenge score is displayed as genetics prediction accuracy 30%, diversity strategy 25%, battle 25%, and evidence 20%.
 - Academic mastery is calculated separately from GEN-1–GEN-8 evidence. A battle win cannot replace an unmet science skill.
 - The final defense asks students to trace a real champion allele, explain sibling variation, and name a model limitation.
+- The final submission also requires all five individual reflection prompts and produces a downloadable full lab report.
+
+Recommended academic grading remains separate from the motivational challenge score: completion checks 20%, weekly deliverables 25%, individual mastery 25%, final challenge evidence 15%, and final write-up/reflection 15%. Leaderboard rank is not a grade category.
 
 ## Genetics and arena connection
 
@@ -50,6 +54,7 @@ Open `/teacher/dragon-genetics` while authenticated as a teacher. In local emula
 
 - GEN-1–GEN-8 mastery levels per student;
 - current module and completion count;
+- Week 1 and Week 2 mastery-check scores and pass status;
 - repeated misconception flags for reteaching;
 - license and official-breeding readiness;
 - official attempts used; and
@@ -59,7 +64,7 @@ Production teacher access depends on the signed-in user's Firestore document hav
 
 ## Data captured
 
-The saved snapshot includes module and mode, responses, parent selections, pre-reveal predictions, expected/observed batch results, offspring genotypes, sibling evidence, diversity decisions, mastery levels, misconception flags, license results, official breeding history, champion selection, battle outcome, final evidence, individual defense, timestamps, and an event history.
+The saved snapshot includes module and mode, mission diagnostic, rotating role, responses, parent selections, genotype and phenotype predictions, weekly mastery checks, expected/observed batch results, offspring genotypes, sibling evidence, diversity strategy, peer review, mastery levels, misconception flags, license results, official breeding history, champion selection, battle outcome, final evidence, individual defense, five reflection responses, timestamps, and an event history.
 
 Firestore rules allow a student to read and write only `dragonLabProgress/{their uid}`. Teachers can read student records; students cannot read one another's work. The authorization cases are covered by `npm run test:rules`.
 

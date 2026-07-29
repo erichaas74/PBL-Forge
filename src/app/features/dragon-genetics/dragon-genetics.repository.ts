@@ -29,10 +29,16 @@ export class DragonGeneticsRepository {
       mastery: snapshot.mastery,
       misconceptionFlags: Object.values(snapshot.mastery)
         .flatMap(record => record?.misconceptionFlags ?? []),
+      teamRole: snapshot.teamRole,
+      week1Score: snapshot.week1Score,
+      week1Passed: snapshot.week1Passed,
+      week2Score: snapshot.week2Score,
+      week2Passed: snapshot.week2Passed,
       licensePassed: snapshot.licensePassed,
       officialAttemptsUsed: snapshot.officialAttempts.length,
       championId: snapshot.championId,
       battleResult: snapshot.battleResult,
+      finalSubmitted: snapshot.finalSubmitted,
       updatedAt: serverTimestamp(),
     }, { merge: true });
   }
