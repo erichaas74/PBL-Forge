@@ -1,0 +1,46 @@
+<section class="arena-shell" aria-label="Dragon battle arena">
+  <div class="arena-stage">
+    <app-arena-viewport [controlFrameFactory]="controlFrameFactory" />
+    @if (!arena.state().isRunning && !arena.state().winnerId) {
+      <div class="arena-overlay">
+        <span>Physics arena ready</span>
+        <strong>{{ champion().name }} vs. The Arena Warden</strong>
+        <button type="button" (click)="toggleBattle()">Begin battle</button>
+      </div>
+    }
+    @if (winnerName(); as winner) {
+      <div class="arena-overlay result">
+        <span>Battle complete</span>
+        <strong>{{ winner }} wins</strong>
+        <button type="button" (click)="resetBattle()">Run another trial</button>
+      </div>
+    }
+  </div>
+
+  <div class="scoreboard">
+    @for (entry of scoreboard(); track entry.combatantId) {
+      <article [class.opponent]="entry.team === 'blue'">
+        <div><span>{{ entry.team === 'red' ? 'Your champion' : 'AI challenger' }}</span><strong>{{ entry.name }}</strong></div>
+        <b>{{ entry.destroyedParts }}/{{ entry.partCount }} parts lost</b>
+        <div class="health"><i [style.width.%]="healthPercent(entry.totalHealth, entry.maxTotalHealth)"></i></div>
+      </article>
+    }
+  </div>
+
+  <div class="battle-controls" aria-label="Arena controls">
+    <div class="move-pad">
+      <button type="button" aria-label="Move forward" (pointerdown)="setControl('forward', true)" (pointerup)="setControl('forward', false)" (pointerleave)="setControl('forward', false)">↑</button>
+      <button type="button" aria-label="Turn left" (pointerdown)="setControl('left', true)" (pointerup)="setControl('left', false)" (pointerleave)="setControl('left', false)">←</button>
+      <button type="button" aria-label="Move backward" (pointerdown)="setControl('back', true)" (pointerup)="setControl('back', false)" (pointerleave)="setControl('back', false)">↓</button>
+      <button type="button" aria-label="Turn right" (pointerdown)="setControl('right', true)" (pointerup)="setControl('right', false)" (pointerleave)="setControl('right', false)">→</button>
+    </div>
+    <div class="attack-controls">
+      <button type="button" (click)="attack('bite')"><span>Bite</span><small>Jaw + fire trait</small></button>
+      <button type="button" [disabled]="!canWingAttack()" (click)="attack('wing')"><span>Wing buffet</span><small>{{ canWingAttack() ? 'Winged genotype' : 'Unavailable: wingless' }}</small></button>
+      <button type="button" (click)="attack('tail')"><span>Tail sweep</span><small>Timing + position</small></button>
+      <button type="button" class="boost" (pointerdown)="setControl('boost', true)" (pointerup)="setControl('boost', false)" (pointerleave)="setControl('boost', false)"><span>Boost</span><small>Hold briefly</small></button>
+    </div>
+    <button class="pause" type="button" (click)="toggleBattle()">{{ arena.state().isRunning ? 'Pause' : 'Resume' }}</button>
+  </div>
+  <p class="arena-note"><strong>Science note:</strong> inherited traits influence the generated body and available moves, but player tactics, collisions, and physics also influence the winner. The battle result is not your genetics mastery grade.</p>
+</section>

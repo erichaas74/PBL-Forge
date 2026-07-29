@@ -1,0 +1,41 @@
+<header class="dashboard-header">
+  <div><a routerLink="/teacher">← Teacher studio</a><p>Dragon Genetics · Teacher dashboard</p><h1>Mastery before<br><em>battle rank.</em></h1></div>
+  <div class="header-actions">
+    @if (session.isLocal && !isLocalTeacher()) { <button type="button" (click)="signInDemoTeacher()">Use demo teacher</button> }
+    <a class="preview" routerLink="/dragon-genetics">Open student experience ↗</a>
+  </div>
+</header>
+
+@if (error()) { <div class="notice" role="alert">{{ error() }}</div> }
+
+@if (progress$ | async; as students) {
+  <main>
+    <section class="summary-grid">
+      <article><span>Student records</span><strong>{{ students.length }}</strong></article>
+      <article><span>Licenses earned</span><strong>{{ countLicensed(students) }}</strong><small>See individual status below</small></article>
+      <article><span>Official breeders</span><strong>{{ countOfficialBreeders(students) }}</strong><small>Attempts remain equal at 3/team</small></article>
+      <article><span>Battle reporting</span><strong>Separate</strong><small>Never substitutes for GEN mastery</small></article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading"><div><p>GEN-1 through GEN-8</p><h2>Skill mastery matrix</h2></div><span>1 Not Yet · 2 Approaching · 3 Meets · 4 Exceeds</span></div>
+      @if (students.length) {
+        <div class="matrix">
+          <header><strong>Student</strong>@for (skill of skills; track skill) { <span>{{ skill }}</span> }<span>Module</span></header>
+          @for (student of students; track student.id) { <div><strong>{{ studentLabel(student.studentId) }}</strong>@for (skill of skills; track skill) { <span [class]="'level level-' + masteryLevel(student, skill)">{{ masteryLevel(student, skill) || '—' }}</span> }<span>{{ student.activeModule }}/10</span></div> }
+          <footer><strong>Class average</strong>@for (skill of skills; track skill) { <span>{{ averageLevel(students, skill) }}</span> }<span>—</span></footer>
+        </div>
+      } @else if (!error()) { <div class="empty"><strong>No student records yet</strong><p>Records appear after students open the Dragon Genetics project and begin Module 1.</p></div> }
+    </section>
+
+    <div class="dashboard-grid">
+      <section class="panel"><div class="panel-heading"><div><p>Targeted reteach</p><h2>Repeated misconceptions</h2></div></div>
+        @if (misconceptionCounts(students).length) { <ol class="misconceptions">@for (item of misconceptionCounts(students); track item.flag) { <li><span>{{ item.flag }}</span><strong>{{ item.count }}</strong></li> }</ol> } @else { <div class="empty"><p>No repeated flags recorded yet.</p></div> }
+      </section>
+      <section class="panel"><div class="panel-heading"><div><p>Readiness and outcomes</p><h2>Official challenge</h2></div></div>
+        <div class="student-list">@for (student of students; track student.id) { <article><div><strong>{{ studentLabel(student.studentId) }}</strong><small>{{ student.completedModules.length }}/10 modules · {{ student.officialAttemptsUsed }}/3 official crosses</small></div><span [class.ready]="student.licensePassed">{{ student.licensePassed ? 'Licensed' : 'Not ready' }}</span><b>{{ student.battleResult ? (student.battleResult.won ? 'Arena win' : 'Arena loss') : 'No battle' }}</b></article> }</div>
+        <p class="guardrail"><strong>Assessment guardrail:</strong> battle outcome is displayed for motivation only. Use the mastery matrix, prediction history, and individual evidence defense for academic decisions.</p>
+      </section>
+    </div>
+  </main>
+}

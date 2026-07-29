@@ -1,0 +1,85 @@
+<section class="assembly-garage" aria-labelledby="garage-title">
+  <header class="garage-header">
+    <div class="garage-title-group">
+      <span class="eyebrow">Independent Lab</span>
+      <h1 id="garage-title">Universal Assembly Garage</h1>
+    </div>
+
+    <div class="preset-actions" aria-label="Assembly load presets">
+      @for (preset of presets; track preset.id) {
+        <button
+          type="button"
+          class="preset-button"
+          [title]="preset.description"
+          (click)="loadPreset(preset)">
+          {{ preset.name }}
+        </button>
+      }
+    </div>
+
+    <div class="garage-actions" aria-label="Simulation controls">
+      <button type="button" class="secondary-action" (click)="toggleJsonPanel()">
+        JSON
+      </button>
+      <button type="button" class="secondary-action" (click)="showExportJson()">
+        Export
+      </button>
+      <button type="button" class="secondary-action" (click)="store.resetAssembly()">
+        Reset
+      </button>
+      <a class="secondary-action" routerLink="/assembly-arena">
+        Arena
+      </a>
+      <button type="button" class="primary-action" (click)="store.toggleSimulation()">
+        {{ store.state().isSimulating ? 'Pause Physics' : 'Run Physics' }}
+      </button>
+    </div>
+  </header>
+
+  @if (jsonPanelOpen()) {
+    <section class="json-panel" aria-label="Assembly JSON import and export">
+      <textarea
+        [value]="assemblyJson()"
+        (input)="updateAssemblyJson($event)"
+        spellcheck="false"
+        aria-label="Assembly JSON"></textarea>
+      <div class="json-actions">
+        <button type="button" class="secondary-action" (click)="showExportJson()">Refresh Export</button>
+        <button type="button" class="primary-action" (click)="importJson()">Import JSON</button>
+      </div>
+      <div class="library-save-panel" aria-label="Save assembly to creation library">
+        <label>
+          <span>Library name</span>
+          <input type="text" [value]="libraryAssetName()" (input)="updateLibraryAssetName($event)" />
+        </label>
+        <label>
+          <span>Description</span>
+          <input type="text" [value]="libraryAssetDescription()" (input)="updateLibraryAssetDescription($event)" />
+        </label>
+        <button type="button" class="primary-action" (click)="saveCurrentAssemblyToLibrary()">Save Object</button>
+      </div>
+      @if (jsonMessage()) {
+        <p class="json-message">{{ jsonMessage() }}</p>
+      }
+    </section>
+  }
+
+  <div class="garage-workspace">
+    <aside class="garage-panel garage-panel--left" aria-label="Assembly part and joint tools">
+      <app-garage-parts-panel />
+    </aside>
+
+    <app-garage-viewport
+      class="garage-stage"
+      [state]="store.state()"
+      [selectedPartId]="store.selection().partId"
+      (partSelected)="store.selectPart($event)"
+      (partMoved)="onPartMoved($event)"
+      (partDragFinished)="onPartDragFinished($event)"
+      (snapPointSelected)="onSnapPointSelected($event)" />
+
+    <aside class="garage-panel garage-panel--right" aria-label="Assembly inspector">
+      <app-garage-inspector />
+    </aside>
+  </div>
+</section>

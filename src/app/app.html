@@ -1,0 +1,36 @@
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<header class="site-header">
+  <a class="brand" routerLink="/catalog" aria-label="PBL Forge home">
+    <span class="brand-mark" aria-hidden="true">PF</span>
+    <span>
+      <strong>PBL Forge</strong>
+      <small>Build curiosity into action</small>
+    </span>
+  </a>
+
+  <nav aria-label="Main navigation">
+    <a routerLink="/catalog" routerLinkActive="active">Explore</a>
+    <a routerLink="/teacher" routerLinkActive="active">Teacher studio</a>
+  </nav>
+
+  <div class="session">
+    <span class="status-dot" aria-hidden="true"></span>
+    <span>{{ session.displayName() }}</span>
+    @if (!session.user() && !session.isLocal) {
+      <button type="button" (click)="signIn()">Sign in</button>
+    }
+    @if (session.isLocalTeacher()) {
+      <button type="button" (click)="returnToStudent()">Student mode</button>
+    }
+  </div>
+</header>
+
+<main id="main-content">
+  <router-outlet />
+</main>
+
+<footer>
+  <span>PBL Forge</span>
+  <span>Learning experiences designed for student agency.</span>
+</footer>

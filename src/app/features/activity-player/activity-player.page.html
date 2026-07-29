@@ -1,0 +1,125 @@
+@if (viewModel$ | async; as vm) {
+  @if (vm.activity; as activity) {
+    <section class="player-shell">
+      <aside class="context-panel">
+        <a [routerLink]="['/project', vm.projectId]">← Project overview</a>
+        <div class="context-copy">
+          <span>{{ vm.project?.title }}</span>
+          <h1>{{ activity.title }}</h1>
+          <p>{{ activity.prompt }}</p>
+        </div>
+        <div class="progress" aria-label="Activity progress">
+          <span class="complete"></span><span></span><span></span>
+          <small>Work saves when you check your response.</small>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <div class="workspace-heading">
+          <span class="activity-type">{{ activity.type }}</span>
+          <span>Activity {{ activity.order }}</span>
+        </div>
+
+        @switch (activity.type) {
+          @case ('choice') {
+            <fieldset class="choice-list">
+              <legend>Choose the best response</legend>
+              @for (option of activity.options; track option.id; let index = $index) {
+                <label [class.selected]="selectedChoice() === option.id">
+                  <input
+                    type="radio"
+                    name="choice"
+                    [value]="option.id"
+                    [checked]="selectedChoice() === option.id"
+                    (change)="selectedChoice.set(option.id); feedback.set('')"
+                  >
+                  <span class="option-letter">{{ ['A', 'B', 'C', 'D'][index] }}</span>
+                  <span>{{ option.label }}</span>
+                </label>
+              }
+            </fieldset>
+            <button
+              class="submit"
+              type="button"
+              [disabled]="!selectedChoice() || saving()"
+              (click)="submit(activity, vm.projectId)"
+            >
+              {{ saving() ? 'Saving…' : 'Check response' }}
+            </button>
+          }
+
+          @case ('matching') {
+            <div class="matching-list">
+              <h2>Build the connections</h2>
+              @for (item of activity.left; track item.id; let index = $index) {
+                <div class="match-row">
+                  <span class="row-number">{{ index + 1 }}</span>
+                  <strong>{{ item.label }}</strong>
+                  <span class="connector" aria-hidden="true">→</span>
+                  <label>
+                    <span class="sr-only">Match for {{ item.label }}</span>
+                    <select
+                      [value]="matches()[item.id]"
+                      (change)="setMatch(item.id, $any($event.target).value)"
+                    >
+                      <option value="">Choose a system…</option>
+                      @for (answer of activity.right; track answer.id) {
+                        <option [value]="answer.id">{{ answer.label }}</option>
+                      }
+                    </select>
+                  </label>
+                </div>
+              }
+            </div>
+            <button
+              class="submit"
+              type="button"
+              [disabled]="!matchingComplete(activity) || saving()"
+              (click)="submit(activity, vm.projectId)"
+            >
+              {{ saving() ? 'Saving…' : 'Check connections' }}
+            </button>
+          }
+
+          @case ('reflection') {
+            <div class="reflection-area">
+              <label for="reflection">Build your explanation</label>
+              <p>Use a claim, specific evidence, and the tradeoff you considered.</p>
+              <textarea
+                id="reflection"
+                rows="11"
+                [value]="reflection()"
+                (input)="setReflection($any($event.target).value)"
+                placeholder="Start with: I would prioritize…"
+              ></textarea>
+              <div class="writing-meta">
+                <span [class.ready]="reflectionComplete(activity)">
+                  {{ wordCount() }} / {{ activity.minWords }} words minimum
+                </span>
+              </div>
+            </div>
+            <button
+              class="submit"
+              type="button"
+              [disabled]="!reflectionComplete(activity) || saving()"
+              (click)="submit(activity, vm.projectId)"
+            >
+              {{ saving() ? 'Saving…' : 'Save reflection' }}
+            </button>
+          }
+        }
+
+        @if (feedback()) {
+          <div class="feedback" [class]="'feedback ' + feedbackTone()" role="status">
+            <span aria-hidden="true">{{ feedbackTone() === 'success' ? '✓' : '↻' }}</span>
+            <p>{{ feedback() }}</p>
+          </div>
+        }
+      </div>
+    </section>
+  } @else {
+    <div class="loading">That activity could not be found.</div>
+  }
+} @else {
+  <div class="loading" aria-live="polite">Loading activity…</div>
+}

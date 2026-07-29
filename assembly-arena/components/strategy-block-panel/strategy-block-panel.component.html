@@ -1,0 +1,251 @@
+<section class="strategy-panel" aria-label="Strategy blocks">
+  <h2>Strategy Blocks</h2>
+
+  <div class="strategy-grid">
+    <label>
+      <span>Combatant</span>
+      <select [value]="selectedCombatantId()" (change)="selectCombatant($event)">
+        @for (combatant of combatants(); track combatant.id) {
+          <option [value]="combatant.id">{{ combatant.team }} - {{ combatant.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      <span>Preset</span>
+      <select [value]="currentProgram()?.id ?? 'manual-keyboard'" (change)="applyPreset($event)">
+        @for (preset of presets; track preset.id) {
+          <option [value]="preset.id">{{ preset.name }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (currentProgram(); as program) {
+    <p class="program-copy">{{ program.description }}</p>
+  }
+
+  <div class="quick-actions" aria-label="Quick block actions">
+    <button type="button" (click)="addMovementBlock()">Add Movement</button>
+    <button type="button" (click)="addSensorBlock()">Add Sensor</button>
+    <button type="button" (click)="addRecoverBlock()">Add Recover</button>
+    <button type="button" (click)="addStuckBlock()">Add Stuck</button>
+    <button type="button" (click)="addRepeatBlock()">Add Repeat</button>
+  </div>
+
+  <div class="add-row">
+    <label>
+      <span>Block</span>
+      <select [value]="selectedBlockType()" (change)="selectBlockType($event)">
+        @for (option of blockOptions; track option.type) {
+          <option [value]="option.type">{{ option.group }} - {{ option.name }}</option>
+        }
+      </select>
+    </label>
+    <button type="button" (click)="addSelectedBlock()">Add</button>
+  </div>
+
+  <div class="block-list">
+    @for (block of currentBlocks(); track block.id; let first = $first; let last = $last) {
+      <article class="strategy-block">
+        <header>
+          <strong>{{ blockLabel(block.type) }}</strong>
+          <div class="block-actions">
+            <button type="button" [disabled]="first" (click)="moveBlock(block.id, -1)">Up</button>
+            <button type="button" [disabled]="last" (click)="moveBlock(block.id, 1)">Down</button>
+            <button type="button" class="danger" (click)="removeBlock(block.id)">Remove</button>
+          </div>
+        </header>
+
+        <div class="param-grid">
+          @if (hasParam(block, 'amount')) {
+            <label>
+              <span>Amount</span>
+              <input
+                type="number"
+                step="0.05"
+                min="-1"
+                max="1"
+                [value]="paramNumber(block, 'amount')"
+                (input)="updateNumberParam(block, 'amount', $event)"
+              >
+            </label>
+          }
+
+          @if (hasParam(block, 'threshold')) {
+            <label>
+              <span>Distance</span>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                [value]="paramNumber(block, 'threshold')"
+                (input)="updateNumberParam(block, 'threshold', $event)"
+              >
+            </label>
+          }
+
+          @if (hasParam(block, 'seconds')) {
+            <label>
+              <span>Seconds</span>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                [value]="paramNumber(block, 'seconds')"
+                (input)="updateNumberParam(block, 'seconds', $event)"
+              >
+            </label>
+          }
+
+          @if (hasParam(block, 'speedThreshold')) {
+            <label>
+              <span>Speed</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                [value]="paramNumber(block, 'speedThreshold')"
+                (input)="updateNumberParam(block, 'speedThreshold', $event)"
+              >
+            </label>
+          }
+
+          @if (hasParam(block, 'firstDuration')) {
+            <label>
+              <span>First Time</span>
+              <input
+                type="number"
+                step="0.1"
+                min="0.1"
+                [value]="paramNumber(block, 'firstDuration')"
+                (input)="updateNumberParam(block, 'firstDuration', $event)"
+              >
+            </label>
+          }
+
+          @if (hasParam(block, 'secondDuration')) {
+            <label>
+              <span>Second Time</span>
+              <input
+                type="number"
+                step="0.1"
+                min="0.1"
+                [value]="paramNumber(block, 'secondDuration')"
+                (input)="updateNumberParam(block, 'secondDuration', $event)"
+              >
+            </label>
+          }
+
+          @if (hasParam(block, 'action')) {
+            <label>
+              <span>Action</span>
+              <select [value]="paramString(block, 'action')" (change)="updateStringParam(block, 'action', $event)">
+                <option value="boost">Boost</option>
+                <option value="ram">Ram</option>
+                <option value="bite">Bite</option>
+                <option value="wing-buffet">Wing Buffet</option>
+                <option value="tail-sweep">Tail Sweep</option>
+                <option value="recover">Recover</option>
+                <option value="stop">Stop</option>
+              </select>
+            </label>
+          }
+
+          @if (hasParam(block, 'attack')) {
+            <label>
+              <span>Attack</span>
+              <select [value]="paramString(block, 'attack')" (change)="updateStringParam(block, 'attack', $event)">
+                <option value="bite">Bite</option>
+                <option value="wing-buffet">Wing Buffet</option>
+                <option value="tail-sweep">Tail Sweep</option>
+              </select>
+            </label>
+          }
+
+          @if (hasParam(block, 'firstAction')) {
+            <label>
+              <span>First Action</span>
+              <select [value]="paramString(block, 'firstAction')" (change)="updateStringParam(block, 'firstAction', $event)">
+                <option value="chase">Chase</option>
+                <option value="back-up">Back Up</option>
+                <option value="bite">Bite</option>
+                <option value="wing-buffet">Wing Buffet</option>
+                <option value="tail-sweep">Tail Sweep</option>
+                <option value="boost">Boost</option>
+                <option value="avoid-wall">Avoid Wall</option>
+                <option value="aim">Aim</option>
+                <option value="stop">Stop</option>
+              </select>
+            </label>
+          }
+
+          @if (hasParam(block, 'secondAction')) {
+            <label>
+              <span>Second Action</span>
+              <select [value]="paramString(block, 'secondAction')" (change)="updateStringParam(block, 'secondAction', $event)">
+                <option value="back-up">Back Up</option>
+                <option value="chase">Chase</option>
+                <option value="bite">Bite</option>
+                <option value="wing-buffet">Wing Buffet</option>
+                <option value="tail-sweep">Tail Sweep</option>
+                <option value="boost">Boost</option>
+                <option value="avoid-wall">Avoid Wall</option>
+                <option value="aim">Aim</option>
+                <option value="stop">Stop</option>
+              </select>
+            </label>
+          }
+
+          @if (hasParam(block, 'enabled')) {
+            <label class="check-row">
+              <input
+                type="checkbox"
+                [checked]="paramBoolean(block, 'enabled')"
+                (change)="updateBooleanParam(block, 'enabled', $event)"
+              >
+              <span>Enabled</span>
+            </label>
+          }
+        </div>
+
+        @if (isSensorBlock(block)) {
+          <div class="child-blocks">
+            <label>
+              <span>Then</span>
+              <select [value]="childType(block)" (change)="updateChildType(block, $event)">
+                @for (childOption of childBlockOptions; track childOption.type) {
+                  <option [value]="childOption.type">{{ childOption.name }}</option>
+                }
+              </select>
+            </label>
+
+            @for (child of childBlocks(block); track child.id) {
+              <span class="child-chip">{{ blockLabel(child.type) }}</span>
+            }
+          </div>
+        }
+      </article>
+    } @empty {
+      <p class="empty-state">No blocks yet.</p>
+    }
+  </div>
+
+  <div class="json-tools">
+    <div class="json-actions">
+      <button type="button" (click)="exportJson()">Export JSON</button>
+      <button type="button" (click)="importJson()">Import JSON</button>
+    </div>
+    <textarea
+      rows="5"
+      spellcheck="false"
+      [value]="jsonText()"
+      (input)="setJsonText($event)"
+      aria-label="Strategy program JSON"
+    ></textarea>
+  </div>
+
+  @if (message(); as messageText) {
+    <p class="strategy-message" aria-live="polite">{{ messageText }}</p>
+  }
+</section>

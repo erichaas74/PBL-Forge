@@ -1,0 +1,92 @@
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow"><span></span> Project-based learning, ready to launch</p>
+    <h1>Real questions.<br><em>Student-built</em> answers.</h1>
+    <p class="intro">
+      Explore short, focused learning experiences that ask students to investigate, decide,
+      create, and explain—not just click through content.
+    </p>
+    <a class="primary-action" href="#project-catalog">Browse projects <span>↓</span></a>
+  </div>
+
+  <aside class="hero-card" aria-label="Learning experience preview">
+    <div class="card-topline">
+      <span>New three-week challenge</span>
+      <span class="number">03</span>
+    </div>
+    <div class="orbit" aria-hidden="true">
+      <span class="planet"></span>
+      <span class="satellite"></span>
+    </div>
+    <h2>Breed with<br>evidence.</h2>
+    <p>Genetics · Data · Scientific argument</p>
+  </aside>
+</section>
+
+<section id="project-catalog" class="catalog" aria-labelledby="catalog-heading">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow"><span></span> Available now</p>
+      <h2 id="catalog-heading">Choose a challenge</h2>
+    </div>
+    <p>Every project includes a driving question, sequenced activities, and a place to capture student thinking.</p>
+  </div>
+
+  @if (repository.error(); as error) {
+    <div class="notice" role="alert">
+      <strong>Local data is not connected yet.</strong>
+      <span>{{ error }} Run <code>npm run dev</code> from the project folder.</span>
+    </div>
+  }
+
+  @if (projects$ | async; as projects) {
+    @if (projects.length) {
+      <div class="project-grid">
+        @for (project of projects; track project.id; let index = $index) {
+          <article class="project-card" [class]="'project-card ' + project.accent">
+            <div class="project-number">0{{ index + 1 }}</div>
+            <div class="tags">
+              @for (subject of project.subject; track subject) {
+                <span>{{ subject }}</span>
+              }
+            </div>
+            <h3>{{ project.title }}</h3>
+            <p>{{ project.summary }}</p>
+            <dl>
+              <div>
+                <dt>Grades</dt>
+                <dd>{{ project.gradeBand }}</dd>
+              </div>
+              <div>
+                <dt>Time</dt>
+                <dd>{{ project.durationLabel ?? (project.durationMinutes + ' min') }}</dd>
+              </div>
+              <div>
+                <dt>Activities</dt>
+                <dd>{{ project.activityCount }}</dd>
+              </div>
+            </dl>
+            <a [routerLink]="projectLink(project)">
+              Open project <span aria-hidden="true">↗</span>
+            </a>
+          </article>
+        }
+      </div>
+    } @else if (!repository.error()) {
+      <div class="empty-state">
+        <span aria-hidden="true">◇</span>
+        <h3>Waiting for project data</h3>
+        <p>The emulator is connected, but no published projects are available yet.</p>
+      </div>
+    }
+  } @else {
+    <div class="loading" aria-live="polite">Loading project catalog…</div>
+  }
+</section>
+
+<section class="principles" aria-label="PBL Forge design principles">
+  <p>Built around</p>
+  <div><strong>01</strong><span>Authentic<br>questions</span></div>
+  <div><strong>02</strong><span>Visible<br>thinking</span></div>
+  <div><strong>03</strong><span>Student<br>agency</span></div>
+</section>

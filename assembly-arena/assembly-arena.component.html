@@ -1,0 +1,273 @@
+<section class="assembly-arena" aria-labelledby="arena-title">
+  <header class="arena-header">
+    <div class="arena-title-group">
+      <span class="eyebrow">Battle Runtime</span>
+      <h1 id="arena-title">Assembly Battle Arena</h1>
+    </div>
+
+    <div class="load-controls" aria-label="Combatant load controls">
+      <label>
+        <span>Setup</span>
+        <select [value]="setupStyleId()" (change)="loadSetup($event)">
+          @for (setup of setups(); track setup.id) {
+            <option [value]="setup.id">{{ setup.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Red</span>
+        <select [value]="redPresetId()" (change)="setPreset('red', $event)">
+          @for (preset of presets(); track preset.id) {
+            <option [value]="preset.id">{{ preset.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Red control</span>
+        <select [value]="redControlMode()" (change)="setControlMode('red', $event)">
+          @for (mode of controlModes; track mode.id) {
+            <option [value]="mode.id">{{ mode.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Blue</span>
+        <select [value]="bluePresetId()" (change)="setPreset('blue', $event)">
+          @for (preset of presets(); track preset.id) {
+            <option [value]="preset.id">{{ preset.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Blue control</span>
+        <select [value]="blueControlMode()" (change)="setControlMode('blue', $event)">
+          @for (mode of controlModes; track mode.id) {
+            <option [value]="mode.id">{{ mode.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Battle mode</span>
+        <select [value]="playMode()" (change)="setPlayMode($event)">
+          @for (mode of battleModes; track mode.id) {
+            <option [value]="mode.id">{{ mode.name }}</option>
+          }
+        </select>
+      </label>
+
+      <button type="button" class="secondary-action" (click)="loadSelectedMatch()">Load Match</button>
+    </div>
+
+    <div class="arena-actions" aria-label="Arena controls">
+      <button type="button" class="secondary-action" (click)="store.resetCurrentMatch()">Reset</button>
+      @if (store.state().playMode === 'turn-based') {
+        <button type="button" class="secondary-action" (click)="endTurn()">End Turn</button>
+      }
+      <button type="button" class="primary-action" (click)="toggleRunning()">
+        {{ store.state().isRunning ? 'Pause' : 'Start Battle' }}
+      </button>
+    </div>
+  </header>
+
+  @if (winnerName()) {
+    <div class="winner-strip" aria-live="polite">
+      {{ winnerName() }} wins the run.
+    </div>
+  }
+
+  <div class="setup-strip">
+    <strong>{{ store.state().setupName }}</strong>
+    <span>{{ store.state().setupDescription }}</span>
+    <em>
+      {{ store.state().isRunning ? 'Running' : 'Paused' }}
+      | {{ store.state().elapsedSeconds.toFixed(1) }}s
+      | {{ store.matchSummary().partCount }} parts
+      @if (store.state().playMode === 'turn-based') {
+        | Turn {{ store.state().turnNumber }}: {{ store.state().activeTeam }} active
+      }
+    </em>
+  </div>
+
+  <div class="arena-shell">
+    <app-arena-viewport class="arena-stage" [controlFrameFactory]="controlFrameFactory" />
+
+    <aside class="arena-panel" aria-label="Battle status">
+      <section class="status-section">
+        <h2>Scoreboard</h2>
+        @for (entry of store.scoreboard(); track entry.combatantId) {
+          <article
+            class="score-row"
+            [class.score-row--red]="entry.team === 'red'"
+            [class.score-row--blue]="entry.team === 'blue'"
+            [class.score-row--active]="store.state().playMode === 'turn-based' && entry.team === store.state().activeTeam">
+            <div class="score-title">
+              <span>{{ entry.name }}</span>
+              <strong>{{ entry.team }}</strong>
+            </div>
+            <p class="mode-label">{{ entry.controlMode }}</p>
+            <div class="meter" aria-label="Core health">
+              <span [style.width.%]="healthPercent(entry.coreHealth, entry.coreMaxHealth)"></span>
+            </div>
+            <dl>
+              <div>
+                <dt>Core</dt>
+                <dd>{{ entry.coreHealth.toFixed(0) }}</dd>
+              </div>
+              <div>
+                <dt>Total</dt>
+                <dd>{{ entry.totalHealth.toFixed(0) }} / {{ entry.maxTotalHealth.toFixed(0) }}</dd>
+              </div>
+              <div>
+                <dt>Broken</dt>
+                <dd>{{ entry.destroyedParts }} / {{ entry.partCount }}</dd>
+              </div>
+            </dl>
+          </article>
+        }
+      </section>
+
+      <section class="status-section">
+        <h2>Controls</h2>
+        <div class="virtual-controls" aria-label="Battle movement test buttons">
+          <button
+            type="button"
+            (pointerdown)="setVirtualControl('w', true, $event)"
+            (pointerup)="setVirtualControl('w', false, $event)"
+            (pointerleave)="setVirtualControl('w', false, $event)"
+            (pointercancel)="setVirtualControl('w', false, $event)">
+            Forward
+          </button>
+          <button
+            type="button"
+            (pointerdown)="setVirtualControl('s', true, $event)"
+            (pointerup)="setVirtualControl('s', false, $event)"
+            (pointerleave)="setVirtualControl('s', false, $event)"
+            (pointercancel)="setVirtualControl('s', false, $event)">
+            Back
+          </button>
+          <button
+            type="button"
+            (pointerdown)="setVirtualControl('a', true, $event)"
+            (pointerup)="setVirtualControl('a', false, $event)"
+            (pointerleave)="setVirtualControl('a', false, $event)"
+            (pointercancel)="setVirtualControl('a', false, $event)">
+            Left
+          </button>
+          <button
+            type="button"
+            (pointerdown)="setVirtualControl('d', true, $event)"
+            (pointerup)="setVirtualControl('d', false, $event)"
+            (pointerleave)="setVirtualControl('d', false, $event)"
+            (pointercancel)="setVirtualControl('d', false, $event)">
+            Right
+          </button>
+          <button
+            type="button"
+            (pointerdown)="setVirtualControl('shift', true, $event)"
+            (pointerup)="setVirtualControl('shift', false, $event)"
+            (pointerleave)="setVirtualControl('shift', false, $event)"
+            (pointercancel)="setVirtualControl('shift', false, $event)">
+            Boost
+          </button>
+        </div>
+        <div class="control-grid">
+          <span>W/S</span><span>Throttle</span>
+          <span>A/D</span><span>Turn</span>
+          <span>Q/E</span><span>Strafe shove</span>
+          <span>Shift</span><span>Boost / righting pop</span>
+          <span>Space</span><span>Bite lunge</span>
+          <span>J</span><span>Wing buffet</span>
+          <span>K</span><span>Tail sweep</span>
+        </div>
+        <div class="attack-buttons" aria-label="Dragon attack test buttons">
+          <button type="button" (click)="triggerAttack('bite')">Bite</button>
+          <button type="button" (click)="triggerAttack('wing')">Wing</button>
+          <button type="button" (click)="triggerAttack('tail')">Tail</button>
+        </div>
+      </section>
+
+      <section class="status-section">
+        <h2>Turn Attack Moves</h2>
+        <div class="attack-move-toolbar">
+          <select [value]="selectedAttackMoveId()" (change)="setSelectedAttackMove($event)">
+            @for (move of allAttackMoves(); track move.id) {
+              <option [value]="move.id">{{ move.name }}</option>
+            }
+          </select>
+          <button type="button" (click)="playSelectedAttackMove()">Use Move</button>
+        </div>
+        <div class="attack-move-detail">
+          <strong>{{ selectedAttackMove().name }}</strong>
+          <span>{{ selectedAttackMove().description }}</span>
+          <small>
+            {{ selectedAttackMove().steps.length }} steps
+            | {{ selectedAttackMove().tags.join(', ') }}
+            @if (activeAttackMoveName()) {
+              | Active: {{ activeAttackMoveName() }}
+            }
+          </small>
+        </div>
+      </section>
+
+      <section class="status-section">
+        <h2>Attack Move Builder</h2>
+        <label class="move-field">
+          <span>Name</span>
+          <input type="text" [value]="draftAttackMoveName()" (input)="setDraftAttackMoveName($event)" />
+        </label>
+        <label class="move-field">
+          <span>Description</span>
+          <input type="text" [value]="draftAttackMoveDescription()" (input)="setDraftAttackMoveDescription($event)" />
+        </label>
+        <div class="move-step-list">
+          @for (step of draftAttackMoveSteps(); track $index; let index = $index) {
+            <div class="move-step-row">
+              <select [value]="step.action" (change)="updateDraftStepAction(index, $event)">
+                @for (option of attackMoveActionOptions; track option.id) {
+                  <option [value]="option.id">{{ option.name }}</option>
+                }
+              </select>
+              <input
+                type="number"
+                min="0.05"
+                step="0.05"
+                [value]="step.durationSeconds"
+                aria-label="Step seconds"
+                (input)="updateDraftStepNumber(index, 'durationSeconds', $event)" />
+              <input
+                type="number"
+                min="0"
+                max="1.5"
+                step="0.05"
+                [value]="step.amount"
+                aria-label="Step amount"
+                (input)="updateDraftStepNumber(index, 'amount', $event)" />
+              <button type="button" aria-label="Remove step" (click)="removeDraftAttackMoveStep(index)">Remove</button>
+            </div>
+          }
+        </div>
+        <div class="move-builder-actions">
+          <button type="button" class="secondary-action" (click)="addDraftAttackMoveStep()">Add Step</button>
+          <button type="button" class="secondary-action" (click)="saveDraftAttackMove()">Save Move</button>
+        </div>
+        <pre class="move-snippet">{{ draftAttackMoveSnippet() }}</pre>
+      </section>
+
+      <app-strategy-block-panel />
+
+      <section class="status-section">
+        <h2>Event Log</h2>
+        <ol class="event-list">
+          @for (event of store.state().events; track $index) {
+            <li>{{ event }}</li>
+          }
+        </ol>
+      </section>
+    </aside>
+  </div>
+</section>

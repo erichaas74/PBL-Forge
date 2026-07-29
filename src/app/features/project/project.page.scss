@@ -1,0 +1,267 @@
+.project-hero,
+.learning-path,
+.loading {
+  width: min(1120px, 92vw);
+  margin-inline: auto;
+}
+
+.project-hero {
+  --accent: var(--coral);
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: clamp(3rem, 8vw, 8rem);
+  align-items: center;
+  min-height: 32rem;
+  padding-block: 4.5rem;
+}
+
+.project-hero.teal { --accent: var(--teal); }
+.project-hero.gold { --accent: var(--gold); }
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 3.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--ink);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.tags span {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 20%, white);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  max-width: 42rem;
+  margin-bottom: 1.25rem;
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 5.5vw, 5.3rem);
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+}
+
+.project-main > p {
+  max-width: 40rem;
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 1.08rem;
+  line-height: 1.65;
+}
+
+.question-card {
+  position: relative;
+  padding: 2rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.7rem 1.7rem 1.7rem 0.45rem;
+  background: var(--accent);
+  box-shadow: 10px 10px 0 var(--ink);
+}
+
+.question-card > span {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+blockquote {
+  margin: 3rem 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 2.7vw, 2.35rem);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.meta {
+  display: flex;
+  gap: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgb(17 33 46 / 30%);
+}
+
+.meta span {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.meta strong {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+}
+
+.learning-path {
+  padding-block: 5rem 7rem;
+  border-top: 1px solid var(--line);
+}
+
+.path-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.path-heading p {
+  margin-bottom: 0.6rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.path-heading h2 {
+  margin-bottom: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  letter-spacing: -0.05em;
+}
+
+.path-heading > span {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  display: grid;
+  grid-template-columns: 2rem 4rem 1fr auto;
+  align-items: center;
+  gap: 1.4rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--line);
+}
+
+li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.step-number {
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.activity-symbol {
+  display: grid;
+  width: 3.6rem;
+  height: 3.6rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 850;
+}
+
+.activity-copy > span {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.activity-copy h3 {
+  margin: 0.2rem 0 0.25rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.activity-copy p {
+  max-width: 42rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+li > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--ink);
+  border-radius: 0.65rem;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+li > a:hover {
+  background: var(--ink);
+  color: white;
+}
+
+.empty,
+.loading {
+  padding-block: 6rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .project-hero {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    padding-block: 3rem 4.5rem;
+  }
+
+  .back-link {
+    margin-bottom: 2rem;
+  }
+
+  li {
+    grid-template-columns: 2rem 3.4rem 1fr;
+  }
+
+  li > a {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  .path-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+}

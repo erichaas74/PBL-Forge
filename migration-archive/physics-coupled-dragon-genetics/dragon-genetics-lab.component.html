@@ -1,0 +1,387 @@
+<div class="lab-shell">
+  <header class="lab-header">
+    <div class="brand-block">
+      <span class="brand-icon" aria-hidden="true">🐉</span>
+      <div>
+        <span class="eyebrow">Unit 1 · MS-LS3 Heredity</span>
+        <h1>Dragon Genetics Lab</h1>
+        <p>Royal Dragon Hatchery · Grade 7 investigation</p>
+      </div>
+    </div>
+    <div class="header-tools">
+      <div class="progress-copy"><strong>{{ store.progressPercent() }}%</strong> lab complete</div>
+      <div class="progress-track" aria-label="Lab progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="store.progressPercent()">
+        <span [style.width.%]="store.progressPercent()"></span>
+      </div>
+      <button class="quiet-button" type="button" (click)="glossaryOpen.set(!glossaryOpen())">Vocabulary</button>
+      <button class="quiet-button danger-text" type="button" (click)="resetLab()">Start over</button>
+    </div>
+  </header>
+
+  <nav class="stage-nav" aria-label="Dragon Genetics Lab sections">
+    @for (stage of stages; track stage.id; let index = $index) {
+      <button
+        type="button"
+        [class.active]="store.stage() === stage.id"
+        [class.visited]="index < activeStageIndex()"
+        (click)="goToStage(stage.id)">
+        <span class="stage-number">{{ index + 1 }}</span>
+        <span><small>Week {{ stage.week }}</small>{{ stage.shortLabel }}</span>
+      </button>
+    }
+  </nav>
+
+  @if (message()) {
+    <div class="lab-message" role="status">
+      <span aria-hidden="true">✦</span>
+      <span>{{ message() }}</span>
+      <button type="button" aria-label="Dismiss message" (click)="message.set(null)">×</button>
+    </div>
+  }
+
+  @if (glossaryOpen()) {
+    <aside class="glossary" aria-label="Genetics vocabulary">
+      <div class="section-heading compact-heading">
+        <div><span class="eyebrow">Reference</span><h2>Lab vocabulary</h2></div>
+        <button class="icon-button" type="button" aria-label="Close vocabulary" (click)="glossaryOpen.set(false)">×</button>
+      </div>
+      <div class="glossary-grid">
+        @for (entry of vocabulary; track entry.term) {
+          <div><strong>{{ entry.term }}</strong><p>{{ entry.definition }}</p></div>
+        }
+      </div>
+    </aside>
+  }
+
+  <main class="lab-main">
+    @switch (store.stage()) {
+      @case ('mission') {
+        <section class="mission-hero panel">
+          <div class="mission-copy">
+            <span class="eyebrow gold">Mission announcement</span>
+            <h2>The hatchery needs geneticists—not treasure hunters.</h2>
+            <p class="lead">A new generation of dragon eggs shows wings, fire breathing, rare scale patterns, and unexpected combinations. Investigate how traits pass from parents to offspring and recommend a breeding plan that protects variation.</p>
+            <div class="driving-question">
+              <span>Driving question</span>
+              <strong>How are traits passed from parents to offspring, and why do offspring show variation?</strong>
+            </div>
+            <button class="primary-button" type="button" (click)="goToStage('traits')">Accept the mission <span>→</span></button>
+          </div>
+          <div class="mission-seal" aria-label="Royal Dragon Hatchery genetics board seal">
+            <div>ROYAL</div><strong>🐲</strong><div>HATCHERY</div><small>GENETICS BOARD</small>
+          </div>
+        </section>
+
+        <section class="two-column overview-grid">
+          <article class="panel">
+            <span class="eyebrow">Your learning targets</span>
+            <h3>By the end, I can…</h3>
+            <ul class="check-list">
+              <li>distinguish inherited traits from learned or environmental effects.</li>
+              <li>connect alleles and genotype to an observable phenotype.</li>
+              <li>use Punnett models to predict possible offspring.</li>
+              <li>explain why a small sample may differ from a probability.</li>
+              <li>use evidence to defend a diversity-focused recommendation.</li>
+            </ul>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">Three-week field plan</span>
+            <h3>Evidence you will produce</h3>
+            <ol class="week-list">
+              <li><span>1</span><div><strong>Profile the parents</strong><p>Vocabulary, trait sort, and phenotype evidence.</p></div></li>
+              <li><span>2</span><div><strong>Model inheritance</strong><p>Punnett models, predictions, hatchery sample, and explanation.</p></div></li>
+              <li><span>3</span><div><strong>Advise the board</strong><p>Diversity dashboard, breeding recommendation, and lab report.</p></div></li>
+            </ol>
+          </article>
+        </section>
+
+        <section class="model-boundary panel">
+          <span class="model-icon">MODEL</span>
+          <div><h3>A useful model is honest about its limits</h3><p>This investigation uses four imaginary, single-gene traits with simple dominant/recessive patterns. Real traits can involve many genes and environmental factors. Dominant never means stronger, healthier, better, or more common.</p></div>
+        </section>
+      }
+
+      @case ('traits') {
+        <section class="section-heading">
+          <div><span class="eyebrow">Week 1 deliverable</span><h2>Traits & genetic information</h2><p>Read the mini-lessons, then classify evidence from the hatchery.</p></div>
+          <div class="score-chip">{{ store.completedLessonIds().length }}/{{ lessons.length }} lessons reviewed</div>
+        </section>
+
+        <section class="lesson-grid" aria-label="Genetics mini-lessons">
+          @for (lesson of lessons; track lesson.id) {
+            <article class="lesson-card" [class.complete]="isLessonComplete(lesson.id)">
+              <div class="lesson-top"><span>{{ lesson.number }}</span><small>Mini-lesson</small></div>
+              <h3>{{ lesson.title }}</h3>
+              <p>{{ lesson.summary }}</p>
+              <div class="model-note"><strong>Model note:</strong> {{ lesson.modelNote }}</div>
+              <div class="vocab-pills">
+                @for (word of lesson.vocabulary; track word) { <span>{{ word }}</span> }
+              </div>
+              <button type="button" class="lesson-check" (click)="store.toggleLesson(lesson.id)">
+                <span>{{ isLessonComplete(lesson.id) ? '✓' : '○' }}</span>
+                {{ isLessonComplete(lesson.id) ? 'Reviewed' : 'Mark reviewed' }}
+              </button>
+            </article>
+          }
+        </section>
+
+        <section class="panel activity-panel">
+          <div class="section-heading compact-heading">
+            <div><span class="eyebrow">Evidence sort</span><h2>Inherited or acquired?</h2><p>Classify each characteristic. “Acquired” includes learned behaviors and environmental effects.</p></div>
+            @if (store.sortChecked()) { <div class="score-chip">{{ store.sortScore() }}/{{ sortCards.length }} correct</div> }
+          </div>
+          <div class="sort-grid">
+            @for (card of sortCards; track card.id) {
+              <article class="sort-card" [class.correct]="store.sortChecked() && sortAnswerIsCorrect(card.id)" [class.incorrect]="store.sortChecked() && !sortAnswerIsCorrect(card.id)">
+                <div><strong>{{ card.label }}</strong><p>{{ card.detail }}</p></div>
+                <div class="binary-choice" role="group" [attr.aria-label]="'Classify ' + card.label">
+                  <button type="button" [class.selected]="sortAnswer(card.id) === 'inherited'" (click)="store.answerSort(card.id, 'inherited')">Inherited</button>
+                  <button type="button" [class.selected]="sortAnswer(card.id) === 'learned-environmental'" (click)="store.answerSort(card.id, 'learned-environmental')">Learned / environment</button>
+                </div>
+                @if (store.sortChecked()) {
+                  <small class="feedback">{{ sortAnswerIsCorrect(card.id) ? 'Evidence supports this classification.' : 'Reconsider when this characteristic developed.' }}</small>
+                }
+              </article>
+            }
+          </div>
+          <div class="activity-action"><button class="primary-button" type="button" (click)="checkSort()">Check classifications</button></div>
+        </section>
+      }
+
+      @case ('inheritance') {
+        <section class="section-heading">
+          <div><span class="eyebrow">Week 2 · develop and use a model</span><h2>Inheritance prediction lab</h2><p>Select two parents, build a sample space, and predict the percentage of offspring with each dominant phenotype.</p></div>
+          @if (store.predictionChecked()) { <div class="score-chip">{{ store.predictionScore() }}/{{ traits.length }} models correct</div> }
+        </section>
+
+        <section class="parent-selector panel">
+          <div class="parent-column">
+            <label for="parent-a">Parent A</label>
+            <select id="parent-a" [value]="store.parentAId()" (change)="selectParent('a', $any($event.target).value)">
+              @for (parent of parents; track parent.id) { <option [value]="parent.id" [disabled]="parent.id === store.parentBId()">{{ parent.name }} · {{ parent.title }}</option> }
+            </select>
+            <app-dragon-portrait [profile]="store.parentA()" />
+          </div>
+          <div class="parent-cross" aria-hidden="true"><span>one allele</span><strong>×</strong><span>from each parent</span></div>
+          <div class="parent-column">
+            <label for="parent-b">Parent B</label>
+            <select id="parent-b" [value]="store.parentBId()" (change)="selectParent('b', $any($event.target).value)">
+              @for (parent of parents; track parent.id) { <option [value]="parent.id" [disabled]="parent.id === store.parentAId()">{{ parent.name }} · {{ parent.title }}</option> }
+            </select>
+            <app-dragon-portrait [profile]="store.parentB()" />
+          </div>
+        </section>
+
+        <div class="model-boundary mini-boundary panel"><span class="model-icon">!</span><p><strong>Dominance reminder:</strong> an uppercase allele controls the phenotype in this simplified model when present. It does not make that trait better or more valuable.</p></div>
+
+        <section class="trait-models">
+          @for (trait of traits; track trait.id) {
+            <article class="trait-model panel">
+              <header>
+                <div class="chromosome-badge">Chr {{ trait.chromosomeModel }}</div>
+                <div><h3>{{ trait.name }}</h3><p>{{ trait.description }}</p></div>
+                <div class="allele-key"><span><b>{{ trait.dominantAllele }}</b> {{ trait.dominantPhenotype }}</span><span><b>{{ trait.recessiveAllele }}</b> {{ trait.recessivePhenotype }}</span></div>
+              </header>
+              <div class="model-workspace">
+                <div>
+                  <h4>Parent evidence</h4>
+                  <div class="genotype-line"><span>{{ store.parentA().name }}</span><strong>{{ parentGenotype(store.parentA(), trait.id) }}</strong><small>{{ parentPhenotype(store.parentA(), trait.id) }}</small></div>
+                  <div class="genotype-line"><span>{{ store.parentB().name }}</span><strong>{{ parentGenotype(store.parentB(), trait.id) }}</strong><small>{{ parentPhenotype(store.parentB(), trait.id) }}</small></div>
+                </div>
+                <div>
+                  <h4>Four equally likely allele combinations</h4>
+                  <div class="punnett" [attr.aria-label]="'Punnett square for ' + trait.name">
+                    <span class="corner">×</span>
+                    <span class="axis">{{ store.parentB().genome[trait.id][0] }}</span>
+                    <span class="axis">{{ store.parentB().genome[trait.id][1] }}</span>
+                    <span class="axis">{{ store.parentA().genome[trait.id][0] }}</span>
+                    <strong>{{ formatGenotype(punnettCells(trait.id)[0].genotype) }}</strong>
+                    <strong>{{ formatGenotype(punnettCells(trait.id)[1].genotype) }}</strong>
+                    <span class="axis">{{ store.parentA().genome[trait.id][1] }}</span>
+                    <strong>{{ formatGenotype(punnettCells(trait.id)[2].genotype) }}</strong>
+                    <strong>{{ formatGenotype(punnettCells(trait.id)[3].genotype) }}</strong>
+                  </div>
+                </div>
+                <div class="prediction-box">
+                  <h4>Your prediction</h4>
+                  <p>What percent of possible offspring show <strong>{{ trait.dominantPhenotype.toLowerCase() }}</strong>?</p>
+                  <div class="probability-options" role="group" [attr.aria-label]="'Prediction for ' + trait.name">
+                    @for (choice of probabilityChoices; track choice) {
+                      <button type="button" [class.selected]="predictionFor(trait.id) === choice" (click)="store.setPrediction(trait.id, choice)">{{ choice }}%</button>
+                    }
+                  </div>
+                  @if (store.predictionChecked()) {
+                    <div class="prediction-feedback" [class.correct]="predictionFor(trait.id) === expectedProbability(trait.id)">
+                      {{ predictionFor(trait.id) === expectedProbability(trait.id) ? 'Correct' : 'Model result: ' + expectedProbability(trait.id) + '%' }} · {{ dominantPunnettCellCount(trait.id) }} of 4 cells
+                    </div>
+                  }
+                </div>
+              </div>
+            </article>
+          }
+        </section>
+        <div class="center-action"><button class="primary-button" type="button" (click)="checkPredictions()">Check all predictions</button></div>
+      }
+
+      @case ('hatchery') {
+        <section class="section-heading">
+          <div><span class="eyebrow">Week 2 · analyze and interpret data</span><h2>Hatchery results</h2><p>Probability describes many possible trials. A clutch of eight is only one random sample.</p></div>
+          <button class="primary-button" type="button" [disabled]="!store.predictionChecked()" (click)="hatchClutch()">{{ store.clutch().length ? 'Hatch another sample' : 'Hatch 8 eggs' }}</button>
+        </section>
+
+        @if (!store.predictionChecked()) {
+          <section class="empty-state panel"><span>🥚</span><h2>Predictions come before results</h2><p>Complete and check the four inheritance predictions so your observations cannot change your original hypothesis.</p><button class="secondary-button" type="button" (click)="goToStage('inheritance')">Return to prediction lab</button></section>
+        } @else if (store.clutch().length === 0) {
+          <section class="empty-state panel"><span>🥚</span><h2>The clutch is ready</h2><p>Hatch eight eggs to collect one sample. Each hatchling independently receives one allele from each parent at every modeled gene.</p><button class="primary-button" type="button" (click)="hatchClutch()">Hatch the clutch</button></section>
+        } @else {
+          <section class="hatchery-layout">
+            <div>
+              <div class="clutch-grid">
+                @for (dragon of store.clutch(); track dragon.id) {
+                  <button class="hatchling-card" type="button" [class.selected]="store.selectedOffspringId() === dragon.id" (click)="store.selectOffspring(dragon.id)">
+                    <app-dragon-portrait [profile]="dragon" />
+                    <strong>{{ dragon.name }}</strong>
+                    <small>Click to inspect genotype</small>
+                  </button>
+                }
+              </div>
+            </div>
+
+            @if (store.selectedOffspring(); as dragon) {
+              <aside class="inspection panel">
+                <span class="eyebrow">Selected offspring</span><h2>{{ dragon.name }}</h2>
+                <div class="assembly-preview"><app-assembly-viewport [state]="dragon.assembly" [running]="false" /></div>
+                <p class="preview-caption">3D phenotype model generated from this inherited genotype.</p>
+                <table>
+                  <thead><tr><th>Gene</th><th>Genotype</th><th>Phenotype</th></tr></thead>
+                  <tbody>
+                    @for (trait of traits; track trait.id) {
+                      <tr><td>{{ trait.name }}</td><td class="mono">{{ offspringGenotype(dragon, trait.id) }}</td><td>{{ parentPhenotype(dragon, trait.id) }}</td></tr>
+                    }
+                  </tbody>
+                </table>
+                <p class="allele-origin"><span>{{ store.parentA().name }} supplied one allele</span><span>{{ store.parentB().name }} supplied one allele</span></p>
+              </aside>
+            }
+          </section>
+
+          <section class="panel results-table-panel">
+            <div class="section-heading compact-heading"><div><span class="eyebrow">Prediction vs. sample</span><h2>Does eight equal the theoretical probability?</h2></div><span class="score-chip">Sample {{ store.hatchRun() }}</span></div>
+            <div class="result-rows">
+              @for (trait of traits; track trait.id) {
+                <div class="result-row">
+                  <strong>{{ trait.name }}</strong>
+                  <span>Predicted <b>{{ expectedProbability(trait.id) }}%</b></span>
+                  <div class="mini-bar"><i [style.width.%]="expectedProbability(trait.id)"></i></div>
+                  <span>Observed <b>{{ clutchDominantPercent(trait.id) | number:'1.0-0' }}%</b> ({{ clutchDominantCount(trait.id) }}/{{ store.clutch().length }})</span>
+                  <div class="mini-bar observed"><i [style.width.%]="clutchDominantPercent(trait.id)"></i></div>
+                </div>
+              }
+            </div>
+            <div class="model-note sample-note"><strong>Interpretation:</strong> A result that differs from the prediction is not automatically an error. Probability describes a long-run pattern; small samples often vary.</div>
+          </section>
+        }
+      }
+
+      @case ('evidence') {
+        <section class="section-heading">
+          <div><span class="eyebrow">Week 2 checkpoint · construct an explanation</span><h2>Hatchery evidence board</h2><p>Choose one trait, compare prediction with observations, and explain variation using evidence.</p></div>
+        </section>
+
+        @if (store.clutch().length === 0) {
+          <section class="empty-state panel"><span>📋</span><h2>No hatchery evidence yet</h2><p>Hatch a clutch before constructing your explanation.</p><button class="secondary-button" type="button" (click)="goToStage('hatchery')">Go to hatchery</button></section>
+        } @else {
+          <section class="panel evidence-dashboard">
+            <div class="trait-tabs" role="tablist" aria-label="Trait evidence">
+              @for (trait of traits; track trait.id) { <button type="button" role="tab" [attr.aria-selected]="store.comparisonTraitId() === trait.id" [class.active]="store.comparisonTraitId() === trait.id" (click)="store.setComparisonTrait(trait.id)">{{ trait.name }}</button> }
+            </div>
+            <div class="comparison-display">
+              <div class="metric-card"><small>Punnett model</small><strong>{{ expectedDominantPercent() }}%</strong><span>predicted {{ selectedTrait().dominantPhenotype.toLowerCase() }}</span></div>
+              <div class="versus">compared with</div>
+              <div class="metric-card observed-card"><small>Clutch sample</small><strong>{{ observedDominantPercent() }}%</strong><span>{{ observedDominantCount() }} of {{ store.clutch().length }} observed</span></div>
+            </div>
+            <div class="large-bars">
+              <div><span>Predicted</span><i><b [style.width.%]="expectedDominantPercent()"></b></i></div>
+              <div><span>Observed</span><i><b [style.width.%]="observedDominantPercent()"></b></i></div>
+            </div>
+          </section>
+
+          <section class="two-column">
+            <article class="panel reproduction-card">
+              <span class="eyebrow">Reproduction & variation checkpoint</span><h3>Which model usually creates more genetic variation?</h3>
+              <div class="reproduction-models">
+                <button type="button" [class.selected]="store.reproductionAnswer() === 'sexual'" (click)="store.setReproductionAnswer('sexual')"><strong>Two-parent sexual reproduction</strong><span>Alleles from two parents recombine into new genotypes.</span></button>
+                <button type="button" [class.selected]="store.reproductionAnswer() === 'asexual'" (click)="store.setReproductionAnswer('asexual')"><strong>One-parent asexual reproduction</strong><span>Offspring usually begin with nearly the same genetic information.</span></button>
+              </div>
+              @if (store.reproductionAnswer()) {
+                <p class="checkpoint-feedback" [class.correct]="store.reproductionAnswer() === 'sexual'">{{ store.reproductionAnswer() === 'sexual' ? 'Correct. Mixing alleles creates more combinations among offspring. Mutations can also create variation.' : 'Try again. A one-parent copy usually preserves more similarity; combining alleles creates more combinations.' }}</p>
+              }
+            </article>
+            <article class="panel evidence-prompts">
+              <span class="eyebrow">Claim · evidence · reasoning</span><h3>Explain the clutch results</h3>
+              <label>Claim <small>Answer the driving question for this cross.</small><textarea rows="3" [value]="store.claim()" (input)="setTextField('claim', $event)" placeholder="The offspring are similar to their parents but vary because…"></textarea></label>
+              <label>Evidence <small>Use genotypes, predicted probability, and observed counts.</small><textarea rows="3" [value]="store.evidence()" (input)="setTextField('evidence', $event)" [placeholder]="'The model predicted ' + expectedDominantPercent() + '%, while ' + observedDominantCount() + ' of ' + store.clutch().length + '…'"></textarea></label>
+              <label>Reasoning <small>Connect allele inheritance, probability, and sample size.</small><textarea rows="3" [value]="store.reasoning()" (input)="setTextField('reasoning', $event)" placeholder="Each offspring receives one allele from each parent, and…"></textarea></label>
+            </article>
+          </section>
+        }
+      }
+
+      @case ('board') {
+        <section class="section-heading">
+          <div><span class="eyebrow">Week 3 final challenge</span><h2>Dragon Hatchery Genetics Board</h2><p>Recommend a parent pair that supports a varied population. Use the dashboard as evidence—not as a ranking of individual dragons.</p></div>
+          @if (store.recommendationSubmitted()) { <div class="score-chip success-chip">Report ready</div> }
+        </section>
+
+        <section class="model-boundary panel"><span class="model-icon">DATA</span><div><h3>What the diversity score means</h3><p>60% of the score comes from how many versions of the four genes the pair carries. 40% comes from predicted heterozygous offspring. It is a classroom comparison, not a health diagnosis. A rare trait alone does not create a diverse population.</p></div></section>
+
+        <section class="pair-grid" aria-label="Candidate breeding pairs">
+          @for (pair of store.pairAnalyses; track pair.pairId) {
+            <button class="pair-card panel" type="button" [class.selected]="store.recommendedPairId() === pair.pairId" (click)="store.selectRecommendedPair(pair.pairId)">
+              <div class="pair-title"><div class="pair-dots"><i [style.background]="pairParents(pair)[0].color"></i><i [style.background]="pairParents(pair)[1].color"></i></div><strong>{{ pairLabel(pair) }}</strong><span>{{ pair.score }}</span></div>
+              <div class="diversity-stat"><label>Allele richness <b>{{ pair.alleleRichnessPercent }}%</b></label><i><b [style.width.%]="pair.alleleRichnessPercent"></b></i></div>
+              <div class="diversity-stat"><label>Expected heterozygosity <b>{{ pair.expectedHeterozygosityPercent }}%</b></label><i><b [style.width.%]="pair.expectedHeterozygosityPercent"></b></i></div>
+              <p>{{ pair.summary }}</p>
+              <small>{{ store.recommendedPairId() === pair.pairId ? '✓ Selected for recommendation' : 'Select this pair' }}</small>
+            </button>
+          }
+        </section>
+
+        <section class="two-column board-work">
+          <article class="panel report-builder">
+            <span class="eyebrow">Final breeding recommendation</span><h2>Advise the board</h2>
+            @if (store.selectedPairAnalysis(); as pair) {
+              <div class="selected-pair-summary"><span>Selected pair</span><strong>{{ pairLabel(pair) }}</strong><b>{{ pair.score }}/100 modeled diversity</b></div>
+            } @else { <div class="selected-pair-summary empty">Select a candidate pair above.</div> }
+            <label>Your recommendation and justification <small>Use heredity vocabulary, pair data, a possible tradeoff, and why variation matters. At least 40 characters.</small><textarea rows="8" [value]="store.recommendation()" (input)="store.setRecommendation($any($event.target).value)" placeholder="I recommend… The allele-richness evidence shows… This matters because genetic variation… A limitation of this model is…"></textarea></label>
+            <button class="primary-button" type="button" (click)="checkRecommendation()">Submit to genetics board</button>
+          </article>
+
+          <article class="panel report-preview" id="dragon-lab-report">
+            <span class="eyebrow">Dragon Genetics Lab Report</span><h2>Mastery evidence</h2>
+            <dl>
+              <div><dt>Parent profiles</dt><dd>{{ store.parentA().name }} × {{ store.parentB().name }}</dd></div>
+              <div><dt>Inheritance models</dt><dd>{{ store.predictionScore() }}/{{ traits.length }} predictions correct</dd></div>
+              <div><dt>Hatchery sample</dt><dd>{{ store.clutch().length }} offspring analyzed</dd></div>
+              <div><dt>Reproduction checkpoint</dt><dd>{{ store.reproductionAnswer() === 'sexual' ? 'Complete' : 'Needs revision' }}</dd></div>
+              <div><dt>Evidence explanation</dt><dd>{{ store.claim().length >= 12 && store.evidence().length >= 12 && store.reasoning().length >= 12 ? 'Complete' : 'In progress' }}</dd></div>
+              <div><dt>Breeding recommendation</dt><dd>{{ store.recommendationSubmitted() ? 'Board-ready' : 'Draft' }}</dd></div>
+            </dl>
+            @if (store.recommendationSubmitted()) {
+              <div class="mastery-banner"><span>✓</span><div><strong>Recommendation ready</strong><p>Your report uses a model and evidence to explain inheritance and variation.</p></div></div>
+              <div class="report-actions"><button class="secondary-button" type="button" (click)="printReport()">Print / save PDF</button><button class="secondary-button" type="button" (click)="downloadReport()">Download text report</button></div>
+            } @else {
+              <div class="model-note"><strong>Before submitting:</strong> complete the Week 2 evidence board and select a pair. Your report is saved automatically on this device.</div>
+            }
+          </article>
+        </section>
+      }
+    }
+  </main>
+
+  <footer class="lab-footer">
+    <button class="secondary-button" type="button" [disabled]="activeStageIndex() === 0" (click)="goBack()">← Previous</button>
+    <span>{{ stages[activeStageIndex()].label }} · Week {{ stages[activeStageIndex()].week }}</span>
+    <button class="primary-button" type="button" [disabled]="activeStageIndex() === stages.length - 1" (click)="goNext()">Next section →</button>
+  </footer>
+</div>

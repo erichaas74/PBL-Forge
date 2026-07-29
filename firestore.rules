@@ -1,0 +1,124 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && 'admin' in request.auth.token
+        && request.auth.token.admin == true;
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isTeacher() {
+      return signedIn()
+        && (isAdmin()
+          || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && userRole() == 'teacher'));
+    }
+
+    function project(projectId) {
+      return get(/databases/$(database)/documents/projects/$(projectId));
+    }
+
+    function ownsProject(projectId) {
+      return signedIn() && (isAdmin() || project(projectId).data.ownerId == request.auth.uid);
+    }
+
+    function isPublished(projectId) {
+      return project(projectId).data.status == 'published';
+    }
+
+    function ownsClass(classId) {
+      return signedIn()
+        && (isAdmin()
+          || get(/databases/$(database)/documents/classes/$(classId)).data.ownerId
+            == request.auth.uid);
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'student';
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['displayName', 'photoURL', 'lastSeenAt']);
+      allow delete: if isAdmin();
+    }
+
+    match /classes/{classId} {
+      allow read: if signedIn()
+        && (isAdmin()
+          || resource.data.ownerId == request.auth.uid
+          || exists(/databases/$(database)/documents/classes/$(classId)/members/$(request.auth.uid)));
+      allow create: if isTeacher() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if signedIn()
+        && (isAdmin() || resource.data.ownerId == request.auth.uid);
+
+      match /members/{userId} {
+        allow read: if signedIn() && (request.auth.uid == userId || ownsClass(classId));
+        allow write: if ownsClass(classId);
+      }
+    }
+
+    match /projects/{projectId} {
+      allow read: if resource.data.status == 'published'
+        || (signedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid));
+      allow create: if isTeacher() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if signedIn()
+        && (isAdmin() || resource.data.ownerId == request.auth.uid);
+
+      match /activities/{activityId} {
+        allow read: if isPublished(projectId) || ownsProject(projectId);
+        allow write: if ownsProject(projectId);
+      }
+    }
+
+    match /submissions/{submissionId} {
+      allow create: if signedIn()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'studentId', 'projectId', 'activityId', 'response', 'status', 'updatedAt'
+        ]);
+      allow read: if signedIn()
+        && (resource.data.studentId == request.auth.uid
+          || ownsProject(resource.data.projectId));
+      allow update: if signedIn()
+        && resource.data.studentId == request.auth.uid
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.projectId == resource.data.projectId
+        && request.resource.data.activityId == resource.data.activityId
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['response', 'status', 'updatedAt']);
+      allow delete: if isAdmin();
+    }
+
+    match /dragonLabProgress/{studentId} {
+      allow create: if signedIn()
+        && request.auth.uid == studentId
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.projectId == 'dragon-genetics-lab';
+      allow read: if signedIn()
+        && (request.auth.uid == studentId || isTeacher());
+      allow update: if signedIn()
+        && request.auth.uid == studentId
+        && resource.data.studentId == request.auth.uid
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

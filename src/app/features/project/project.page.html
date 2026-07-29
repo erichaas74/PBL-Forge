@@ -1,0 +1,58 @@
+@if (project$ | async; as project) {
+  <section class="project-hero" [class]="'project-hero ' + project.accent">
+    <div class="project-main">
+      <a class="back-link" routerLink="/catalog">← All projects</a>
+      <div class="tags">
+        @for (subject of project.subject; track subject) {
+          <span>{{ subject }}</span>
+        }
+      </div>
+      <h1>{{ project.title }}</h1>
+      <p>{{ project.summary }}</p>
+    </div>
+
+    <aside class="question-card">
+      <span>Essential question</span>
+      <blockquote>{{ project.essentialQuestion }}</blockquote>
+      <div class="meta">
+        <span><strong>{{ project.gradeBand }}</strong> Grades</span>
+        <span><strong>{{ project.durationMinutes }}</strong> Minutes</span>
+      </div>
+    </aside>
+  </section>
+
+  <section class="learning-path" aria-labelledby="path-heading">
+    <div class="path-heading">
+      <div>
+        <p>Learning path</p>
+        <h2 id="path-heading">Investigate. Decide. Explain.</h2>
+      </div>
+      <span>{{ project.activityCount }} activities</span>
+    </div>
+
+    @if (activities$ | async; as activities) {
+      <ol>
+        @for (activity of activities; track activity.id; let index = $index) {
+          <li>
+            <div class="step-number">{{ index + 1 }}</div>
+            <div class="activity-symbol" aria-hidden="true">{{ activitySymbol(activity.type) }}</div>
+            <div class="activity-copy">
+              <span>{{ activityLabel(activity.type) }}</span>
+              <h3>{{ activity.title }}</h3>
+              <p>{{ activity.prompt }}</p>
+            </div>
+            <a [routerLink]="['/project', project.id, 'activity', activity.id]">
+              Start <span aria-hidden="true">→</span>
+            </a>
+          </li>
+        }
+      </ol>
+
+      @if (!activities.length) {
+        <div class="empty">This project does not have any published activities yet.</div>
+      }
+    }
+  </section>
+} @else {
+  <section class="loading" aria-live="polite">Loading project…</section>
+}

@@ -1,0 +1,14 @@
+<div
+  #viewport
+  class="garage-viewport"
+  aria-label="Universal Assembly Garage 3D viewport"
+  (pointerdown)="onPointerDown($event)"
+  (pointermove)="onPointerMove($event)"
+  (pointerup)="onPointerUp($event)"
+  (pointercancel)="onPointerUp($event)">
+</div>
+
+<div class="viewport-status" aria-live="polite">
+  <span class="status-dot" [class.status-dot--active]="state().isSimulating"></span>
+  <span>{{ state().isSimulating ? 'Simulating' : 'Build mode' }}</span>
+</div>

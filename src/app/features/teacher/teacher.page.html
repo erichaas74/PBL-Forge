@@ -1,0 +1,70 @@
+<section class="studio-header">
+  <div>
+    <p>Teacher studio</p>
+    <h1>Shape the learning.<br><em>Keep the agency.</em></h1>
+  </div>
+  <aside>
+    <span class="status-dot"></span>
+    <div>
+      <strong>{{ session.isLocal ? 'Local build mode' : 'Connected to Firebase' }}</strong>
+      <small>{{ session.isLocal ? 'Auth and Firestore use emulators' : 'Changes use the selected Firebase project' }}</small>
+    </div>
+  </aside>
+</section>
+
+<section class="studio-grid">
+  <div class="projects-panel">
+    <div class="panel-heading">
+      <div>
+        <p>Published library</p>
+        <h2>Learning experiences</h2>
+      </div>
+      <button type="button" disabled title="Project editing is the next milestone">+ New project</button>
+    </div>
+
+    @if (repository.publishedProjects$ | async; as projects) {
+      <div class="project-list">
+        @for (project of projects; track project.id) {
+          <article>
+            <span [class]="'accent ' + project.accent"></span>
+            <div>
+              <strong>{{ project.title }}</strong>
+              <small>{{ project.activityCount }} activities · Grades {{ project.gradeBand }}</small>
+            </div>
+            <span class="published">Published</span>
+            <a [routerLink]="['/project', project.id]" aria-label="Preview {{ project.title }}">Preview ↗</a>
+          </article>
+        }
+      </div>
+    }
+  </div>
+
+  <aside class="launch-panel">
+    <p>Production readiness</p>
+    <h2>Your launch path</h2>
+    <ol>
+      <li class="done"><span>✓</span><div><strong>Angular foundation</strong><small>Strict, standalone, lazy-routed</small></div></li>
+      <li class="done"><span>✓</span><div><strong>Local Firebase</strong><small>Auth, Firestore, seed data</small></div></li>
+      <li class="done"><span>✓</span><div><strong>Security baseline</strong><small>Deny-by-default rules and tests</small></div></li>
+      <li><span>4</span><div><strong>Connect your district</strong><small>Create dev and production projects</small></div></li>
+      <li><span>5</span><div><strong>Invite a pilot class</strong><small>Test with a small student group</small></div></li>
+    </ol>
+  </aside>
+</section>
+
+<section class="dragon-dashboard">
+  <span aria-hidden="true">DG</span>
+  <div>
+    <strong>Dragon Genetics mastery dashboard</strong>
+    <p>Monitor GEN-1–GEN-8 levels, repeated misconceptions, license readiness, official breeding attempts, and battle outcomes as separate evidence.</p>
+  </div>
+  <a routerLink="/teacher/dragon-genetics">Open dashboard →</a>
+</section>
+
+<section class="guardrail">
+  <span aria-hidden="true">◇</span>
+  <div>
+    <strong>Published content is versioned; student work stays separate.</strong>
+    <p>This keeps an edited project from changing the experience underneath students who already started it.</p>
+  </div>
+</section>
