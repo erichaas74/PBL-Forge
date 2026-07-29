@@ -302,21 +302,79 @@ export class DragonGeneticsPage {
   downloadReport(): void {
     const snapshot = this.store.snapshot();
     const score = this.store.challengeScore();
+    const role = this.teamRoles.find(item => item.id === snapshot.teamRole);
+    const parentA = this.store.parentA();
+    const parentB = this.store.parentB();
+    const traitLines = this.traits.map(trait =>
+      `${trait.name}: ${parentA.name} ${this.genotype(parentA, trait.id)} (${this.phenotype(parentA, trait.id)}) × ${parentB.name} ${this.genotype(parentB, trait.id)} (${this.phenotype(parentB, trait.id)})`);
+    const predictionLines = this.traits.map(trait =>
+      `${trait.name}: predicted genotypes ${this.genotypeDistributionLabel(trait.id, snapshot.genotypePredictions[trait.id] ?? '0-0-0')}; predicted ${trait.dominantPhenotype} ${snapshot.predictions[trait.id] ?? 'not answered'}%; model ${this.store.expectedPredictions()[trait.id]}%`);
+    const diagnosticLines = this.diagnosticPrompts.map((prompt, index) =>
+      `${index + 1}. ${prompt.prompt}\n${snapshot.diagnosticAnswers[prompt.id] || 'Not answered'}`);
+    const officialAttemptLines = snapshot.officialAttempts.flatMap((attempt, index) => {
+      const names = attempt.parentIds.map(id => this.parents.find(parent => parent.id === id)?.name ?? id);
+      return [
+        `Attempt ${index + 1}: ${names.join(' × ')} | prediction accuracy ${attempt.predictionAccuracy}% | diversity ${attempt.diversityScore}/100`,
+        ...this.traits.map(trait =>
+          `  ${trait.name}: genotypes ${this.genotypeDistributionLabel(trait.id, attempt.genotypePredictions[trait.id])}; dominant phenotype ${attempt.predictions[trait.id]}%`),
+        ...attempt.offspring.map(offspring =>
+          `  ${offspring.name}: ${this.traits.map(trait => `${trait.geneSymbol}=${this.genotype(offspring, trait.id)}`).join(', ')}`),
+      ];
+    });
+    const reflectionLines = this.reflectionPrompts.map((prompt, index) =>
+      `${index + 1}. ${prompt}\n${snapshot.reflectionAnswers[index] || 'Not answered'}`);
     const report = [
-      'DRAGON GENETICS — FINAL LAB RECORD',
+      'DRAGON GENETICS — FINAL LAB REPORT',
+      `Generated: ${new Date().toLocaleString()}`,
       `Academic mastery: ${this.store.academicMasteryPercent()}%`,
       `Completed modules: ${snapshot.completedModules.length}/10`,
+      `Week 1 mastery: ${snapshot.week1Score ?? 0}/10 (${snapshot.week1Passed ? 'met' : 'not yet met'})`,
+      `Week 2 mastery: ${snapshot.week2Score ?? 0}/12 (${snapshot.week2Passed ? 'met' : 'not yet met'})`,
       `License: ${snapshot.licenseScore ?? 0}/12 (${snapshot.licensePassed ? 'earned' : 'not yet earned'})`,
       `Official breeding attempts: ${snapshot.officialAttempts.length}/3`,
       `Champion: ${this.store.champion()?.name ?? 'not selected'}`,
       `Battle: ${snapshot.battleResult ? (snapshot.battleResult.won ? 'win' : 'loss') : 'not completed'}`,
       `Challenge score: ${score.total}/100 (genetics ${score.genetics}/30, diversity ${score.diversity}/25, battle ${score.battle}/25, evidence ${score.evidence}/20)`,
       '',
+      'MISSION LAUNCH AND TEAM ROLE',
+      `Current rotating role: ${role?.name ?? 'Not selected'}`,
+      ...diagnosticLines,
+      `Misconception correction: ${snapshot.correctedMisconception || 'Not submitted'}`,
+      '',
+      'PARENT TRAIT PROFILES AND INHERITANCE MODELS',
+      ...traitLines,
+      '',
+      'PRACTICE OFFSPRING PREDICTIONS',
+      ...predictionLines,
+      `Combined prediction accuracy: ${snapshot.predictionAccuracy}%`,
+      '',
+      'OBSERVED SAMPLE DATA',
+      ...this.traits.map(trait => `${trait.name}: 8-egg sample ${snapshot.smallBatch ? this.batchPercent(snapshot.smallBatch.size, snapshot.smallBatch.dominantCounts[trait.id]) + '%' : 'not run'}; 100-egg sample ${snapshot.largeBatch ? this.batchPercent(snapshot.largeBatch.size, snapshot.largeBatch.dominantCounts[trait.id]) + '%' : 'not run'}; expected ${this.store.expectedPredictions()[trait.id]}%`),
+      '',
+      'SIBLING VARIATION EVIDENCE',
+      snapshot.siblingExplanation || 'Not submitted',
+      '',
+      'DIVERSITY STRATEGY AND TEAM PEER REVIEW',
+      `Strategy: ${snapshot.diversityStrategy === 'balanced' ? 'Balanced breeding pool' : snapshot.diversityStrategy === 'narrow' ? 'Narrow winner-focused pool' : 'Not selected'}`,
+      `Recommended pair: ${snapshot.recommendedPairId ? this.pairLabel(snapshot.recommendedPairId) : 'Not selected'}`,
+      snapshot.diversityRecommendation || 'Recommendation not submitted',
+      `Peer review: ${snapshot.peerReview || 'Not submitted'}`,
+      '',
+      'OFFICIAL BREEDING RECORD',
+      ...(officialAttemptLines.length ? officialAttemptLines : ['No official attempts recorded']),
+      '',
       'FINAL EVIDENCE',
       snapshot.finalEvidence || 'Not submitted',
       '',
       'INDIVIDUAL DEFENSE',
       ...snapshot.defenseAnswers.map((answer, index) => `${index + 1}. ${answer || 'Not answered'}`),
+      '',
+      'INDIVIDUAL REFLECTION',
+      ...reflectionLines,
+      '',
+      'RECOMMENDED ACADEMIC GRADE CATEGORIES',
+      'Completion checks 20% | Weekly deliverables 25% | Individual mastery 25% | Final challenge evidence 15% | Final write-up/reflection 15%',
+      'Leaderboard rank and arena result are not academic grade categories.',
       '',
       'Model boundary: Four imaginary single-gene traits use a simplified dominant/recessive model. Dominant does not mean stronger, better, healthier, or more common.',
     ].join('\n');

@@ -107,7 +107,7 @@ try {
   const dragonProgress = {
     studentId: 'student-1',
     projectId: 'dragon-genetics-lab',
-    snapshot: { schemaVersion: 2, activeModule: 1 },
+    snapshot: { schemaVersion: 3, activeModule: 1 },
     activeModule: 1,
     completedModules: [],
     mastery: {},
