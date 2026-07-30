@@ -6,12 +6,12 @@ import {
   createEducationalAssembly,
   createVisualGenome,
   dominantPhenotypeProbability,
-} from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-inheritance';
+} from './simulation/domain/dragon-inheritance';
 import {
   DragonOffspring,
   DragonParentProfile,
   DragonTraitId,
-} from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-lab.models';
+} from './simulation/domain/dragon-lab.models';
 import { LICENSE_QUESTIONS } from './dragon-genetics.content';
 import {
   BatchObservation,

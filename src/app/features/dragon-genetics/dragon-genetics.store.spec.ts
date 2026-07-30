@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { TRAIT_SORT_CARDS } from '../../../../migration-archive/physics-coupled-dragon-genetics/data/dragon-lab-content';
-import { DRAGON_TRAITS } from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-inheritance';
+import { TRAIT_SORT_CARDS } from './simulation/data/dragon-lab-content';
+import { DRAGON_TRAITS } from './simulation/domain/dragon-inheritance';
 import {
   DIAGNOSTIC_PROMPTS,
   FINAL_REFLECTION_PROMPTS,

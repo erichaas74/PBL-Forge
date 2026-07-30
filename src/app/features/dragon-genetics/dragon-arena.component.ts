@@ -11,13 +11,13 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { ArenaViewportComponent } from '../../../../assembly-arena/components/arena-viewport/arena-viewport.component';
-import { ArenaControlFrame, BattleBodySnapshot, ControlFrameByCombatant } from '../../../../assembly-arena/models/arena.models';
-import { AssemblyArenaPhysicsService } from '../../../../assembly-arena/physics/assembly-arena-physics.service';
-import { AssemblyArenaRendererService } from '../../../../assembly-arena/rendering/assembly-arena-renderer.service';
-import { AssemblyArenaStore } from '../../../../assembly-arena/state/assembly-arena.store';
-import { buildControlFrames, NEUTRAL_CONTROL_FRAME } from '../../../../assembly-arena/strategy/strategy-runner';
-import { CreationLibraryService } from '../../../../creation-library/services/creation-library.service';
+import { ArenaViewportComponent } from '../../shared/assembly-arena/components/arena-viewport/arena-viewport.component';
+import { ArenaControlFrame, BattleBodySnapshot, ControlFrameByCombatant } from '../../shared/assembly-arena/models/arena.models';
+import { AssemblyArenaPhysicsService } from '../../shared/assembly-arena/physics/assembly-arena-physics.service';
+import { AssemblyArenaRendererService } from '../../shared/assembly-arena/rendering/assembly-arena-renderer.service';
+import { AssemblyArenaStore } from '../../shared/assembly-arena/state/assembly-arena.store';
+import { buildControlFrames, NEUTRAL_CONTROL_FRAME } from '../../shared/assembly-arena/strategy/strategy-runner';
+import { CreationLibraryService } from '../../shared/creation-library/services/creation-library.service';
 import { findParent, materializeDragon, runDragonBatch } from './dragon-genetics.domain';
 import { DragonBattleResult, StudentDragonRecord } from './dragon-genetics.models';
 

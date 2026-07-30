@@ -1,5 +1,7 @@
 # Dragon Genetics implementation guide
 
+The laboratory visual redesign and per-question simulation coverage plan is documented in [DRAGON_GENETICS_VISUAL_LAB_PLAN.md](DRAGON_GENETICS_VISUAL_LAB_PLAN.md).
+
 This experience implements the supplied three-week lesson plan and teaching/assessment requirements as a ten-module student journey. It is designed for Grade 7 MS-LS3 heredity and variation, with supporting MS-LS1 reproduction concepts.
 
 ## Student route

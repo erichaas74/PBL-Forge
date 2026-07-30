@@ -4,12 +4,12 @@ import {
   DRAGON_TRAITS,
   allParentPairAnalyses,
   analyzePairDiversity,
-} from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-inheritance';
-import { TRAIT_SORT_CARDS } from '../../../../migration-archive/physics-coupled-dragon-genetics/data/dragon-lab-content';
+} from './simulation/domain/dragon-inheritance';
+import { TRAIT_SORT_CARDS } from './simulation/data/dragon-lab-content';
 import {
   DragonTraitId,
   TraitSortCategory,
-} from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-lab.models';
+} from './simulation/domain/dragon-lab.models';
 import {
   GENOME_PATH,
   GENOME_QUICK_QUESTIONS,

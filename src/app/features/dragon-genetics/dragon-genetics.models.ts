@@ -2,7 +2,7 @@ import {
   DragonLabGenome,
   DragonTraitId,
   TraitSortCategory,
-} from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-lab.models';
+} from './simulation/domain/dragon-lab.models';
 
 export type DragonModuleNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export type DragonLabMode = 'learn' | 'practice' | 'official';

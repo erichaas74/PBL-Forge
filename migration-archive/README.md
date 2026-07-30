@@ -1,7 +1,7 @@
 # Migration archive
 
-`physics-coupled-dragon-genetics` is the pre-separation implementation of the genetics lab. It is preserved because it contains Assembly Garage/Arena phenotype-generation work that may be useful when a separate dragon battle game is designed.
+`physics-coupled-dragon-genetics` is the pre-separation implementation of the genetics lab. It remains as a historical reference.
 
-Do not move this folder back under `haasdemoapp/src`. Angular will compile its component metadata even when its manifest is not registered. The standalone Grade 7 teaching product lives in `../dragon-genetics-lab` and intentionally does not use these physics or assembly files.
+Production no longer imports from this archive. The extracted simulation core lives at `src/app/features/dragon-genetics/simulation`, while the reusable garage, arena, creation library, and assembly engine live under `src/app/shared`.
 
-This archive can be removed after any reusable dragon battle engine code has been deliberately extracted and the standalone app has been accepted.
+The separate `dragon-genetics-lab` folder is also a legacy standalone project. Neither archive folder is compiled into PBL Forge.

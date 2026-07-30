@@ -6,12 +6,12 @@ import {
   buildPunnettCells,
   genotypeLabel,
   phenotypeLabel,
-} from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-inheritance';
-import { TRAIT_SORT_CARDS } from '../../../../migration-archive/physics-coupled-dragon-genetics/data/dragon-lab-content';
+} from './simulation/domain/dragon-inheritance';
+import { TRAIT_SORT_CARDS } from './simulation/data/dragon-lab-content';
 import {
   DragonParentProfile,
   DragonTraitId,
-} from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-lab.models';
+} from './simulation/domain/dragon-lab.models';
 import { SessionService } from '../../core/firebase/session.service';
 import { DragonArenaComponent } from './dragon-arena.component';
 import {

@@ -1,4 +1,4 @@
-import { DRAGON_PARENTS } from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-inheritance';
+import { DRAGON_PARENTS } from './simulation/domain/dragon-inheritance';
 import {
   academicMasteryPercent,
   challengeScore,

@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import {
   DRAGON_TRAITS,
   showsDominantPhenotype,
-} from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-inheritance';
-import { DragonParentProfile } from '../../../../migration-archive/physics-coupled-dragon-genetics/domain/dragon-lab.models';
+} from './simulation/domain/dragon-inheritance';
+import { DragonParentProfile } from './simulation/domain/dragon-lab.models';
 
 @Component({
   selector: 'app-dragon-portrait',
