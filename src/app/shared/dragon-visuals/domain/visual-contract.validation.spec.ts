@@ -106,6 +106,35 @@ describe('Dragon visual contract', () => {
     expect(errors).toContain('Active observation also-missing is not in the scene.');
   });
 
+  it('rejects hatchery state that references eggs or genes the scene does not contain', () => {
+    const errors = validateDragonVisualScene({
+      ...scene,
+      kind: 'dragon-hatchery',
+      instrument: {
+        kind: 'dragon-hatchery',
+        clutchId: 'clutch-1',
+        focusGeneId: 'W',
+        eggs: [
+          { eggId: 'egg-1', sampleId: 'sample-one', position: 1, examined: false, sampled: false, hatched: false },
+          { eggId: 'egg-1', sampleId: 'missing-sample', position: 2, examined: false, sampled: false, hatched: false },
+        ],
+        activeEggId: 'egg-9',
+        selectedEggIds: ['egg-1', 'egg-8'],
+        hatchLimit: 1,
+        evidenceMarks: [{ id: 'record', labelId: 'evidence.record' }],
+        evidenceMarkId: 'not-pinned-here',
+      },
+    });
+
+    expect(errors).toContain('Hatchery egg IDs must be unique.');
+    expect(errors).toContain('Instrument references missing analysis sample missing-sample.');
+    expect(errors).toContain('Active egg egg-9 is not in the clutch.');
+    expect(errors).toContain('Hatch tray references missing egg egg-8.');
+    expect(errors).toContain('Hatch tray holds more than the 1-egg limit.');
+    expect(errors).toContain('Hatchery focus gene W is missing from egg egg-1.');
+    expect(errors).toContain('Pinned hatchery evidence not-pinned-here is not in the scene.');
+  });
+
   it('rejects a visual pack when an animation references a missing motion', () => {
     const errors = validateDragonVisualPack({
       ...FOUNDATION_DRAGON_VISUAL_PACK,

@@ -518,7 +518,7 @@ export class DragonHatcheryStationComponent {
         headline: 'Hatch recorded.',
         detail: 'Pin the evidence you would use to defend your reading. Results stay locked until you save.',
       });
-      if (prediction !== actual) this.flagPredictionMisconception(prediction, actual);
+      this.diagnosePrediction(prediction, actual);
       return;
     }
     if (prediction === actual) {
@@ -529,11 +529,11 @@ export class DragonHatcheryStationComponent {
       });
       return;
     }
-    this.flagPredictionMisconception(prediction, actual);
+    this.diagnosePrediction(prediction, actual);
     this.feedbackState.set({
-      tone: 'warn',
+      tone: 'neutral',
       headline: `You predicted ${prediction}; the clutch holds ${actual} of ${this.clutch().length} showing ${trait.dominantPhenotype}.`,
-      detail: `${hatchedShowing} of the ${hatchedIds.length} eggs you hatched show it. Expected ratios describe long runs, not one clutch.`,
+      detail: `${hatchedShowing} of the ${hatchedIds.length} eggs you hatched show it. A clutch this small often differs from the expected ratio, so a miss is not a mistake.`,
     });
   }
 
@@ -679,11 +679,14 @@ export class DragonHatcheryStationComponent {
       .filter((egg): egg is DragonOffspring => !!egg);
   }
 
-  private flagPredictionMisconception(prediction: number, actual: number): void {
+  /**
+   * A prediction that misses the clutch by one or two is ordinary variation, not an error, so
+   * only the diagnostic case is flagged: expecting every egg in the clutch to show the dominant
+   * trait is the "dominant means common" misconception.
+   */
+  private diagnosePrediction(prediction: number, actual: number): void {
     const size = this.clutch().length;
-    // Predicting the whole clutch shows the dominant trait is the "dominant means common" error.
     if (prediction === size && actual < size) this.flagMisconception('dominant-means-common');
-    else this.flagMisconception('sample-equals-clutch');
   }
 
   private flagMisconception(flag: HatcheryMisconception): void {
