@@ -1,10 +1,11 @@
 import { validateDragonVisualScene } from '../../../shared/dragon-visuals';
-import { DRAGON_PARENTS } from '../simulation/domain/dragon-inheritance';
+import { breedLabClutch, DRAGON_PARENTS } from '../simulation/domain/dragon-inheritance';
 import {
   TRAIT_EVIDENCE_SPECIMEN,
   traitEvidenceObservation,
 } from '../simulation/data/trait-evidence-content';
 import {
+  createDragonHatcheryScene,
   createGenomeMicroscopeScene,
   createAlleleSwitchboardScene,
   createTraitInspectorScene,
@@ -107,5 +108,47 @@ describe('Dragon visual scene adapter', () => {
     expect(scene.instrument.kind === 'allele-switchboard'
       ? scene.instrument.workingAlleles
       : null).toEqual(['H', 'H']);
+  });
+
+  it('creates a valid hatchery clutch scene carrying every egg genome and the lesson flags', () => {
+    const clutch = breedLabClutch(DRAGON_PARENTS[0], DRAGON_PARENTS[1], 1, 4);
+    const scene = createDragonHatcheryScene('module-6-hatchery', 'learn', 'manipulate', {
+      clutchId: 'clutch-1',
+      eggs: clutch,
+      parents: [DRAGON_PARENTS[0], DRAGON_PARENTS[1]],
+      examinedEggIds: [clutch[0].id],
+      sampledEggIds: [clutch[0].id],
+      focusGeneId: 'W',
+      activeEggId: clutch[0].id,
+      selectedEggIds: [clutch[1].id],
+      hatchLimit: 2,
+      examinesRemaining: 3,
+    });
+
+    expect(validateDragonVisualScene(scene)).toEqual([]);
+    expect(scene.kind).toBe('dragon-hatchery');
+    // Parents are analysable records too, so a module can show the cross beside the tray.
+    expect(scene.samples.length).toBe(6);
+    expect(scene.samples.filter(sample => sample.sampleType === 'egg').length).toBe(4);
+    if (scene.instrument.kind !== 'dragon-hatchery') throw new Error('Wrong instrument kind.');
+    expect(scene.instrument.eggs.map(egg => egg.position)).toEqual([1, 2, 3, 4]);
+    expect(scene.instrument.eggs[0].examined).toBeTrue();
+    expect(scene.instrument.eggs[0].sampled).toBeTrue();
+    expect(scene.instrument.eggs[1].examined).toBeFalse();
+    expect(scene.instrument.parentSampleIds).toEqual(['ember', 'tide']);
+  });
+
+  it('rejects a clutch scene whose hatch tray exceeds the module limit', () => {
+    const clutch = breedLabClutch(DRAGON_PARENTS[0], DRAGON_PARENTS[1], 2, 3);
+    const errors = validateDragonVisualScene(
+      createDragonHatcheryScene('module-6-hatchery', 'learn', 'manipulate', {
+        clutchId: 'clutch-2',
+        eggs: clutch,
+        selectedEggIds: clutch.map(egg => egg.id),
+        hatchLimit: 2,
+      }),
+    );
+
+    expect(errors).toContain('Hatch tray holds more than the 2-egg limit.');
   });
 });

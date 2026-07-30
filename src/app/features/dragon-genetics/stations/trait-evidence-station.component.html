@@ -16,10 +16,21 @@
   }
 
   <div class="station-grid">
-    <app-trait-inspector-display
-      [copy]="copy"
-      [feedback]="feedback()"
-      (stageEvent)="onStageEvent($event)" />
+    <div class="investigation-bay">
+      <section class="specimen-viewer" aria-label="Visible dragon characteristic">
+        <div><app-dragon-portrait [profile]="specimen" [compact]="true" /></div>
+        <article>
+          <span class="eyebrow">Visible model · observation only</span>
+          <h4>{{ activeItem()?.label ?? 'Impossible Hatchling' }}</h4>
+          <p>{{ activeItem()?.detail ?? 'Select a record to highlight the characteristic on the complete hatchling model.' }}</p>
+          <strong>Appearance starts the question. The gene, training, or environment record must support the answer.</strong>
+        </article>
+      </section>
+      <app-trait-inspector-display
+        [copy]="copy"
+        [feedback]="feedback()"
+        (stageEvent)="onStageEvent($event)" />
+    </div>
 
     <aside class="evidence-dock" aria-label="Evidence dock">
       <h4>Evidence dock</h4>
@@ -80,9 +91,9 @@
       }
 
       <p class="boundary">
-        <strong>Model boundary</strong>
-        Real characteristics can be influenced by genes and environment together. These records are
-        simplified so one source path can be tested at a time.
+        <strong>Model and arena boundary</strong>
+        Real characteristics can be influenced by genes and environment together. A useful arena
+        feature is not automatically inherited; these records test one source path at a time.
       </p>
     </aside>
   </div>

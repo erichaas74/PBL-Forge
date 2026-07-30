@@ -13,10 +13,30 @@ Both errors are modeled directly. Every observation offers three clues: the reco
 the characteristic came from, a clue that argues from usefulness, and a clue that argues from body
 location. Pinning a wrong clue names the misconception instead of only marking the answer.
 
-## Display model
+## Module 1 discovery sequence
+
+Before the scientific analyzer opens, students move through a five-scene visual introduction:
+
+1. **Dragon Discovery Gallery** — choose among four full dragon portraits, rotate and zoom the
+   model-ready viewer, and collect visual trait targets into a field guide.
+2. **First Impression Challenge** — make ungraded predictions about flight, defense, and likely
+   arena success, then reveal why appearance alone cannot establish trait origin.
+3. **Trait or Trick** — compare look-alike characteristics such as inherited scales versus ash,
+   inherited horn structure versus an injury, and wing structure versus trained muscle.
+4. **Impossible Hatchling case** — meet the two parent dragons and offspring H7, then carry a
+   visible specimen into the analyzer alongside the source records.
+5. **Origin Profile** — classify the records and finish with a competition-facing explanation of
+   which traits may matter in the arena and which evidence establishes their origin.
+
+The gallery field guide explicitly connects wings, fire, jaw strength, tail control, conditioning,
+and tactics to later arena mechanics. Those connections motivate observation, but never count as
+evidence that a characteristic is inherited.
+
+## Analyzer display model
 
 A laboratory evidence console with a generic sample record, three source instruments, an
-observation bay, and three category trays. No dragon anatomy appears anywhere in the instrument.
+observation bay, and three category trays. The scientific instrument itself stays anatomy-free so
+its paths remain evidence-focused; the lesson shell keeps H7 visible beside it for case context.
 
 ```text
 +---------------------------------------------------------------+
@@ -75,6 +95,8 @@ active time, and timestamp. No animation frames, pointer tracks, or markup are s
 
 | Concern | File |
 | --- | --- |
+| Discovery gallery | [`dragon-discovery-gallery.component.ts`](../../src/app/features/dragon-genetics/dragon-discovery-gallery.component.ts) |
+| Gallery and field-guide content | [`simulation/data/dragon-discovery-gallery.content.ts`](../../src/app/features/dragon-genetics/simulation/data/dragon-discovery-gallery.content.ts) |
 | Renderer | [`displays/trait-inspector/trait-inspector-display.component.ts`](../../src/app/shared/dragon-visuals/displays/trait-inspector/trait-inspector-display.component.ts) |
 | Scene → view model | [`trait-inspector.view-model.ts`](../../src/app/shared/dragon-visuals/displays/trait-inspector/trait-inspector.view-model.ts) |
 | Graphics theme | [`trait-inspector.theme.ts`](../../src/app/shared/dragon-visuals/displays/trait-inspector/trait-inspector.theme.ts) |
@@ -117,6 +139,10 @@ full checklist and the rules a replacement theme must keep.
 ## Acceptance checks
 
 - [x] Every Module 1 trait-sort card has a visual observation record with an evidence trail.
+- [x] Four dragon models, eight visual trait targets, first impressions, Trait or Trick, and a
+      three-member family viewer prepare students for the Impossible Hatchling investigation.
+- [x] The field guide names authentic arena connections without treating usefulness or appearance
+      as evidence of inheritance.
 - [x] Category correctness is lesson-owned; the renderer only draws the status it is given, and the
       view model hides the true category until the lesson reveals the placement.
 - [x] Keyboard users can select a card and then a destination tray.

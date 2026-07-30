@@ -1,0 +1,51 @@
+<section class="dna-lab panel" aria-labelledby="dna-lab-title">
+  <header class="lab-head">
+    <div>
+      <span class="eyebrow">Scene 5 · DNA Uncoiling and Repair Lab</span>
+      <h2 id="dna-lab-title">Watch a dragon gene unpack, copy, and repair</h2>
+      <p>Adapted from the DNA base-pairing, unzipping, and replication system in <code>docs/dna-mutation-animation.html</code>.</p>
+    </div>
+    <div class="mode-tabs" role="tablist" aria-label="DNA lab views">
+      @for (item of modes; track item.id) {
+        <button type="button" role="tab" [class.active]="mode() === item.id" [attr.aria-selected]="mode() === item.id" (click)="selectMode(item.id)">{{ item.label }}</button>
+      }
+    </div>
+  </header>
+
+  @if (mode() === 'uncoil') {
+    <div class="uncoil-layout">
+      <div class="uncoil-stage" [attr.data-step]="uncoilStep()" aria-live="polite">
+        <div class="chromosome" aria-hidden="true"><i></i><i></i></div>
+        <div class="coils" aria-hidden="true">@for (base of template; track $index) { <i></i> }</div>
+        <div class="helix" aria-label="DNA double helix">
+          @for (base of template; track $index) {
+            <span [class.gene]="$index >= 2 && $index <= 6"><b [attr.data-base]="base">{{ base }}</b><i></i><b [attr.data-base]="correctCopy[$index]">{{ correctCopy[$index] }}</b></span>
+          }
+        </div>
+      </div>
+      <aside class="lab-note"><span>Stage {{ uncoilStep() + 1 }}/4</span><h3>{{ activeStage().label }}</h3><p>{{ activeStage().note }}</p></aside>
+    </div>
+    <label class="timeline">Move from chromosome package to gene section
+      <input type="range" min="0" max="3" step="1" [value]="uncoilStep()" (input)="setUncoilStep($any($event.target).value)">
+      <span><i>Chromosome</i><i>Coiled DNA</i><i>Helix</i><i>Gene</i></span>
+    </label>
+  } @else if (mode() === 'replicate') {
+    <div class="replication-scene">
+      <div class="replication-copy"><span>Original template strand</span><div>@for (base of template; track $index) { <b [attr.data-base]="base">{{ base }}</b> }</div></div>
+      <div class="polymerase" [style.--progress]="replicationProgress()">DNA<br>polymerase</div>
+      <div class="replication-copy new"><span>New complementary DNA strand</span><div>@for (base of correctCopy; track $index) { <b [attr.data-base]="base" [class.visible]="$index < replicationProgress()">{{ base }}</b> }</div></div>
+    </div>
+    <div class="replication-controls"><button type="button" (click)="playReplication()">Play DNA copying</button><label>Copy progress <input type="range" min="0" [max]="template.length" step="1" [value]="replicationProgress()" (input)="setReplicationProgress($any($event.target).value)"></label></div>
+    <p class="science-boundary"><strong>Replication copies DNA.</strong> Each original strand guides a new complementary strand. This is different from transcription, which builds RNA.</p>
+  } @else {
+    <div class="repair-scene">
+      <div class="sequence-row"><span>Template</span>@for (base of template; track $index) { <b [attr.data-base]="base">{{ base }}</b> }</div>
+      <div class="sequence-row damaged"><span>New strand</span>@for (base of damagedCopy; track $index) { <b [attr.data-base]="displayedRepairBase($index)" [class.error]="$index === 4 && !repaired()" [class.fixed]="$index === 4 && repaired()">{{ displayedRepairBase($index) }}</b> }</div>
+      <div class="repair-target"><span>Copying checkpoint</span><p>Template position 5 is <b>T</b>. Which complementary DNA base repairs the mismatch?</p><div>@for (base of bases; track base) { <button type="button" [attr.data-base]="base" [class.selected]="repairChoice() === base" (click)="chooseRepair(base)">{{ base }}</button> }</div></div>
+    </div>
+    @if (repairChoice()) {
+      <p class="repair-feedback" [class.good]="repaired()"><strong>{{ repaired() ? 'Repair complete.' : 'That base still mismatches.' }}</strong> {{ repaired() ? 'A pairs with the template T. Repair systems can correct some copying errors before they become permanent sequence changes.' : 'Use the DNA pairing rule: A–T and C–G.' }}</p>
+    }
+    <p class="science-boundary"><strong>Mutation boundary:</strong> A copying error is not automatically a visible trait change. It may be repaired, and even an unrepaired DNA change may have no visible effect.</p>
+  }
+</section>

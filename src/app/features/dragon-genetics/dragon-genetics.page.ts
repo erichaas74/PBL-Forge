@@ -36,6 +36,8 @@ import {
   StudentDragonRecord,
 } from './dragon-genetics.models';
 import { DragonPortraitComponent } from './dragon-portrait.component';
+import { DragonDiscoveryGalleryComponent } from './dragon-discovery-gallery.component';
+import { DragonDnaRepairLabComponent } from './dragon-dna-repair-lab.component';
 import { DragonGeneticsStore } from './dragon-genetics.store';
 import { TraitEvidenceStationComponent } from './stations/trait-evidence-station.component';
 import { TraitEvidenceSetResult } from './simulation/domain/trait-evidence.models';
@@ -45,12 +47,16 @@ import { AlleleWorkbenchStationComponent } from './stations/allele-workbench-sta
 import { AlleleWorkbenchSetResult } from './simulation/domain/allele-workbench.models';
 import { GenotypeScannerStationComponent } from './stations/genotype-scanner-station.component';
 import { GenotypeScannerSetResult } from './simulation/domain/genotype-scanner.models';
+import { DRAGON_GALLERY_TRAITS } from './simulation/data/dragon-discovery-gallery.content';
+import { TRAIT_EVIDENCE_SPECIMEN } from './simulation/data/trait-evidence-content';
 
 @Component({
   selector: 'app-dragon-genetics-page',
   imports: [
     RouterLink,
     DragonPortraitComponent,
+    DragonDiscoveryGalleryComponent,
+    DragonDnaRepairLabComponent,
     DragonArenaComponent,
     TraitEvidenceStationComponent,
     GenomeMicroscopeStationComponent,
@@ -76,6 +82,8 @@ export class DragonGeneticsPage {
   readonly week1Questions = WEEK1_MASTERY_QUESTIONS;
   readonly week2Questions = WEEK2_MASTERY_QUESTIONS;
   readonly reflectionPrompts = FINAL_REFLECTION_PROMPTS;
+  readonly fieldGuideTraits = DRAGON_GALLERY_TRAITS;
+  readonly impossibleHatchling = TRAIT_EVIDENCE_SPECIMEN;
   readonly probabilityChoices = [0, 25, 50, 75, 100] as const;
   readonly genotypeDistributionChoices = GENOTYPE_DISTRIBUTION_CHOICES;
   readonly message = signal<string | null>(null);

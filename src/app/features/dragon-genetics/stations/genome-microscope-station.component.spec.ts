@@ -49,6 +49,20 @@ describe('GenomeMicroscopeStationComponent', () => {
     expect(component.placedLabelCount()).toBe(1);
     fixture.destroy();
   });
+
+  it('keeps the selected dragon connected to the trait file and chromosome locator', () => {
+    const fixture = createFixture('learn');
+    const component = fixture.componentInstance;
+    component.selectSample('quartz');
+    component.focusJourney(6);
+    component.locateChromosome(component.focusTrait().chromosomeModel);
+
+    expect(component.selectedSample().id).toBe('quartz');
+    expect(component.journeyStep()).toBe(6);
+    expect(component.chromosomeCorrect()).toBeTrue();
+    expect(component.investigationQuestion()).toContain('Quartz');
+    fixture.destroy();
+  });
 });
 
 function createFixture(mode: GenomeMicroscopeMode): ComponentFixture<GenomeMicroscopeStationComponent> {

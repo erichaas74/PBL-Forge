@@ -2,6 +2,7 @@ import {
   DRAGON_VISUAL_CONTRACT_VERSION,
   AlleleSwitchboardInstrument,
   DragonGenomeLevelId,
+  DragonHatcheryInstrument,
   DragonVisualScene,
   GenomeMicroscopeInstrument,
   GenotypeScannerInstrument,
@@ -41,6 +42,59 @@ export function validateDragonVisualScene(scene: DragonVisualScene): string[] {
   }
   if (scene.instrument.kind === 'allele-switchboard') {
     errors.push(...validateAlleleSwitchboard(scene, scene.instrument));
+  }
+  if (scene.instrument.kind === 'dragon-hatchery') {
+    errors.push(...validateDragonHatchery(scene, scene.instrument));
+  }
+  return errors;
+}
+
+function validateDragonHatchery(
+  scene: DragonVisualScene,
+  instrument: DragonHatcheryInstrument,
+): string[] {
+  const errors: string[] = [];
+  if (!instrument.clutchId.trim()) errors.push('Hatchery clutch ID is required.');
+  if (!instrument.eggs.length) errors.push('A hatchery clutch needs at least one egg.');
+  if (hasDuplicateIds(instrument.eggs.map(egg => egg.eggId))) {
+    errors.push('Hatchery egg IDs must be unique.');
+  }
+
+  const eggIds = new Set(instrument.eggs.map(egg => egg.eggId));
+  if (instrument.activeEggId && !eggIds.has(instrument.activeEggId)) {
+    errors.push(`Active egg ${instrument.activeEggId} is not in the clutch.`);
+  }
+  const selectedEggIds = instrument.selectedEggIds ?? [];
+  if (hasDuplicateIds(selectedEggIds)) errors.push('Hatch tray egg IDs must be unique.');
+  for (const eggId of selectedEggIds) {
+    if (!eggIds.has(eggId)) errors.push(`Hatch tray references missing egg ${eggId}.`);
+  }
+  if (instrument.hatchLimit != null && selectedEggIds.length > instrument.hatchLimit) {
+    errors.push(`Hatch tray holds more than the ${instrument.hatchLimit}-egg limit.`);
+  }
+
+  for (const remaining of [instrument.examinesRemaining, instrument.samplesRemaining]) {
+    if (remaining != null && remaining < 0) errors.push('Hatchery tool budgets cannot be negative.');
+  }
+  if (instrument.hatchLimit != null && instrument.hatchLimit < 0) {
+    errors.push('The hatch limit cannot be negative.');
+  }
+
+  const focusGeneId = instrument.focusGeneId;
+  if (focusGeneId) {
+    for (const egg of instrument.eggs) {
+      const sample = scene.samples.find(candidate => candidate.id === egg.sampleId);
+      if (sample && !sample.genes.some(gene =>
+        gene.geneId === focusGeneId || gene.traitId === focusGeneId)) {
+        errors.push(`Hatchery focus gene ${focusGeneId} is missing from egg ${egg.eggId}.`);
+      }
+    }
+  }
+
+  const markIds = (instrument.evidenceMarks ?? []).map(mark => mark.id);
+  if (hasDuplicateIds(markIds)) errors.push('Hatchery evidence mark IDs must be unique.');
+  if (instrument.evidenceMarkId && !new Set(markIds).has(instrument.evidenceMarkId)) {
+    errors.push(`Pinned hatchery evidence ${instrument.evidenceMarkId} is not in the scene.`);
   }
   return errors;
 }
@@ -274,6 +328,11 @@ function instrumentSampleIds(scene: DragonVisualScene): readonly string[] {
       return instrument.kind === 'incubator-sampler'
         ? [...instrument.parentSampleIds, ...instrument.eggSampleIds]
         : instrument.parentSampleIds;
+    case 'dragon-hatchery':
+      return [
+        ...(instrument.parentSampleIds ?? []),
+        ...instrument.eggs.map(egg => egg.sampleId),
+      ];
     case 'reproduction-comparison':
       return [
         ...instrument.sourceSampleIds,

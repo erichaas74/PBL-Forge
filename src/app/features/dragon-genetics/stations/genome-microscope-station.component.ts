@@ -22,7 +22,13 @@ import {
   GenomeMicroscopeDisplayComponent,
   GenomeMicroscopeFeedback,
 } from '../../../shared/dragon-visuals';
-import { DRAGON_PARENTS, DRAGON_TRAITS } from '../simulation/domain/dragon-inheritance';
+import {
+  DRAGON_PARENTS,
+  DRAGON_TRAITS,
+  phenotypeLabel,
+} from '../simulation/domain/dragon-inheritance';
+import { DragonPortraitComponent } from '../dragon-portrait.component';
+import { genomeTraitFile } from '../simulation/data/dragon-genome-expedition.content';
 import {
   GENOME_MICROSCOPE_COPY,
   GENOME_MICROSCOPE_MISCONCEPTION_NOTES,
@@ -59,7 +65,7 @@ interface PrimaryAction {
 
 @Component({
   selector: 'app-genome-microscope-station',
-  imports: [GenomeMicroscopeDisplayComponent],
+  imports: [GenomeMicroscopeDisplayComponent, DragonPortraitComponent],
   templateUrl: './genome-microscope-station.component.html',
   styleUrl: './genome-microscope-station.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -76,6 +82,8 @@ export class GenomeMicroscopeStationComponent {
   readonly copy = GENOME_MICROSCOPE_COPY;
   readonly misconceptionNotes = GENOME_MICROSCOPE_MISCONCEPTION_NOTES;
   readonly selectedSampleId = signal(DRAGON_PARENTS[0].id);
+  readonly journeyStep = signal(0);
+  readonly chromosomePrediction = signal<number | null>(null);
   private readonly feedbackState = signal<GenomeMicroscopeFeedback | null>(null);
   private readonly recordsState = signal<readonly GenomeMicroscopeRecord[]>([]);
 
@@ -90,6 +98,17 @@ export class GenomeMicroscopeStationComponent {
     const task = this.activeTask();
     return DRAGON_TRAITS.find(trait => trait.id === task?.focusTraitId) ?? DRAGON_TRAITS[0];
   });
+  readonly traitFile = computed(() => genomeTraitFile(this.focusTrait().id));
+  readonly investigationQuestion = computed(() =>
+    `${this.selectedSample().name}: ${this.traitFile().mysteryStem}`);
+  readonly visiblePhenotype = computed(() =>
+    phenotypeLabel(this.selectedSample(), this.focusTrait().id));
+  readonly allelePair = computed(() => this.selectedSample().genome[this.focusTrait().id]);
+  readonly chromosomeCorrect = computed(() =>
+    this.chromosomePrediction() === this.focusTrait().chromosomeModel);
+  readonly journeyLevels = [
+    'Dragon', 'Body region', 'Cell', 'Nucleus', 'Chromosome pair', 'DNA', 'Gene locus', 'Allele pair',
+  ] as const;
   readonly finished = computed(() => this.run().phase === 'review');
   readonly correctCount = computed(() => this.records().filter(record =>
     record.predictionCorrect && record.hierarchyCorrect && record.evidenceCorrect).length);
@@ -171,7 +190,28 @@ export class GenomeMicroscopeStationComponent {
 
   selectSample(sampleId: string): void {
     if (this.run().phase !== 'observe') return;
-    if (DRAGON_PARENTS.some(profile => profile.id === sampleId)) this.selectedSampleId.set(sampleId);
+    if (DRAGON_PARENTS.some(profile => profile.id === sampleId)) {
+      this.selectedSampleId.set(sampleId);
+      this.journeyStep.set(0);
+      this.chromosomePrediction.set(null);
+    }
+  }
+
+  focusJourney(index: number): void {
+    this.journeyStep.set(Math.max(0, Math.min(this.journeyLevels.length - 1, index)));
+    const levelByStep: Partial<Record<number, DragonGenomeLevelId>> = {
+      2: 'cell', 3: 'cell', 4: 'chromosome', 5: 'dna', 6: 'gene', 7: 'allele',
+    };
+    const level = levelByStep[index];
+    if (level) this.run.update(current => ({ ...current, focusLevel: level }));
+  }
+
+  locateChromosome(chromosomeModel: number): void {
+    this.chromosomePrediction.set(chromosomeModel);
+  }
+
+  alleleVaultOpen(): boolean {
+    return this.run().revealedLevelIds.includes('allele') || this.run().phase === 'review';
   }
 
   onStageEvent(event: DragonVisualStageEvent): void {
@@ -179,6 +219,7 @@ export class GenomeMicroscopeStationComponent {
       case 'hotspot-selected':
         if (isGenomeLevel(event.targetId)) {
           this.run.update(current => ({ ...current, focusLevel: event.targetId as DragonGenomeLevelId }));
+          this.journeyStep.set(journeyStepFor(event.targetId as DragonGenomeLevelId));
         }
         break;
       case 'prediction-locked':
@@ -447,6 +488,10 @@ function createRun(tasks: readonly { id: string }[]): RunState {
 function isGenomeLevel(value: unknown): value is DragonGenomeLevelId {
   return typeof value === 'string'
     && GENOME_LEVEL_ORDER.includes(value as DragonGenomeLevelId);
+}
+
+function journeyStepFor(level: DragonGenomeLevelId): number {
+  return ({ cell: 2, chromosome: 4, dna: 5, gene: 6, allele: 7 })[level];
 }
 
 function now(): number {

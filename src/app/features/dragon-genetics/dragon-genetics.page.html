@@ -75,21 +75,31 @@
             <div><dt>Phenotype</dt><dd>An observable trait produced by genotype and sometimes environment.</dd></div>
             <div><dt>Variation</dt><dd>Differences among individuals in a population.</dd></div>
           </dl>
+          <div class="field-guide-reference">
+            <span class="eyebrow">Dragon field guide · arena bridge</span>
+            <div>
+              @for (trait of fieldGuideTraits; track trait.id) {
+                <article><b aria-hidden="true">{{ trait.icon }}</b><span><strong>{{ trait.name }}</strong><small>{{ trait.competitionConnection }}</small></span></article>
+              }
+            </div>
+            <p>Competition usefulness does not prove inheritance. Return to Module 1 records to identify the evidence source.</p>
+          </div>
         </section>
       }
 
       @switch (store.activeModule()) {
         @case (1) {
           <section class="module-intro">
-            <span class="eyebrow">Learn · GEN-1</span><h2>Which traits can reach the next generation?</h2>
-            <p>An inherited trait is influenced by genetic information passed from parent to offspring. A scar, a practiced maneuver, dust, or nutrition can change an individual during life—but those changes are not alleles passed into an egg.</p>
+            <span class="eyebrow">Learn · GEN-1 · Discovery Gallery</span><h2>Meet the dragons. Notice everything. Prove only what the evidence supports.</h2>
+            <p>Explore the same kinds of complete dragon models you will later breed and enter into the final arena. Appearance can help you form a question, but only records can show whether a characteristic is inherited, learned, or environmental.</p>
           </section>
-          <aside class="model-boundary"><strong>Model boundary</strong><span>Real traits may involve both genes and environment. These imaginary dragon traits are simplified so you can test the model.</span></aside>
+          <aside class="model-boundary"><strong>Model boundary</strong><span>Real traits may involve genes, environment, development, and experience together. These imaginary dragon cases simplify one evidence path at a time. Arena usefulness never proves inheritance.</span></aside>
+          <app-dragon-discovery-gallery />
           <section class="launch-grid">
             <article class="panel mission-launch">
-              <span class="eyebrow">Mission launch · Impossible Hatchling</span>
-              <h2>Record what you think before the investigation</h2>
-              <p>A hatchling appears to have characteristics that do not look exactly like either parent. Explain your starting ideas now; you will revisit one misconception after sorting the evidence.</p>
+              <span class="eyebrow">Scene 4 · Mission launch · Impossible Hatchling</span>
+              <h2>Turn your first impressions into testable questions</h2>
+              <p>The visible hatchling combines inherited structures, learned responses, and environmental changes. Record your starting ideas now; the analyzer will require a scientific record for every origin claim.</p>
               @for (prompt of diagnosticPrompts; track prompt.id) {
                 <label class="writing-prompt compact">{{ $index + 1 }}. {{ prompt.prompt }}
                   <textarea rows="2" [value]="diagnosticAnswer(prompt.id)" (input)="store.setDiagnosticAnswer(prompt.id, $any($event.target).value)"></textarea>
@@ -114,7 +124,11 @@
             (setCompleted)="onTraitEvidenceComplete($event)" />
           @if (hasChecked(1)) {
             <section class="sort-review panel" aria-label="Classification review">
-              <div class="section-heading"><div><span class="eyebrow">Classification review</span><h2>Where the evidence landed</h2></div></div>
+              <div class="origin-profile-head">
+                <div><span class="eyebrow">Scene 5 · Impossible Hatchling verdict</span><h2>Build the complete Origin Profile</h2><p>The hatchling is scientifically possible because one visible competitor can combine inherited structures, learned behaviors, and environmental effects.</p></div>
+                <app-dragon-portrait [profile]="impossibleHatchling" [compact]="true" />
+              </div>
+              <div class="section-heading"><div><span class="eyebrow">Classification review</span><h2>Where each evidence trail landed</h2></div></div>
               <div class="card-grid">
                 @for (card of sortCards; track card.id) {
                   <article class="task-card" [class.correct]="store.snapshot().sortAnswers[card.id] === card.category" [class.incorrect]="store.snapshot().sortAnswers[card.id] !== card.category">
@@ -123,6 +137,7 @@
                   </article>
                 }
               </div>
+              <aside class="competition-verdict"><strong>Competition connection</strong><span>Some acquired characteristics may change this individual’s performance, but only inherited information can be passed to offspring. A battle result reflects traits, tactics, collisions, and physics—not genetic worth.</span></aside>
             </section>
           }
           <label class="writing-prompt">Misconception correction <small>Use evidence from the sort to correct one idea you had at mission launch.</small><textarea rows="4" [value]="store.snapshot().correctedMisconception" (input)="store.setCorrectedMisconception($any($event.target).value)" placeholder="At first I thought… Now the evidence shows…"></textarea><i>{{ store.snapshot().correctedMisconception.length }}/30 minimum</i></label>
@@ -130,12 +145,13 @@
         }
 
         @case (2) {
-          <section class="module-intro"><span class="eyebrow">Learn · GEN-2</span><h2>Resolve the information inside a genome sample</h2><p>Use the Genome Microscope to predict a level, reconstruct the containment map, reveal the selected gene, and defend your answer with visual evidence.</p></section>
+          <section class="module-intro"><span class="eyebrow">Dragon Genome Expedition · GEN-2</span><h2>Travel from a visible dragon trait to its modeled allele pair</h2><p>Choose a dragon from Module 1, follow one simplified inherited-trait mystery inward, build the nested genome map, then use DNA copying and repair evidence to explain what each level means.</p></section>
           <app-genome-microscope-station
             [mode]="store.activeMode()"
             (evidenceSaved)="store.recordGenomeMicroscope($event)"
             (setCompleted)="onGenomeMicroscopeComplete($event)" />
-          <section class="license panel quick-check"><div class="section-heading"><div><span class="eyebrow">Genome Decoder quick check</span><h2>Show what each level means</h2><p>Answer all four before checking the pathway.</p></div></div>
+          <app-dragon-dna-repair-lab />
+          <section class="license panel quick-check"><div class="section-heading"><div><span class="eyebrow">Scene 7 · Dragon Genome Repair mission</span><h2>Restore the damaged genome map</h2><p>Use the expedition and repair-lab evidence to restore all four scrambled claims before checking the pathway.</p></div></div>
             <div class="license-questions">
               @for (question of genomeQuickQuestions; track question.id) {
                 <article><header><span>{{ question.skill }}</span><b>{{ $index + 1 }}/4</b></header><h3>{{ question.prompt }}</h3><div class="option-list">@for (option of question.options; track option.id) { <button type="button" [class.selected]="store.snapshot().genomeQuickAnswers[question.id] === option.id" (click)="store.setGenomeQuickAnswer(question.id, option.id)">{{ option.label }}</button> }</div>
@@ -144,7 +160,7 @@
               }
             </div>
           </section>
-          <div class="action-row"><span>The microscope map and all four answers are required.</span><button class="primary" type="button" (click)="checkGenomePath()">Verify Module 2 evidence</button></div>
+          <div class="action-row"><span>A fully supported microscope record and all four repaired claims are required.</span><button class="primary" type="button" (click)="checkGenomePath()">Verify repaired Module 2 map</button></div>
           <section class="concept-strip">
             <article><span>Chromosome</span><strong>packages a long DNA molecule</strong></article><article><span>Gene</span><strong>is a section of DNA</strong></article><article><span>Allele</span><strong>is a version of a gene</strong></article>
           </section>

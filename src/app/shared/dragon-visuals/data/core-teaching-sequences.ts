@@ -304,10 +304,80 @@ export const GENOTYPE_SCAN_SEQUENCE: DragonTeachingSequence = {
   ],
 };
 
+/**
+ * Dragon Hatchery selection. Candling reads what an egg will show, sampling reads the alleles
+ * behind it, and only the chosen eggs crack — so the two records stay distinct while the
+ * student commits to a choice.
+ */
+export const HATCHERY_SELECTION_SEQUENCE: DragonTeachingSequence = {
+  contractVersion: DRAGON_VISUAL_CONTRACT_VERSION,
+  sequenceId: 'hatchery-selection-v1',
+  conceptId: 'evidence-before-hatching',
+  supportedSurfaces: ['station', 'cutscene'],
+  durationMs: 5600,
+  cues: [
+    {
+      id: 'read-clutch',
+      atMs: 0,
+      durationMs: 700,
+      action: 'focus',
+      targetIds: ['egg-tray'],
+      motionId: 'instrument-focus',
+      captionId: 'hatchery.read-clutch',
+    },
+    {
+      id: 'request-hatch-selection',
+      atMs: 800,
+      durationMs: 0,
+      action: 'pause-for-prediction',
+      targetIds: ['hatch-tray'],
+      captionId: 'hatchery.predict',
+      checkpointId: 'hatch-selection',
+    },
+    {
+      id: 'candle-egg',
+      atMs: 1000,
+      durationMs: 1000,
+      action: 'reveal',
+      targetIds: ['examine-control', 'phenotype-readout'],
+      motionId: 'candling-glow',
+      captionId: 'hatchery.examine',
+    },
+    {
+      id: 'sample-egg-dna',
+      atMs: 2100,
+      durationMs: 1100,
+      action: 'reveal',
+      targetIds: ['sample-control', 'allele-slot-a', 'allele-slot-b'],
+      motionId: 'sample-draw',
+      captionId: 'hatchery.sample',
+    },
+    {
+      id: 'hatch-chosen-eggs',
+      atMs: 3300,
+      durationMs: 1400,
+      action: 'reveal',
+      targetIds: ['hatch-control', 'egg-sample'],
+      motionId: 'shell-crack',
+      captionId: 'hatchery.hatch',
+    },
+    {
+      id: 'highlight-hatch-evidence',
+      atMs: 4800,
+      durationMs: 800,
+      action: 'highlight',
+      targetIds: ['evidence-mark'],
+      motionId: 'evidence-highlight',
+      captionId: 'hatchery.evidence',
+    },
+  ],
+};
+
 export const CORE_DRAGON_TEACHING_SEQUENCES = [
   ALLELE_EXPRESSION_SEQUENCE,
   PARENT_ALLELE_TRACE_SEQUENCE,
   EVIDENCE_PATH_SEQUENCE,
   GENOME_ZOOM_SEQUENCE,
   GENOTYPE_SCAN_SEQUENCE,
+  HATCHERY_SELECTION_SEQUENCE,
 ] as const;

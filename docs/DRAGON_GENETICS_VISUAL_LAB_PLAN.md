@@ -128,20 +128,38 @@ inside the Dragon Genetics feature.
 
 ### Module 1 - Trait Detective: Observation Bay
 
-- Start with the Impossible Hatchling case file: two parent sample records, one unexpected offspring record, and three diagnostic evidence pins.
+- Open with a Dragon Discovery Gallery containing four selectable full-dragon portraits, a
+  model-ready rotate/zoom viewer, eight trait targets, and a persistent field guide that explains
+  what students see, what it may affect in the arena, and what evidence would establish its origin.
+- Ask for ungraded first impressions about flight, defense, and likely arena success, then reveal
+  the limits of visual inference.
+- Contrast inherited structures with look-alike learned or environmental effects in **Trait or
+  Trick**, then compare two parents and hatchling H7 in the family viewer.
+- Continue into the Impossible Hatchling case file: two parent sample records, one unexpected offspring record, and three diagnostic evidence pins.
 - Inspect separate characteristic readouts for scale pattern, wing type, fire ability, scar, training response, muscle condition, and nutrition effect.
 - Drag each observation to **Inherited**, **Learned**, or **Environmental** evidence trays.
 - On correction, animate a short evidence path: gene icon to inherited trait, training log to learned behavior, or environment icon to acquired effect.
-- Save one before-and-after misconception card to the evidence notebook.
+- Keep H7 visible beside the analyzer, save one before-and-after misconception card to the evidence
+  notebook, and end with an origin profile that connects proven traits to later arena mechanics.
 
 ### Module 2 - Genome Decoder: Genome Microscope
 
-- Load a selected generic genome extract, then keep all five nested levels visible while a reusable timeline focuses cell nucleus, chromosome pair, DNA, highlighted gene locus, and allele pair.
+- Begin in a Dragon Genome Archive with the four familiar dragon portraits and a selected simplified
+  inherited-trait mystery. Keep the dragon, highlighted body region, Trait Genome File, and arena
+  preview visible throughout the investigation.
+- Use an eight-step location trail—dragon, body region, cell, nucleus, chromosome pair, DNA, gene,
+  allele pair—around the existing five-level scientific microscope map.
+- Add a Chromosome Locator and reveal-gated Allele Vault so students find the shared locus before
+  seeing the two allele symbols.
+- Adapt the uncoiling, DNA base-pairing, replication, and mismatch-repair visuals from
+  `docs/dna-mutation-animation.html` into a controlled DNA lab. Keep replication distinct from
+  transcription and avoid implying that every copying error changes a visible trait.
 - Require a level prediction before label mapping or allele reveal. Students select or drag the five labels onto numbered bays; keyboard users select a label and then its destination.
 - Reveal the focused sample's actual allele symbols only after the hierarchy is correct. The renderer displays lesson-owned placement status and never grades the hierarchy itself.
 - Require students to pin the microscope level that directly supports the assignment before saving a compact evidence record.
 - Learn uses one guided allele task; Practice uses three fixed-seed tasks; Official uses four tasks with hints and immediate scoring removed; Reteach contrasts DNA base pairs, genes, and alleles with fresh examples.
-- The existing four-question quick check remains the final Module 2 verification and combines with the microscope evidence for GEN-2 mastery.
+- Present the existing four-question check as a Dragon Genome Repair mission; it remains the final
+  Module 2 verification and combines with the microscope evidence for GEN-2 mastery.
 - Stop at the required Grade 7 model; do not branch into replication, transcription, translation, or meiosis.
 
 ### Module 3 - Genotype / Phenotype Reveal: Genotype Scanner

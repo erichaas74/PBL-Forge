@@ -41,6 +41,7 @@ import {
   toVisualClues,
   toVisualObservations,
 } from '../visual-adapter/dragon-visual-scene.adapter';
+import { DragonPortraitComponent } from '../dragon-portrait.component';
 
 interface ItemState {
   prediction: TraitEvidenceCategory | null;
@@ -79,7 +80,7 @@ const WORKED_EXAMPLE_ID = 'worked-ash-stain';
  */
 @Component({
   selector: 'app-trait-evidence-station',
-  imports: [TraitInspectorDisplayComponent],
+  imports: [TraitInspectorDisplayComponent, DragonPortraitComponent],
   templateUrl: './trait-evidence-station.component.html',
   styleUrl: './trait-evidence-station.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -98,6 +99,7 @@ export class TraitEvidenceStationComponent {
   readonly reteachTriggered = output<TraitEvidenceMisconception>();
 
   readonly copy = TRAIT_EVIDENCE_COPY;
+  readonly specimen = TRAIT_EVIDENCE_SPECIMEN;
   readonly misconceptionNotes = TRAIT_EVIDENCE_MISCONCEPTION_NOTES;
 
   private readonly feedbackState = signal<TraitInspectorFeedback | null>(null);

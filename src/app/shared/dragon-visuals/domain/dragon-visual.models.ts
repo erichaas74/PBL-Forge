@@ -19,7 +19,9 @@ export type DragonVisualSceneKind =
   | 'reproduction-comparison'
   | 'sibling-tracer'
   | 'diversity-manager'
-  | 'evidence-replay';
+  | 'evidence-replay'
+  /** Shared clutch instrument. Several modules host it with different tools enabled. */
+  | 'dragon-hatchery';
 export type DragonVisualParentSource = 'parent-a' | 'parent-b' | 'single-parent' | 'none';
 export type DragonGenomeLevelId = 'cell' | 'chromosome' | 'dna' | 'gene' | 'allele';
 
@@ -205,6 +207,55 @@ export interface PunnettComposerInstrument {
   offspringCells: readonly (readonly [string, string])[];
 }
 
+/** What a student can do to an egg. A module enables only the tools its lesson needs. */
+export type DragonHatcheryToolId = 'examine' | 'sample' | 'hatch';
+
+/** Drawn state of one shell. `sampled` outranks `examined`; `hatched` outranks both. */
+export type DragonEggStatusId = 'intact' | 'examined' | 'sampled' | 'hatched';
+
+/**
+ * One egg in the tray. The lesson owns every flag here: the display draws what has been
+ * revealed and never decides that examining or sampling has happened.
+ */
+export interface DragonEggRecord {
+  eggId: string;
+  /** Analysis sample carrying this egg's genes. */
+  sampleId: string;
+  /** Tray position drawn on the shell, 1-based. */
+  position: number;
+  /** Phenotype readouts are legible once examined. */
+  examined: boolean;
+  /** Allele pairs are legible once sampled. */
+  sampled: boolean;
+  hatched: boolean;
+  /** Set when a module withholds an egg, for example one another station already claimed. */
+  locked?: boolean;
+}
+
+export interface DragonHatcheryInstrument {
+  kind: 'dragon-hatchery';
+  clutchId: string;
+  parentSampleIds?: readonly [string, string];
+  /** Gene the module is teaching. Absent when every trait matters equally. */
+  focusGeneId?: string;
+  eggs: readonly DragonEggRecord[];
+  activeEggId?: string | null;
+  /** Eggs staged in the hatch tray, before the hatch is committed. */
+  selectedEggIds?: readonly string[];
+  activeToolId?: DragonHatcheryToolId;
+  /** Tools this module offers. Defaults to all three. */
+  availableToolIds?: readonly DragonHatcheryToolId[];
+  /** Remaining uses of a tool; `null` is unlimited. Scarcity is what makes students choose. */
+  examinesRemaining?: number | null;
+  samplesRemaining?: number | null;
+  /** Most eggs this module lets a student hatch; `null` is unlimited. */
+  hatchLimit?: number | null;
+  hatchCommitted?: boolean;
+  evidenceMarks?: readonly DragonEvidenceMark[];
+  evidenceMarkId?: string | null;
+  showHints?: boolean;
+}
+
 export interface IncubatorSamplerInstrument {
   kind: 'incubator-sampler';
   parentSampleIds: readonly [string, string];
@@ -246,6 +297,7 @@ export type DragonInstrumentState =
   | GenotypeScannerInstrument
   | AlleleSwitchboardInstrument
   | PunnettComposerInstrument
+  | DragonHatcheryInstrument
   | IncubatorSamplerInstrument
   | ReproductionComparisonInstrument
   | SiblingTracerInstrument
@@ -279,6 +331,10 @@ export type DragonVisualEventType =
   | 'evidence-pinned'
   | 'prediction-locked'
   | 'reveal-requested'
+  /** An egg was added to or removed from the hatch tray. */
+  | 'egg-marked'
+  /** The staged hatch tray was committed. */
+  | 'hatch-committed'
   | 'sequence-checkpoint-completed';
 
 export interface DragonVisualStageEvent {
