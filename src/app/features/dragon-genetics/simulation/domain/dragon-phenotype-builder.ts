@@ -7,6 +7,10 @@ import {
   cloneAssemblyBlueprint,
   normalizeAssemblyRoles,
 } from '../../../../shared/assembly/domain/assembly-clone';
+import {
+  identityQuaternion,
+  rotateVectorByQuaternion,
+} from '../../../../shared/assembly/domain/vector-data';
 import { createDefaultCombatProfile } from '../../../../shared/assembly/combat/assembly-combat.models';
 import {
   DragonAllele,
@@ -79,7 +83,8 @@ export function expressDragonPhenotype(genome: DragonGenome): DragonPhenotype {
     armorDensity: armor,
     pigmentHue: hue,
     aggression: temperament,
-    scaleColor: `hsl(${hue} 62% ${Math.round(34 + pigment * 16)}%)`,
+    // Comma syntax: valid CSS, and required by three.js Color.setStyle.
+    scaleColor: `hsl(${hue}, 62%, ${Math.round(34 + pigment * 16)}%)`,
   };
 }
 
@@ -137,7 +142,50 @@ export function applyDragonPhenotype(
       scaleByPart.get(joint.childPartId) ?? scalarVector(phenotype.bodyScale),
     ),
   }));
+  realignPartsToJoints(blueprint);
   return blueprint;
+}
+
+/**
+ * Per-role scaling moves joint pivots by different amounts on each side, so the
+ * scaled part positions no longer satisfy the joint constraints. Recompute every
+ * child's position from its parent through the joint tree; otherwise the physics
+ * solver snaps the misaligned parts together on spawn with enough violence to
+ * break every joint instantly.
+ */
+function realignPartsToJoints(blueprint: AssemblyBlueprint): void {
+  const partsById = new Map(blueprint.parts.map(part => [part.id, part]));
+  const childIds = new Set(blueprint.joints.map(joint => joint.childPartId));
+  const aligned = new Set(
+    blueprint.parts.map(part => part.id).filter(id => !childIds.has(id)),
+  );
+
+  const pending = [...blueprint.joints];
+  while (pending.length) {
+    const readyIndex = pending.findIndex(joint => aligned.has(joint.parentPartId));
+    // Cycle or orphan: keep the authored position rather than looping forever.
+    if (readyIndex < 0) break;
+
+    const [joint] = pending.splice(readyIndex, 1);
+    const parent = partsById.get(joint.parentPartId);
+    const child = partsById.get(joint.childPartId);
+    aligned.add(joint.childPartId);
+    if (!parent || !child) continue;
+
+    const pivotOnParentWorld = rotateVectorByQuaternion(
+      joint.pivotOnParent,
+      parent.rotation ?? identityQuaternion(),
+    );
+    const pivotOnChildWorld = rotateVectorByQuaternion(
+      joint.pivotOnChild,
+      child.rotation ?? identityQuaternion(),
+    );
+    child.position = {
+      x: parent.position.x + pivotOnParentWorld.x - pivotOnChildWorld.x,
+      y: parent.position.y + pivotOnParentWorld.y - pivotOnChildWorld.y,
+      z: parent.position.z + pivotOnParentWorld.z - pivotOnChildWorld.z,
+    };
+  }
 }
 
 function getFeatureScale(part: AssemblyPart, phenotype: DragonPhenotype): Vector3Data {

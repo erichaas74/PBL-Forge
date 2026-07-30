@@ -25,6 +25,16 @@ export const routes: Routes = [
       import('./features/dragon-genetics/dragon-genetics.page').then((m) => m.DragonGeneticsPage)
   },
   {
+    path: 'dragon-duel',
+    loadComponent: () =>
+      import('./features/dragon-genetics/dragon-duel.page').then((m) => m.DragonDuelPage)
+  },
+  {
+    path: 'dragon-garage',
+    loadComponent: () =>
+      import('./features/dragon-genetics/dragon-garage.page').then((m) => m.DragonGaragePage)
+  },
+  {
     path: 'teacher',
     loadComponent: () => import('./features/teacher/teacher.page').then((m) => m.TeacherPage)
   },

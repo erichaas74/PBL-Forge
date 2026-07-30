@@ -4,6 +4,9 @@ import {
   DRAGON_TRAITS,
   allParentPairAnalyses,
   analyzePairDiversity,
+  buildPunnettCells,
+  genotypeLabel,
+  getTrait,
 } from './simulation/domain/dragon-inheritance';
 import { TRAIT_SORT_CARDS } from './simulation/data/dragon-lab-content';
 import {
@@ -22,6 +25,7 @@ import {
 } from './simulation/domain/genotype-scanner.models';
 import { genotypeScannerTask } from './simulation/data/genotype-scanner-content';
 import { AlleleWorkbenchRecord } from './simulation/domain/allele-workbench.models';
+import { HatcheryRunRecord } from './simulation/domain/dragon-hatchery.models';
 import {
   GENOME_PATH,
   GENOME_QUICK_QUESTIONS,
@@ -63,6 +67,7 @@ const MAX_EVENTS = 120;
 const MAX_TRAIT_EVIDENCE_RECORDS = 40;
 const MAX_GENOME_MICROSCOPE_RECORDS = 30;
 const MAX_GENOTYPE_SCAN_RECORDS = 30;
+const MAX_HATCHERY_RECORDS = 20;
 const MAX_ALLELE_WORKBENCH_RECORDS = 30;
 
 @Injectable()
@@ -263,6 +268,53 @@ export class DragonGeneticsStore {
     }));
   }
 
+  setModule3EggTrait(traitId: DragonTraitId): void {
+    this.update(snapshot => ({
+      ...snapshot,
+      module3EggTraitId: traitId,
+      module3EggPredictions: [],
+      module3EggPredictionLocked: false,
+    }));
+  }
+
+  toggleModule3EggPrediction(genotype: string): void {
+    const snapshot = this.snapshot();
+    if (snapshot.module3EggPredictionLocked) return;
+    const selected = snapshot.module3EggPredictions.includes(genotype)
+      ? snapshot.module3EggPredictions.filter(value => value !== genotype)
+      : [...snapshot.module3EggPredictions, genotype];
+    this.update(current => ({ ...current, module3EggPredictions: selected }));
+  }
+
+  lockModule3EggPrediction(): void {
+    if (!this.snapshot().module3EggPredictions.length) return;
+    this.update(snapshot => ({ ...snapshot, module3EggPredictionLocked: true }));
+  }
+
+  resetModule3EggPrediction(): void {
+    this.update(snapshot => ({
+      ...snapshot,
+      module3EggPredictions: [],
+      module3EggPredictionLocked: false,
+    }));
+  }
+
+  recordHatcheryRun(record: HatcheryRunRecord): void {
+    this.update(snapshot => ({
+      ...snapshot,
+      hatcheryRecords: [
+        ...snapshot.hatcheryRecords.filter(existing =>
+          existing.clutchId !== record.clutchId || existing.mode !== record.mode),
+        record,
+      ].slice(-MAX_HATCHERY_RECORDS),
+    }));
+    this.addEvent(
+      3,
+      'hatchery-record',
+      `${record.clutchId}: ${record.sampledEggIds.length} sampled, ${record.hatchedEggIds.length} hatched, evidence ${record.evidenceCorrect ? 'supported' : 'unsupported'}`,
+    );
+  }
+
   /**
    * Saves one Genotype Scanner result and mirrors its verdict into the Module 3 phenotype
    * answers so the existing completion gate and GEN-3 mastery keep working.
@@ -295,11 +347,29 @@ export class DragonGeneticsStore {
   }
 
   checkPhenotypeAnswers(): { correct: number; total: number; complete: boolean } {
-    const correct = PHENOTYPE_QUESTIONS.filter(question =>
+    const certificationCorrect = PHENOTYPE_QUESTIONS.filter(question =>
       this.snapshot().phenotypeAnswers[question.id] === question.correctOptionId).length;
-    const total = PHENOTYPE_QUESTIONS.length;
+    const trait = getTrait(this.snapshot().module3EggTraitId);
+    const possibleEggs = new Set(buildPunnettCells(
+      this.parentA(),
+      this.parentB(),
+      trait.id,
+    ).map(cell => genotypeLabel(cell.genotype)));
+    const predictedEggs = new Set(this.snapshot().module3EggPredictions);
+    const eggPredictionReady = this.snapshot().module3EggPredictionLocked
+      && possibleEggs.size === predictedEggs.size
+      && [...possibleEggs].every(genotype => predictedEggs.has(genotype));
+    const hatcheryReady = this.snapshot().hatcheryRecords.some(record =>
+      record.moduleId === 'module-3'
+      && record.evidenceCorrect === true
+      && record.sampledEggIds.length > 0
+      && record.hatchedEggIds.length > 0);
+    const correct = certificationCorrect + (eggPredictionReady ? 1 : 0) + (hatcheryReady ? 1 : 0);
+    const total = PHENOTYPE_QUESTIONS.length + 2;
     const flags = [
-      ...(correct === total ? [] : ['genotype-phenotype-swap']),
+      ...(certificationCorrect === PHENOTYPE_QUESTIONS.length ? [] : ['genotype-phenotype-swap']),
+      ...(eggPredictionReady ? [] : ['offspring-combination']),
+      ...(hatcheryReady ? [] : ['unsupported-hatchery-evidence']),
       ...this.snapshot().genotypeScanRecords
         .map(record => record.misconception)
         .filter((flag): flag is GenotypeScannerMisconception => !!flag),

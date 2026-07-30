@@ -1,7 +1,7 @@
 <section class="arena-shell" aria-label="Dragon battle arena">
   <div class="arena-stage">
     <app-arena-viewport [controlFrameFactory]="controlFrameFactory" />
-    @if (!arena.state().isRunning && !arena.state().winnerId) {
+    @if (!arena.state().isRunning && !arena.state().winnerId && playMode() === 'real-time') {
       <div class="arena-overlay">
         <span>Physics arena ready</span>
         <strong>{{ champion().name }} vs. The Arena Warden</strong>
@@ -27,6 +27,51 @@
     }
   </div>
 
+  <div class="mode-row" role="group" aria-label="Battle mode">
+    <button type="button" class="mode-button" [class.active]="playMode() === 'real-time'" (click)="setMode('real-time')">Real-time battle</button>
+    <button type="button" class="mode-button" [class.active]="playMode() === 'turn-based'" (click)="setMode('turn-based')">Turn duel</button>
+    <button type="button" class="mode-button sound-toggle" (click)="sound.toggle()" [attr.aria-pressed]="sound.enabled()">
+      {{ sound.enabled() ? '🔊 Sound on' : '🔇 Sound off' }}
+    </button>
+  </div>
+
+  @if (playMode() === 'turn-based') {
+  <div class="turn-panel" aria-label="Turn duel controls">
+    @if (turnScript(); as script) {
+      <p class="turn-status">
+        {{ script.team === 'red' ? 'Playing your moves…' : 'The Arena Warden strikes back…' }}
+      </p>
+    } @else if (!arena.state().winnerId) {
+      <div class="turn-heading">
+        <span>Turn {{ arena.state().turnNumber }}</span>
+        <strong>Pick up to {{ maxCardsPerTurn }} moves, then play the turn</strong>
+      </div>
+      <div class="card-grid">
+        @for (card of moveCards; track card.id) {
+          <button
+            type="button"
+            class="move-card"
+            [class.selected]="selectionIndex(card.id) >= 0"
+            [disabled]="!canUseCard(card)"
+            (click)="toggleCard(card.id)">
+            @if (selectionIndex(card.id) >= 0) {
+              <i class="order">{{ selectionIndex(card.id) + 1 }}</i>
+            }
+            <span>{{ card.name }}</span>
+            <small>{{ cardUnavailableReason(card) }}</small>
+          </button>
+        }
+      </div>
+      <button
+        type="button"
+        class="play-turn"
+        [disabled]="!selectedCardIds().length"
+        (click)="playTurn()">
+        Play turn ({{ selectedCardIds().length }}/{{ maxCardsPerTurn }})
+      </button>
+    }
+  </div>
+  } @else {
   <div class="battle-controls" aria-label="Arena controls">
     <div class="move-pad">
       <button type="button" aria-label="Move forward" (pointerdown)="setControl('forward', true)" (pointerup)="setControl('forward', false)" (pointerleave)="setControl('forward', false)">↑</button>
@@ -35,12 +80,30 @@
       <button type="button" aria-label="Turn right" (pointerdown)="setControl('right', true)" (pointerup)="setControl('right', false)" (pointerleave)="setControl('right', false)">→</button>
     </div>
     <div class="attack-controls">
-      <button type="button" (click)="attack('bite')"><span>Bite</span><small>Jaw + fire trait</small></button>
-      <button type="button" [disabled]="!canWingAttack()" (click)="attack('wing')"><span>Wing buffet</span><small>{{ canWingAttack() ? 'Winged genotype' : 'Unavailable: wingless' }}</small></button>
-      <button type="button" (click)="attack('tail')"><span>Tail sweep</span><small>Timing + position</small></button>
-      <button type="button" class="boost" (pointerdown)="setControl('boost', true)" (pointerup)="setControl('boost', false)" (pointerleave)="setControl('boost', false)"><span>Boost</span><small>Hold briefly</small></button>
+      <button type="button" (click)="attack('bite')"><span>Bite <kbd>J</kbd></span><small>Jaw + fire trait</small></button>
+      <button type="button" [disabled]="!canWingAttack()" (click)="attack('wing')"><span>Wing buffet <kbd>K</kbd></span><small>{{ canWingAttack() ? 'Winged genotype' : 'Unavailable: wingless' }}</small></button>
+      <button type="button" (click)="attack('tail')"><span>Tail sweep <kbd>L</kbd></span><small>Timing + position</small></button>
+      <button type="button" class="fire" [disabled]="!canFireAttack()" (click)="attack('fire')"><span>Fire breath <kbd>F</kbd></span><small>{{ canFireAttack() ? 'Fire genotype' : 'Unavailable: no fire' }}</small></button>
+      <button type="button" class="boost" (pointerdown)="setControl('boost', true)" (pointerup)="setControl('boost', false)" (pointerleave)="setControl('boost', false)"><span>Boost <kbd>Shift</kbd></span><small>Winged dragons lift off</small></button>
     </div>
     <button class="pause" type="button" (click)="toggleBattle()">{{ arena.state().isRunning ? 'Pause' : 'Resume' }}</button>
   </div>
+  }
+
+  <div class="controls-guide" aria-label="How the dragon controls work">
+    <h3>How to control your dragon</h3>
+    <dl>
+      <div><dt>Move</dt><dd>Arrow pad on screen, or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrow keys. Forward charges toward the far wall; left and right swing your dragon sideways.</dd></div>
+      <div><dt>Boost</dt><dd>Hold the Boost button or <kbd>Shift</kbd> for a short burst of speed — ram harder to deal more damage.</dd></div>
+      <div><dt>Bite</dt><dd>Bite button or <kbd>J</kbd>. Lunges the head forward; strongest when you are close and moving fast.</dd></div>
+      <div><dt>Wing buffet</dt><dd>Wing button or <kbd>K</kbd>. Only dragons that inherited at least one W allele can use it.</dd></div>
+      <div><dt>Tail sweep</dt><dd>Tail button or <kbd>L</kbd>. Whips the tail side to side — good when an opponent circles behind you.</dd></div>
+      <div><dt>Fire breath</dt><dd>Fire button or <kbd>F</kbd>. Scorches a cone in front of you — only dragons that inherited at least one F allele can use it.</dd></div>
+      <div><dt>Gamepad</dt><dd>Plug in any controller: left stick or d-pad moves, <b>A</b> bites, <b>X</b> wing, <b>B</b> tail, <b>Y</b> fire, right trigger boosts.</dd></div>
+    </dl>
+    <p>Damage comes from real collisions and landed attacks: an attack that touches the opponent scores a hit even at low speed, and hit parts flash. The first moments after the spawn drop are a safe settling period, then the duel is live. Pause any time.</p>
+    <p><strong>Turn duel mode:</strong> no reflexes needed — pick up to three move cards, press Play turn, and watch the physics act them out. Then the Arena Warden takes its turn. Great for planning strategies or sharing one computer.</p>
+  </div>
+
   <p class="arena-note"><strong>Science note:</strong> inherited traits influence the generated body and available moves, but player tactics, collisions, and physics also influence the winner. The battle result is not your genetics mastery grade.</p>
 </section>

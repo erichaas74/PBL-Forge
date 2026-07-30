@@ -78,9 +78,17 @@ export interface BattleDamageEvent {
   reason: string;
 }
 
+/** Active fire-breath cone, reported by physics so the renderer can draw it. */
+export interface FireConeSnapshot {
+  combatantId: string;
+  origin: Vector3Data;
+  direction: Vector3Data;
+}
+
 export interface BattlePhysicsFrame {
   snapshots: BattleBodySnapshot[];
   damageEvents: BattleDamageEvent[];
+  fireCones?: FireConeSnapshot[];
 }
 
 export interface ArenaControlFrame {
@@ -91,6 +99,7 @@ export interface ArenaControlFrame {
   biteAttack?: boolean;
   wingAttack?: boolean;
   tailAttack?: boolean;
+  fireAttack?: boolean;
 }
 
 export type ControlFrameByCombatant = Record<string, ArenaControlFrame>;

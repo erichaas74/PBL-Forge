@@ -12,10 +12,18 @@ import {
 import { identityQuaternion, rotateVectorByQuaternion } from './domain/vector-data';
 import { getAssemblySnapPoints } from './domain/snap-points';
 import {
-  createAssemblyGeometry,
-  createAssemblyMaterial,
+  createAssemblyObject,
+  disposeAssemblyObject,
   getAssemblyRenderSignature,
 } from './rendering/three-assembly-mesh.factory';
+import { RenderQuality, resolveRenderQuality } from './rendering/render-quality';
+import {
+  STUDIO_STAGE_THEME,
+  configureStageRenderer,
+  createGradientSkyTexture,
+  createStageLighting,
+  installStageEnvironment,
+} from './rendering/scene-environment';
 
 @Injectable()
 export class AssemblyRendererService {
@@ -26,9 +34,12 @@ export class AssemblyRendererService {
   private controls: OrbitControls | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private selectionBox: THREE.BoxHelper | null = null;
+  private quality: RenderQuality = 'high';
+  private skyTexture: THREE.CanvasTexture | null = null;
+  private disposeEnvironmentMap: (() => void) | null = null;
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
-  private readonly meshes = new Map<string, THREE.Mesh>();
+  private readonly partObjects = new Map<string, THREE.Object3D>();
   private readonly jointLines = new Map<string, THREE.Line>();
   private readonly snapPointMeshes = new Map<string, THREE.Mesh>();
   private currentJoints: AssemblyJoint[] = [];
@@ -36,9 +47,11 @@ export class AssemblyRendererService {
   mount(host: HTMLElement): void {
     this.dispose();
     this.host = host;
+    this.quality = resolveRenderQuality();
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf5f7fb);
+    this.skyTexture = createGradientSkyTexture(STUDIO_STAGE_THEME);
+    scene.background = this.skyTexture ?? new THREE.Color(STUDIO_STAGE_THEME.skyBottom);
     this.scene = scene;
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
@@ -47,11 +60,11 @@ export class AssemblyRendererService {
     this.camera = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    configureStageRenderer(renderer, this.quality);
     host.appendChild(renderer.domElement);
     this.renderer = renderer;
+
+    this.disposeEnvironmentMap = installStageEnvironment(scene, renderer, STUDIO_STAGE_THEME);
 
     this.controls = new OrbitControls(camera, renderer.domElement);
     this.controls.enableDamping = true;
@@ -73,18 +86,18 @@ export class AssemblyRendererService {
     const jointIds = new Set(state.joints.map(joint => joint.id));
     this.currentJoints = state.joints.map(joint => ({ ...joint }));
 
-    for (const [partId, mesh] of Array.from(this.meshes.entries())) {
+    for (const [partId, object] of Array.from(this.partObjects.entries())) {
       if (!partIds.has(partId)) {
-        this.scene.remove(mesh);
-        disposeRenderable(mesh);
-        this.meshes.delete(partId);
+        this.scene.remove(object);
+        disposeAssemblyObject(object);
+        this.partObjects.delete(partId);
       }
     }
 
     for (const [jointId, line] of Array.from(this.jointLines.entries())) {
       if (!jointIds.has(jointId)) {
         this.scene.remove(line);
-        disposeRenderable(line);
+        disposeLine(line);
         this.jointLines.delete(jointId);
       }
     }
@@ -120,28 +133,28 @@ export class AssemblyRendererService {
       return;
     }
 
-    const mesh = this.meshes.get(partId);
+    const object = this.partObjects.get(partId);
 
-    if (!mesh) {
+    if (!object) {
       this.render();
       return;
     }
 
-    this.selectionBox = new THREE.BoxHelper(mesh, 0x0f62fe);
+    this.selectionBox = new THREE.BoxHelper(object, 0x0f62fe);
     this.scene.add(this.selectionBox);
     this.render();
   }
 
   applySnapshot(snapshots: AssemblyPhysicsSnapshot[]): void {
     for (const snapshot of snapshots) {
-      const mesh = this.meshes.get(snapshot.partId);
+      const object = this.partObjects.get(snapshot.partId);
 
-      if (!mesh) {
+      if (!object) {
         continue;
       }
 
-      mesh.position.set(snapshot.position.x, snapshot.position.y, snapshot.position.z);
-      mesh.quaternion.set(
+      object.position.set(snapshot.position.x, snapshot.position.y, snapshot.position.z);
+      object.quaternion.set(
         snapshot.quaternion.x,
         snapshot.quaternion.y,
         snapshot.quaternion.z,
@@ -149,20 +162,20 @@ export class AssemblyRendererService {
       );
     }
 
-    this.syncJointLinesFromMeshes();
+    this.syncJointLinesFromObjects();
     this.render();
   }
 
   pickPart(clientX: number, clientY: number): string | null {
     this.prepareRay(clientX, clientY);
-    const intersections = this.raycaster.intersectObjects(Array.from(this.meshes.values()), false);
+    const intersections = this.raycaster.intersectObjects(Array.from(this.partObjects.values()), true);
     const hit = intersections[0]?.object;
 
     if (!hit) {
       return null;
     }
 
-    return typeof hit.userData['partId'] === 'string' ? hit.userData['partId'] : null;
+    return findPartId(hit);
   }
 
   pickSnapPoint(clientX: number, clientY: number): AssemblySnapPoint | null {
@@ -205,19 +218,20 @@ export class AssemblyRendererService {
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
 
-    for (const mesh of this.meshes.values()) {
-      disposeRenderable(mesh);
+    for (const object of this.partObjects.values()) {
+      disposeAssemblyObject(object);
     }
 
     for (const line of this.jointLines.values()) {
-      disposeRenderable(line);
+      disposeLine(line);
     }
 
     for (const marker of this.snapPointMeshes.values()) {
-      disposeRenderable(marker);
+      marker.geometry.dispose();
+      if (!Array.isArray(marker.material)) marker.material.dispose();
     }
 
-    this.meshes.clear();
+    this.partObjects.clear();
     this.jointLines.clear();
     this.snapPointMeshes.clear();
 
@@ -226,6 +240,10 @@ export class AssemblyRendererService {
       this.selectionBox = null;
     }
 
+    this.disposeEnvironmentMap?.();
+    this.disposeEnvironmentMap = null;
+    this.skyTexture?.dispose();
+    this.skyTexture = null;
     this.controls?.dispose();
     this.controls = null;
 
@@ -246,32 +264,29 @@ export class AssemblyRendererService {
       return;
     }
 
+    // The signature includes color, so recolored parts rebuild with fresh materials.
     const signature = getAssemblyRenderSignature(part);
-    const existing = this.meshes.get(part.id);
-    let mesh = existing;
+    const existing = this.partObjects.get(part.id);
+    let object = existing;
 
-    if (!mesh || mesh.userData['geometrySignature'] !== signature) {
-      if (mesh) {
-        this.scene.remove(mesh);
-        disposeRenderable(mesh);
+    if (!object || object.userData['signature'] !== signature) {
+      if (object) {
+        this.scene.remove(object);
+        disposeAssemblyObject(object);
       }
 
-      mesh = this.createPartMesh(part, signature);
-      this.meshes.set(part.id, mesh);
-      this.scene.add(mesh);
+      object = createAssemblyObject(part);
+      object.userData['signature'] = signature;
+      this.partObjects.set(part.id, object);
+      this.scene.add(object);
     }
 
-    mesh.position.set(part.position.x, part.position.y, part.position.z);
+    object.position.set(part.position.x, part.position.y, part.position.z);
 
     if (part.rotation) {
-      mesh.quaternion.set(part.rotation.x, part.rotation.y, part.rotation.z, part.rotation.w);
+      object.quaternion.set(part.rotation.x, part.rotation.y, part.rotation.z, part.rotation.w);
     } else {
-      mesh.quaternion.identity();
-    }
-
-    const material = mesh.material;
-    if (material instanceof THREE.MeshStandardMaterial) {
-      material.color.set(part.color);
+      object.quaternion.identity();
     }
   }
 
@@ -314,10 +329,10 @@ export class AssemblyRendererService {
     line.geometry = new THREE.BufferGeometry().setFromPoints(points);
   }
 
-  private syncJointLinesFromMeshes(): void {
+  private syncJointLinesFromObjects(): void {
     for (const joint of this.currentJoints) {
-      const parent = this.meshes.get(joint.parentPartId);
-      const child = this.meshes.get(joint.childPartId);
+      const parent = this.partObjects.get(joint.parentPartId);
+      const child = this.partObjects.get(joint.childPartId);
       const line = this.jointLines.get(joint.id);
 
       if (!parent || !child || !line) {
@@ -334,37 +349,16 @@ export class AssemblyRendererService {
     }
   }
 
-  private createPartMesh(part: AssemblyPart, signature: string): THREE.Mesh {
-    const mesh = new THREE.Mesh(createAssemblyGeometry(part), createAssemblyMaterial(part));
-
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.userData['geometrySignature'] = signature;
-    mesh.userData['partId'] = part.id;
-
-    return mesh;
-  }
-
   private addSceneHelpers(scene: THREE.Scene): void {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
-    scene.add(ambientLight);
+    scene.add(createStageLighting(STUDIO_STAGE_THEME, { width: 12, depth: 12 }, this.quality));
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.25);
-    keyLight.position.set(4, 7, 5);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.set(1024, 1024);
-    scene.add(keyLight);
-
-    const fillLight = new THREE.DirectionalLight(0xb9e6ff, 0.45);
-    fillLight.position.set(-5, 4, -3);
-    scene.add(fillLight);
-
-    const grid = new THREE.GridHelper(12, 24, 0x8fa3b8, 0xd5dde8);
+    // The build grid stays: it is a workshop, and students need the spatial reference.
+    const grid = new THREE.GridHelper(12, 24, 0xa4b4c8, 0xdbe3ee);
     scene.add(grid);
 
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(12, 12),
-      new THREE.ShadowMaterial({ color: 0x1f2937, opacity: 0.1 }),
+      new THREE.ShadowMaterial({ color: 0x1f2937, opacity: 0.14 }),
     );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
@@ -382,7 +376,8 @@ export class AssemblyRendererService {
     for (const [key, marker] of Array.from(this.snapPointMeshes.entries())) {
       if (!nextKeys.has(key)) {
         this.scene.remove(marker);
-        disposeRenderable(marker);
+        marker.geometry.dispose();
+        if (!Array.isArray(marker.material)) marker.material.dispose();
         this.snapPointMeshes.delete(key);
       }
     }
@@ -453,8 +448,21 @@ function toThreeVector(vector: Vector3Data): THREE.Vector3 {
   return new THREE.Vector3(vector.x, vector.y, vector.z);
 }
 
-function localPointToWorld(mesh: THREE.Mesh, vector: Vector3Data): THREE.Vector3 {
-  return mesh.localToWorld(toThreeVector(vector));
+function localPointToWorld(object: THREE.Object3D, vector: Vector3Data): THREE.Vector3 {
+  return object.localToWorld(toThreeVector(vector));
+}
+
+/** Walks up from a raycast hit to the part root created by createAssemblyObject. */
+function findPartId(hit: THREE.Object3D): string | null {
+  let current: THREE.Object3D | null = hit;
+  while (current) {
+    const partId = current.userData['partId'];
+    if (typeof partId === 'string') {
+      return partId;
+    }
+    current = current.parent;
+  }
+  return null;
 }
 
 function getSnapPointKey(snapPoint: AssemblySnapPoint): string {
@@ -470,18 +478,15 @@ function isSnapPoint(value: unknown): value is AssemblySnapPoint {
   return typeof candidate.id === 'string' && typeof candidate.partId === 'string';
 }
 
-function disposeRenderable(object: THREE.Object3D): void {
-  if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
-    object.geometry.dispose();
-    const material = object.material;
+function disposeLine(line: THREE.Line): void {
+  line.geometry.dispose();
 
-    if (Array.isArray(material)) {
-      for (const item of material) {
-        item.dispose();
-      }
-      return;
+  if (Array.isArray(line.material)) {
+    for (const material of line.material) {
+      material.dispose();
     }
-
-    material.dispose();
+    return;
   }
+
+  line.material.dispose();
 }

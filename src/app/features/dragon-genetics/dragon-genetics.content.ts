@@ -123,25 +123,25 @@ export const GENOME_QUICK_QUESTIONS: readonly LicenseQuestion[] = [
 export const PHENOTYPE_QUESTIONS = [
   {
     id: 'winged-genotypes',
-    prompt: 'A dragon is winged. Which genotype statement is supported?',
+    prompt: 'Possible eggs: Which offspring genotypes can a Ww parent and a ww parent produce?',
     options: [
-      { id: 'ww-only', label: 'It must be WW.' },
-      { id: 'ww-or-wx', label: 'It could be WW or Ww.' },
-      { id: 'recessive-only', label: 'It must be ww.' },
+      { id: 'ww-only', label: 'WW and Ww' },
+      { id: 'ww-or-wx', label: 'Ww and ww' },
+      { id: 'recessive-only', label: 'WW only' },
     ],
     correctOptionId: 'ww-or-wx',
-    explanation: 'A dominant phenotype can come from two dominant alleles or one dominant and one recessive allele.',
+    explanation: 'The Ww parent can contribute W or w, while the ww parent can contribute only w. The possible eggs are Ww and ww.',
   },
   {
     id: 'wingless-genotype',
-    prompt: 'A dragon is wingless in this model. Which genotype must it have?',
+    prompt: 'Hidden parent: A winged dragon crossed with a wingless ww dragon produces a wingless hatchling. What must the winged parent carry?',
     options: [
       { id: 'WW', label: 'WW' },
       { id: 'Ww', label: 'Ww' },
       { id: 'ww', label: 'ww' },
     ],
-    correctOptionId: 'ww',
-    explanation: 'The recessive phenotype appears only when both modeled alleles are recessive.',
+    correctOptionId: 'Ww',
+    explanation: 'The wingless hatchling received w from both parents. The winged parent must carry and contribute w, so it is Ww.',
   },
   {
     id: 'fire-phenotype',
@@ -156,14 +156,14 @@ export const PHENOTYPE_QUESTIONS = [
   },
   {
     id: 'horned-genotypes',
-    prompt: 'Two dragons are both horned. What can you conclude about their genotypes?',
+    prompt: 'Same look, different genes: Two sibling hatchlings are both horned. What can you conclude?',
     options: [
       { id: 'same-horns', label: 'They must have the same genotype.' },
       { id: 'different-horns', label: 'Each could be HH or Hh, so their genotypes may differ.' },
       { id: 'recessive-horns', label: 'Both must be hh.' },
     ],
     correctOptionId: 'different-horns',
-    explanation: 'The same dominant phenotype can be produced by a homozygous dominant or heterozygous genotype.',
+    explanation: 'The same dominant phenotype can be produced by HH or Hh, so sibling hatchlings can look alike while carrying different genotypes.',
   },
 ] as const;
 

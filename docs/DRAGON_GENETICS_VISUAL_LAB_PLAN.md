@@ -35,18 +35,18 @@ Students select a dragon, egg, offspring, parent pair, sibling group, or populat
 
 Each station is a separate simulation. The station consumes the selected analysis record but does not render the selected dragon's body or parts. It renders only its scientific model: chromosomes and DNA, allele pairs, inheritance cells, egg outcomes, probability plots, parent-to-offspring allele paths, or diversity counts. A portrait may be used in the separate sample selector, and the assembled dragon appears in the final arena, but neither is embedded in the scientific instruments.
 
-| Separate tool | Student data it can analyze | What the simulation displays |
-| --- | --- | --- |
-| Trait Evidence Analyzer | Selected characteristic records and student classifications | Evidence trays and inherited/learned/environmental source paths |
-| Genome Microscope | Selected egg or dragon genome and focus gene | Cell, chromosome, DNA, gene location, and allele pair |
-| Genotype Scanner | Selected sample, focus gene, genotype, and phenotype label | Shielded allele pair, genotype possibilities, and phenotype readout |
-| Allele Workbench | Selected sample, working allele pair, and student prediction | Allele sockets, expression rule, carrier state, and predicted/actual readout |
-| Punnett Composer | Two selected parent records and focus gene | Parent alleles, four inheritance cells, grouped genotypes, and phenotype probabilities |
-| Incubator Sampler | Saved parent cross, predicted distribution, and egg results | Generic eggs, expected marker, observed counts, and aligned percentage plot |
-| Reproduction Comparison | Selected source records and generated offspring records | Two-parent allele mixing beside one-parent genotype copying |
-| Sibling Tracer | Saved parents and selected sibling records | Parent-to-offspring allele lanes and a sibling genotype matrix |
-| Diversity Manager | Student breeding pool, retained samples, alleles, and genotypes | Population nodes, allele counts, genotype counts, diversity indicator, and narrowing warnings |
-| Evidence Replay | Saved predictions, trials, selections, and results | Reconstructed scientific models and pinned evidence timeline |
+| Separate tool           | Student data it can analyze                                     | What the simulation displays                                                                  |
+| ----------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Trait Evidence Analyzer | Selected characteristic records and student classifications     | Evidence trays and inherited/learned/environmental source paths                               |
+| Genome Microscope       | Selected egg or dragon genome and focus gene                    | Cell, chromosome, DNA, gene location, and allele pair                                         |
+| Genotype Scanner        | Selected sample, focus gene, genotype, and phenotype label      | Shielded allele pair, genotype possibilities, and phenotype readout                           |
+| Allele Workbench        | Selected sample, working allele pair, and student prediction    | Allele sockets, expression rule, carrier state, and predicted/actual readout                  |
+| Punnett Composer        | Two selected parent records and focus gene                      | Parent alleles, four inheritance cells, grouped genotypes, and phenotype probabilities        |
+| Incubator Sampler       | Saved parent cross, predicted distribution, and egg results     | Generic eggs, expected marker, observed counts, and aligned percentage plot                   |
+| Reproduction Comparison | Selected source records and generated offspring records         | Two-parent allele mixing beside one-parent genotype copying                                   |
+| Sibling Tracer          | Saved parents and selected sibling records                      | Parent-to-offspring allele lanes and a sibling genotype matrix                                |
+| Diversity Manager       | Student breeding pool, retained samples, alleles, and genotypes | Population nodes, allele counts, genotype counts, diversity indicator, and narrowing warnings |
+| Evidence Replay         | Saved predictions, trials, selections, and results              | Reconstructed scientific models and pinned evidence timeline                                  |
 
 The sample console passes only the records required by the active tool. A tool must not reach into the lesson store to discover additional data on its own.
 
@@ -86,10 +86,10 @@ On a narrow screen, the mission console becomes a compact station header and the
 
 ## Three modes using the same simulations
 
-| Mode | Visual behavior | Feedback and logging |
-| --- | --- | --- |
-| Learn | Labels, guided focus, worked example, optional hint, and visible phase prompts | Immediate feedback names the rule and points to the exact visual evidence |
-| Practice | New dragons and allele combinations, optional hints, student-controlled trials | Saves prediction, manipulation path, result, corrections, and misconception flags |
+| Mode     | Visual behavior                                                                     | Feedback and logging                                                                               |
+| -------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Learn    | Labels, guided focus, worked example, optional hint, and visible phase prompts      | Immediate feedback names the rule and points to the exact visual evidence                          |
+| Practice | New dragons and allele combinations, optional hints, student-controlled trials      | Saves prediction, manipulation path, result, corrections, and misconception flags                  |
 | Official | Same instruments with hints and premature reveals disabled; seeded equal conditions | Saves the locked prediction, complete trial state, result, evidence response, and score components |
 
 Reteach reuses the same station in Learn mode with one misconception-focused example, three to five new visual practice items, a correction prompt, and a new assessment scene.
@@ -98,27 +98,27 @@ Reteach reuses the same station in Learn mode with one misconception-focused exa
 
 These ten primitives cover the whole unit. They are separate simulations parameterized with selected analysis samples, gene definitions, alleles, relationships, trial seeds, and question text rather than copied per module.
 
-| ID | Primitive | What students see and do | Reused for |
-| --- | --- | --- | --- |
-| V1 | Trait evidence analyzer | The selected sample's observation record contains inherited features, learned behaviors, and environmental effects. Students inspect evidence readouts and place each observation in the correct tray without using body-part artwork. | GEN-1 teaching, diagnostic, mastery, license, and reteach |
-| V2 | Genome microscope | A selected sample tube or egg record opens into a cell model, chromosome pair, DNA strand, gene location, and allele pair. Students place labels and answer questions by selecting a level in the nested information model. | GEN-2 teaching, matching, diagram interpretation, mastery, and license |
-| V3 | Genotype scanner | The instrument shows a phenotype readout while shielding the selected sample's allele pair. Students select supported genotypes, scan, and compare sample readouts without rendering either dragon. | GEN-3 teaching, multi-select, mastery, and evidence defense |
-| V4 | Allele switchboard | Two allele sockets control one phenotype readout. Students predict, replace one token, and energize the analyzer. Both alleles remain visible so a carried recessive allele never appears to disappear. | GEN-4 teaching, misconception correction, mastery, and reteach |
-| V5 | Punnett composer | Students drag one allele from each parent into four offspring cells, group identical genotypes, convert them to phenotypes, and enter probabilities before Breed unlocks. | GEN-5 teaching, practice, official breeding, mastery, and license |
-| V6 | Incubator sampling bench | Expected probability appears as a reference marker. Eggs hatch into small and large trays while observed counts and percentages update on the same aligned plot. | Probability versus observed results, sample-size questions, and GEN-5/GEN-7 evidence |
-| V7 | Split reproduction chamber | A two-parent chamber shows allele mixing beside a one-parent clone-style chamber. Students run both and identify which offspring wall shows more modeled combinations. | GEN-6 teaching, comparison questions, mastery, and license |
-| V8 | Sibling inheritance tracer | Parent allele lanes flow into selectable siblings. Selecting two hatchlings highlights the exact source allele paths and the phenotype differences they produced. | GEN-7 teaching, sibling comparisons, mastery, and final defense |
-| V9 | Population diversity table | A breeding pool appears as sample nodes connected to allele and genotype counters. Narrow and balanced strategies can be run side by side; lost alleles fade from the pool and the simulation indicator updates. | GEN-8 teaching, strategy comparison, mastery, and official planning |
-| V10 | Evidence replay and arena bridge | A timeline replays a real prediction, parent cross, offspring result, champion selection, and arena outcome. Students pin visual evidence to a claim while genetics, diversity/evidence, tactics, and battle results remain separate. | Official challenge, final evidence defense, report, reflection, and teacher review |
+| ID  | Primitive                        | What students see and do                                                                                                                                                                                                               | Reused for                                                                           |
+| --- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| V1  | Trait evidence analyzer          | The selected sample's observation record contains inherited features, learned behaviors, and environmental effects. Students inspect evidence readouts and place each observation in the correct tray without using body-part artwork. | GEN-1 teaching, diagnostic, mastery, license, and reteach                            |
+| V2  | Genome microscope                | A selected sample tube or egg record opens into a cell model, chromosome pair, DNA strand, gene location, and allele pair. Students place labels and answer questions by selecting a level in the nested information model.            | GEN-2 teaching, matching, diagram interpretation, mastery, and license               |
+| V3  | Genotype scanner                 | The instrument shows a phenotype readout while shielding the selected sample's allele pair. Students select supported genotypes, scan, and compare sample readouts without rendering either dragon.                                    | GEN-3 teaching, multi-select, mastery, and evidence defense                          |
+| V4  | Allele switchboard               | Two allele sockets control one phenotype readout. Students predict, replace one token, and energize the analyzer. Both alleles remain visible so a carried recessive allele never appears to disappear.                                | GEN-4 teaching, misconception correction, mastery, and reteach                       |
+| V5  | Punnett composer                 | Students drag one allele from each parent into four offspring cells, group identical genotypes, convert them to phenotypes, and enter probabilities before Breed unlocks.                                                              | GEN-5 teaching, practice, official breeding, mastery, and license                    |
+| V6  | Incubator sampling bench         | Expected probability appears as a reference marker. Eggs hatch into small and large trays while observed counts and percentages update on the same aligned plot.                                                                       | Probability versus observed results, sample-size questions, and GEN-5/GEN-7 evidence |
+| V7  | Split reproduction chamber       | A two-parent chamber shows allele mixing beside a one-parent clone-style chamber. Students run both and identify which offspring wall shows more modeled combinations.                                                                 | GEN-6 teaching, comparison questions, mastery, and license                           |
+| V8  | Sibling inheritance tracer       | Parent allele lanes flow into selectable siblings. Selecting two hatchlings highlights the exact source allele paths and the phenotype differences they produced.                                                                      | GEN-7 teaching, sibling comparisons, mastery, and final defense                      |
+| V9  | Population diversity table       | A breeding pool appears as sample nodes connected to allele and genotype counters. Narrow and balanced strategies can be run side by side; lost alleles fade from the pool and the simulation indicator updates.                       | GEN-8 teaching, strategy comparison, mastery, and official planning                  |
+| V10 | Evidence replay and arena bridge | A timeline replays a real prediction, parent cross, offspring result, champion selection, and arena outcome. Students pin visual evidence to a claim while genetics, diversity/evidence, tactics, and battle results remain separate.  | Official challenge, final evidence defense, report, reflection, and teacher review   |
 
 ### Current implementation status
 
-| Primitive | Status | Integrated behavior |
-| --- | --- | --- |
-| V1 Trait Evidence Analyzer | Implemented | Module 1 uses the shared renderer, semantic scene adapter, evidence-path sequence, lesson-owned grading, misconception-driven reteach, and compact saved evidence. |
-| V2 Genome Microscope | Implemented | Module 2 uses a selected genome extract, five-bay scientific SVG track, predict-before-reveal gate, keyboard/drag hierarchy mapping, actual sample allele reveal, evidence pinning, fixed-seed mode variants, misconception records, and the existing GEN-2 mastery check. |
-| V3 Genotype Scanner | Implemented | Module 3 uses phenotype-first and genotype-first sample scans, shielded genotype evidence, multi-select claims, comparison records, evidence pinning, misconception diagnosis, and the existing GEN-3 mastery check. |
-| V4 Allele Workbench | Implemented | Module 4 uses paired SVG chromosomes, data-driven allele tokens, four one-allele changes, a prediction-shielded expression trace, carrier-state evidence, keyboard/drag placement, misconception records, and an all-four-record GEN-4 completion gate. |
+| Primitive                  | Status      | Integrated behavior                                                                                                                                                                                                                                                        |
+| -------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V1 Trait Evidence Analyzer | Implemented | Module 1 uses the shared renderer, semantic scene adapter, evidence-path sequence, lesson-owned grading, misconception-driven reteach, and compact saved evidence.                                                                                                         |
+| V2 Genome Microscope       | Implemented | Module 2 uses a selected genome extract, five-bay scientific SVG track, predict-before-reveal gate, keyboard/drag hierarchy mapping, actual sample allele reveal, evidence pinning, fixed-seed mode variants, misconception records, and the existing GEN-2 mastery check. |
+| V3 Genotype Scanner        | Implemented | Module 3 uses phenotype-first and genotype-first sample scans, shielded genotype evidence, multi-select claims, comparison records, evidence pinning, misconception diagnosis, and the existing GEN-3 mastery check.                                                       |
+| V4 Allele Workbench        | Implemented | Module 4 uses paired SVG chromosomes, data-driven allele tokens, four one-allele changes, a prediction-shielded expression trace, carrier-state evidence, keyboard/drag placement, misconception records, and an all-four-record GEN-4 completion gate.                    |
 
 V2 through V4 are the reference implementations for subsequent instruments: renderer presentation state remains
 in `shared/dragon-visuals`, while task correctness, feedback, progress, and evidence persistence stay
@@ -147,28 +147,44 @@ inside the Dragon Genetics feature.
 - Begin in a Dragon Genome Archive with the four familiar dragon portraits and a selected simplified
   inherited-trait mystery. Keep the dragon, highlighted body region, Trait Genome File, and arena
   preview visible throughout the investigation.
-- Use an eight-step location trail—dragon, body region, cell, nucleus, chromosome pair, DNA, gene,
-  allele pair—around the existing five-level scientific microscope map.
-- Add a Chromosome Locator and reveal-gated Allele Vault so students find the shared locus before
-  seeing the two allele symbols.
-- Adapt the uncoiling, DNA base-pairing, replication, and mismatch-repair visuals from
-  `docs/dna-mutation-animation.html` into a controlled DNA lab. Keep replication distinct from
-  transcription and avoid implying that every copying error changes a visible trait.
+- Use the five-level scientific microscope map to connect cell, chromosome, DNA, gene, and allele
+  without a separate location-trail scene.
+- Use a reveal-gated Allele Vault after the hierarchy map rather than a separate Chromosome Locator.
+- Adapt the DNA base-pairing, replication, transcription, insertion, deletion, substitution, and
+  mismatch-repair visuals from `docs/dna-mutation-animation.html` into a controlled DNA lab.
+  Remove uncoiling from the molecular lab, keep replication distinct from transcription, and avoid implying
+  that every copying error changes a visible trait. Build these as reusable molecular-animation and
+  explanation-question components so later DNA and RNA prompts use the same diagrams.
 - Require a level prediction before label mapping or allele reveal. Students select or drag the five labels onto numbered bays; keyboard users select a label and then its destination.
 - Reveal the focused sample's actual allele symbols only after the hierarchy is correct. The renderer displays lesson-owned placement status and never grades the hierarchy itself.
 - Require students to pin the microscope level that directly supports the assignment before saving a compact evidence record.
 - Learn uses one guided allele task; Practice uses three fixed-seed tasks; Official uses four tasks with hints and immediate scoring removed; Reteach contrasts DNA base pairs, genes, and alleles with fresh examples.
 - Present the existing four-question check as a Dragon Genome Repair mission; it remains the final
   Module 2 verification and combines with the microscope evidence for GEN-2 mastery.
-- Stop at the required Grade 7 model; do not branch into replication, transcription, translation, or meiosis.
+- Stop at the required Grade 7 model: visually distinguish replication from transcription, but do
+  not branch into translation, meiosis, or unnecessary molecular detail.
 
 ### Module 3 - Genotype / Phenotype Reveal: Genotype Scanner
 
+- Combine parent selection and egg prediction in one teaching quiz simulation. Let students choose
+  up to three visible genes while one gene remains the scored prediction focus.
+- Draw each parent's allele pair with the Station 3 chromosome-bar language and place allele letters
+  at consistent gene locations instead of using generic rectangles.
+- Require students to lock every possible focused-gene egg genotype, then animate each parent
+  undergoing meiosis to form four modeled gametes. Combine selected gametes into four lettered eggs
+  that keep one allele from each parent visible at every selected locus.
+- State that the four-gamete multi-gene display is a teaching sample of assortment rather than every
+  possible gamete combination.
+- Use candling for phenotype evidence, DNA sampling for genotype evidence, selective hatching for
+  sibling comparison, and egg-shaped saved breeding records.
 - Display the sample ID and phenotype readout first while keeping the allele scan covered.
 - Students select one or more possible genotypes, then open the scan.
 - Place two matching phenotype readouts side by side and reveal different genotypes.
 - Place two different phenotype readouts side by side and connect each result to its allele combination.
 - Feedback should highlight the exact allele or unsupported inference, not only mark the answer wrong.
+- Finish with Hatchery Certification cases for possible eggs, hatchling phenotype, hidden-parent
+  inference, and same phenotype with different genotypes. A supported Hatchery record and correct
+  egg prediction are part of the GEN-3 completion gate.
 
 ### Module 4 - Dominant / Recessive Trait Rule Lab: Allele Workbench
 
@@ -229,50 +245,50 @@ inside the Dragon Genetics feature.
 
 No science question should render without a registered visual scene. The registry should be keyed by the current question ID and checked by an automated test.
 
-| Current question or evidence IDs | Visual primitive | Required visual response |
-| --- | --- | --- |
-| `diagnostic-inherited`, `diagnostic-hidden`, `diagnostic-learned` | V1 plus parent/hatchling sample records | Select evidence from a characteristic readout before writing or choosing a claim |
-| Eight trait-sort cards | V1 | Select a characteristic record and place the observation in a category tray |
-| `genome-quick-1` through `genome-quick-4` | V2 | Select or label the relevant microscope level before choosing an explanation |
-| `winged-genotypes`, `wingless-genotype`, `fire-phenotype`, `horned-genotypes` | V3 | Inspect a phenotype readout and mark all supported genotype or phenotype results |
-| `wings-hetero`, `fire-recessive`, `horns-homo-dominant`, `scales-hetero` | V4 | Predict, change an allele, reveal, and identify the rule used |
-| Parent-cross predictions for all four genes | V5 | Build four inheritance cells and both probability distributions before breeding |
-| `week1-1` through `week1-2` | V1 | Classify a highlighted characteristic and select the evidence source |
-| `week1-3` through `week1-5` | V2 | Navigate or label the information hierarchy |
-| `week1-6`, `week1-7`, `week1-10` | V3 | Compare phenotype and possible genotype overlays |
-| `week1-8` through `week1-9` | V4 | Run the allele expression rule and correct the value/strength misconception |
-| `week2-1` | V3 | Distinguish visible phenotype from scanned allele combination |
-| `week2-2` through `week2-4` | V5 | Complete or diagnose the inheritance model and probability total |
-| `week2-5` through `week2-6` | V6 | Read expected markers and observed batch plots on the same scale |
-| `week2-7` through `week2-8` | V7 | Identify the reproduction chamber using the offspring pattern |
-| `week2-9` through `week2-10` | V8 | Trace the allele path that explains sibling or parent-offspring differences |
-| `week2-11` through `week2-12` | V9 | Compare two population outcomes and pin diversity evidence |
-| `license-1` through `license-2` | V1 | Compact observation-bay scenarios |
-| `license-3` through `license-4` | V2 | Compact microscope diagram scenarios |
-| `license-5` through `license-6` | V3 | Compact genotype scanner scenarios |
-| `license-7` | V4 | Compact allele expression scenario |
-| `license-8` | V5 | Compact Punnett composer scenario |
-| `license-9` | V6 | Compact expected-versus-observed scenario |
-| `license-10` | V7 | Compact reproduction comparison |
-| `license-11` | V8 | Compact sibling allele trace |
-| `license-12` | V9 | Compact population strategy comparison |
-| Final claim, three defense responses, and evidence bonus questions | V10 | Pin a real trial or allele-path snapshot to each response |
-| Five final reflection prompts | V10 | Select a moment from the student's evidence timeline before reflecting |
+| Current question or evidence IDs                                              | Visual primitive                        | Required visual response                                                         |
+| ----------------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------- |
+| `diagnostic-inherited`, `diagnostic-hidden`, `diagnostic-learned`             | V1 plus parent/hatchling sample records | Select evidence from a characteristic readout before writing or choosing a claim |
+| Eight trait-sort cards                                                        | V1                                      | Select a characteristic record and place the observation in a category tray      |
+| `genome-quick-1` through `genome-quick-4`                                     | V2                                      | Select or label the relevant microscope level before choosing an explanation     |
+| `winged-genotypes`, `wingless-genotype`, `fire-phenotype`, `horned-genotypes` | V3                                      | Inspect a phenotype readout and mark all supported genotype or phenotype results |
+| `wings-hetero`, `fire-recessive`, `horns-homo-dominant`, `scales-hetero`      | V4                                      | Predict, change an allele, reveal, and identify the rule used                    |
+| Parent-cross predictions for all four genes                                   | V5                                      | Build four inheritance cells and both probability distributions before breeding  |
+| `week1-1` through `week1-2`                                                   | V1                                      | Classify a highlighted characteristic and select the evidence source             |
+| `week1-3` through `week1-5`                                                   | V2                                      | Navigate or label the information hierarchy                                      |
+| `week1-6`, `week1-7`, `week1-10`                                              | V3                                      | Compare phenotype and possible genotype overlays                                 |
+| `week1-8` through `week1-9`                                                   | V4                                      | Run the allele expression rule and correct the value/strength misconception      |
+| `week2-1`                                                                     | V3                                      | Distinguish visible phenotype from scanned allele combination                    |
+| `week2-2` through `week2-4`                                                   | V5                                      | Complete or diagnose the inheritance model and probability total                 |
+| `week2-5` through `week2-6`                                                   | V6                                      | Read expected markers and observed batch plots on the same scale                 |
+| `week2-7` through `week2-8`                                                   | V7                                      | Identify the reproduction chamber using the offspring pattern                    |
+| `week2-9` through `week2-10`                                                  | V8                                      | Trace the allele path that explains sibling or parent-offspring differences      |
+| `week2-11` through `week2-12`                                                 | V9                                      | Compare two population outcomes and pin diversity evidence                       |
+| `license-1` through `license-2`                                               | V1                                      | Compact observation-bay scenarios                                                |
+| `license-3` through `license-4`                                               | V2                                      | Compact microscope diagram scenarios                                             |
+| `license-5` through `license-6`                                               | V3                                      | Compact genotype scanner scenarios                                               |
+| `license-7`                                                                   | V4                                      | Compact allele expression scenario                                               |
+| `license-8`                                                                   | V5                                      | Compact Punnett composer scenario                                                |
+| `license-9`                                                                   | V6                                      | Compact expected-versus-observed scenario                                        |
+| `license-10`                                                                  | V7                                      | Compact reproduction comparison                                                  |
+| `license-11`                                                                  | V8                                      | Compact sibling allele trace                                                     |
+| `license-12`                                                                  | V9                                      | Compact population strategy comparison                                           |
+| Final claim, three defense responses, and evidence bonus questions            | V10                                     | Pin a real trial or allele-path snapshot to each response                        |
+| Five final reflection prompts                                                 | V10                                     | Select a moment from the student's evidence timeline before reflecting           |
 
 ### Required question formats
 
-| Requirement | Visual implementation |
-| --- | --- |
-| Matching or drag/drop | Place labels on V2 or place genotype/phenotype evidence in V3 |
-| Inherited versus learned/environmental multiple choice | Use a V1 characteristic record as the stimulus |
-| Possible genotype or offspring multi-select | Select genotype overlays in V3 or cells/outcomes in V5 |
-| Punnett-style model | Construct V5 from parent allele tokens |
-| Probability | Read or complete V5, then test the prediction in V6 |
-| Observed-data interpretation | Select marks from the aligned expected/observed display in V6 |
-| Sexual/asexual comparison | Compare both active chambers in V7 |
-| Short scenario explanation | Pin visual evidence first, then write the explanation in the evidence dock |
-| Misconception correction | Save a before claim and corrected claim beside the visual counterexample |
-| Prediction before reveal | Use the shared Observe/Predict/Reveal gate in every primitive |
+| Requirement                                            | Visual implementation                                                      |
+| ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Matching or drag/drop                                  | Place labels on V2 or place genotype/phenotype evidence in V3              |
+| Inherited versus learned/environmental multiple choice | Use a V1 characteristic record as the stimulus                             |
+| Possible genotype or offspring multi-select            | Select genotype overlays in V3 or cells/outcomes in V5                     |
+| Punnett-style model                                    | Construct V5 from parent allele tokens                                     |
+| Probability                                            | Read or complete V5, then test the prediction in V6                        |
+| Observed-data interpretation                           | Select marks from the aligned expected/observed display in V6              |
+| Sexual/asexual comparison                              | Compare both active chambers in V7                                         |
+| Short scenario explanation                             | Pin visual evidence first, then write the explanation in the evidence dock |
+| Misconception correction                               | Save a before claim and corrected claim beside the visual counterexample   |
+| Prediction before reveal                               | Use the shared Observe/Predict/Reveal gate in every primitive              |
 
 ## Angular architecture
 

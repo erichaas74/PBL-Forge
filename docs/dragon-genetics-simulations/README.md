@@ -21,9 +21,15 @@ for the display being implemented.
 | 9 | Diversity Manager | `diversity-manager` | [09 - Diversity Manager](09-DIVERSITY-MANAGER.md) |
 | 10 | Evidence Replay | `evidence-replay` | [10 - Evidence Replay](10-EVIDENCE-REPLAY.md) |
 
-Stations 1 through 4 are implemented and running inside their modules. Their guides double as the
-reference for how a built station is wired, themed, and tested. Stations that show alleles or
-genotypes share one chromosome drawing, defined in
+One further instrument belongs to no single module:
+
+| Module | Student-facing display | Scene contract kind | Build guide |
+| --- | --- | --- | --- |
+| Shared | Dragon Hatchery | `dragon-hatchery` | [11 - Dragon Hatchery](11-DRAGON-HATCHERY.md) |
+
+Stations 1 through 4 and the shared hatchery are implemented and running inside their modules.
+Their guides double as the reference for how a built station is wired, themed, and tested.
+Stations that show alleles or genotypes share one chromosome drawing, defined in
 [`displays/shared/chromosome-diagram.ts`](../../src/app/shared/dragon-visuals/displays/shared/chromosome-diagram.ts)
 from [`docs/allelle-diagram.html`](../allelle-diagram.html).
 

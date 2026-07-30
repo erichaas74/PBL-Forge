@@ -33,8 +33,7 @@ body {
   min-height: 100vh;
   background:
     radial-gradient(circle at 10% 18%, rgb(255 132 111 / 10%), transparent 25rem),
-    radial-gradient(circle at 90% 8%, rgb(75 194 173 / 10%), transparent 26rem),
-    var(--paper);
+    radial-gradient(circle at 90% 8%, rgb(75 194 173 / 10%), transparent 26rem), var(--paper);
 }
 
 button,
@@ -57,4 +56,65 @@ a {
 ::selection {
   background: var(--gold);
   color: var(--ink);
+}
+
+.lab-shell .hatchery-notebook {
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem;
+  margin-bottom: 1rem;
+}
+.lab-shell .hatchery-shell {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.lab-shell .hatchery-notebook {
+  grid-template-columns: minmax(12rem, 0.35fr) 1fr;
+  align-items: start;
+}
+.lab-shell .hatchery-notebook h2 {
+  margin: 0.2rem 0;
+}
+.lab-shell .record-eggs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.55rem;
+}
+.lab-shell .record-eggs article {
+  display: grid;
+  min-height: 7.5rem;
+  gap: 0.3rem;
+  align-content: center;
+  padding: 0.8rem;
+  border: 2px solid #bb9d70;
+  border-radius: 52% 48% 46% 54% / 61% 61% 39% 39%;
+  background: #f8f0dc;
+  text-align: center;
+}
+.lab-shell .record-eggs article.supported {
+  border-color: #3e9575;
+  background: #eaf7f1;
+}
+.lab-shell .record-eggs strong {
+  font-size: 0.72rem;
+}
+.lab-shell .record-eggs span,
+.lab-shell .record-eggs small {
+  color: #6c756f;
+  font-size: 0.58rem;
+  line-height: 1.35;
+}
+.lab-shell .certification-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.lab-shell .quick-check .certification-grid {
+  padding: 0 1.2rem 1.2rem;
+}
+@media (max-width: 780px) {
+  .lab-shell .certification-grid,
+  .lab-shell .hatchery-notebook {
+    grid-template-columns: 1fr;
+  }
 }

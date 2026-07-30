@@ -8,7 +8,6 @@ import {
   output,
 } from '@angular/core';
 import {
-  DragonHatcheryToolId,
   DragonVisualEventType,
   DragonVisualPhase,
   DragonVisualStageEvent,
@@ -174,10 +173,6 @@ export class DragonHatcheryDisplayComponent {
   pinEvidence(markId: string, enabled: boolean): void {
     if (!enabled) return;
     this.emit('evidence-pinned', markId);
-  }
-
-  toolHint(toolId: DragonHatcheryToolId): string {
-    return this.model()?.tools.find(tool => tool.id === toolId)?.hint ?? '';
   }
 
   private emit(type: DragonVisualEventType, targetId: string, value?: string | number): void {

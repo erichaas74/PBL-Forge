@@ -15,7 +15,8 @@ export const TEST_SCENARIO_CATALOG = [
     },
     participants: [
       participant('red', 'Red', 'robot-load', { x: -2.4, y: 0, z: 0 }, 'player', 'shove-drive'),
-      participant('blue', 'Blue', 'car-load', { x: 2.4, y: 0, z: 0 }, 'ai', 'ai-hunter'),
+      // Face the red combatant: assemblies are authored facing +x.
+      participant('blue', 'Blue', 'car-load', { x: 2.4, y: 0, z: 0 }, 'ai', 'ai-hunter', { x: 0, y: Math.PI, z: 0 }),
     ],
     winCondition: { type: 'core-survival' },
     physics: {

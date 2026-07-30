@@ -3,15 +3,13 @@ import { RouterLink } from '@angular/router';
 import {
   DRAGON_PARENTS,
   DRAGON_TRAITS,
+  breedLabClutch,
   buildPunnettCells,
   genotypeLabel,
   phenotypeLabel,
 } from './simulation/domain/dragon-inheritance';
 import { TRAIT_SORT_CARDS } from './simulation/data/dragon-lab-content';
-import {
-  DragonParentProfile,
-  DragonTraitId,
-} from './simulation/domain/dragon-lab.models';
+import { DragonParentProfile, DragonTraitId } from './simulation/domain/dragon-lab.models';
 import { SessionService } from '../../core/firebase/session.service';
 import { DragonArenaComponent } from './dragon-arena.component';
 import {
@@ -25,10 +23,7 @@ import {
   WEEK1_MASTERY_QUESTIONS,
   WEEK2_MASTERY_QUESTIONS,
 } from './dragon-genetics.content';
-import {
-  GENOTYPE_DISTRIBUTION_CHOICES,
-  materializeDragon,
-} from './dragon-genetics.domain';
+import { GENOTYPE_DISTRIBUTION_CHOICES, materializeDragon } from './dragon-genetics.domain';
 import {
   DragonBattleResult,
   DragonModuleNumber,
@@ -47,8 +42,11 @@ import { AlleleWorkbenchStationComponent } from './stations/allele-workbench-sta
 import { AlleleWorkbenchSetResult } from './simulation/domain/allele-workbench.models';
 import { GenotypeScannerStationComponent } from './stations/genotype-scanner-station.component';
 import { GenotypeScannerSetResult } from './simulation/domain/genotype-scanner.models';
+import { DragonHatcheryStationComponent } from './stations/dragon-hatchery-station.component';
+import { HatcheryRunRecord } from './simulation/domain/dragon-hatchery.models';
 import { DRAGON_GALLERY_TRAITS } from './simulation/data/dragon-discovery-gallery.content';
 import { TRAIT_EVIDENCE_SPECIMEN } from './simulation/data/trait-evidence-content';
+import { DragonMeiosisQuizComponent, MeiosisParentChange } from './dragon-meiosis-quiz.component';
 
 @Component({
   selector: 'app-dragon-genetics-page',
@@ -61,7 +59,9 @@ import { TRAIT_EVIDENCE_SPECIMEN } from './simulation/data/trait-evidence-conten
     TraitEvidenceStationComponent,
     GenomeMicroscopeStationComponent,
     GenotypeScannerStationComponent,
+    DragonHatcheryStationComponent,
     AlleleWorkbenchStationComponent,
+    DragonMeiosisQuizComponent,
   ],
   providers: [DragonGeneticsStore],
   templateUrl: './dragon-genetics.page.html',
@@ -89,10 +89,59 @@ export class DragonGeneticsPage {
   readonly message = signal<string | null>(null);
   readonly glossaryOpen = signal(false);
   readonly checked = signal<ReadonlySet<number>>(new Set());
-  readonly activeDefinition = computed(() =>
-    this.modules.find(module => module.number === this.store.activeModule()) ?? this.modules[0]);
-  readonly selectedSiblings = computed(() => this.store.snapshot().smallBatch?.sample
-    .filter(dragon => this.store.snapshot().siblingIds.includes(dragon.id)) ?? []);
+  readonly activeDefinition = computed(
+    () =>
+      this.modules.find((module) => module.number === this.store.activeModule()) ?? this.modules[0],
+  );
+  readonly selectedSiblings = computed(
+    () =>
+      this.store
+        .snapshot()
+        .smallBatch?.sample.filter((dragon) =>
+          this.store.snapshot().siblingIds.includes(dragon.id),
+        ) ?? [],
+  );
+  readonly module3Trait = computed(
+    () =>
+      DRAGON_TRAITS.find((trait) => trait.id === this.store.snapshot().module3EggTraitId) ??
+      DRAGON_TRAITS[0],
+  );
+  readonly module3Parents = computed(() => [this.store.parentA(), this.store.parentB()] as const);
+  readonly module3Clutch = computed(() =>
+    breedLabClutch(this.store.parentA(), this.store.parentB(), 3, 4),
+  );
+  readonly module3ClutchId = computed(
+    () =>
+      `module-3-${this.store.parentA().id}-${this.store.parentB().id}-${this.module3Trait().id}`,
+  );
+  readonly module3PossibleEggs = computed(
+    () =>
+      new Set(
+        buildPunnettCells(this.store.parentA(), this.store.parentB(), this.module3Trait().id).map(
+          (cell) => genotypeLabel(cell.genotype),
+        ),
+      ),
+  );
+  readonly module3EggOptions = computed(() => {
+    const trait = this.module3Trait();
+    return [
+      genotypeLabel([trait.dominantAllele, trait.dominantAllele]),
+      genotypeLabel([trait.dominantAllele, trait.recessiveAllele]),
+      genotypeLabel([trait.recessiveAllele, trait.recessiveAllele]),
+    ];
+  });
+  readonly module3EggPredictionCorrect = computed(() => {
+    const selected = new Set(this.store.snapshot().module3EggPredictions);
+    const possible = this.module3PossibleEggs();
+    return (
+      this.store.snapshot().module3EggPredictionLocked &&
+      selected.size === possible.size &&
+      [...possible].every((genotype) => selected.has(genotype))
+    );
+  });
+  readonly module3HatcheryRecords = computed(() =>
+    this.store.snapshot().hatcheryRecords.filter((record) => record.moduleId === 'module-3'),
+  );
 
   goToModule(module: DragonModuleNumber): void {
     this.store.goToModule(module);
@@ -117,70 +166,127 @@ export class DragonGeneticsPage {
     const misconceptions = result.misconceptions.length
       ? ` Watch list: ${result.misconceptions.join(', ')}.`
       : '';
-    this.message.set(`Evidence analyzer run complete: ${result.correct} of ${result.total} classifications supported by evidence.${misconceptions} Save your misconception correction, then check all classifications.`);
+    this.message.set(
+      `Evidence analyzer run complete: ${result.correct} of ${result.total} classifications supported by evidence.${misconceptions} Save your misconception correction, then check all classifications.`,
+    );
   }
 
   checkTraitSort(): void {
     this.markChecked(1);
     const result = this.store.checkTraitSort();
-    this.message.set(result.complete
-      ? 'All eight classifications are supported by evidence. Module 2 is unlocked.'
-      : `${result.correct} of ${result.total} classifications are correct. Also choose a team role, complete all three diagnostic responses, and save a 30-character misconception correction.`);
+    this.message.set(
+      result.complete
+        ? 'All eight classifications are supported by evidence. Module 2 is unlocked.'
+        : `${result.correct} of ${result.total} classifications are correct. Also choose a team role, complete all three diagnostic responses, and save a 30-character misconception correction.`,
+    );
   }
 
   checkGenomePath(): void {
     this.markChecked(2);
-    this.message.set(this.store.checkGenomePath()
-      ? 'Pathway decoded: chromosomes package DNA, genes are DNA sections, and alleles are gene versions.'
-      : 'Complete one fully supported microscope record and revise any missed quick check. Trace nucleus, chromosome, DNA, gene, then allele.');
+    this.message.set(
+      this.store.checkGenomePath()
+        ? 'Pathway decoded: chromosomes package DNA, genes are DNA sections, and alleles are gene versions.'
+        : 'Complete one fully supported microscope record and revise any missed quick check. Trace nucleus, chromosome, DNA, gene, then allele.',
+    );
   }
 
   onGenomeMicroscopeComplete(result: GenomeMicroscopeSetResult): void {
     const watch = result.misconceptions.length
       ? ` Review: ${result.misconceptions.join(', ')}.`
       : '';
-    this.message.set(`Genome Microscope run complete: ${result.correct} of ${result.total} records fully supported.${watch} Finish the four quick checks, then verify Module 2.`);
+    this.message.set(
+      `Genome Microscope run complete: ${result.correct} of ${result.total} records fully supported.${watch} Finish the four quick checks, then verify Module 2.`,
+    );
   }
 
   onGenotypeScannerComplete(result: GenotypeScannerSetResult): void {
     const watch = result.misconceptions.length
       ? ` Review: ${result.misconceptions.join(', ')}.`
       : '';
-    this.message.set(`Genotype Scanner run complete: ${result.correct} of ${result.total} scans fully supported.${watch} Reveal the evidence feedback to verify Module 3.`);
+    this.message.set(
+      `Genotype Scanner run complete: ${result.correct} of ${result.total} scans fully supported.${watch} Reveal the evidence feedback to verify Module 3.`,
+    );
+  }
+
+  onModule3HatcheryRecord(record: HatcheryRunRecord): void {
+    this.store.recordHatcheryRun(record);
+    this.message.set(
+      record.evidenceCorrect
+        ? 'Breeding record saved with supported phenotype and genotype evidence. Complete Hatchery Certification.'
+        : 'Breeding record saved. Revisit which instrument record actually names the allele pair.',
+    );
+  }
+
+  onModule3MeiosisParentChanged(change: MeiosisParentChange): void {
+    this.store.selectParent(change.slot, change.parentId);
+    this.store.resetModule3EggPrediction();
+  }
+
+  onModule3MeiosisTraitChanged(traitId: DragonTraitId): void {
+    this.store.setModule3EggTrait(traitId);
+  }
+
+  toggleModule3Egg(genotype: string): void {
+    this.store.toggleModule3EggPrediction(genotype);
+  }
+
+  lockModule3EggPrediction(): void {
+    this.store.lockModule3EggPrediction();
+    this.message.set(
+      this.module3EggPredictionCorrect()
+        ? 'Egg prediction supported. The selected parent alleles can produce every egg in your tray.'
+        : 'Prediction locked. Use one allele from each parent to identify the missing or impossible egg.',
+    );
+  }
+
+  resetModule3EggPrediction(): void {
+    this.store.resetModule3EggPrediction();
   }
 
   checkPhenotypes(): void {
     this.markChecked(3);
     const result = this.store.checkPhenotypeAnswers();
-    this.message.set(result.complete
-      ? 'All genotype and phenotype evidence is correct.'
-      : `${result.correct} of ${result.total} are correct. A dominant phenotype can hide a recessive allele.`);
+    this.message.set(
+      result.complete
+        ? 'All genotype and phenotype evidence is correct.'
+        : `${result.correct} of ${result.total} are correct. A dominant phenotype can hide a recessive allele.`,
+    );
   }
 
   checkRules(): void {
     this.markChecked(4);
     const result = this.store.checkRuleAnswers();
-    this.message.set(result.complete
-      ? 'All four Allele Workbench records are supported. Dominant describes expression, not value or strength.'
-      : `${result.correct} of ${result.total} predictions are correct. Complete all four workbench records with the assigned pair, correct prediction, and matching rule evidence.`);
+    this.message.set(
+      result.complete
+        ? 'All four Allele Workbench records are supported. Dominant describes expression, not value or strength.'
+        : `${result.correct} of ${result.total} predictions are correct. Complete all four workbench records with the assigned pair, correct prediction, and matching rule evidence.`,
+    );
   }
 
   onAlleleWorkbenchComplete(result: AlleleWorkbenchSetResult): void {
     const watch = result.misconceptions.length
       ? ` Review: ${result.misconceptions.join(', ')}.`
       : '';
-    this.message.set(`Allele Workbench run complete: ${result.correct} of ${result.total} records fully supported.${watch} Verify Module 4 to unlock the breeding predictor.`);
+    this.message.set(
+      `Allele Workbench run complete: ${result.correct} of ${result.total} records fully supported.${watch} Verify Module 4 to unlock the breeding predictor.`,
+    );
   }
 
   checkPredictions(): void {
     this.markChecked(5);
     const result = this.store.checkBreedingPredictions();
     if (!result.ready) {
-      this.message.set('Lock genotype and phenotype probability predictions for all four traits before revealing the model.');
+      this.message.set(
+        'Lock genotype and phenotype probability predictions for all four traits before revealing the model.',
+      );
     } else if (result.complete) {
-      this.message.set(`${result.accuracy}% prediction accuracy. Your model is ready for sample testing.`);
+      this.message.set(
+        `${result.accuracy}% prediction accuracy. Your model is ready for sample testing.`,
+      );
     } else {
-      this.message.set(`${result.accuracy}% prediction accuracy. Revise using the four equally likely Punnett cells.`);
+      this.message.set(
+        `${result.accuracy}% prediction accuracy. Revise using the four equally likely Punnett cells.`,
+      );
     }
   }
 
@@ -191,34 +297,44 @@ export class DragonGeneticsPage {
     } else if (result.passed) {
       this.message.set(`Week 1 mastery met: ${result.correct}/10. Week 2 is unlocked.`);
     } else {
-      this.message.set(`${result.correct}/10. Targeted reteach: ${result.reteachSkills.join(', ') || 'revise the breeding prediction model'}.`);
+      this.message.set(
+        `${result.correct}/10. Targeted reteach: ${result.reteachSkills.join(', ') || 'revise the breeding prediction model'}.`,
+      );
     }
   }
 
   runBatch(size: 8 | 100): void {
-    this.message.set(this.store.runBatch(size)
-      ? `${size} offspring generated. Compare observed counts with the predicted percentages.`
-      : 'First complete the Breeding Predictor with at least 75% accuracy.');
+    this.message.set(
+      this.store.runBatch(size)
+        ? `${size} offspring generated. Compare observed counts with the predicted percentages.`
+        : 'First complete the Breeding Predictor with at least 75% accuracy.',
+    );
   }
 
   checkReproduction(): void {
     this.markChecked(7);
-    this.message.set(this.store.checkReproduction()
-      ? 'Correct. Sexual reproduction combines modeled alleles from two parents.'
-      : 'Reconsider which model has two parents contributing genetic information.');
+    this.message.set(
+      this.store.checkReproduction()
+        ? 'Correct. Sexual reproduction combines modeled alleles from two parents.'
+        : 'Reconsider which model has two parents contributing genetic information.',
+    );
   }
 
   submitSiblingEvidence(): void {
-    this.message.set(this.store.submitSiblingEvidence()
-      ? 'Sibling evidence accepted. You traced variation to inherited allele combinations.'
-      : 'Select two siblings and write at least 40 characters explaining a specific allele difference.');
+    this.message.set(
+      this.store.submitSiblingEvidence()
+        ? 'Sibling evidence accepted. You traced variation to inherited allele combinations.'
+        : 'Select two siblings and write at least 40 characters explaining a specific allele difference.',
+    );
   }
 
   submitDiversity(): void {
     const result = this.store.submitDiversityRecommendation();
-    this.message.set(result.complete
-      ? `Recommendation accepted with a modeled diversity score of ${result.score}.`
-      : 'Compare both strategies, select the balanced approach, choose a pair scoring at least 70, and defend it with 50 characters of evidence.');
+    this.message.set(
+      result.complete
+        ? `Recommendation accepted with a modeled diversity score of ${result.score}.`
+        : 'Compare both strategies, select the balanced approach, choose a pair scoring at least 70, and defend it with 50 characters of evidence.',
+    );
   }
 
   submitWeek2Mastery(): void {
@@ -226,9 +342,13 @@ export class DragonGeneticsPage {
     if (!result.ready) {
       this.message.set('Answer all 12 Week 2 mastery questions.');
     } else if (result.passed) {
-      this.message.set(`Week 2 mastery met: ${result.correct}/12. The final challenge is unlocked.`);
+      this.message.set(
+        `Week 2 mastery met: ${result.correct}/12. The final challenge is unlocked.`,
+      );
     } else {
-      this.message.set(`${result.correct}/12. Complete the peer review and diversity evidence, then reteach: ${result.reteachSkills.join(', ') || 'missed items'}.`);
+      this.message.set(
+        `${result.correct}/12. Complete the peer review and diversity evidence, then reteach: ${result.reteachSkills.join(', ') || 'missed items'}.`,
+      );
     }
   }
 
@@ -237,30 +357,40 @@ export class DragonGeneticsPage {
     if (!result.ready) {
       this.message.set('Answer all 12 license questions before submitting.');
     } else if (result.passed) {
-      this.message.set(`License earned: ${result.correct}/12 with every required skill demonstrated.`);
+      this.message.set(
+        `License earned: ${result.correct}/12 with every required skill demonstrated.`,
+      );
     } else {
-      this.message.set(`${result.correct}/12. Targeted reteach: ${result.reteachSkills.join(', ')}. Review feedback, then retake.`);
+      this.message.set(
+        `${result.correct}/12. Targeted reteach: ${result.reteachSkills.join(', ')}. Review feedback, then retake.`,
+      );
     }
   }
 
   runOfficialBreeding(): void {
     const result = this.store.runOfficialBreeding();
-    this.message.set(result.ready
-      ? `${result.offspringCount} official eggs hatched after predictions locked. Accuracy: ${result.accuracy}%.`
-      : 'Enter genotype and phenotype probabilities for all four traits before using an official breeding opportunity.');
+    this.message.set(
+      result.ready
+        ? `${result.offspringCount} official eggs hatched after predictions locked. Accuracy: ${result.accuracy}%.`
+        : 'Enter genotype and phenotype probabilities for all four traits before using an official breeding opportunity.',
+    );
   }
 
   onBattleFinished(result: DragonBattleResult): void {
     this.store.recordBattle(result);
-    this.message.set(result.won
-      ? 'Arena win recorded. Now defend your result with genetics evidence.'
-      : 'Battle result recorded. A loss does not lower genetics mastery—explain the roles of traits, tactics, and chance.');
+    this.message.set(
+      result.won
+        ? 'Arena win recorded. Now defend your result with genetics evidence.'
+        : 'Battle result recorded. A loss does not lower genetics mastery—explain the roles of traits, tactics, and chance.',
+    );
   }
 
   submitFinal(): void {
-    this.message.set(this.store.submitFinalChallenge()
-      ? `Final challenge submitted: ${this.store.challengeScore().total}/100 motivational score. Academic mastery remains separate.`
-      : 'Finish the license, official cross, champion, battle, evidence defense, and all five reflection responses.');
+    this.message.set(
+      this.store.submitFinalChallenge()
+        ? `Final challenge submitted: ${this.store.challengeScore().total}/100 motivational score. Academic mastery remains separate.`
+        : 'Finish the license, official cross, champion, battle, evidence defense, and all five reflection responses.',
+    );
   }
 
   selectParent(slot: 'a' | 'b', event: Event): void {
@@ -288,7 +418,7 @@ export class DragonGeneticsPage {
   }
 
   genotypeDistributionLabel(traitId: DragonTraitId, value: string): string {
-    const trait = this.traits.find(item => item.id === traitId) ?? this.traits[0];
+    const trait = this.traits.find((item) => item.id === traitId) ?? this.traits[0];
     const [homozygousDominant, heterozygous, homozygousRecessive] = value.split('-');
     return `${trait.dominantAllele}${trait.dominantAllele} ${homozygousDominant}% · ${trait.dominantAllele}${trait.recessiveAllele} ${heterozygous}% · ${trait.recessiveAllele}${trait.recessiveAllele} ${homozygousRecessive}%`;
   }
@@ -306,7 +436,7 @@ export class DragonGeneticsPage {
   }
 
   batchPercent(size: number, count: number): number {
-    return size ? Math.round(100 * count / size) : 0;
+    return size ? Math.round((100 * count) / size) : 0;
   }
 
   diagnosticAnswer(promptId: string): string {
@@ -315,15 +445,17 @@ export class DragonGeneticsPage {
 
   pairParents(pairId: string): DragonParentProfile[] {
     const ids = pairId.split('--');
-    return ids.map(id => this.parents.find(parent => parent.id === id) ?? this.parents[0]);
+    return ids.map((id) => this.parents.find((parent) => parent.id === id) ?? this.parents[0]);
   }
 
   pairLabel(pairId: string): string {
-    return this.pairParents(pairId).map(parent => parent.name).join(' + ');
+    return this.pairParents(pairId)
+      .map((parent) => parent.name)
+      .join(' + ');
   }
 
   licenseQuestion(questionId: string): LicenseQuestion {
-    return LICENSE_QUESTIONS.find(question => question.id === questionId) ?? LICENSE_QUESTIONS[0];
+    return LICENSE_QUESTIONS.find((question) => question.id === questionId) ?? LICENSE_QUESTIONS[0];
   }
 
   licenseAnswerCorrect(question: LicenseQuestion): boolean {
@@ -344,36 +476,52 @@ export class DragonGeneticsPage {
   }
 
   toggleTeacherPreview(): void {
-    this.store.teacherPreview.update(value => !value);
-    this.message.set(this.store.teacherPreview()
-      ? 'Teacher preview navigation enabled. Student completion rules are still active.'
-      : 'Teacher preview navigation disabled.');
+    this.store.teacherPreview.update((value) => !value);
+    this.message.set(
+      this.store.teacherPreview()
+        ? 'Teacher preview navigation enabled. Student completion rules are still active.'
+        : 'Teacher preview navigation disabled.',
+    );
   }
 
   downloadReport(): void {
     const snapshot = this.store.snapshot();
     const score = this.store.challengeScore();
-    const role = this.teamRoles.find(item => item.id === snapshot.teamRole);
+    const role = this.teamRoles.find((item) => item.id === snapshot.teamRole);
     const parentA = this.store.parentA();
     const parentB = this.store.parentB();
-    const traitLines = this.traits.map(trait =>
-      `${trait.name}: ${parentA.name} ${this.genotype(parentA, trait.id)} (${this.phenotype(parentA, trait.id)}) × ${parentB.name} ${this.genotype(parentB, trait.id)} (${this.phenotype(parentB, trait.id)})`);
-    const predictionLines = this.traits.map(trait =>
-      `${trait.name}: predicted genotypes ${this.genotypeDistributionLabel(trait.id, snapshot.genotypePredictions[trait.id] ?? '0-0-0')}; predicted ${trait.dominantPhenotype} ${snapshot.predictions[trait.id] ?? 'not answered'}%; model ${this.store.expectedPredictions()[trait.id]}%`);
-    const diagnosticLines = this.diagnosticPrompts.map((prompt, index) =>
-      `${index + 1}. ${prompt.prompt}\n${snapshot.diagnosticAnswers[prompt.id] || 'Not answered'}`);
+    const traitLines = this.traits.map(
+      (trait) =>
+        `${trait.name}: ${parentA.name} ${this.genotype(parentA, trait.id)} (${this.phenotype(parentA, trait.id)}) × ${parentB.name} ${this.genotype(parentB, trait.id)} (${this.phenotype(parentB, trait.id)})`,
+    );
+    const predictionLines = this.traits.map(
+      (trait) =>
+        `${trait.name}: predicted genotypes ${this.genotypeDistributionLabel(trait.id, snapshot.genotypePredictions[trait.id] ?? '0-0-0')}; predicted ${trait.dominantPhenotype} ${snapshot.predictions[trait.id] ?? 'not answered'}%; model ${this.store.expectedPredictions()[trait.id]}%`,
+    );
+    const diagnosticLines = this.diagnosticPrompts.map(
+      (prompt, index) =>
+        `${index + 1}. ${prompt.prompt}\n${snapshot.diagnosticAnswers[prompt.id] || 'Not answered'}`,
+    );
     const officialAttemptLines = snapshot.officialAttempts.flatMap((attempt, index) => {
-      const names = attempt.parentIds.map(id => this.parents.find(parent => parent.id === id)?.name ?? id);
+      const names = attempt.parentIds.map(
+        (id) => this.parents.find((parent) => parent.id === id)?.name ?? id,
+      );
       return [
         `Attempt ${index + 1}: ${names.join(' × ')} | prediction accuracy ${attempt.predictionAccuracy}% | diversity ${attempt.diversityScore}/100`,
-        ...this.traits.map(trait =>
-          `  ${trait.name}: genotypes ${this.genotypeDistributionLabel(trait.id, attempt.genotypePredictions[trait.id])}; dominant phenotype ${attempt.predictions[trait.id]}%`),
-        ...attempt.offspring.map(offspring =>
-          `  ${offspring.name}: ${this.traits.map(trait => `${trait.geneSymbol}=${this.genotype(offspring, trait.id)}`).join(', ')}`),
+        ...this.traits.map(
+          (trait) =>
+            `  ${trait.name}: genotypes ${this.genotypeDistributionLabel(trait.id, attempt.genotypePredictions[trait.id])}; dominant phenotype ${attempt.predictions[trait.id]}%`,
+        ),
+        ...attempt.offspring.map(
+          (offspring) =>
+            `  ${offspring.name}: ${this.traits.map((trait) => `${trait.geneSymbol}=${this.genotype(offspring, trait.id)}`).join(', ')}`,
+        ),
       ];
     });
-    const reflectionLines = this.reflectionPrompts.map((prompt, index) =>
-      `${index + 1}. ${prompt}\n${snapshot.reflectionAnswers[index] || 'Not answered'}`);
+    const reflectionLines = this.reflectionPrompts.map(
+      (prompt, index) =>
+        `${index + 1}. ${prompt}\n${snapshot.reflectionAnswers[index] || 'Not answered'}`,
+    );
     const report = [
       'DRAGON GENETICS — FINAL LAB REPORT',
       `Generated: ${new Date().toLocaleString()}`,
@@ -400,7 +548,10 @@ export class DragonGeneticsPage {
       `Combined prediction accuracy: ${snapshot.predictionAccuracy}%`,
       '',
       'OBSERVED SAMPLE DATA',
-      ...this.traits.map(trait => `${trait.name}: 8-egg sample ${snapshot.smallBatch ? this.batchPercent(snapshot.smallBatch.size, snapshot.smallBatch.dominantCounts[trait.id]) + '%' : 'not run'}; 100-egg sample ${snapshot.largeBatch ? this.batchPercent(snapshot.largeBatch.size, snapshot.largeBatch.dominantCounts[trait.id]) + '%' : 'not run'}; expected ${this.store.expectedPredictions()[trait.id]}%`),
+      ...this.traits.map(
+        (trait) =>
+          `${trait.name}: 8-egg sample ${snapshot.smallBatch ? this.batchPercent(snapshot.smallBatch.size, snapshot.smallBatch.dominantCounts[trait.id]) + '%' : 'not run'}; 100-egg sample ${snapshot.largeBatch ? this.batchPercent(snapshot.largeBatch.size, snapshot.largeBatch.dominantCounts[trait.id]) + '%' : 'not run'}; expected ${this.store.expectedPredictions()[trait.id]}%`,
+      ),
       '',
       'SIBLING VARIATION EVIDENCE',
       snapshot.siblingExplanation || 'Not submitted',
@@ -418,7 +569,9 @@ export class DragonGeneticsPage {
       snapshot.finalEvidence || 'Not submitted',
       '',
       'INDIVIDUAL DEFENSE',
-      ...snapshot.defenseAnswers.map((answer, index) => `${index + 1}. ${answer || 'Not answered'}`),
+      ...snapshot.defenseAnswers.map(
+        (answer, index) => `${index + 1}. ${answer || 'Not answered'}`,
+      ),
       '',
       'INDIVIDUAL REFLECTION',
       ...reflectionLines,
@@ -438,12 +591,17 @@ export class DragonGeneticsPage {
   }
 
   resetLab(): void {
-    if (!globalThis.confirm?.('Reset all Dragon Genetics progress on this device and in the connected student record?')) return;
+    if (
+      !globalThis.confirm?.(
+        'Reset all Dragon Genetics progress on this device and in the connected student record?',
+      )
+    )
+      return;
     this.store.resetLab();
     this.message.set('Dragon Genetics progress reset.');
   }
 
   private markChecked(module: number): void {
-    this.checked.update(current => new Set([...current, module]));
+    this.checked.update((current) => new Set([...current, module]));
   }
 }

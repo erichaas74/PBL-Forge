@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ASSEMBLY_PRESETS } from './data/presets/assembly-presets';
+import { AssemblyPartFamily } from './data/assembly-part-definitions';
 import {
   AssemblyPreset,
   PartMoveEvent,
@@ -32,15 +33,29 @@ import { cloneAssemblyBlueprint } from '../assembly/domain/assembly-clone';
   styleUrl: './assembly-garage.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AssemblyGarageComponent {
+export class AssemblyGarageComponent implements OnInit {
   readonly store = inject(AssemblyGarageStore);
   readonly creationLibrary = inject(CreationLibraryService);
-  readonly presets = ASSEMBLY_PRESETS;
+
+  /** Scoping controls: hosts can pin the garage to one build family and preset list. */
+  readonly title = input('Universal Assembly Garage');
+  readonly presets = input<readonly AssemblyPreset[]>(ASSEMBLY_PRESETS);
+  readonly partFamily = input<AssemblyPartFamily | null>(null);
+  readonly initialPresetId = input<string | null>(null);
+  readonly arenaLink = input('/assembly-arena');
+
   readonly jsonPanelOpen = signal(false);
   readonly assemblyJson = signal('');
   readonly jsonMessage = signal<string | null>(null);
   readonly libraryAssetName = signal('Custom Assembly');
   readonly libraryAssetDescription = signal('Built in the Universal Assembly Garage.');
+
+  ngOnInit(): void {
+    const presetId = this.initialPresetId();
+    if (!presetId) return;
+    const preset = this.presets().find(item => item.id === presetId);
+    if (preset) this.loadPreset(preset);
+  }
 
   onPartMoved(event: PartMoveEvent): void {
     this.store.movePart(event.partId, event.position);

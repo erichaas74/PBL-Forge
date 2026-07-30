@@ -1,0 +1,67 @@
+<section
+  class="process-stage replication-stage"
+  [style.--base-count]="bases().length"
+  aria-label="DNA replication animation"
+>
+  <div class="strand original top">
+    <span class="strand-label">Original strand 1</span><i class="rail"></i>
+    <div class="base-row">
+      @for (base of bases(); track $index) {
+        <b [attr.data-base]="base">{{ base }}</b>
+      }
+    </div>
+  </div>
+
+  <div class="strand new upper" [class.complete]="complete()">
+    <span class="strand-label">New complementary strand</span><i class="rail"></i>
+    <div class="base-row">
+      @for (base of complement(); track $index) {
+        <b [attr.data-base]="base" [class.visible]="$index < progress()">{{ base }}</b>
+      }
+    </div>
+  </div>
+
+  <div class="molecule-label first" [class.visible]="complete()">Daughter DNA molecule 1</div>
+  <div class="polymerase" [style.left.%]="polymerasePosition()">
+    <strong>DNA</strong><span>polymerase</span>
+  </div>
+  <div class="molecule-label second" [class.visible]="complete()">Daughter DNA molecule 2</div>
+
+  <div class="strand new lower" [class.complete]="complete()">
+    <div class="base-row">
+      @for (base of bases(); track $index) {
+        <b [attr.data-base]="base" [class.visible]="$index < progress()">{{ base }}</b>
+      }
+    </div>
+    <i class="rail"></i><span class="strand-label">New complementary strand</span>
+  </div>
+
+  <div class="strand original bottom">
+    <div class="base-row">
+      @for (base of complement(); track $index) {
+        <b [attr.data-base]="base">{{ base }}</b>
+      }
+    </div>
+    <i class="rail"></i><span class="strand-label">Original strand 2</span>
+  </div>
+</section>
+
+<div class="animation-controls">
+  <button type="button" (click)="play()">Replay DNA replication</button>
+  <label
+    >Base-by-base progress
+    <input
+      type="range"
+      min="0"
+      [max]="bases().length"
+      step="1"
+      [value]="progress()"
+      (input)="setProgress($any($event.target).value)"
+  /></label>
+  <span>{{ progress() }}/{{ bases().length }} complementary bases added</span>
+</div>
+
+<p class="process-caption">
+  <strong>Semiconservative result:</strong> each daughter molecule contains one original strand and
+  one newly constructed strand.
+</p>

@@ -9,18 +9,19 @@ The first production implementation is complete and mounted in Module 2. It foll
 scene/bridge/event boundary and does not import lesson, store, router, or Firebase code into the
 renderer.
 
-| Layer | Implementation |
-| --- | --- |
-| Shared renderer | `src/app/shared/dragon-visuals/displays/genome-microscope/` |
-| Semantic contract | `src/app/shared/dragon-visuals/domain/dragon-visual.models.ts` |
-| Contract validation | `src/app/shared/dragon-visuals/domain/visual-contract.validation.ts` |
-| Teaching animation | `GENOME_ZOOM_SEQUENCE` in `core-teaching-sequences.ts` |
-| Feature adapter | `createGenomeMicroscopeScene` in `dragon-visual-scene.adapter.ts` |
-| Lesson orchestration | `src/app/features/dragon-genetics/stations/genome-microscope-station.component.*` |
-| Curriculum tasks and copy | `simulation/data/genome-microscope-content.ts` |
-| Dragon trait files | `simulation/data/dragon-genome-expedition.content.ts` |
-| DNA uncoiling, replication, and repair lab | `dragon-dna-repair-lab.component.*` |
-| Saved evidence model | `simulation/domain/genome-microscope.models.ts` |
+| Layer                                          | Implementation                                                                    |
+| ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| Shared renderer                                | `src/app/shared/dragon-visuals/displays/genome-microscope/`                       |
+| Semantic contract                              | `src/app/shared/dragon-visuals/domain/dragon-visual.models.ts`                    |
+| Contract validation                            | `src/app/shared/dragon-visuals/domain/visual-contract.validation.ts`              |
+| Teaching animation                             | `GENOME_ZOOM_SEQUENCE` in `core-teaching-sequences.ts`                            |
+| Feature adapter                                | `createGenomeMicroscopeScene` in `dragon-visual-scene.adapter.ts`                 |
+| Lesson orchestration                           | `src/app/features/dragon-genetics/stations/genome-microscope-station.component.*` |
+| Curriculum tasks and copy                      | `simulation/data/genome-microscope-content.ts`                                    |
+| Dragon trait files                             | `simulation/data/dragon-genome-expedition.content.ts`                             |
+| DNA replication, RNA, mutation, and repair lab | `dragon-dna-repair-lab.component.*`                                               |
+| Reusable molecular animations and questions    | `src/app/shared/dna-process-visuals/`                                             |
+| Saved evidence model                           | `simulation/domain/genome-microscope.models.ts`                                   |
 
 ## Teaching purpose
 
@@ -41,27 +42,29 @@ gene completely determines a complex structure.
 
 ## Display model
 
-The Module 2 shell adds a Dragon Genome Archive, visible Trait Genome File, eight-step zoom tunnel,
-location breadcrumb, Chromosome Locator, and reveal-gated Allele Vault around the scientific
-five-level microscope track. The sample's actual allele symbols appear only at the final level.
+The Module 2 shell adds a Dragon Genome Archive, visible Trait Genome File, scientific five-level
+microscope map, evidence dock, notebook, and reveal-gated Allele Vault. The former continuous zoom
+scene and Chromosome Locator have been removed. The sample's actual allele symbols appear only
+after the microscope hierarchy is correct.
 
-The DNA lab adapts the base-pair, uncoiling, replication, and mismatch visuals from
-`docs/dna-mutation-animation.html`. Students control chromosome-to-gene uncoiling, watch a
-complementary DNA strand form, and repair one deliberate copying mismatch. The lab explicitly
-separates replication from transcription and explains that a copying error can be repaired and does
-not automatically cause a visible trait change.
+The DNA lab closely adapts the base-pair colors, strand choreography, mutation movements,
+polymerase travel, and construction timing from `docs/dna-mutation-animation.html`. Uncoiling has
+been removed from the molecular lab. Students instead watch both complementary strands form during DNA
+replication, build a single mRNA strand during transcription, compare insertion, deletion, and
+substitution, and repair one deliberate copying mismatch. The animation, question, explanation,
+feedback, and science-boundary code lives in reusable components under
+`src/app/shared/dna-process-visuals/` so later DNA and RNA questions can use the same models.
 
 ## Student sequence
 
 1. Choose a familiar dragon and open its current Trait Genome File.
-2. Travel through the dragon-to-allele zoom tunnel and locate the focused chromosome pair.
-3. Predict which scientific level contains the requested information.
-4. Build the nested five-level microscope map.
-5. Reveal the selected gene locus and Allele Vault, then pin supporting evidence.
-6. Uncoil and replicate a DNA model, diagnose a mismatch, and repair it with base-pair evidence.
-7. Restore four scrambled claims in the Dragon Genome Repair mastery mission.
+2. Predict the requested scientific level and build the nested five-level microscope map.
+3. Replicate DNA, transcribe RNA, compare mutation types, diagnose a mismatch, and repair it with
+   base-pair evidence.
+4. Reveal the selected gene locus and Allele Vault, then pin and save supporting evidence.
+5. Restore four scrambled claims in the Dragon Genome Repair mastery mission.
 
-Learn mode plays a narrated zoom. Practice scrambles labels and focus requests. Official mode starts
+Learn mode gives guided microscope reveals. Practice scrambles labels and focus requests. Official mode starts
 at a random level with no hints. Reteach lets the student reconstruct the hierarchy from large scale
 to small scale.
 

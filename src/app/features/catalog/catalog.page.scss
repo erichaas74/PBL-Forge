@@ -80,6 +80,26 @@ h1 em {
   font-size: 1.1rem;
 }
 
+.test-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  margin-left: 0.9rem;
+  padding: 0.9rem 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.test-action span {
+  font-size: 1.1rem;
+}
+
 .hero-card {
   position: relative;
   min-height: 28rem;

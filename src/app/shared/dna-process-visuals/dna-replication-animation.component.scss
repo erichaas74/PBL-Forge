@@ -1,0 +1,235 @@
+:host {
+  display: grid;
+  gap: 0.7rem;
+  --old-rail: #315aab;
+  --new-rail: #3aa7b8;
+}
+.process-stage {
+  position: relative;
+  min-height: 37rem;
+  overflow: hidden;
+  border: 1px solid #dbe5f3;
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 50% 46%, rgb(84 144 255 / 14%), transparent 27%),
+    linear-gradient(#fff, #f7fbff);
+}
+.strand {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  display: grid;
+  gap: 0.2rem;
+}
+.strand.top {
+  top: 1.2rem;
+}
+.strand.upper {
+  top: 10.8rem;
+}
+.strand.lower {
+  bottom: 10.8rem;
+}
+.strand.bottom {
+  bottom: 1.2rem;
+}
+.rail {
+  display: block;
+  height: 0.85rem;
+  border-radius: 0;
+  background: linear-gradient(180deg, #789fe4, var(--old-rail));
+  box-shadow: 0 0.25rem 0.5rem rgb(36 59 104 / 22%);
+}
+.strand.new .rail {
+  opacity: 0.2;
+  background: linear-gradient(#8bdddf, var(--new-rail));
+  transition: opacity 0.4s;
+}
+.strand.new.complete .rail {
+  opacity: 1;
+}
+.base-row {
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--base-count, 6), 1fr);
+  grid-auto-flow: column;
+  gap: clamp(0.2rem, 1.5vw, 1.1rem);
+  padding-inline: 2%;
+}
+.base-row b {
+  display: grid;
+  width: 2.15rem;
+  min-width: 0;
+  height: 4.3rem;
+  justify-self: center;
+  place-items: center;
+  border: 2px solid rgb(20 35 65 / 22%);
+  border-radius: 0.32rem;
+  color: white;
+  font-size: 1rem;
+  box-shadow: 0 0.3rem 0.5rem rgb(36 59 104 / 18%);
+}
+.strand.new .base-row b {
+  opacity: 0;
+  transform: translateY(-1.5rem);
+  transition:
+    opacity 0.3s,
+    transform 0.45s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.strand.lower .base-row b {
+  transform: translateY(1.5rem);
+}
+.strand.new .base-row b.visible {
+  opacity: 1;
+  transform: none;
+}
+.strand-label {
+  color: #234a96;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+.strand.new .strand-label {
+  color: #238393;
+}
+.bottom .strand-label,
+.lower .strand-label {
+  text-align: right;
+}
+.polymerase {
+  position: absolute;
+  z-index: 3;
+  top: calc(50% - 2.8rem);
+  display: grid;
+  width: 5.6rem;
+  height: 5.6rem;
+  place-items: center;
+  border: 3px dashed #2f7cff;
+  border-radius: 50%;
+  background: rgb(231 240 255 / 95%);
+  color: #235bc7;
+  transform: translateX(-50%);
+  transition: left 0.46s ease;
+  box-shadow: 0 0.5rem 1.5rem rgb(35 91 199 / 16%);
+}
+.polymerase strong,
+.polymerase span {
+  grid-area: 1 / 1;
+}
+.polymerase strong {
+  transform: translateY(-0.5rem);
+  font-size: 0.75rem;
+}
+.polymerase span {
+  transform: translateY(0.6rem);
+  font-size: 0.52rem;
+  font-weight: 800;
+}
+.molecule-label {
+  position: absolute;
+  left: 7%;
+  opacity: 0;
+  color: #203c78;
+  font-size: 0.68rem;
+  font-weight: 900;
+  transition: opacity 0.5s 0.2s;
+}
+.molecule-label.visible {
+  opacity: 1;
+}
+.molecule-label.first {
+  top: 17.4rem;
+}
+.molecule-label.second {
+  bottom: 17.4rem;
+}
+.animation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+}
+.animation-controls button {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #2367ef;
+  border-radius: 0.55rem;
+  background: #2367ef;
+  color: white;
+  font-size: 0.66rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+.animation-controls label {
+  display: flex;
+  flex: 1;
+  min-width: 15rem;
+  gap: 0.6rem;
+  align-items: center;
+  color: #53617b;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+.animation-controls input {
+  flex: 1;
+  accent-color: #2367ef;
+}
+.animation-controls > span {
+  color: #64738e;
+  font-size: 0.6rem;
+  font-weight: 750;
+}
+.process-caption {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 4px solid #3aa7b8;
+  background: #edf9fa;
+  color: #385e66;
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+[data-base='A'] {
+  background: #58b33b;
+}
+[data-base='T'] {
+  background: #ef493f;
+}
+[data-base='C'] {
+  background: #2877e8;
+}
+[data-base='G'] {
+  background: #f3ae19;
+}
+@media (max-width: 700px) {
+  .process-stage {
+    min-height: 31rem;
+  }
+  .base-row {
+    gap: 0.15rem;
+  }
+  .base-row b {
+    width: 1.35rem;
+    min-width: 0;
+    height: 2.7rem;
+    font-size: 0.72rem;
+  }
+  .strand.upper {
+    top: 8.8rem;
+  }
+  .strand.lower {
+    bottom: 8.8rem;
+  }
+  .molecule-label {
+    display: none;
+  }
+  .polymerase {
+    width: 4rem;
+    height: 4rem;
+    top: calc(50% - 2rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}

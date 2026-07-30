@@ -182,6 +182,7 @@ describe('Dragon hatchery view model', () => {
       COPY,
     );
     expect(full?.hatchSlotsLeft).toBe(0);
+    expect(full?.tools.find(tool => tool.id === 'hatch')?.remaining).toBe(0);
     // Staged eggs stay removable; unstaged ones are closed off.
     expect(full?.eggs.find(item => item.id === 'egg-1')?.canStage).toBeTrue();
     expect(full?.eggs.find(item => item.id === 'egg-3')?.canStage).toBeFalse();

@@ -5,6 +5,7 @@ import {
   multiplyQuaternions,
   positiveNumber,
   quaternionFromEuler,
+  rotateVectorByQuaternion,
 } from '../domain/vector-data';
 
 export interface AssemblyBodyOptions {
@@ -17,19 +18,25 @@ export interface AssemblyBodyOptions {
 
 export function createAssemblyBody(part: AssemblyPart, options: AssemblyBodyOptions = {}): CANNON.Body {
   const offset = options.positionOffset ?? { x: 0, y: 0, z: 0 };
+  // The whole assembly rotates rigidly around the spawn point: the part's offset
+  // from the assembly origin must rotate too, not just its orientation —
+  // otherwise a 180°-turned assembly spawns inside-out and tears its joints.
+  const spawnQuaternion = options.initialRotation
+    ? quaternionFromEuler(options.initialRotation)
+    : null;
+  const localPosition = spawnQuaternion
+    ? rotateVectorByQuaternion(part.position, spawnQuaternion)
+    : part.position;
   const body = new CANNON.Body({
     mass: Math.max(part.mass, options.minimumMass ?? 0),
     position: new CANNON.Vec3(
-      part.position.x + offset.x,
-      part.position.y + offset.y,
-      part.position.z + offset.z,
+      localPosition.x + offset.x,
+      localPosition.y + offset.y,
+      localPosition.z + offset.z,
     ),
   });
-  const rotation = options.initialRotation
-    ? multiplyQuaternions(
-        quaternionFromEuler(options.initialRotation),
-        part.rotation ?? identityQuaternion(),
-      )
+  const rotation = spawnQuaternion
+    ? multiplyQuaternions(spawnQuaternion, part.rotation ?? identityQuaternion())
     : part.rotation;
   if (rotation) body.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
   body.addShape(createAssemblyShape(part), undefined, getAssemblyShapeOrientation(part));

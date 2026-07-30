@@ -183,11 +183,13 @@ export function buildDragonHatcheryViewModel(
   };
 
   const stagedEggs = eggs.filter(egg => egg.staged);
+  // The hatch "budget" is the tray space still free, not the limit itself.
+  const hatchSlotsLeft = hatchLimit === null ? null : Math.max(0, hatchLimit - counts.staged);
   const tools = availableTools.map((toolId): HatcheryToolView => ({
     id: toolId,
     label: TOOL_TEXT[toolId].label,
     hint: TOOL_TEXT[toolId].hint,
-    remaining: toolBudget(instrument, toolId),
+    remaining: toolId === 'hatch' ? hatchSlotsLeft : toolBudget(instrument, toolId),
     active: instrument.activeToolId === toolId,
     enabled: toolId === 'hatch' ? stagingEnabled : toolsEnabled,
   }));
@@ -221,7 +223,7 @@ export function buildDragonHatcheryViewModel(
     tools,
     counts,
     hatchLimit,
-    hatchSlotsLeft: hatchLimit === null ? null : Math.max(0, hatchLimit - counts.staged),
+    hatchSlotsLeft,
     hatchCommitted,
     hatchEnabled: scene.phase === 'reveal'
       && !hatchCommitted

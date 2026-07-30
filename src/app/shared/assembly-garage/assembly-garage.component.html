@@ -2,11 +2,11 @@
   <header class="garage-header">
     <div class="garage-title-group">
       <span class="eyebrow">Independent Lab</span>
-      <h1 id="garage-title">Universal Assembly Garage</h1>
+      <h1 id="garage-title">{{ title() }}</h1>
     </div>
 
     <div class="preset-actions" aria-label="Assembly load presets">
-      @for (preset of presets; track preset.id) {
+      @for (preset of presets(); track preset.id) {
         <button
           type="button"
           class="preset-button"
@@ -27,7 +27,7 @@
       <button type="button" class="secondary-action" (click)="store.resetAssembly()">
         Reset
       </button>
-      <a class="secondary-action" routerLink="/assembly-arena">
+      <a class="secondary-action" [routerLink]="arenaLink()">
         Arena
       </a>
       <button type="button" class="primary-action" (click)="store.toggleSimulation()">
@@ -66,7 +66,7 @@
 
   <div class="garage-workspace">
     <aside class="garage-panel garage-panel--left" aria-label="Assembly part and joint tools">
-      <app-garage-parts-panel />
+      <app-garage-parts-panel [family]="partFamily()" />
     </aside>
 
     <app-garage-viewport

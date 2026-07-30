@@ -41,7 +41,8 @@ describe('GenomeMicroscopeStationComponent', () => {
     component.onStageEvent(event('prediction-locked', component.activeTask()!.targetLevel));
     const reversed = [...GENOME_LEVEL_ORDER].reverse();
     GENOME_LEVEL_ORDER.forEach((label, index) =>
-      component.onStageEvent(event('label-placed', label, reversed[index])));
+      component.onStageEvent(event('label-placed', label, reversed[index])),
+    );
     component.runPrimaryAction();
 
     expect(component.primaryAction().kind).toBe('reset-map');
@@ -50,22 +51,21 @@ describe('GenomeMicroscopeStationComponent', () => {
     fixture.destroy();
   });
 
-  it('keeps the selected dragon connected to the trait file and chromosome locator', () => {
+  it('keeps the selected dragon connected to the trait genome file', () => {
     const fixture = createFixture('learn');
     const component = fixture.componentInstance;
     component.selectSample('quartz');
-    component.focusJourney(6);
-    component.locateChromosome(component.focusTrait().chromosomeModel);
 
     expect(component.selectedSample().id).toBe('quartz');
-    expect(component.journeyStep()).toBe(6);
-    expect(component.chromosomeCorrect()).toBeTrue();
     expect(component.investigationQuestion()).toContain('Quartz');
+    expect(component.traitFile().traitId).toBe(component.focusTrait().id);
     fixture.destroy();
   });
 });
 
-function createFixture(mode: GenomeMicroscopeMode): ComponentFixture<GenomeMicroscopeStationComponent> {
+function createFixture(
+  mode: GenomeMicroscopeMode,
+): ComponentFixture<GenomeMicroscopeStationComponent> {
   TestBed.configureTestingModule({
     imports: [GenomeMicroscopeStationComponent],
     providers: [DragonVisualBridge],

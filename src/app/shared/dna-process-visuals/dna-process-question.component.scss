@@ -1,0 +1,129 @@
+:host {
+  display: block;
+}
+.process-question {
+  display: grid;
+  gap: 0.9rem;
+}
+header h3 {
+  margin: 0.2rem 0 0.25rem;
+  color: #223e62;
+}
+header p {
+  margin: 0;
+  color: #657389;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+.process-kind,
+.check > span {
+  color: #3a70bd;
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.base-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #dce5ef;
+  border-radius: 0.7rem;
+  background: #f9fbfd;
+}
+.base-legend span {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  color: #5b697d;
+  font-size: 0.57rem;
+  font-weight: 750;
+}
+.base-legend b {
+  display: grid;
+  width: 1.25rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.22rem;
+  color: white;
+  font-size: 0.65rem;
+}
+.check {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border: 1px solid #d7e1ec;
+  border-radius: 0.85rem;
+  background: #f8fafc;
+}
+.check h4 {
+  margin: 0;
+  color: #314964;
+  font-size: 0.78rem;
+}
+.options {
+  display: grid;
+  gap: 0.4rem;
+}
+.options button {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #c7d1df;
+  border-radius: 0.55rem;
+  background: white;
+  color: #46556b;
+  text-align: left;
+  font-size: 0.66rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.options button:hover,
+.options button.selected {
+  border-color: #477fcf;
+  box-shadow: inset 0 0 0 1px #477fcf;
+}
+.options button.correct {
+  border-color: #3f9a70;
+  background: #eff9f4;
+  color: #32694f;
+}
+.options button.incorrect {
+  border-color: #d36256;
+  background: #fff2f0;
+  color: #7a433d;
+}
+.answer-feedback,
+.science-boundary {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 4px solid #d36256;
+  background: #fff2f0;
+  color: #704843;
+  font-size: 0.64rem;
+  line-height: 1.5;
+}
+.answer-feedback.correct {
+  border-color: #3f9a70;
+  background: #eff9f4;
+  color: #35634e;
+}
+.science-boundary {
+  border-color: #547cac;
+  background: #eef5fb;
+  color: #425b75;
+}
+[data-base='A'] {
+  background: #58b33b;
+}
+[data-base='T'] {
+  background: #ef493f;
+}
+[data-base='C'] {
+  background: #2877e8;
+}
+[data-base='G'] {
+  background: #f3ae19;
+}
+[data-base='U'] {
+  background: #d14bb8;
+}

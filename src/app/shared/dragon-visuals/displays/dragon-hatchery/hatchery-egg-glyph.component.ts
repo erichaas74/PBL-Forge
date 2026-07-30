@@ -22,7 +22,8 @@ interface Speckle {
       [attr.viewBox]="'0 0 ' + theme().shell.viewBoxWidth + ' ' + theme().shell.viewBoxHeight"
       preserveAspectRatio="xMidYMid meet"
       focusable="false"
-      aria-hidden="true">
+      aria-hidden="true"
+    >
       <defs>
         <clipPath [attr.id]="clipId()">
           <path [attr.d]="theme().shell.path" />
@@ -37,7 +38,12 @@ interface Speckle {
 
       <g [attr.clip-path]="'url(#' + clipId() + ')'">
         @for (speckle of speckles(); track $index) {
-          <circle class="speckle" [attr.cx]="speckle.cx" [attr.cy]="speckle.cy" [attr.r]="speckle.r" />
+          <circle
+            class="speckle"
+            [attr.cx]="speckle.cx"
+            [attr.cy]="speckle.cy"
+            [attr.r]="speckle.r"
+          />
         }
 
         @if (status() === 'examined' || status() === 'sampled') {
@@ -59,6 +65,13 @@ interface Speckle {
           <path class="crack" d="M4 46l10-6 7 8 8-10 7 9 9-8 8 7 8-5" />
           <path class="crack minor" d="M22 42l4-12 6 9 5-11" />
         }
+
+        @for (label of alleleLabels().slice(0, 3); track $index) {
+          <g class="allele-locus" [attr.transform]="'translate(32 ' + locusY($index) + ')'">
+            <rect x="-10" y="-6" width="20" height="12" rx="3" />
+            <text x="0" y="3.2" text-anchor="middle">{{ label }}</text>
+          </g>
+        }
       </g>
 
       @if (locked()) {
@@ -73,67 +86,145 @@ interface Speckle {
       }
     </svg>
   `,
-  styles: [`
-    :host { display: block; width: 100%; }
-    svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  styles: [
+    `
+      :host {
+        display: block;
+        width: 100%;
+      }
+      /* Height comes from the viewBox aspect ratio, so a shell keeps its shape in any tray cell. */
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
 
-    .shell {
-      fill: var(--dh-shell, #e6ecf5);
-      stroke: var(--dh-shell-edge, #8fa7bf);
-      stroke-width: 2;
-    }
+      .shell {
+        fill: var(--dh-shell, #e6ecf5);
+        stroke: var(--dh-shell-edge, #8fa7bf);
+        stroke-width: 2;
+      }
 
-    .speckle { fill: var(--dh-speckle, #7d93ac); opacity: .5; }
-    .aura { fill: currentColor; opacity: .16; }
+      .speckle {
+        fill: var(--dh-speckle, #7d93ac);
+        opacity: 0.5;
+      }
+      .aura {
+        fill: currentColor;
+        opacity: 0.16;
+      }
+      .allele-locus rect {
+        fill: var(--dh-console, #20384f);
+        stroke: var(--dh-staged, #67e8f9);
+        stroke-width: 1;
+      }
+      .allele-locus text {
+        fill: #fff;
+        font-family: ui-monospace, monospace;
+        font-size: 7px;
+        font-weight: 800;
+      }
 
-    .candle {
-      fill: var(--dh-examined, #efc668);
-      opacity: .5;
-      animation: candle-warm var(--dh-candle-ms, 900ms) ease-out 1;
-    }
+      .candle {
+        fill: var(--dh-examined, #efc668);
+        opacity: 0.5;
+        animation: candle-warm var(--dh-candle-ms, 900ms) ease-out 1;
+      }
 
-    .candle-edge { fill: none; stroke: var(--dh-examined, #efc668); stroke-width: 1.6; opacity: .8; }
+      .candle-edge {
+        fill: none;
+        stroke: var(--dh-examined, #efc668);
+        stroke-width: 1.6;
+        opacity: 0.8;
+      }
 
-    .needle, .strand, .rung, .crack {
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
+      .needle,
+      .strand,
+      .rung,
+      .crack {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
 
-    .needle { stroke: var(--dh-muted, #a4bcd0); stroke-width: 2.2; }
-    .needle-tip { fill: var(--dh-sampled, #b49cf2); }
-    .strand { stroke: var(--dh-sampled, #b49cf2); stroke-width: 2.4; }
-    .strand.second { opacity: .62; }
-    .rung { stroke: var(--dh-sampled, #b49cf2); stroke-width: 1.2; opacity: .7; }
+      .needle {
+        stroke: var(--dh-muted, #a4bcd0);
+        stroke-width: 2.2;
+      }
+      .needle-tip {
+        fill: var(--dh-sampled, #b49cf2);
+      }
+      .strand {
+        stroke: var(--dh-sampled, #b49cf2);
+        stroke-width: 2.4;
+      }
+      .strand.second {
+        opacity: 0.62;
+      }
+      .rung {
+        stroke: var(--dh-sampled, #b49cf2);
+        stroke-width: 1.2;
+        opacity: 0.7;
+      }
 
-    .crack {
-      stroke: var(--dh-hatched, #58cba6);
-      stroke-width: 3;
-      animation: crack-open var(--dh-hatch-ms, 1400ms) ease-out 1;
-    }
+      .crack {
+        stroke: var(--dh-hatched, #58cba6);
+        stroke-width: 3;
+        animation: crack-open var(--dh-hatch-ms, 1400ms) ease-out 1;
+      }
 
-    .crack.minor { stroke-width: 1.8; opacity: .7; }
+      .crack.minor {
+        stroke-width: 1.8;
+        opacity: 0.7;
+      }
 
-    .lock rect { fill: var(--dh-locked, #6d8098); }
-    .lock .shackle { fill: none; stroke: var(--dh-locked, #6d8098); stroke-width: 1.6; }
+      .lock rect {
+        fill: var(--dh-locked, #6d8098);
+      }
+      .lock .shackle {
+        fill: none;
+        stroke: var(--dh-locked, #6d8098);
+        stroke-width: 1.6;
+      }
 
-    .stage-ring {
-      fill: none;
-      stroke: var(--dh-staged, #67e8f9);
-      stroke-width: 2.6;
-      stroke-dasharray: 7 5;
-    }
+      .stage-ring {
+        fill: none;
+        stroke: var(--dh-staged, #67e8f9);
+        stroke-width: 2.6;
+        stroke-dasharray: 7 5;
+      }
 
-    @keyframes candle-warm { from { opacity: 0; } to { opacity: .5; } }
-    @keyframes crack-open { from { stroke-dasharray: 0 90; } to { stroke-dasharray: 90 0; } }
+      @keyframes candle-warm {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 0.5;
+        }
+      }
+      @keyframes crack-open {
+        from {
+          stroke-dasharray: 0 90;
+        }
+        to {
+          stroke-dasharray: 90 0;
+        }
+      }
 
-    :host(.reduced-motion) .candle,
-    :host(.reduced-motion) .crack { animation: none; }
+      :host(.reduced-motion) .candle,
+      :host(.reduced-motion) .crack {
+        animation: none;
+      }
 
-    @media (prefers-reduced-motion: reduce) {
-      .candle, .crack { animation: none; }
-    }
-  `],
+      @media (prefers-reduced-motion: reduce) {
+        .candle,
+        .crack {
+          animation: none;
+        }
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HatcheryEggGlyphComponent {
@@ -145,10 +236,17 @@ export class HatcheryEggGlyphComponent {
   readonly theme = input<DragonHatcheryTheme>(DRAGON_HATCHERY_THEME);
   /** Keeps SVG clip-path IDs unique when a whole tray is on one page. */
   readonly instanceId = input('egg');
+  /** Optional inherited allele symbols shown at stable loci inside the existing egg shell. */
+  readonly alleleLabels = input<readonly string[]>([]);
 
   readonly clipId = computed(() => `hatchery-shell-${this.instanceId()}`);
   readonly speckles = computed<readonly Speckle[]>(() =>
-    buildSpeckles(this.speckleSeed(), this.theme().shell.speckleCount));
+    buildSpeckles(this.speckleSeed(), this.theme().shell.speckleCount),
+  );
+
+  locusY(index: number): number {
+    return [31, 48, 65][index] ?? 48;
+  }
 }
 
 /** Deterministic shell markings: the same seed always draws the same egg. */

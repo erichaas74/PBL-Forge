@@ -1,4 +1,5 @@
 import { AssemblyBlueprint } from '../../../../shared/assembly/domain/assembly.models';
+import { AssemblyCombatProfile } from '../../../../shared/assembly/combat/assembly-combat.models';
 import { DragonGenome } from './dragon-genetics.models';
 
 export type DragonLabStage =
@@ -41,6 +42,8 @@ export interface DragonOffspring extends DragonParentProfile {
   generation: number;
   engineGenome: DragonGenome;
   assembly: AssemblyBlueprint;
+  /** Genome-derived health/armor/damage numbers consumed by the battle arena. */
+  combatProfile: AssemblyCombatProfile;
 }
 
 export interface PunnettCell {

@@ -1,3 +1,4 @@
+import { rotateVectorByQuaternion } from '../../assembly/domain/vector-data';
 import {
   ArenaControlFrame,
   BattleArenaState,
@@ -27,6 +28,7 @@ export const NEUTRAL_CONTROL_FRAME: ArenaControlFrame = {
   biteAttack: false,
   wingAttack: false,
   tailAttack: false,
+  fireAttack: false,
 };
 
 const sensorMemory = new Map<string, SensorMemory>();
@@ -91,6 +93,7 @@ export function runControllerProgram(
     biteAttack: frame.biteAttack,
     wingAttack: frame.wingAttack,
     tailAttack: frame.tailAttack,
+    fireAttack: frame.fireAttack,
   };
 }
 
@@ -159,24 +162,75 @@ export function buildSensors(
     ? clamp(coreStatus.health / Math.max(coreStatus.maxHealth, 1), 0, 1)
     : 1;
 
+  // Dragon drive is body-relative (forward = facing), so its guidance sensors
+  // must be expressed in the dragon's frame; wheeled/shove modes stay world-space.
+  const bodyRelative = combatant?.controlMode === 'dragon-attack';
+  let throttleTowardOpponent = clamp(dx / distance, -1, 1);
+  let strafeTowardOpponent = clamp(dz / distance, -1, 1);
+  let steerTowardOpponent = clamp(dz / Math.max(Math.abs(dx), 0.65), -1, 1);
+  let opponentAhead = dx > 0.2;
+  let bodyWallAvoidThrottle = wallAvoidThrottle;
+  let bodyWallAvoidStrafe = wallAvoidStrafe;
+  let wallAvoidSteer = clamp(wallAvoidStrafe || -sensorsSign(coreSnapshot.position.z), -1, 1);
+
+  if (bodyRelative) {
+    const basis = horizontalBasis(coreSnapshot);
+    const forwardDistance = dx * basis.forward.x + dz * basis.forward.z;
+    const rightDistance = dx * basis.right.x + dz * basis.right.z;
+    throttleTowardOpponent = clamp(forwardDistance / distance, -1, 1);
+    strafeTowardOpponent = clamp(rightDistance / distance, -1, 1);
+    steerTowardOpponent = clamp(Math.atan2(rightDistance, forwardDistance) / (Math.PI / 2), -1, 1);
+    opponentAhead = forwardDistance > 0.2;
+
+    const avoidForward = wallAvoidThrottle * basis.forward.x + wallAvoidStrafe * basis.forward.z;
+    const avoidRight = wallAvoidThrottle * basis.right.x + wallAvoidStrafe * basis.right.z;
+    bodyWallAvoidThrottle = clamp(avoidForward, -1, 1);
+    bodyWallAvoidStrafe = clamp(avoidRight, -1, 1);
+    wallAvoidSteer = avoidForward || avoidRight
+      ? clamp(Math.atan2(avoidRight, avoidForward) / (Math.PI / 2), -1, 1)
+      : 0;
+  }
+
   return {
     distanceToOpponent: distance,
-    throttleTowardOpponent: clamp(dx / distance, -1, 1),
-    strafeTowardOpponent: clamp(dz / distance, -1, 1),
-    steerTowardOpponent: clamp(dz / Math.max(Math.abs(dx), 0.65), -1, 1),
-    opponentAhead: dx > 0.2,
+    throttleTowardOpponent,
+    strafeTowardOpponent,
+    steerTowardOpponent,
+    opponentAhead,
     tipped,
     upsideDown,
     upsideDownSeconds: memory.upsideDownSeconds,
     linearSpeed,
     stuckSeconds: memory.stuckSeconds,
     nearWall: nearPositiveX || nearNegativeX || nearPositiveZ || nearNegativeZ,
-    wallAvoidThrottle,
-    wallAvoidStrafe,
-    wallAvoidSteer: clamp(wallAvoidStrafe || -sensorsSign(coreSnapshot.position.z), -1, 1),
+    wallAvoidThrottle: bodyWallAvoidThrottle,
+    wallAvoidStrafe: bodyWallAvoidStrafe,
+    wallAvoidSteer,
     elapsedSeconds: state.elapsedSeconds,
     coreHealthRatio,
   };
+}
+
+/** Core forward (+x) and right (+z) axes projected to the ground plane. */
+function horizontalBasis(snapshot: BattleBodySnapshot): {
+  forward: { x: number; z: number };
+  right: { x: number; z: number };
+} {
+  const forward = rotateVectorByQuaternion({ x: 1, y: 0, z: 0 }, snapshot.quaternion);
+  const right = rotateVectorByQuaternion({ x: 0, y: 0, z: 1 }, snapshot.quaternion);
+  return {
+    forward: normalizeHorizontal(forward.x, forward.z, { x: 1, z: 0 }),
+    right: normalizeHorizontal(right.x, right.z, { x: 0, z: 1 }),
+  };
+}
+
+function normalizeHorizontal(
+  x: number,
+  z: number,
+  fallback: { x: number; z: number },
+): { x: number; z: number } {
+  const length = Math.hypot(x, z);
+  return length > 0.001 ? { x: x / length, z: z / length } : fallback;
 }
 
 function applyBlock(
@@ -352,6 +406,12 @@ function applyAction(
         steer: sensors.steerTowardOpponent || 0.85,
         tailAttack: true,
       };
+    case 'fire-breath':
+      return {
+        ...frame,
+        steer: sensors.steerTowardOpponent * amount,
+        fireAttack: true,
+      };
   }
 }
 
@@ -413,7 +473,8 @@ function getActionParamByKey(block: StrategyBlock, key: string, fallback: Strate
     value === 'aim' ||
     value === 'bite' ||
     value === 'wing-buffet' ||
-    value === 'tail-sweep'
+    value === 'tail-sweep' ||
+    value === 'fire-breath'
   ) {
     return value;
   }
@@ -442,6 +503,7 @@ function mergeManualOverride(
     biteAttack: programFrame.biteAttack || manualControls.biteAttack,
     wingAttack: programFrame.wingAttack || manualControls.wingAttack,
     tailAttack: programFrame.tailAttack || manualControls.tailAttack,
+    fireAttack: programFrame.fireAttack || manualControls.fireAttack,
   };
 }
 

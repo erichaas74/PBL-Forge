@@ -1,0 +1,450 @@
+:host {
+  display: block;
+}
+.meiosis-quiz {
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.quiz-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(13rem, 19rem);
+  gap: 1rem;
+  align-items: end;
+}
+.quiz-head h2 {
+  margin: 0.3rem 0 0.45rem;
+  font-family: var(--font-display, inherit);
+  font-size: 1.55rem;
+}
+.quiz-head p,
+.prediction-question p {
+  margin: 0;
+  color: #66716e;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+.quiz-head label {
+  display: grid;
+  gap: 0.3rem;
+  color: #66716e;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.quiz-head select,
+.parent-platform select {
+  padding: 0.55rem;
+  border: 1px solid #cfc7b9;
+  border-radius: 0.5rem;
+  background: white;
+  color: #394843;
+  font-size: 0.68rem;
+}
+.eyebrow {
+  color: var(--dragon-green, #2e735e);
+  font-size: 0.61rem;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.gene-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.7rem;
+  border: 1px solid #d9d2c6;
+  border-radius: 0.7rem;
+}
+.gene-selector legend {
+  padding-inline: 0.35rem;
+  color: #68736f;
+  font-size: 0.6rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.gene-selector label {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.45rem;
+  background: #f2eee6;
+  color: #53605c;
+  font-size: 0.63rem;
+  font-weight: 750;
+}
+.gene-selector label > span {
+  color: #57416f;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+.gene-selector small {
+  color: #2e735e;
+  font-size: 0.5rem;
+  text-transform: uppercase;
+}
+.parent-platforms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.parent-platform {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.65fr) 1fr;
+  gap: 0.7rem;
+  padding: 0.8rem;
+  border: 1px solid #d5cec0;
+  border-radius: 0.8rem;
+  background: #fbfaf6;
+}
+.parent-platform > header,
+.parent-platform > p,
+.gene-rack {
+  grid-column: 1 / -1;
+}
+.parent-platform > header {
+  display: grid;
+  grid-template-columns: auto minmax(8rem, 1fr);
+  gap: 0.7rem;
+  align-items: center;
+}
+.parent-platform > header span {
+  color: #2e735e;
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.parent-platform > p {
+  margin: 0;
+  color: #61706b;
+  font-size: 0.62rem;
+}
+.gene-rack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+.chromosome-model {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  justify-items: center;
+  padding: 0.4rem;
+  border-radius: 0.55rem;
+  background: #ece8f1;
+}
+.chromosome-model > span,
+.chromosome-model > strong {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+.chromosome-model > span {
+  min-height: 2em;
+  color: #665c72;
+  font-size: 0.5rem;
+  font-weight: 800;
+}
+.chromosome-model > i {
+  position: relative;
+  display: grid;
+  width: 1.15rem;
+  height: 4.4rem;
+  place-items: center;
+  border-radius: 50% 50% 42% 42%;
+  background: linear-gradient(90deg, #567797, #9ab1c6 48%, #466785);
+  box-shadow: 0.15rem 0.15rem 0.35rem rgb(45 62 82 / 18%);
+}
+.chromosome-model > i::after {
+  content: '';
+  position: absolute;
+  left: -0.18rem;
+  right: -0.18rem;
+  top: 48%;
+  height: 0.35rem;
+  border-radius: 0.2rem;
+  background: #314b66;
+}
+.chromosome-model b {
+  z-index: 1;
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff6cf;
+  color: #563f70;
+  font-family: ui-monospace, monospace;
+  font-style: normal;
+  font-size: 0.72rem;
+}
+.chromosome-model > strong {
+  color: #503d72;
+  font-family: ui-monospace, monospace;
+  font-size: 0.7rem;
+}
+.prediction-question {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.7fr) 1.3fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.85rem;
+  border: 1px solid #d6cce0;
+  border-radius: 0.8rem;
+  background: #f7f2fa;
+}
+.prediction-question h3 {
+  margin: 0.25rem 0;
+  font-size: 0.88rem;
+}
+.egg-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+.egg-options button {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+  justify-items: center;
+  padding: 0.35rem;
+  border: 2px solid transparent;
+  border-radius: 0.7rem;
+  background: transparent;
+  color: #503d72;
+  cursor: pointer;
+}
+.egg-options app-hatchery-egg-glyph {
+  width: min(5.4rem, 100%);
+}
+.egg-options button > span {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+.egg-options button.selected {
+  border-color: #725a91;
+  background: #eee5f4;
+}
+.egg-options button.possible {
+  border-color: #3e9575;
+  background: #e9f7f0;
+}
+.egg-options button.impossible {
+  opacity: 0.5;
+  filter: grayscale(0.65);
+}
+.meiosis-stage {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.65fr) minmax(17rem, 1.5fr) minmax(7rem, 0.65fr);
+  gap: 0.8rem;
+  align-items: center;
+  min-height: 20rem;
+  padding: 1rem;
+  overflow: hidden;
+  border-radius: 0.85rem;
+  background: radial-gradient(circle at 50% 50%, rgb(114 90 145 / 12%), transparent 30%), #eef4f2;
+}
+.gamete-column,
+.fertilized-eggs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  align-items: center;
+}
+.gamete-column > span,
+.fertilized-eggs > span {
+  grid-column: 1 / -1;
+  color: #53645e;
+  font-size: 0.57rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+.gamete {
+  display: flex;
+  min-width: 3.8rem;
+  min-height: 3.8rem;
+  gap: 0.18rem;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #7894a7;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.18;
+  transition:
+    transform 0.8s ease,
+    opacity 0.45s;
+}
+.gamete b {
+  display: grid;
+  width: 1.15rem;
+  height: 1.55rem;
+  place-items: center;
+  border-radius: 0.25rem;
+  background: #57416f;
+  color: white;
+  font-family: ui-monospace, monospace;
+  font-size: 0.65rem;
+}
+.fertilized-eggs article {
+  display: grid;
+  justify-items: center;
+  opacity: 0.12;
+  transform: scale(0.65);
+  transition:
+    opacity 0.55s,
+    transform 0.75s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.fertilized-eggs app-hatchery-egg-glyph {
+  width: min(5.5rem, 100%);
+}
+.fertilized-eggs small {
+  color: #53605c;
+  font-family: ui-monospace, monospace;
+  font-size: 0.52rem;
+  font-weight: 850;
+  text-align: center;
+}
+[data-phase='separating'] .gamete {
+  opacity: 1;
+  animation: gamete-pop 0.7s ease-out both;
+  animation-delay: calc(var(--gamete-index) * 90ms);
+}
+[data-phase='combining'] .gamete {
+  opacity: 0.85;
+}
+.parent-a .gamete {
+  transform: translateX(-1.8rem);
+}
+.parent-b .gamete {
+  transform: translateX(1.8rem);
+}
+[data-phase='separating'] .parent-a .gamete,
+[data-phase='separating'] .parent-b .gamete {
+  transform: none;
+}
+[data-phase='combining'] .parent-a .gamete {
+  transform: translateX(5.2rem) scale(0.72);
+}
+[data-phase='combining'] .parent-b .gamete {
+  transform: translateX(-5.2rem) scale(0.72);
+}
+[data-phase='complete'] .gamete {
+  opacity: 0.2;
+  transform: scale(0.65);
+}
+[data-phase='combining'] .fertilized-eggs article,
+[data-phase='complete'] .fertilized-eggs article {
+  opacity: 1;
+  transform: none;
+}
+.quiz-feedback {
+  margin: 0;
+  padding: 0.7rem;
+  border-left: 4px solid #c77859;
+  background: #fff4eb;
+  color: #6f574d;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+.quiz-feedback.good {
+  border-color: #3e9575;
+  background: #edf8f3;
+  color: #3c6857;
+}
+.quiz-feedback strong {
+  display: block;
+}
+.quiz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+.quiz-actions p {
+  flex: 1 1 22rem;
+  margin: 0;
+  color: #68736f;
+  font-size: 0.61rem;
+  line-height: 1.45;
+}
+.quiz-actions button {
+  padding: 0.7rem 1rem;
+  border: 1px solid #bdb5a7;
+  border-radius: 0.6rem;
+  background: white;
+  color: #17253a;
+  font-size: 0.7rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+.quiz-actions button.primary {
+  border-color: #2e735e;
+  background: #2e735e;
+  color: white;
+}
+.quiz-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+@keyframes gamete-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+}
+@media (max-width: 900px) {
+  .quiz-head,
+  .prediction-question {
+    grid-template-columns: 1fr;
+  }
+  .parent-platforms {
+    grid-template-columns: 1fr;
+  }
+  .meiosis-stage {
+    grid-template-columns: 1fr;
+  }
+  .gamete-column,
+  .fertilized-eggs {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .gamete-column > span,
+  .fertilized-eggs > span {
+    grid-column: 1 / -1;
+  }
+  .parent-a .gamete,
+  .parent-b .gamete,
+  [data-phase='combining'] .parent-a .gamete,
+  [data-phase='combining'] .parent-b .gamete {
+    transform: none;
+  }
+}
+@media (max-width: 560px) {
+  .gene-rack,
+  .egg-options {
+    grid-template-columns: 1fr;
+  }
+  .gamete-column,
+  .fertilized-eggs {
+    grid-template-columns: 1fr 1fr;
+  }
+  .gamete {
+    min-width: 3rem;
+  }
+  .parent-platform {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

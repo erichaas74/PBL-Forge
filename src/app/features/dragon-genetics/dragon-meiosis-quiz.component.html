@@ -1,0 +1,187 @@
+<section
+  class="meiosis-quiz panel"
+  [attr.data-phase]="phase()"
+  aria-labelledby="meiosis-quiz-title"
+>
+  <header class="quiz-head">
+    <div>
+      <span class="eyebrow">Scene 1 · Parent Meiosis and Egg Prediction Lab</span>
+      <h2 id="meiosis-quiz-title">
+        Choose the parents, predict the eggs, then watch their alleles combine
+      </h2>
+      <p>
+        Track as many as three genes. The quiz scores the focused gene while the other selected
+        genes remain visible in every gamete and fertilized egg.
+      </p>
+    </div>
+    <label
+      >Quiz focus gene
+      <select [value]="focusTraitId()" [disabled]="locked()" (change)="setFocusTrait($event)">
+        @for (trait of traits(); track trait.id) {
+          <option [value]="trait.id">{{ trait.name }} · {{ trait.geneSymbol }}</option>
+        }
+      </select>
+    </label>
+  </header>
+
+  <fieldset class="gene-selector" [disabled]="locked()">
+    <legend>Genes visible in the model · choose up to 3</legend>
+    @for (trait of traits(); track trait.id) {
+      <label>
+        <input
+          type="checkbox"
+          [checked]="selectedTraits().includes(trait)"
+          [disabled]="trait.id === focusTraitId() || geneSelectionDisabled(trait.id)"
+          (change)="toggleAdditionalTrait(trait.id, $event)"
+        />
+        <span>{{ trait.geneSymbol }}</span
+        >{{ trait.name }}
+        @if (trait.id === focusTraitId()) {
+          <small>quiz gene</small>
+        }
+      </label>
+    }
+  </fieldset>
+
+  <div class="parent-platforms">
+    @for (parent of selectedParents(); track parent.id; let parentIndex = $index) {
+      <article class="parent-platform">
+        <header>
+          <span>Parent {{ parentIndex === 0 ? 'A' : 'B' }}</span>
+          <select
+            [value]="parent.id"
+            [disabled]="locked()"
+            (change)="setParent(parentIndex === 0 ? 'a' : 'b', $event)"
+          >
+            @for (candidate of parents(); track candidate.id) {
+              <option
+                [value]="candidate.id"
+                [disabled]="selectedParents()[parentIndex === 0 ? 1 : 0].id === candidate.id"
+              >
+                {{ candidate.name }}
+              </option>
+            }
+          </select>
+        </header>
+        <app-dragon-portrait [profile]="parent" />
+        <p>
+          <strong>{{ parentPhenotype(parent) }}</strong> phenotype for {{ focusTrait().name }}
+        </p>
+        <div class="gene-rack" aria-label="Paired chromosome allele models">
+          @for (trait of selectedTraits(); track trait.id) {
+            <div class="chromosome-model">
+              <span>{{ trait.geneSymbol }} gene · chromosome {{ trait.chromosomeModel }}</span>
+              <i
+                ><b>{{ parent.genome[trait.id][0] }}</b></i
+              >
+              <i
+                ><b>{{ parent.genome[trait.id][1] }}</b></i
+              >
+              <strong>{{ parentGenotype(parent, trait) }}</strong>
+            </div>
+          }
+        </div>
+      </article>
+    }
+  </div>
+
+  <section class="prediction-question">
+    <div>
+      <span class="eyebrow">Teaching quiz · predict before the animation</span>
+      <h3>Which {{ focusTrait().geneSymbol }}-gene genotypes can these parents produce?</h3>
+      <p>
+        Select every possible result. Each egg must receive one allele from Parent A and one from
+        Parent B.
+      </p>
+    </div>
+    <div class="egg-options">
+      @for (genotype of eggOptions(); track genotype; let index = $index) {
+        <button
+          type="button"
+          [class.selected]="predictions().includes(genotype)"
+          [class.possible]="locked() && possibleEggs().has(genotype)"
+          [class.impossible]="locked() && !possibleEggs().has(genotype)"
+          [disabled]="locked()"
+          [attr.aria-pressed]="predictions().includes(genotype)"
+          (click)="predictionToggled.emit(genotype)"
+        >
+          <app-hatchery-egg-glyph
+            status="intact"
+            [alleleLabels]="optionAlleles(genotype)"
+            [instanceId]="'quiz-option-' + index"
+            [speckleSeed]="index + 21"
+          />
+          <span>{{ genotype }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="meiosis-stage" aria-label="Two-parent meiosis and fertilization animation">
+    <div class="gamete-column parent-a">
+      <span>{{ selectedParents()[0].name }} meiosis</span>
+      @for (gamete of parentAGametes(); track gamete.id) {
+        <div class="gamete" [style.--gamete-index]="$index">
+          @for (item of gamete.alleles; track item.traitId) {
+            <b>{{ item.allele }}</b>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="fertilized-eggs">
+      <span>Four modeled fertilization outcomes</span>
+      @for (egg of fertilizedEggs(); track egg.id; let index = $index) {
+        <article>
+          <app-hatchery-egg-glyph
+            status="intact"
+            [alleleLabels]="egg.genotypes"
+            [instanceId]="egg.id"
+            [speckleSeed]="index + 51"
+          />
+          <small>{{ egg.genotypes.join(' · ') }}</small>
+        </article>
+      }
+    </div>
+
+    <div class="gamete-column parent-b">
+      <span>{{ selectedParents()[1].name }} meiosis</span>
+      @for (gamete of parentBGametes(); track gamete.id) {
+        <div class="gamete" [style.--gamete-index]="$index">
+          @for (item of gamete.alleles; track item.traitId) {
+            <b>{{ item.allele }}</b>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  @if (locked()) {
+    <p class="quiz-feedback" [class.good]="predictionCorrect()" role="status">
+      <strong>{{
+        predictionCorrect() ? 'Prediction supported.' : 'Prediction needs another look.'
+      }}</strong>
+      Meiosis produced four modeled gametes from each parent. Each gamete carries one allele for
+      every selected gene; fertilization combines one gamete from each parent.
+    </p>
+  }
+
+  <div class="quiz-actions">
+    <p>
+      <strong>Model boundary:</strong> Four gametes show allele separation. With several genes, they
+      are a teaching sample rather than every possible independently assorted combination.
+    </p>
+    @if (locked()) {
+      <button type="button" (click)="reset()">Run a new teaching cross</button>
+    } @else {
+      <button
+        class="primary"
+        type="button"
+        [disabled]="!predictions().length"
+        (click)="runMeiosis()"
+      >
+        Run meiosis and check prediction
+      </button>
+    }
+  </div>
+</section>

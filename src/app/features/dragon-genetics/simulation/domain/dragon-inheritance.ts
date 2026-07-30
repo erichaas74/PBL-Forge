@@ -1,5 +1,6 @@
 import { CLASSIC_DRAGON_TEST_PRESET } from '../../../../shared/assembly-garage/data/presets/classic-dragon-test';
 import { AssemblyBlueprint } from '../../../../shared/assembly/domain/assembly.models';
+import { AssemblyCombatProfile } from '../../../../shared/assembly/combat/assembly-combat.models';
 import { cloneAssemblyBlueprint } from '../../../../shared/assembly/domain/assembly-clone';
 import {
   createFounderDragonGenome,
@@ -158,6 +159,7 @@ export function breedLabClutch(
     const id = `clutch-${run}-${index + 1}`;
     const color = offspringColor(genome, index);
     const engineGenome = createVisualGenome(id, genome, run);
+    const build = createEducationalAssembly(genome, engineGenome);
 
     return {
       id,
@@ -169,7 +171,8 @@ export function breedLabClutch(
       parentIds: [parentA.id, parentB.id],
       generation: run,
       engineGenome,
-      assembly: createEducationalAssembly(genome, engineGenome),
+      assembly: build.assembly,
+      combatProfile: build.combatProfile,
     };
   });
 }
@@ -254,10 +257,15 @@ export function createVisualGenome(id: string, genome: DragonLabGenome, generati
   return visual;
 }
 
+export interface EducationalDragonBuild {
+  assembly: AssemblyBlueprint;
+  combatProfile: AssemblyCombatProfile;
+}
+
 export function createEducationalAssembly(
   genome: DragonLabGenome,
   engineGenome: ReturnType<typeof createFounderDragonGenome>,
-): AssemblyBlueprint {
+): EducationalDragonBuild {
   const generated = generateDragonAssembly(CLASSIC_DRAGON_TEST_PRESET.state, engineGenome);
   let blueprint = cloneAssemblyBlueprint(generated.blueprint);
 
@@ -278,7 +286,19 @@ export function createEducationalAssembly(
       color: index % 3 === 0 ? lightenColor(part.color) : part.color,
     }));
   }
-  return blueprint;
+
+  // The genome-tuned combat profile (armor from horns, damage from temperament)
+  // travels with the assembly so the arena fights with these numbers instead of
+  // regenerating defaults. Prune entries for parts removed by the genotype.
+  const partIds = new Set(blueprint.parts.map(part => part.id));
+  const combatProfile: AssemblyCombatProfile = {
+    ...generated.combatProfile,
+    parts: Object.fromEntries(
+      Object.entries(generated.combatProfile.parts).filter(([partId]) => partIds.has(partId)),
+    ),
+  };
+
+  return { assembly: blueprint, combatProfile };
 }
 
 function offspringColor(genome: DragonLabGenome, index: number): string {

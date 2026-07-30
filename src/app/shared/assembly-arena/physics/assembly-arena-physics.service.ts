@@ -22,6 +22,7 @@ import {
   BattleDamageEvent,
   BattlePhysicsFrame,
   ControlFrameByCombatant,
+  FireConeSnapshot,
 } from '../models/arena.models';
 import { getBodyKey } from '../utils/battle-assembly';
 
@@ -49,7 +50,45 @@ const EMPTY_CONTROL_FRAME: ArenaControlFrame = {
   biteAttack: false,
   wingAttack: false,
   tailAttack: false,
+  fireAttack: false,
 };
+
+/** Fire breath: cone AoE gated by genotype at the control layer. */
+const FIRE_BREATH_RANGE = 3.4;
+const FIRE_BREATH_CONE_DOT = 0.72;
+const FIRE_BREATH_TICK_SECONDS = 0.45;
+const FIRE_BREATH_TICK_DAMAGE = 3;
+const FIRE_BREATH_MAX_TARGETS = 3;
+
+/** No damage or joint breakage while the freshly spawned assemblies settle. */
+const SPAWN_GRACE_SECONDS = 1.5;
+/**
+ * Minimum time between damage ticks on the same body. Without this, a sustained
+ * contact deals damage every physics step (60 Hz) and battles end in seconds.
+ */
+const DAMAGE_COOLDOWN_SECONDS = 0.45;
+
+/**
+ * Contact-window abilities: while an attack control is held, the attacking body
+ * part landing on an opponent deals ability damage regardless of impact speed —
+ * a bite that connects is a bite, not a shove. Each ability has its own cooldown
+ * so hits read as discrete strikes.
+ */
+interface AbilityDefinition {
+  ability: 'bite' | 'wing-buffet' | 'tail-sweep';
+  role: AssemblyPartRole;
+  baseDamage: number;
+  cooldownSeconds: number;
+  /** Bite scales with the attacker's jaw multiplier (temperament genes). */
+  usesAttackerMultiplier: boolean;
+  knockback: boolean;
+}
+
+const ABILITY_DEFINITIONS: readonly AbilityDefinition[] = [
+  { ability: 'bite', role: 'jaw', baseDamage: 9, cooldownSeconds: 0.9, usesAttackerMultiplier: true, knockback: false },
+  { ability: 'wing-buffet', role: 'wing', baseDamage: 6, cooldownSeconds: 1.2, usesAttackerMultiplier: false, knockback: true },
+  { ability: 'tail-sweep', role: 'tail', baseDamage: 7, cooldownSeconds: 1.1, usesAttackerMultiplier: false, knockback: false },
+];
 
 @Injectable()
 export class AssemblyArenaPhysicsService {
@@ -58,6 +97,8 @@ export class AssemblyArenaPhysicsService {
   private readonly bodyMetaById = new Map<number, BodyMeta>();
   private readonly springs: CANNON.Spring[] = [];
   private readonly trackedJoints: TrackedArenaJoint[] = [];
+  private readonly lastDamageAt = new Map<string, number>();
+  private readonly lastAbilityHitAt = new Map<string, number>();
   private readonly fixedTimeStep = 1 / 60;
   private readonly maxSubSteps = 6;
   private currentSetupStyleId: ArenaSetupStyleId = 'duel-arena';
@@ -81,16 +122,40 @@ export class AssemblyArenaPhysicsService {
     }
 
     this.world.step(this.fixedTimeStep, deltaSeconds, this.maxSubSteps);
-    const brokenJointDamageEvents = this.getBrokenJointDamageEvents(state.elapsedSeconds);
 
     const damageEnabled = state.setup.physics?.damageEnabled !== false;
+    const inSpawnGrace = state.elapsedSeconds < SPAWN_GRACE_SECONDS;
+    if (!damageEnabled || inSpawnGrace) {
+      return {
+        snapshots: this.getSnapshots(),
+        damageEvents: [],
+        fireCones: this.getFireCones(state, controlFrames),
+      };
+    }
+
+    // Joint breaks are one-shot events; contact and boundary damage is
+    // rate-limited per body so persistent contact doesn't melt health at 60 Hz.
+    const rateLimited = [
+      ...this.getCollisionDamageEvents(),
+      ...this.getOutOfBoundsDamageEvents(),
+    ].filter(event => {
+      const last = this.lastDamageAt.get(event.bodyKey);
+      if (last !== undefined && state.elapsedSeconds - last < DAMAGE_COOLDOWN_SECONDS) {
+        return false;
+      }
+      this.lastDamageAt.set(event.bodyKey, state.elapsedSeconds);
+      return true;
+    });
+
     return {
       snapshots: this.getSnapshots(),
-      damageEvents: damageEnabled ? [
-        ...brokenJointDamageEvents,
-        ...this.getCollisionDamageEvents(),
-        ...this.getOutOfBoundsDamageEvents(),
-      ] : [],
+      damageEvents: [
+        ...this.getBrokenJointDamageEvents(state.elapsedSeconds),
+        ...this.getAbilityDamageEvents(state, controlFrames),
+        ...this.getFireBreathDamageEvents(state, controlFrames),
+        ...rateLimited,
+      ],
+      fireCones: this.getFireCones(state, controlFrames),
     };
   }
 
@@ -107,6 +172,8 @@ export class AssemblyArenaPhysicsService {
     this.bodyMetaById.clear();
     this.springs.length = 0;
     this.trackedJoints.length = 0;
+    this.lastDamageAt.clear();
+    this.lastAbilityHitAt.clear();
   }
 
   private addCombatant(combatant: BattleCombatant): void {
@@ -390,13 +457,18 @@ export class AssemblyArenaPhysicsService {
     }
 
     if (mode === 'dragon-attack') {
+      // Body-relative drive: forward means where the dragon faces, steer yaws it.
       const forceScale = controls.boost ? 132 : 82;
+      const forward = getHorizontalAxis(core, new CANNON.Vec3(1, 0, 0));
+      const right = getHorizontalAxis(core, new CANNON.Vec3(0, 0, 1));
       core.applyForce(new CANNON.Vec3(
-        controls.throttle * forceScale,
+        (forward.x * controls.throttle + right.x * controls.strafe * 0.6) * forceScale,
         0,
-        (controls.steer + controls.strafe) * forceScale * 0.48,
+        (forward.z * controls.throttle + right.z * controls.strafe * 0.6) * forceScale,
       ));
-      core.applyTorque(new CANNON.Vec3(controls.strafe * 24, -controls.steer * 34, -controls.steer * 12));
+      core.applyTorque(new CANNON.Vec3(0, -controls.steer * 34, 0));
+      this.applyWingLift(combatant.id, core, controls);
+      this.applyDragonStance(combatant.id, core, controls);
       this.applyDragonAttackMoves(combatant.id, core, controls, elapsedSeconds);
       return;
     }
@@ -410,6 +482,76 @@ export class AssemblyArenaPhysicsService {
       ));
       core.applyTorque(new CANNON.Vec3(0, -controls.steer * 28, 0));
     }
+  }
+
+  /**
+   * Winged genotypes get lift while boosting: WW/Ww dragons leap and glide,
+   * ww dragons stay planted — inherited wings visibly change how they move.
+   */
+  private applyWingLift(combatantId: string, core: CANNON.Body, controls: ArenaControlFrame): void {
+    if (!controls.boost || core.velocity.y > 2.2) {
+      return;
+    }
+
+    const wingCount = this.getPartBodiesByRole(combatantId, 'wing').length;
+    if (!wingCount) {
+      return;
+    }
+
+    core.applyForce(new CANNON.Vec3(0, Math.min(wingCount, 4) * core.mass * 2.6, 0));
+  }
+
+  /**
+   * Actuated stance: dragons fight standing up and facing their opponent, like a
+   * real animal, instead of slumping into a passive ragdoll between inputs.
+   */
+  private applyDragonStance(
+    combatantId: string,
+    core: CANNON.Body,
+    controls: ArenaControlFrame,
+  ): void {
+    // Upright assist: torque that rotates body-up toward world-up, damped so the
+    // dragon settles instead of wobbling.
+    const up = core.quaternion.vmult(new CANNON.Vec3(0, 1, 0));
+    const uprightStrength = 18 * core.mass;
+    const spinDamping = 4 * core.mass;
+    core.applyTorque(new CANNON.Vec3(
+      -up.z * uprightStrength - core.angularVelocity.x * spinDamping,
+      0,
+      up.x * uprightStrength - core.angularVelocity.z * spinDamping,
+    ));
+
+    // Soft auto-face: when the player is not steering, gently yaw toward the
+    // opponent so bites aim somewhere sensible. Steering always overrides it.
+    if (Math.abs(controls.steer) >= 0.05) {
+      return;
+    }
+
+    const opponentCore = this.getOpponentCoreBody(combatantId);
+    if (!opponentCore) {
+      return;
+    }
+
+    const forward = getHorizontalAxis(core, new CANNON.Vec3(1, 0, 0));
+    const right = getHorizontalAxis(core, new CANNON.Vec3(0, 0, 1));
+    const dx = opponentCore.position.x - core.position.x;
+    const dz = opponentCore.position.z - core.position.z;
+    const bearing = Math.atan2(
+      dx * right.x + dz * right.z,
+      dx * forward.x + dz * forward.z,
+    );
+    const faceStrength = 4 * core.mass;
+    core.applyTorque(new CANNON.Vec3(0, -Math.max(-1, Math.min(1, bearing)) * faceStrength, 0));
+  }
+
+  private getOpponentCoreBody(combatantId: string): CANNON.Body | null {
+    for (const body of this.bodies.values()) {
+      const meta = this.bodyMetaById.get(body.id);
+      if (meta?.isCore && meta.combatantId !== combatantId) {
+        return body;
+      }
+    }
+    return null;
   }
 
   private applyDragonAttackMoves(
@@ -504,11 +646,167 @@ export class AssemblyArenaPhysicsService {
     return bodies;
   }
 
+  private getAbilityDamageEvents(
+    state: BattleArenaState,
+    controlFrames: ControlFrameByCombatant,
+  ): BattleDamageEvent[] {
+    const events: BattleDamageEvent[] = [];
+
+    for (const combatant of state.combatants) {
+      const controls = controlFrames[combatant.id];
+      if (!controls) continue;
+
+      for (const definition of ABILITY_DEFINITIONS) {
+        const active = definition.ability === 'bite'
+          ? controls.biteAttack
+          : definition.ability === 'wing-buffet'
+            ? controls.wingAttack
+            : controls.tailAttack;
+        if (!active) continue;
+        this.collectAbilityHit(events, combatant, definition, state.elapsedSeconds);
+      }
+    }
+
+    return events;
+  }
+
+  private collectAbilityHit(
+    events: BattleDamageEvent[],
+    combatant: BattleCombatant,
+    definition: AbilityDefinition,
+    elapsedSeconds: number,
+  ): void {
+    const cooldownKey = `${combatant.id}:${definition.ability}`;
+    const lastHit = this.lastAbilityHitAt.get(cooldownKey);
+    if (lastHit !== undefined && elapsedSeconds - lastHit < definition.cooldownSeconds) {
+      return;
+    }
+
+    for (const contact of this.world.contacts) {
+      const a = this.bodyMetaById.get(contact.bi.id);
+      const b = this.bodyMetaById.get(contact.bj.id);
+      if (!a || !b || a.combatantId === b.combatantId) continue;
+
+      const attacker = a.combatantId === combatant.id ? a : b.combatantId === combatant.id ? b : null;
+      if (!attacker || !attacker.roles.includes(definition.role)) continue;
+      const target = attacker === a ? b : a;
+
+      const attackerMultiplier = definition.usesAttackerMultiplier
+        ? combatant.combatProfile.parts[attacker.sourcePartId]?.damageMultiplier ?? 1
+        : 1;
+      events.push({
+        bodyKey: target.bodyKey,
+        amount: definition.baseDamage * attackerMultiplier,
+        reason: definition.ability,
+      });
+      this.lastAbilityHitAt.set(cooldownKey, elapsedSeconds);
+
+      if (definition.knockback) {
+        this.applyAbilityKnockback(combatant.id, target.combatantId);
+      }
+      return;
+    }
+  }
+
+  /** Cone AoE damage ticks while fire breath is held. */
+  private getFireBreathDamageEvents(
+    state: BattleArenaState,
+    controlFrames: ControlFrameByCombatant,
+  ): BattleDamageEvent[] {
+    const events: BattleDamageEvent[] = [];
+
+    for (const combatant of state.combatants) {
+      const controls = controlFrames[combatant.id];
+      if (!controls?.fireAttack) continue;
+
+      const cooldownKey = `${combatant.id}:fire-breath`;
+      const lastTick = this.lastAbilityHitAt.get(cooldownKey);
+      if (lastTick !== undefined && state.elapsedSeconds - lastTick < FIRE_BREATH_TICK_SECONDS) {
+        continue;
+      }
+
+      const cone = this.getFireCone(combatant.id, controls);
+      if (!cone) continue;
+
+      const scorched: { bodyKey: string; distance: number }[] = [];
+      for (const body of this.bodies.values()) {
+        const meta = this.bodyMetaById.get(body.id);
+        if (!meta || meta.combatantId === combatant.id) continue;
+
+        const dx = body.position.x - cone.origin.x;
+        const dy = body.position.y - cone.origin.y;
+        const dz = body.position.z - cone.origin.z;
+        const distance = Math.hypot(dx, dy, dz);
+        if (distance > FIRE_BREATH_RANGE || distance < 0.001) continue;
+
+        const alignment = (dx * cone.direction.x + dz * cone.direction.z) / distance;
+        if (alignment < FIRE_BREATH_CONE_DOT) continue;
+        scorched.push({ bodyKey: meta.bodyKey, distance });
+      }
+
+      if (!scorched.length) continue;
+      scorched.sort((a, b) => a.distance - b.distance);
+      for (const target of scorched.slice(0, FIRE_BREATH_MAX_TARGETS)) {
+        events.push({ bodyKey: target.bodyKey, amount: FIRE_BREATH_TICK_DAMAGE, reason: 'fire breath' });
+      }
+      this.lastAbilityHitAt.set(cooldownKey, state.elapsedSeconds);
+    }
+
+    return events;
+  }
+
+  private getFireCones(
+    state: BattleArenaState,
+    controlFrames: ControlFrameByCombatant,
+  ): FireConeSnapshot[] {
+    const cones: FireConeSnapshot[] = [];
+    for (const combatant of state.combatants) {
+      const controls = controlFrames[combatant.id];
+      if (!controls?.fireAttack) continue;
+      const cone = this.getFireCone(combatant.id, controls);
+      if (cone) cones.push(cone);
+    }
+    return cones;
+  }
+
+  private getFireCone(combatantId: string, controls: ArenaControlFrame): FireConeSnapshot | null {
+    const mouth = this.getPartBodyByRole(combatantId, 'head')
+      ?? this.getPartBodyByRole(combatantId, 'jaw')
+      ?? this.getCoreBody(combatantId);
+    if (!mouth) return null;
+
+    const direction = getAttackDirection(mouth, controls);
+    return {
+      combatantId,
+      origin: { x: mouth.position.x, y: mouth.position.y, z: mouth.position.z },
+      direction: { x: direction.x, y: direction.y, z: direction.z },
+    };
+  }
+
+  private applyAbilityKnockback(attackerId: string, targetId: string): void {
+    const attackerCore = this.getCoreBody(attackerId);
+    const targetCore = this.getCoreBody(targetId);
+    if (!attackerCore || !targetCore) return;
+
+    const direction = targetCore.position.vsub(attackerCore.position);
+    direction.y = 0;
+    if (direction.lengthSquared() < 0.001) return;
+    direction.normalize();
+
+    targetCore.wakeUp();
+    targetCore.applyImpulse(new CANNON.Vec3(
+      direction.x * (6 + targetCore.mass * 1.5),
+      2.5 + targetCore.mass * 0.4,
+      direction.z * (6 + targetCore.mass * 1.5),
+    ));
+  }
+
   private getCollisionDamageEvents(): BattleDamageEvent[] {
     const damageByBody = new Map<string, BattleDamageEvent>();
     const isDragonPractice = this.currentSetupStyleId === 'dragon-wing-test';
     const isRacePractice = this.currentSetupStyleId === 'pinewood-derby-test';
-    const environmentImpactThreshold = isDragonPractice ? 8.5 : isRacePractice ? 6 : 2.4;
+    const environmentImpactThreshold = isDragonPractice ? 8.5 : isRacePractice ? 6 : 3.5;
+    const combatantImpactThreshold = 3;
 
     for (const contact of this.world.contacts) {
       const a = this.bodyMetaById.get(contact.bi.id);
@@ -524,7 +822,7 @@ export class AssemblyArenaPhysicsService {
         continue;
       }
 
-      if (!isEnvironmentContact && impact < 2.4) {
+      if (!isEnvironmentContact && impact < combatantImpactThreshold) {
         continue;
       }
 
@@ -532,9 +830,15 @@ export class AssemblyArenaPhysicsService {
         continue;
       }
 
-      const threshold = isEnvironmentContact ? environmentImpactThreshold : 2.4;
-      const multiplier = isEnvironmentContact && (isDragonPractice || isRacePractice) ? 0.8 : 3.2;
-      const damage = Math.min(24, Math.max(0, (impact - threshold) * multiplier));
+      // Combatant hits are tuned (with the damage cooldown) so a duel between
+      // catalog-sized assemblies averages roughly 40 seconds. Environment slams
+      // stay heavier for the crash-test scenarios.
+      const threshold = isEnvironmentContact ? environmentImpactThreshold : combatantImpactThreshold;
+      const multiplier = isEnvironmentContact
+        ? (isDragonPractice || isRacePractice ? 0.8 : 3.2)
+        : 1.6;
+      const cap = isEnvironmentContact ? 24 : 12;
+      const damage = Math.min(cap, Math.max(0, (impact - threshold) * multiplier));
 
       if (a) {
         keepMaxDamage(damageByBody, a.bodyKey, damage, 'impact');
@@ -557,6 +861,15 @@ export class AssemblyArenaPhysicsService {
       return events;
     }
 
+    if (elapsedSeconds < SPAWN_GRACE_SECONDS) {
+      return events;
+    }
+
+    // Duels should be decided by health, with limb loss as a dramatic accent —
+    // not by assemblies shedding every joint in the opening seconds. Crash-test
+    // setups keep the authored break forces for the demolition spectacle.
+    const isDuel = this.currentSetupStyleId === 'duel-arena';
+
     for (const trackedJoint of this.trackedJoints) {
       const breakForce = trackedJoint.behavior?.breakForce;
 
@@ -564,12 +877,8 @@ export class AssemblyArenaPhysicsService {
         continue;
       }
 
-      if (isDragonPractice && elapsedSeconds < 1.5) {
-        continue;
-      }
-
       const stress = getConstraintStress(trackedJoint.constraint);
-      const effectiveBreakForce = isDragonPractice ? breakForce * 4 : breakForce;
+      const effectiveBreakForce = isDuel ? breakForce * 2 : breakForce;
 
       if (stress < effectiveBreakForce) {
         continue;
@@ -605,9 +914,11 @@ export class AssemblyArenaPhysicsService {
         body.position.y < (isDragonPractice ? -4 : -1.5);
 
       if (outOfBounds) {
+        // Rate-limited by the shared damage cooldown: being pinned at a wall
+        // wears a dragon down over many seconds instead of killing in one.
         events.push({
           bodyKey: meta.bodyKey,
-          amount: isDragonPractice ? (meta.isCore ? 2 : 1) : (meta.isCore ? 8 : 4),
+          amount: isDragonPractice ? (meta.isCore ? 2 : 1) : (meta.isCore ? 5 : 2),
           reason: 'out of bounds',
         });
       }
@@ -709,23 +1020,37 @@ function withoutConnectedCollision<T extends CANNON.Constraint>(constraint: T): 
   return constraint;
 }
 
+/** Attacks strike where the dragon faces, tilted slightly by any strafe input. */
 function getAttackDirection(core: CANNON.Body, controls: ArenaControlFrame): CANNON.Vec3 {
-  const inputDirection = new CANNON.Vec3(controls.throttle, 0, controls.strafe + controls.steer * 0.35);
+  const forward = getHorizontalAxis(core, new CANNON.Vec3(1, 0, 0));
 
-  if (inputDirection.lengthSquared() > 0.001) {
-    inputDirection.normalize();
-    return inputDirection;
+  if (Math.abs(controls.strafe) > 0.01) {
+    const right = getHorizontalAxis(core, new CANNON.Vec3(0, 0, 1));
+    const blended = new CANNON.Vec3(
+      forward.x + right.x * controls.strafe * 0.35,
+      0,
+      forward.z + right.z * controls.strafe * 0.35,
+    );
+    if (blended.lengthSquared() > 0.001) {
+      blended.normalize();
+      return blended;
+    }
   }
 
-  const forward = core.quaternion.vmult(new CANNON.Vec3(1, 0, 0));
-  forward.y = 0;
+  return forward;
+}
 
-  if (forward.lengthSquared() <= 0.001) {
+/** A body-local axis projected onto the ground plane and normalized. */
+function getHorizontalAxis(core: CANNON.Body, localAxis: CANNON.Vec3): CANNON.Vec3 {
+  const axis = core.quaternion.vmult(localAxis);
+  axis.y = 0;
+
+  if (axis.lengthSquared() <= 0.001) {
     return new CANNON.Vec3(1, 0, 0);
   }
 
-  forward.normalize();
-  return forward;
+  axis.normalize();
+  return axis;
 }
 
 function getConstraintStress(constraint: CANNON.Constraint): number {

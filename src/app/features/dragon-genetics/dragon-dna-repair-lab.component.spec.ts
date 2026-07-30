@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DragonDnaRepairLabComponent } from './dragon-dna-repair-lab.component';
 
 describe('DragonDnaRepairLabComponent', () => {
@@ -12,22 +12,21 @@ describe('DragonDnaRepairLabComponent', () => {
     fixture.detectChanges();
   });
 
-  it('moves through the chromosome-to-gene uncoiling stages', () => {
-    lab.setUncoilStep(3);
-    expect(lab.activeStage().label).toBe('Highlighted gene section');
+  it('opens with replication and contains no uncoiling activity', () => {
+    expect(lab.activeQuestion().mode).toBe('replication');
+    expect(
+      lab.questions.some((question) => question.tabLabel.toLowerCase().includes('uncoil')),
+    ).toBeFalse();
   });
 
-  it('animates complementary DNA replication', fakeAsync(() => {
-    lab.selectMode('replicate');
-    lab.playReplication();
-    tick(260 * lab.template.length);
-    expect(lab.replicationProgress()).toBe(lab.template.length);
-  }));
+  it('selects reusable mutation, transcription, and repair questions by id', () => {
+    lab.selectQuestion('transcription-uracil');
+    expect(lab.activeQuestion().mode).toBe('transcription');
 
-  it('repairs the deliberate mismatch with the complementary base', () => {
-    lab.selectMode('repair');
-    lab.chooseRepair('A');
-    expect(lab.repaired()).toBeTrue();
-    expect(lab.displayedRepairBase(4)).toBe('A');
+    lab.selectQuestion('mutation-substitution');
+    expect(lab.activeQuestion().mode).toBe('substitution');
+
+    lab.selectQuestion('copying-error-repair');
+    expect(lab.activeQuestion().mode).toBe('repair');
   });
 });

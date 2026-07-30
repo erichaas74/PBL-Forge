@@ -1,24 +1,35 @@
 <section class="station">
   <header class="station-head">
     <div>
-      <span class="eyebrow">Scenes 1–4 and 6 · Dragon Genome Expedition · GEN-2</span>
+      <span class="eyebrow">Dragon Genome Expedition · GEN-2</span>
       <h3>Enter a familiar dragon, then travel to an allele pair</h3>
-      <p>Keep the organism and visible trait in view while you trace the simplified information model inward: dragon → body region → cell → nucleus → chromosome → DNA → gene → alleles.</p>
+      <p>
+        Keep the organism and visible trait in view while you trace the simplified information model
+        inward: dragon → body region → cell → nucleus → chromosome → DNA → gene → alleles.
+      </p>
     </div>
     <span class="mode-tag">{{ modeLabel() }}</span>
   </header>
 
   <section class="sample-selector" aria-label="Dragon Genome Archive">
-    <div class="archive-intro"><span class="eyebrow">Scene 1 · Dragon Genome Archive</span><strong>Choose a familiar dragon</strong><small>The current trait mystery follows the lesson task.</small></div>
+    <div class="archive-intro">
+      <span class="eyebrow">Scene 1 · Dragon Genome Archive</span
+      ><strong>Choose a familiar dragon</strong
+      ><small>The current trait mystery follows the lesson task.</small>
+    </div>
     @for (profile of profiles; track profile.id) {
       <button
         type="button"
         [class.selected]="selectedSampleId() === profile.id"
         [disabled]="runPhaseLocked()"
         [attr.aria-pressed]="selectedSampleId() === profile.id"
-        (click)="selectSample(profile.id)">
+        (click)="selectSample(profile.id)"
+      >
         <app-dragon-portrait [profile]="profile" [compact]="true" />
-        <span><strong>{{ profile.name }}</strong><small>Sample {{ profile.id.toUpperCase() }}</small></span>
+        <span
+          ><strong>{{ profile.name }}</strong
+          ><small>Sample {{ profile.id.toUpperCase() }}</small></span
+        >
       </button>
     }
   </section>
@@ -26,58 +37,101 @@
   <section class="expedition-context" aria-label="Selected dragon genome journey">
     <div class="selected-dragon">
       <div class="portrait-focus"><app-dragon-portrait [profile]="selectedSample()" /></div>
-      <div><span class="eyebrow">Trait Genome File</span><h4>{{ investigationQuestion() }}</h4><dl><div><dt>Visible trait</dt><dd>{{ visiblePhenotype() }}</dd></div><div><dt>Body region</dt><dd>{{ traitFile().bodyRegion }}</dd></div><div><dt>Tissue sample</dt><dd>{{ traitFile().tissueSample }}</dd></div><div><dt>Arena preview</dt><dd>{{ traitFile().arenaConnection }}</dd></div></dl></div>
-    </div>
-
-    <div class="zoom-tunnel">
-      <header><div><span class="eyebrow">Scene 2 · Continuous Dragon-to-DNA Zoom</span><strong>Location mini-map</strong></div><b>{{ journeyLevels[journeyStep()] }}</b></header>
-      <ol>
-        @for (level of journeyLevels; track level; let index = $index) {
-          <li [class.active]="journeyStep() === index" [class.passed]="journeyStep() > index"><button type="button" (click)="focusJourney(index)"><i>{{ index + 1 }}</i><span>{{ level }}</span></button></li>
-        }
-      </ol>
-      <p>{{ selectedSample().name }} › {{ traitFile().tissueSample }} › nucleus › chromosome {{ focusTrait().chromosomeModel }} › DNA › {{ focusTrait().geneSymbol }} gene › {{ alleleVaultOpen() ? allelePair().join('/') : '? / ?' }}</p>
+      <div>
+        <span class="eyebrow">Trait Genome File</span>
+        <h4>{{ investigationQuestion() }}</h4>
+        <dl>
+          <div>
+            <dt>Visible trait</dt>
+            <dd>{{ visiblePhenotype() }}</dd>
+          </div>
+          <div>
+            <dt>Body region</dt>
+            <dd>{{ traitFile().bodyRegion }}</dd>
+          </div>
+          <div>
+            <dt>Tissue sample</dt>
+            <dd>{{ traitFile().tissueSample }}</dd>
+          </div>
+          <div>
+            <dt>Arena preview</dt>
+            <dd>{{ traitFile().arenaConnection }}</dd>
+          </div>
+        </dl>
+      </div>
     </div>
   </section>
 
-  <section class="chromosome-locator" aria-label="Chromosome Locator challenge">
-    <div><span class="eyebrow">Scene 4 · Chromosome Locator</span><h4>Find the chromosome carrying the {{ focusTrait().geneSymbol }} gene</h4><p>Predict first. The matching chromosome pair carries the locus in the same position on both copies.</p></div>
-    <div class="chromosome-options">
-      @for (chromosome of [1, 2, 3, 4]; track chromosome) {
-        <button type="button" [class.selected]="chromosomePrediction() === chromosome" [class.correct]="chromosomePrediction() !== null && chromosome === focusTrait().chromosomeModel" [attr.aria-pressed]="chromosomePrediction() === chromosome" (click)="locateChromosome(chromosome)"><i></i><i></i><span>Pair {{ chromosome }}</span></button>
-      }
-    </div>
-    @if (chromosomePrediction() !== null) { <p class="locator-feedback" [class.good]="chromosomeCorrect()"><strong>{{ chromosomeCorrect() ? 'Locator signal locked.' : 'Search another pair.' }}</strong> {{ chromosomeCorrect() ? 'The gene locus appears at corresponding positions on both chromosome copies.' : 'Match the chromosome number in the Trait Genome File.' }}</p> }
-  </section>
+  <header class="microscope-intro">
+    <span class="eyebrow">Scene 2 · Genome Microscope Map</span>
+    <h4>Build the nested path from cell to allele pair</h4>
+    <p>
+      Predict the requested level, place all five scientific labels, and then pin the evidence that
+      supports the assignment.
+    </p>
+  </header>
 
   <div class="station-grid">
     <app-genome-microscope-display
       [copy]="copy"
       [feedback]="feedback()"
-      (stageEvent)="onStageEvent($event)" />
+      (stageEvent)="onStageEvent($event)"
+    />
 
     <aside class="evidence-dock" aria-label="Genome evidence dock">
       <h4>Evidence dock</h4>
       <dl>
-        <div><dt>Sample</dt><dd>{{ selectedSample().name }}</dd></div>
-        <div><dt>Focused gene</dt><dd>{{ focusTrait().geneSymbol }} · {{ focusTrait().name }}</dd></div>
-        <div><dt>Prediction</dt><dd>{{ currentPredictionLabel() }}</dd></div>
-        <div><dt>Map</dt><dd>{{ placedLabelCount() }}/5 labels · {{ hierarchyAttemptCount() }} checks</dd></div>
-        <div><dt>Evidence</dt><dd>{{ currentEvidenceLabel() }}</dd></div>
+        <div>
+          <dt>Sample</dt>
+          <dd>{{ selectedSample().name }}</dd>
+        </div>
+        <div>
+          <dt>Focused gene</dt>
+          <dd>{{ focusTrait().geneSymbol }} · {{ focusTrait().name }}</dd>
+        </div>
+        <div>
+          <dt>Prediction</dt>
+          <dd>{{ currentPredictionLabel() }}</dd>
+        </div>
+        <div>
+          <dt>Map</dt>
+          <dd>{{ placedLabelCount() }}/5 labels · {{ hierarchyAttemptCount() }} checks</dd>
+        </div>
+        <div>
+          <dt>Evidence</dt>
+          <dd>{{ currentEvidenceLabel() }}</dd>
+        </div>
       </dl>
 
       <section class="notebook">
-        <h5>Genome notebook <b>{{ records().length }}</b></h5>
+        <h5>
+          Genome notebook <b>{{ records().length }}</b>
+        </h5>
         @if (!records().length) {
-          <p>Saved microscope records will list the prediction, hierarchy map, and pinned evidence.</p>
+          <p>
+            Saved microscope records will list the prediction, hierarchy map, and pinned evidence.
+          </p>
         } @else {
           <ol>
             @for (record of records(); track record.taskId) {
-              <li [class.correct]="mode() !== 'official' && record.predictionCorrect && record.evidenceCorrect">
-                <span aria-hidden="true">{{ mode() === 'official' ? '•' : (record.predictionCorrect && record.evidenceCorrect ? '✓' : '!') }}</span>
+              <li
+                [class.correct]="
+                  mode() !== 'official' && record.predictionCorrect && record.evidenceCorrect
+                "
+              >
+                <span aria-hidden="true">{{
+                  mode() === 'official'
+                    ? '•'
+                    : record.predictionCorrect && record.evidenceCorrect
+                      ? '✓'
+                      : '!'
+                }}</span>
                 <div>
                   <strong>{{ taskLabel(record.taskId) }}</strong>
-                  <small>Predicted {{ record.predictedLevel }} · evidence {{ record.evidenceLevelId }}</small>
+                  <small
+                    >Predicted {{ record.predictedLevel }} · evidence
+                    {{ record.evidenceLevelId }}</small
+                  >
                 </div>
               </li>
             }
@@ -85,19 +139,41 @@
         }
       </section>
 
-      <p class="boundary"><strong>Model boundary</strong>A chromosome contains many genes. A gene contains many DNA bases. One A-T or C-G base pair is not an allele.</p>
+      <p class="boundary">
+        <strong>Model boundary</strong>A chromosome contains many genes. A gene contains many DNA
+        bases. One A-T or C-G base pair is not an allele.
+      </p>
 
       <section class="allele-vault" [class.open]="alleleVaultOpen()" aria-label="Allele Vault">
-        <span class="eyebrow">Scene 6 · Allele Vault</span><h4>{{ focusTrait().geneSymbol }} gene · chromosome {{ focusTrait().chromosomeModel }}</h4>
-        <div><i>{{ alleleVaultOpen() ? allelePair()[0] : '?' }}</i><span>same gene locus<br>two chromosome copies</span><i>{{ alleleVaultOpen() ? allelePair()[1] : '?' }}</i></div>
-        <p>{{ alleleVaultOpen() ? selectedSample().name + ' carries two versions of the ' + focusTrait().geneSymbol + ' gene. These versions are alleles.' : 'Resolve the nested map before the two allele sockets open.' }}</p>
+        <span class="eyebrow">Scene 4 · Allele Vault</span>
+        <h4>{{ focusTrait().geneSymbol }} gene · chromosome {{ focusTrait().chromosomeModel }}</h4>
+        <div>
+          <i>{{ alleleVaultOpen() ? allelePair()[0] : '?' }}</i
+          ><span>same gene locus<br />two chromosome copies</span
+          ><i>{{ alleleVaultOpen() ? allelePair()[1] : '?' }}</i>
+        </div>
+        <p>
+          {{
+            alleleVaultOpen()
+              ? selectedSample().name +
+                ' carries two versions of the ' +
+                focusTrait().geneSymbol +
+                ' gene. These versions are alleles.'
+              : 'Resolve the nested map before the two allele sockets open.'
+          }}
+        </p>
       </section>
     </aside>
   </div>
 
   <div class="action-rail">
     <p>{{ stepHint() }}</p>
-    <span>Task {{ activeTaskNumber() }} of {{ taskCount() }} · {{ correctCount() }} records fully supported</span>
-    <button type="button" [disabled]="primaryAction().disabled" (click)="runPrimaryAction()">{{ primaryAction().label }}</button>
+    <span
+      >Task {{ activeTaskNumber() }} of {{ taskCount() }} · {{ correctCount() }} records fully
+      supported</span
+    >
+    <button type="button" [disabled]="primaryAction().disabled" (click)="runPrimaryAction()">
+      {{ primaryAction().label }}
+    </button>
   </div>
 </section>

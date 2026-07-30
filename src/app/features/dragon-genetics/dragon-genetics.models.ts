@@ -6,6 +6,7 @@ import {
 import { TraitEvidenceRecord } from './simulation/domain/trait-evidence.models';
 import { GenomeMicroscopeRecord } from './simulation/domain/genome-microscope.models';
 import { GenotypeScanRecord } from './simulation/domain/genotype-scanner.models';
+import { HatcheryRunRecord } from './simulation/domain/dragon-hatchery.models';
 import { AlleleWorkbenchRecord } from './simulation/domain/allele-workbench.models';
 
 export type DragonModuleNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
@@ -98,11 +99,16 @@ export interface DragonGeneticsSnapshot {
   genomeMicroscopeRecords: GenomeMicroscopeRecord[];
   /** Genotype Scanner selection, scan, and evidence records. */
   genotypeScanRecords: GenotypeScanRecord[];
+  /** Module 3 breeding investigations saved from the Dragon Hatchery. */
+  hatcheryRecords: HatcheryRunRecord[];
   /** Allele Workbench construction, prediction, expression, and evidence records. */
   alleleWorkbenchRecords: AlleleWorkbenchRecord[];
   genomePath: string[];
   genomeQuickAnswers: Record<string, string>;
   phenotypeAnswers: Record<string, string>;
+  module3EggTraitId: DragonTraitId;
+  module3EggPredictions: string[];
+  module3EggPredictionLocked: boolean;
   ruleAnswers: Record<string, string>;
   parentAId: string;
   parentBId: string;

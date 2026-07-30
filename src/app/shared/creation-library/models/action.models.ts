@@ -9,4 +9,5 @@ export type CreationAction =
   | 'aim'
   | 'bite'
   | 'wing-buffet'
-  | 'tail-sweep';
+  | 'tail-sweep'
+  | 'fire-breath';

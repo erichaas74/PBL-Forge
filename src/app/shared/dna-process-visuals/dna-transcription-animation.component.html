@@ -1,0 +1,68 @@
+<section
+  class="transcription-stage"
+  [style.--base-count]="coding().length"
+  aria-label="DNA transcription animation"
+>
+  <div class="dna-strand coding">
+    <span>Coding DNA strand</span><i></i>
+    <div>
+      @for (base of coding(); track $index) {
+        <b [attr.data-base]="base">{{ base }}</b>
+      }
+    </div>
+  </div>
+
+  <aside class="uracil-note">
+    <b>U</b><span><strong>RNA switch</strong>Uracil replaces thymine</span>
+  </aside>
+
+  <div
+    class="mrna-strand"
+    [class.complete]="complete()"
+    [style.--rna-progress]="progress() / coding().length"
+  >
+    <span>mRNA strand</span><i></i>
+    <div>
+      @for (base of mrna(); track $index) {
+        <b
+          [attr.data-base]="base"
+          [class.uracil]="base === 'U'"
+          [class.visible]="$index < progress()"
+          >{{ base }}</b
+        >
+      }
+    </div>
+  </div>
+  <div class="rna-polymerase" [style.left.%]="polymerasePosition()">
+    <strong>RNA</strong><span>polymerase</span>
+  </div>
+
+  <div class="dna-strand template">
+    <div>
+      @for (base of template(); track $index) {
+        <b [attr.data-base]="base">{{ base }}</b>
+      }
+    </div>
+    <i></i><span>Template DNA strand</span>
+  </div>
+</section>
+
+<div class="animation-controls">
+  <button type="button" (click)="play()">Replay transcription</button>
+  <label
+    >RNA construction progress
+    <input
+      type="range"
+      min="0"
+      [max]="coding().length"
+      step="1"
+      [value]="progress()"
+      (input)="setProgress($any($event.target).value)"
+  /></label>
+  <span>{{ progress() }}/{{ coding().length }} RNA bases added</span>
+</div>
+
+<p class="process-caption">
+  <strong>One RNA product:</strong> RNA polymerase reads the template DNA strand and builds a single
+  complementary mRNA strand. DNA remains DNA.
+</p>

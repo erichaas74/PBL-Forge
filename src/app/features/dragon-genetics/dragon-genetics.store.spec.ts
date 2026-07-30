@@ -99,6 +99,34 @@ describe('DragonGeneticsStore', () => {
     for (const question of PHENOTYPE_QUESTIONS) {
       store.setPhenotypeAnswer(question.id, question.correctOptionId);
     }
+    store.setModule3EggTrait('wings');
+    store.toggleModule3EggPrediction('Ww');
+    store.toggleModule3EggPrediction('ww');
+    store.lockModule3EggPrediction();
+    store.recordHatcheryRun({
+      sceneId: 'module-3-hatchery-test',
+      seed: 'module-3:test',
+      moduleId: 'module-3',
+      clutchId: 'module-3-ember-tide-wings',
+      mode: 'learn',
+      focusTraitId: 'wings',
+      focusGeneId: 'W',
+      clutchSize: 4,
+      examinedEggIds: ['clutch-3-1'],
+      sampledEggIds: ['clutch-3-1'],
+      hatchedEggIds: ['clutch-3-1'],
+      predictedDominantCount: 2,
+      actualDominantCount: 2,
+      hatchedDominantCount: 1,
+      predictionCorrect: true,
+      evidenceMarkId: 'genotype-record',
+      evidenceCorrect: true,
+      misconception: null,
+      eggs: [],
+      attempts: 1,
+      elapsedMs: 1200,
+      createdAtIso: '2026-07-30T00:00:00.000Z',
+    });
     expect(store.checkPhenotypeAnswers().complete).toBeTrue();
 
     for (const challenge of TRAIT_RULE_CHALLENGES) {

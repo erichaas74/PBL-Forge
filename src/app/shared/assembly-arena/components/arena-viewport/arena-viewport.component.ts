@@ -79,7 +79,7 @@ export class ArenaViewportComponent implements AfterViewInit, OnDestroy {
       const controlFrames = this.controlFrameFactory()(this.physics.getSnapshots());
       const frame = this.physics.step(state, deltaSeconds, controlFrames);
       this.store.applyPhysicsFrame(frame, deltaSeconds);
-      this.renderer.applyFrame(frame.snapshots, this.store.state().partStatuses);
+      this.renderer.applyFrame(frame.snapshots, this.store.state().partStatuses, frame.fireCones);
     } else {
       this.renderer.render();
     }

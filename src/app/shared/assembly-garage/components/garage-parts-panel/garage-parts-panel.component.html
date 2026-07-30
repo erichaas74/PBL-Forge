@@ -1,46 +1,54 @@
-<section class="panel-section" aria-labelledby="primitive-heading">
-  <h2 id="primitive-heading">Primitive Parts</h2>
-  <div class="button-grid">
-    @for (shape of shapeTypes; track shape) {
-      <button type="button" class="tool-button" (click)="addPart(shape)">
-        <span class="tool-button__label">{{ shape }}</span>
-      </button>
-    }
-  </div>
-</section>
+@if (showPrimitives()) {
+  <section class="panel-section" aria-labelledby="primitive-heading">
+    <h2 id="primitive-heading">Primitive Parts</h2>
+    <div class="button-grid">
+      @for (shape of shapeTypes; track shape) {
+        <button type="button" class="tool-button" (click)="addPart(shape)">
+          <span class="tool-button__label">{{ shape }}</span>
+        </button>
+      }
+    </div>
+  </section>
+}
 
-<section class="panel-section" aria-labelledby="car-catalog-heading">
-  <h2 id="car-catalog-heading">Car Parts</h2>
-  <div class="button-grid">
-    @for (part of carParts; track part.id) {
-      <button type="button" class="tool-button" (click)="addCatalogPart(part)">
-        <span class="tool-button__label">{{ part.label }}</span>
-      </button>
-    }
-  </div>
-</section>
+@if (carParts().length) {
+  <section class="panel-section" aria-labelledby="car-catalog-heading">
+    <h2 id="car-catalog-heading">Car Parts</h2>
+    <div class="button-grid">
+      @for (part of carParts(); track part.id) {
+        <button type="button" class="tool-button" (click)="addCatalogPart(part)">
+          <span class="tool-button__label">{{ part.label }}</span>
+        </button>
+      }
+    </div>
+  </section>
+}
 
-<section class="panel-section" aria-labelledby="robot-catalog-heading">
-  <h2 id="robot-catalog-heading">Robot Parts</h2>
-  <div class="button-grid">
-    @for (part of robotParts; track part.id) {
-      <button type="button" class="tool-button" (click)="addCatalogPart(part)">
-        <span class="tool-button__label">{{ part.label }}</span>
-      </button>
-    }
-  </div>
-</section>
+@if (robotParts().length) {
+  <section class="panel-section" aria-labelledby="robot-catalog-heading">
+    <h2 id="robot-catalog-heading">Robot Parts</h2>
+    <div class="button-grid">
+      @for (part of robotParts(); track part.id) {
+        <button type="button" class="tool-button" (click)="addCatalogPart(part)">
+          <span class="tool-button__label">{{ part.label }}</span>
+        </button>
+      }
+    </div>
+  </section>
+}
 
-<section class="panel-section" aria-labelledby="dragon-catalog-heading">
-  <h2 id="dragon-catalog-heading">Dragon Parts</h2>
-  <div class="button-grid">
-    @for (part of dragonParts; track part.id) {
-      <button type="button" class="tool-button" (click)="addCatalogPart(part)">
-        <span class="tool-button__label">{{ part.label }}</span>
-      </button>
-    }
-  </div>
-</section>
+@if (dragonParts().length) {
+  <section class="panel-section" aria-labelledby="dragon-catalog-heading">
+    <h2 id="dragon-catalog-heading">Dragon Parts</h2>
+    <div class="button-grid">
+      @for (part of dragonParts(); track part.id) {
+        <button type="button" class="tool-button" (click)="addCatalogPart(part)">
+          <span class="tool-button__label">{{ part.label }}</span>
+        </button>
+      }
+    </div>
+  </section>
+}
 
 <section class="panel-section" aria-labelledby="joint-heading">
   <div class="section-title-row">

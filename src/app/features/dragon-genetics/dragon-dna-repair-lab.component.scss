@@ -1,39 +1,76 @@
-:host { display: block; }
-.dna-lab { display: grid; gap: 1rem; overflow: hidden; }
-.lab-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; align-items: start; }
-.lab-head h2 { margin: .25rem 0 .3rem; }
-.lab-head p { max-width: 48rem; margin: 0; color: #66716e; font-size: .74rem; line-height: 1.5; }
-.lab-head code { color: #315f73; font-size: .68rem; }
-.eyebrow { color: var(--dragon-green, #2e735e); font-size: .61rem; font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
-.mode-tabs { display: flex; flex-wrap: wrap; gap: .35rem; }
-.mode-tabs button, .replication-controls button { padding: .55rem .7rem; border: 1px solid #bfcac5; border-radius: .55rem; background: white; color: #46544f; font-size: .66rem; font-weight: 800; cursor: pointer; }
-.mode-tabs button.active { border-color: #2e735e; background: #e9f6f0; color: #235d4b; box-shadow: inset 0 0 0 1px #2e735e; }
-.uncoil-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(13rem, 18rem); gap: 1rem; }
-.uncoil-stage { position: relative; display: grid; min-height: 18rem; place-items: center; overflow: hidden; border: 1px solid #cad8d3; border-radius: 1rem; background: radial-gradient(circle at 50% 45%, #f7fffd, #e7f3f0 72%); }
-.chromosome { position: absolute; display: flex; gap: 1.2rem; transition: opacity .4s, transform .55s; }
-.chromosome i { width: 3rem; height: 10rem; border-radius: 50%; background: linear-gradient(90deg, #3d6289, #7fa7c9 50%, #355675); transform: rotate(32deg); box-shadow: 2rem 0 0 #4f759a; }
-.coils { position: absolute; display: flex; gap: -.1rem; opacity: 0; transition: opacity .4s, transform .55s; }
-.coils i { width: 2.2rem; height: 4rem; margin-left: -.35rem; border: .5rem solid #557fb3; border-radius: 50%; }
-.helix { display: flex; align-items: center; opacity: 0; transform: scale(.55); transition: opacity .45s, transform .6s; }
-.helix span { display: grid; grid-template-columns: 1.55rem 1.4rem 1.55rem; align-items: center; padding: .7rem .12rem; border-block: .25rem solid #526fa1; }
-.helix span.gene { background: rgb(255 205 92 / 24%); border-block-color: #d99e28; }
-.helix b, .sequence-row b, .replication-copy b { display: grid; width: 1.5rem; height: 1.9rem; place-items: center; border-radius: .35rem; background: #50749c; color: white; font-size: .7rem; }
-[data-base="A"] { background: #dc5b58 !important; } [data-base="T"] { background: #4a77bc !important; } [data-base="C"] { background: #3f9a77 !important; } [data-base="G"] { background: #bb8330 !important; }
-.helix i { border-top: 1px dashed #798ca7; }
-.uncoil-stage[data-step="1"] .chromosome, .uncoil-stage[data-step="2"] .chromosome, .uncoil-stage[data-step="3"] .chromosome { opacity: 0; transform: scale(.4); }
-.uncoil-stage[data-step="1"] .coils { opacity: 1; transform: scale(1); }
-.uncoil-stage[data-step="2"] .helix, .uncoil-stage[data-step="3"] .helix { opacity: 1; transform: scale(1); }
-.uncoil-stage[data-step="3"] .helix span:not(.gene) { opacity: .32; }
-.lab-note { padding: 1rem; border-radius: .9rem; background: #19394d; color: white; }
-.lab-note span { color: #8fdcc7; font-size: .6rem; font-weight: 850; text-transform: uppercase; }.lab-note h3 { margin: .35rem 0; }.lab-note p { color: #d6e3e7; font-size: .73rem; line-height: 1.55; }
-.timeline { display: grid; gap: .45rem; color: #4c5c57; font-size: .69rem; font-weight: 800; }.timeline input { width: 100%; accent-color: #2e735e; }.timeline span { display: flex; justify-content: space-between; color: #78827e; font-size: .56rem; font-style: normal; }.timeline i { font-style: normal; }
-.replication-scene { position: relative; display: grid; gap: 5rem; padding: 2rem; overflow: hidden; border: 1px solid #cad8d3; border-radius: 1rem; background: #f1f8f8; }
-.replication-copy span { display: block; margin-bottom: .45rem; color: #3b5a72; font-size: .64rem; font-weight: 850; }.replication-copy div { display: flex; justify-content: space-between; gap: .25rem; }.replication-copy b { flex: 1; max-width: 4rem; }.replication-copy.new b { opacity: .12; transform: translateY(-1rem); transition: opacity .35s, transform .35s; }.replication-copy.new b.visible { opacity: 1; transform: none; }
-.polymerase { --progress: 0; position: absolute; z-index: 2; left: calc(7% + (var(--progress) * 10.5%)); top: 42%; display: grid; width: 4rem; height: 4rem; place-items: center; border: 2px dashed #2f7cff; border-radius: 50%; background: #e4efff; color: #235bc7; text-align: center; font-size: .55rem; font-weight: 900; transition: left .25s linear; }
-.replication-controls { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }.replication-controls button { border-color: #2e735e; background: #2e735e; color: white; }.replication-controls label { display: flex; flex: 1; min-width: 15rem; gap: .65rem; align-items: center; color: #53615c; font-size: .65rem; font-weight: 800; }.replication-controls input { flex: 1; accent-color: #2e735e; }
-.repair-scene { display: grid; gap: .7rem; padding: 1rem; border: 1px solid #cad8d3; border-radius: 1rem; background: #f6fbfa; }.sequence-row { display: grid; grid-template-columns: 6.5rem repeat(8, 1fr); gap: .3rem; align-items: center; }.sequence-row > span { color: #4f615b; font-size: .65rem; font-weight: 850; }.sequence-row b { width: 100%; }.sequence-row b.error { outline: 3px solid #df5d52; animation: pulse-error 1s infinite alternate; }.sequence-row b.fixed { outline: 3px solid #3f9a77; }
-.repair-target { margin-top: .4rem; padding: .85rem; border-radius: .7rem; background: #fff8e5; }.repair-target > span { color: #8b6824; font-size: .56rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }.repair-target p { margin: .25rem 0 .6rem; font-size: .72rem; }.repair-target div { display: flex; gap: .4rem; }.repair-target button { width: 2.4rem; height: 2.4rem; border: 2px solid transparent; border-radius: .45rem; color: white; font-weight: 900; cursor: pointer; }.repair-target button.selected { border-color: #152d3b; box-shadow: 0 0 0 2px white inset; }
-.repair-feedback, .science-boundary { margin: 0; padding: .75rem; border-left: 4px solid #d0834f; background: #fff5ea; color: #695747; font-size: .68rem; line-height: 1.5; }.repair-feedback.good { border-color: #3f9a77; background: #edf8f3; color: #376453; }.science-boundary { border-color: #547cac; background: #eef5fb; color: #425b75; }
-@keyframes pulse-error { to { box-shadow: 0 0 0 .45rem rgb(223 93 82 / 14%); } }
-@media (max-width: 760px) { .uncoil-layout { grid-template-columns: 1fr; }.uncoil-stage { min-height: 14rem; }.helix { transform-origin: center; }.uncoil-stage[data-step="2"] .helix, .uncoil-stage[data-step="3"] .helix { transform: scale(.74); }.sequence-row { grid-template-columns: 4.5rem repeat(8, minmax(1.25rem, 1fr)); overflow-x: auto; }.replication-scene { padding: 1rem; }.polymerase { display: none; } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+:host {
+  display: block;
+}
+.dna-lab {
+  display: grid;
+  gap: 1rem;
+  overflow: hidden;
+}
+.lab-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 22rem);
+  gap: 1rem;
+  align-items: start;
+}
+.lab-head h2 {
+  margin: 0.25rem 0 0.3rem;
+}
+.lab-head p {
+  max-width: 48rem;
+  margin: 0;
+  color: #66716e;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+.lab-head code {
+  color: #315f73;
+  font-size: 0.62rem;
+}
+.eyebrow {
+  color: var(--dragon-green, #2e735e);
+  font-size: 0.61rem;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.source-note {
+  padding: 0.7rem 0.8rem;
+  border-left: 4px solid #3a70bd;
+  background: #eef5fb;
+  color: #425b75 !important;
+}
+.mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid #dbe4df;
+}
+.mode-tabs button {
+  padding: 0.58rem 0.72rem;
+  border: 1px solid #bfcac5;
+  border-radius: 0.55rem 0.55rem 0 0;
+  background: white;
+  color: #46544f;
+  font-size: 0.64rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mode-tabs button.active {
+  border-color: #2e735e;
+  background: #e9f6f0;
+  color: #235d4b;
+  box-shadow: inset 0 -3px #2e735e;
+}
+@media (max-width: 760px) {
+  .lab-head {
+    grid-template-columns: 1fr;
+  }
+  .mode-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .mode-tabs button {
+    flex: 0 0 auto;
+  }
+}

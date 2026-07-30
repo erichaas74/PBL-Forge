@@ -35,10 +35,14 @@ export function createDefaultDragonSnapshot(): DragonGeneticsSnapshot {
     traitEvidenceRecords: [],
     genomeMicroscopeRecords: [],
     genotypeScanRecords: [],
+    hatcheryRecords: [],
     alleleWorkbenchRecords: [],
     genomePath: [],
     genomeQuickAnswers: {},
     phenotypeAnswers: {},
+    module3EggTraitId: 'wings',
+    module3EggPredictions: [],
+    module3EggPredictionLocked: false,
     ruleAnswers: {},
     parentAId: DRAGON_PARENTS[0].id,
     parentBId: DRAGON_PARENTS[1].id,
@@ -187,10 +191,12 @@ export function toStudentDragonRecord(dragon: DragonOffspring): StudentDragonRec
 
 export function materializeDragon(record: StudentDragonRecord): DragonOffspring {
   const engineGenome = createVisualGenome(record.id, record.genome, record.generation);
+  const build = createEducationalAssembly(record.genome, engineGenome);
   return {
     ...record,
     engineGenome,
-    assembly: createEducationalAssembly(record.genome, engineGenome),
+    assembly: build.assembly,
+    combatProfile: build.combatProfile,
   };
 }
 

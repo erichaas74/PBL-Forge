@@ -1,0 +1,183 @@
+<section
+  class="mutation-stage"
+  [attr.data-mode]="mode()"
+  [attr.data-phase]="phase()"
+  [style.--original-count]="bases().length"
+  [style.--result-count]="result().length"
+  [style.--target-index]="targetIndex()"
+  [attr.aria-label]="modeLabel()"
+>
+  <div class="stage-title">{{ modeLabel() }}</div>
+
+  @if (mode() === 'repair') {
+    <div class="repair-enzyme" [class.arrived]="phase() > 0">
+      <strong>Repair</strong><span>enzyme</span>
+    </div>
+    <div class="repair-ladder ladder">
+      <i class="rail top"></i>
+      <div class="base-row top-row">
+        @for (base of bases(); track $index) {
+          <b [attr.data-base]="base">{{ base }}</b>
+        }
+      </div>
+      <div class="pair-lines">
+        @for (base of bases(); track $index) {
+          <i [class.target]="$index === targetIndex()"></i>
+        }
+      </div>
+      <div class="base-row bottom-row">
+        @for (base of complement(); track $index) {
+          <b
+            [attr.data-base]="displayedRepairBase($index)"
+            [class.mismatch]="$index === targetIndex() && phase() < 2"
+            [class.lifting]="$index === targetIndex() && phase() === 1"
+            [class.repaired]="$index === targetIndex() && phase() === 2"
+            >{{ displayedRepairBase($index) }}</b
+          >
+        }
+      </div>
+      <i class="rail bottom"></i>
+    </div>
+    <div class="mismatch-callout" [class.fixed]="phase() === 2">
+      <strong>{{ phase() === 2 ? 'Complement restored' : 'Mismatch detected' }}</strong>
+      <span>{{
+        phase() === 2
+          ? 'The correct base drops into the copied strand.'
+          : 'The bases at this position do not follow A-T or C-G pairing.'
+      }}</span>
+    </div>
+  } @else {
+    <div class="original-ladder ladder" [class.departing]="phase() > 0">
+      <span class="strand-tag">Starting sequence</span>
+      <i class="rail top"></i>
+      <div class="base-row top-row">
+        @for (base of bases(); track $index) {
+          <b [attr.data-base]="base" [class.target]="$index === targetIndex()">{{ base }}</b>
+        }
+      </div>
+      <div class="pair-lines">
+        @for (base of bases(); track $index) {
+          <i [class.target]="$index === targetIndex()"></i>
+        }
+      </div>
+      <div class="base-row bottom-row">
+        @for (base of complement(); track $index) {
+          <b [attr.data-base]="base" [class.target]="$index === targetIndex()">{{ base }}</b>
+        }
+      </div>
+      <i class="rail bottom"></i>
+    </div>
+
+    @if (mode() === 'insertion') {
+      <div class="incoming-pair" [class.dropping]="phase() === 1">
+        <span>incoming pair</span>
+        <b [attr.data-base]="mutationBase()">{{ mutationBase() }}</b>
+        <i></i>
+        <b [attr.data-base]="resultComplement()[targetIndex()]">{{
+          resultComplement()[targetIndex()]
+        }}</b>
+      </div>
+    } @else {
+      <div class="leaving-pair" [class.lifting]="phase() === 1">
+        <span>{{ mode() === 'deletion' ? 'pair removed' : 'old pair removed' }}</span>
+        <b [attr.data-base]="bases()[targetIndex()]">{{ bases()[targetIndex()] }}</b>
+        <i></i>
+        <b [attr.data-base]="complement()[targetIndex()]">{{ complement()[targetIndex()] }}</b>
+      </div>
+    }
+
+    <div class="result-ladder ladder" [class.visible]="phase() === 2">
+      <span class="strand-tag">Changed sequence</span>
+      <i class="rail top"></i>
+      <div class="base-row top-row">
+        @for (base of result(); track $index) {
+          <b
+            [attr.data-base]="base"
+            [class.changed]="$index === targetIndex() && mode() !== 'deletion'"
+            >{{ base }}</b
+          >
+        }
+      </div>
+      <div class="pair-lines">
+        @for (base of result(); track $index) {
+          <i [class.changed]="$index === targetIndex() && mode() !== 'deletion'"></i>
+        }
+      </div>
+      <div class="base-row bottom-row">
+        @for (base of resultComplement(); track $index) {
+          <b
+            [attr.data-base]="base"
+            [class.changed]="$index === targetIndex() && mode() !== 'deletion'"
+            >{{ base }}</b
+          >
+        }
+      </div>
+      <i class="rail bottom"></i>
+    </div>
+  }
+</section>
+
+@if (mode() === 'repair') {
+  <div class="repair-controls">
+    <p>
+      Template base <strong>{{ bases()[targetIndex()] }}</strong> needs which complementary DNA
+      base?
+    </p>
+    <div class="base-choices">
+      @for (base of basesToChoose; track base) {
+        <button
+          type="button"
+          [attr.data-base]="base"
+          [class.selected]="repairChoice() === base"
+          [attr.aria-label]="'Use base ' + base + ' for the repair'"
+          (click)="chooseRepair(base)"
+        >
+          {{ base }}
+        </button>
+      }
+    </div>
+    @if (repairChoice()) {
+      <p class="repair-feedback" [class.correct]="repairCorrect()" role="status">
+        <strong>{{
+          repairCorrect() ? 'Correct pair selected.' : 'That base still creates a mismatch.'
+        }}</strong>
+        {{
+          repairCorrect()
+            ? 'The incorrect base lifts out and the complementary base replaces it.'
+            : 'Try the DNA pairing rules: A-T and C-G.'
+        }}
+      </p>
+    }
+  </div>
+} @else {
+  <div class="animation-controls">
+    <button type="button" (click)="play()">Replay {{ mode() }}</button>
+    <span>
+      @if (phase() === 0) {
+        Original sequence
+      } @else if (phase() === 1) {
+        {{ mode() === 'insertion' ? 'Pair entering' : 'Pair leaving' }}
+      } @else {
+        Changed sequence complete
+      }
+    </span>
+  </div>
+}
+
+<p class="process-caption">
+  @switch (mode()) {
+    @case ('insertion') {
+      <strong>Insertion:</strong> one nucleotide pair is added and later positions shift.
+    }
+    @case ('deletion') {
+      <strong>Deletion:</strong> one nucleotide pair is removed and the sequence closes the gap.
+    }
+    @case ('substitution') {
+      <strong>Substitution:</strong> one pair is exchanged while sequence length stays the same.
+    }
+    @case ('repair') {
+      <strong>Repair:</strong> the mismatch is checked against the template before the copied strand
+      is corrected.
+    }
+  }
+</p>
