@@ -18,12 +18,10 @@ import {
   DIAGNOSTIC_PROMPTS,
   DRAGON_MODULES,
   FINAL_REFLECTION_PROMPTS,
-  GENOME_PATH,
   GENOME_QUICK_QUESTIONS,
   LICENSE_QUESTIONS,
   PHENOTYPE_QUESTIONS,
   TEAM_ROLES,
-  TRAIT_RULE_CHALLENGES,
   WEEK1_MASTERY_QUESTIONS,
   WEEK2_MASTERY_QUESTIONS,
 } from './dragon-genetics.content';
@@ -39,10 +37,26 @@ import {
 } from './dragon-genetics.models';
 import { DragonPortraitComponent } from './dragon-portrait.component';
 import { DragonGeneticsStore } from './dragon-genetics.store';
+import { TraitEvidenceStationComponent } from './stations/trait-evidence-station.component';
+import { TraitEvidenceSetResult } from './simulation/domain/trait-evidence.models';
+import { GenomeMicroscopeStationComponent } from './stations/genome-microscope-station.component';
+import { GenomeMicroscopeSetResult } from './simulation/domain/genome-microscope.models';
+import { AlleleWorkbenchStationComponent } from './stations/allele-workbench-station.component';
+import { AlleleWorkbenchSetResult } from './simulation/domain/allele-workbench.models';
+import { GenotypeScannerStationComponent } from './stations/genotype-scanner-station.component';
+import { GenotypeScannerSetResult } from './simulation/domain/genotype-scanner.models';
 
 @Component({
   selector: 'app-dragon-genetics-page',
-  imports: [RouterLink, DragonPortraitComponent, DragonArenaComponent],
+  imports: [
+    RouterLink,
+    DragonPortraitComponent,
+    DragonArenaComponent,
+    TraitEvidenceStationComponent,
+    GenomeMicroscopeStationComponent,
+    GenotypeScannerStationComponent,
+    AlleleWorkbenchStationComponent,
+  ],
   providers: [DragonGeneticsStore],
   templateUrl: './dragon-genetics.page.html',
   styleUrl: './dragon-genetics.page.scss',
@@ -57,11 +71,8 @@ export class DragonGeneticsPage {
   readonly sortCards = TRAIT_SORT_CARDS;
   readonly diagnosticPrompts = DIAGNOSTIC_PROMPTS;
   readonly teamRoles = TEAM_ROLES;
-  readonly genomePath = GENOME_PATH;
   readonly genomeQuickQuestions = GENOME_QUICK_QUESTIONS;
-  readonly genomeTerms = ['Allele', 'Chromosome', 'Dragon', 'Gene', 'Cell', 'DNA'];
   readonly phenotypeQuestions = PHENOTYPE_QUESTIONS;
-  readonly ruleChallenges = TRAIT_RULE_CHALLENGES;
   readonly week1Questions = WEEK1_MASTERY_QUESTIONS;
   readonly week2Questions = WEEK2_MASTERY_QUESTIONS;
   readonly reflectionPrompts = FINAL_REFLECTION_PROMPTS;
@@ -94,6 +105,13 @@ export class DragonGeneticsPage {
     this.goToModule(Math.max(1, this.store.activeModule() - 1) as DragonModuleNumber);
   }
 
+  onTraitEvidenceComplete(result: TraitEvidenceSetResult): void {
+    const misconceptions = result.misconceptions.length
+      ? ` Watch list: ${result.misconceptions.join(', ')}.`
+      : '';
+    this.message.set(`Evidence analyzer run complete: ${result.correct} of ${result.total} classifications supported by evidence.${misconceptions} Save your misconception correction, then check all classifications.`);
+  }
+
   checkTraitSort(): void {
     this.markChecked(1);
     const result = this.store.checkTraitSort();
@@ -106,7 +124,21 @@ export class DragonGeneticsPage {
     this.markChecked(2);
     this.message.set(this.store.checkGenomePath()
       ? 'Pathway decoded: chromosomes package DNA, genes are DNA sections, and alleles are gene versions.'
-      : 'The pathway or one of the four quick checks needs revision. Start with the whole dragon, then zoom inward.');
+      : 'Complete one fully supported microscope record and revise any missed quick check. Trace nucleus, chromosome, DNA, gene, then allele.');
+  }
+
+  onGenomeMicroscopeComplete(result: GenomeMicroscopeSetResult): void {
+    const watch = result.misconceptions.length
+      ? ` Review: ${result.misconceptions.join(', ')}.`
+      : '';
+    this.message.set(`Genome Microscope run complete: ${result.correct} of ${result.total} records fully supported.${watch} Finish the four quick checks, then verify Module 2.`);
+  }
+
+  onGenotypeScannerComplete(result: GenotypeScannerSetResult): void {
+    const watch = result.misconceptions.length
+      ? ` Review: ${result.misconceptions.join(', ')}.`
+      : '';
+    this.message.set(`Genotype Scanner run complete: ${result.correct} of ${result.total} scans fully supported.${watch} Reveal the evidence feedback to verify Module 3.`);
   }
 
   checkPhenotypes(): void {
@@ -121,8 +153,15 @@ export class DragonGeneticsPage {
     this.markChecked(4);
     const result = this.store.checkRuleAnswers();
     this.message.set(result.complete
-      ? 'Trait rules verified. Remember: dominant describes expression, not value or strength.'
-      : `${result.correct} of ${result.total} predictions are correct. Look for at least one uppercase allele.`);
+      ? 'All four Allele Workbench records are supported. Dominant describes expression, not value or strength.'
+      : `${result.correct} of ${result.total} predictions are correct. Complete all four workbench records with the assigned pair, correct prediction, and matching rule evidence.`);
+  }
+
+  onAlleleWorkbenchComplete(result: AlleleWorkbenchSetResult): void {
+    const watch = result.misconceptions.length
+      ? ` Review: ${result.misconceptions.join(', ')}.`
+      : '';
+    this.message.set(`Allele Workbench run complete: ${result.correct} of ${result.total} records fully supported.${watch} Verify Module 4 to unlock the breeding predictor.`);
   }
 
   checkPredictions(): void {

@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA Mutations Animations</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f8f9fa; /* Lighter background for the app */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* App Header and Tabs */
+        header {
+            width: 100%;
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px 0 0 0;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0 0 20px 0;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+            margin: 0 5px;
+        }
+
+        .tab:hover {
+            color: #2c3e50;
+            background-color: #f0f4f8;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .tab.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+
+        /* Container for the active animation */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 95%;
+            max-width: 1400px; /* Expanded for a wider full-viewport zoom view */
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #444;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            text-transform: uppercase;
+            width: 150px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 12px;
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            display: none;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        button.update-btn {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        button.update-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .description {
+            margin-bottom: 30px;
+            text-align: center;
+            color: #555;
+            font-size: 16px;
+            max-width: 600px;
+            min-height: 50px;
+        }
+
+        /* Base Animation Container Styles (reused from previous step) */
+        .animation-frame {
+            position: relative;
+            height: 300px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        #animFrame {
+            width: 500px;
+            max-width: 100%;
+        }
+
+        /* The backbones (blue horizontal lines) */
+        .backbone {
+            position: absolute;
+            left: 5%;
+            right: 5%;
+            height: 12px;
+            background: linear-gradient(to right,
+                rgba(50, 80, 180, 0) 0%,
+                rgba(50, 80, 180, 1) 15%,
+                rgba(50, 80, 180, 1) 85%,
+                rgba(50, 80, 180, 0) 100%);
+            border-radius: 6px;
+            z-index: 10;
+        }
+
+        .backbone.top { top: 70px; }
+        .backbone.bottom { bottom: 70px; }
+
+        /* Container for the base pairs */
+        .pairs-container {
+            display: flex;
+            justify-content: space-around; /* Distribute pairs evenly */
+            width: 70%; /* Width relative to frame */
+            position: relative;
+            height: 160px;
+            align-items: center;
+        }
+
+        /* Individual base pair container */
+        .pair {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: absolute; /* Absolute positioning for animation control */
+            width: 40px;
+            height: 100%;
+            transition: left 0.5s ease-in-out, transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+        }
+
+        /* Initial positions for 4 pairs */
+        .pair[data-index="0"] { left: 10%; }
+        .pair[data-index="1"] { left: 35%; }
+        .pair[data-index="2"] { left: 60%; }
+        .pair[data-index="3"] { left: 85%; }
+
+        /* The colored shapes representing nucleotides */
+        .nucleotide {
+            width: 20px;
+            height: 30px;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Top nucleotide shape (points down) */
+        .nucleotide.top-n {
+            top: 15px;
+            clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);
+        }
+
+        /* Bottom nucleotide shape (points up) */
+        .nucleotide.bottom-n {
+            bottom: 15px;
+            clip-path: polygon(50% 0%, 100% 30%, 100% 100%, 0 100%, 0 30%);
+        }
+
+        /* Colors based on standard representation */
+        .color-A { background-color: #63d13a; } /* Green */
+        .color-T { background-color: #ff5e5e; } /* Red */
+        .color-G { background-color: #f7ca3e; } /* Yellow */
+        .color-C { background-color: #3bb3ff; } /* Blue */
+
+        /* Letters */
+        .letter {
+            font-size: 24px;
+            font-weight: bold;
+            position: absolute;
+        }
+
+        .letter.top-l { top: 50px; }
+        .letter.bottom-l { bottom: 50px; }
+
+        .text-A { color: #63d13a; }
+        .text-T { color: #ff5e5e; }
+        .text-G { color: #f7ca3e; }
+        .text-C { color: #3bb3ff; }
+
+        /* Special Pairs for Animations */
+        .action-pair {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 40px;
+            height: 100%;
+            z-index: 5;
+            transition: left 0.5s ease-in-out, transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s;
+        }
+
+        .static-pair {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative; /* Relative for standard flexbox layout */
+            width: 40px;
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        #zoomFrame {
+            width: 100%;
+            cursor: grab;
+            justify-content: flex-start;
+            overflow: hidden;
+            display: none; /* Hidden by default */
+        }
+
+        #zoomFrame:active {
+            cursor: grabbing;
+        }
+
+        #zoomCanvas {
+            display: flex;
+            align-items: center;
+            height: 160px;
+            gap: 15px; /* Spacing between bases */
+            padding: 0 40px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: max-content; /* Force width to fit all 100 bases */
+            transform-origin: 0 0;
+            will-change: transform;
+            user-select: none;
+        }
+
+        #zoomCanvas .backbone {
+            position: absolute;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        #zoomCanvas .backbone.top {
+            top: 0;
+        }
+
+        #zoomCanvas .backbone.bottom {
+            bottom: 0;
+        }
+
+        /* --- Specific Animation Sequence Styles --- */
+
+        /* Wiggle Animation */
+        @keyframes wiggle {
+            0% { transform: translateY(0); }
+            25% { transform: translateY(-3px); }
+            50% { transform: translateY(3px); }
+            75% { transform: translateY(-1px); }
+            100% { transform: translateY(0); }
+        }
+
+        /* Fade out Animation */
+        @keyframes fadeOutUp {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-50px); }
+        }
+
+        @keyframes fadeOutDown {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(50px); }
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>DNA Mutations Explorer</h1>
+        <ul class="tabs">
+            <li class="tab active" data-type="insertion">Insertion</li>
+            <li class="tab" data-type="deletion">Deletion</li>
+            <li class="tab" data-type="substitution">Substitution</li>
+            <li class="tab" data-type="zoom">Zoom Viewer (100 Bases)</li>
+        </ul>
+    </header>
+
+    <div class="content-area">
+        <div class="controls" id="mutationControls">
+            <div class="input-group">
+                <label for="baseSequence">Base Sequence:</label>
+                <div class="input-wrapper">
+                    <input type="text" id="baseSequence" value="AGTC" maxlength="6">
+                    <span class="error-message" id="sequenceError">Invalid bases (A, C, G, T only)</span>
+                </div>
+            </div>
+
+            <div class="input-group" id="mutantBaseGroup">
+                <label for="mutantBase" id="mutantBaseLabel">Inserting Base:</label>
+                <div class="input-wrapper">
+                    <input type="text" id="mutantBase" value="C" maxlength="1" style="width: 50px; text-align: center;">
+                    <span class="error-message" id="mutantError">Invalid</span>
+                </div>
+            </div>
+
+            <button class="update-btn" id="updateBtn">Apply Sequence</button>
+        </div>
+
+        <div class="controls" id="zoomControls" style="display: none;">
+            <div class="input-group">
+                <label for="zoomSlider">Zoom Level:</label>
+                <input type="range" id="zoomSlider" min="0.12" max="4.5" step="0.05" value="0.5" style="width: 200px;">
+            </div>
+            <div class="input-group">
+                <span style="font-size: 14px; color: #666; margin-left: 15px;">(Use mouse wheel to zoom, click and drag to pan)</span>
+            </div>
+        </div>
+
+        <div id="descriptionText" class="description">
+            <strong>Insertion:</strong> One or more extra nucleotide bases are added into the DNA sequence, shifting the subsequent pairs.
+        </div>
+
+        <!-- The main animation container -->
+        <div class="animation-frame" id="animFrame">
+            <!-- Backbones remain static -->
+            <div class="backbone top"></div>
+            <div class="backbone bottom"></div>
+
+            <!-- Dynamic container for pairs -->
+            <div class="pairs-container" id="pairsContainer">
+                <!-- Content will be injected by JavaScript -->
+            </div>
+        </div>
+
+        <div class="animation-frame" id="zoomFrame">
+            <div id="zoomCanvas">
+                <!-- 100 bases will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.tab');
+            const descText = document.getElementById('descriptionText');
+            const pairsContainer = document.getElementById('pairsContainer');
+            const animFrame = document.getElementById('animFrame');
+
+            const baseSequenceInput = document.getElementById('baseSequence');
+            const mutantBaseInput = document.getElementById('mutantBase');
+            const sequenceError = document.getElementById('sequenceError');
+            const mutantError = document.getElementById('mutantError');
+            const updateBtn = document.getElementById('updateBtn');
+            const mutantBaseGroup = document.getElementById('mutantBaseGroup');
+            const mutantBaseLabel = document.getElementById('mutantBaseLabel');
+
+            const mutationControls = document.getElementById('mutationControls');
+            const zoomControls = document.getElementById('zoomControls');
+            const zoomFrame = document.getElementById('zoomFrame');
+            const zoomCanvas = document.getElementById('zoomCanvas');
+            const zoomSlider = document.getElementById('zoomSlider');
+
+            let currentAnimationType = 'insertion';
+            let animationTimeoutIds = [];
+
+            // Standard DNA base pairing rules
+            const complements = { 'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C' };
+
+            // Default sequences
+            let currentSequence = "AGTC";
+            let currentMutant = "C";
+
+            const descriptions = {
+                'insertion': '<strong>Insertion:</strong> One or more extra nucleotide bases are added into the DNA sequence. This often causes a "frameshift".',
+                'deletion': '<strong>Deletion:</strong> One or more nucleotide bases are removed from the DNA sequence. This also typically causes a frameshift.',
+                'substitution': '<strong>Substitution (Point Mutation):</strong> One single DNA base changes to another. This might change one amino acid or have no effect (silent).',
+                'zoom': '<strong>Interactive Zoom:</strong> Explore a sequence of 100 DNA bases. Scroll your mouse wheel to zoom in to a specific segment, and drag to pan across the strand.'
+            };
+
+            // Template for a standard base pair
+            const createPairHTML = (index, topBase, bottomBase, isActionPair = false, id = '') => {
+                const className = isActionPair ? 'action-pair' : 'pair';
+                const idAttr = id ? `id="${id}"` : '';
+                const dataAttr = !isActionPair ? `data-index="${index}"` : '';
+                return `
+                    <div class="${className}" ${idAttr} ${dataAttr}>
+                        <div class="nucleotide top-n color-${topBase}"></div>
+                        <div class="letter top-l text-${topBase}">${topBase}</div>
+                        <div class="letter bottom-l text-${bottomBase}">${bottomBase}</div>
+                        <div class="nucleotide bottom-n color-${bottomBase}"></div>
+                    </div>
+                `;
+            };
+
+            const createStaticPairHTML = (topBase, bottomBase) => {
+                return `
+                    <div class="static-pair">
+                        <div class="nucleotide top-n color-${topBase}"></div>
+                        <div class="letter top-l text-${topBase}">${topBase}</div>
+                        <div class="letter bottom-l text-${bottomBase}">${bottomBase}</div>
+                        <div class="nucleotide bottom-n color-${bottomBase}"></div>
+                    </div>
+                `;
+            };
+
+            // Handle Tab Switching
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    currentAnimationType = tab.dataset.type;
+                    descText.innerHTML = descriptions[currentAnimationType];
+
+                    if (currentAnimationType === 'zoom') {
+                        mutationControls.style.display = 'none';
+                        zoomControls.style.display = 'flex';
+                        animFrame.style.display = 'none';
+                        zoomFrame.style.display = 'flex';
+                        clearAllTimeouts(); // Stop animations
+                        initZoomCanvas();
+                        return; // Skip standard animation logic
+                    } else {
+                        mutationControls.style.display = 'flex';
+                        zoomControls.style.display = 'none';
+                        animFrame.style.display = 'flex';
+                        zoomFrame.style.display = 'none';
+                    }
+
+                    if (currentAnimationType === 'deletion') {
+                        mutantBaseGroup.style.display = 'none'; // No "inserting" or "substituting" base needed
+                    } else {
+                        mutantBaseGroup.style.display = 'flex';
+                        mutantBaseLabel.textContent = currentAnimationType === 'insertion' ? 'Inserting Base:' : 'New Base:';
+
+                        // For substitution, ensure mutant is different from the target base
+                        if (currentAnimationType === 'substitution' && currentSequence.length > 2) {
+                            const targetBase = currentSequence[2];
+                            if (currentMutant === targetBase) {
+                                // Pick a different valid base
+                                const options = ['A', 'C', 'G', 'T'].filter(b => b !== targetBase);
+                                currentMutant = options[0];
+                                mutantBaseInput.value = currentMutant;
+                            }
+                        }
+                    }
+
+                    resetAndStartAnimation();
+                });
+            });
+
+            function validateBases(str) {
+                return /^[ACGTacgt]+$/.test(str);
+            }
+
+            updateBtn.addEventListener('click', () => {
+                const newSeq = baseSequenceInput.value.toUpperCase();
+                const newMut = mutantBaseInput.value.toUpperCase();
+                let isValid = true;
+
+                if (!validateBases(newSeq) || newSeq.length < 3) {
+                    sequenceError.textContent = newSeq.length < 3 ? "Min 3 bases required" : "Invalid bases (A, C, G, T only)";
+                    sequenceError.style.display = 'block';
+                    isValid = false;
+                } else {
+                    sequenceError.style.display = 'none';
+                }
+
+                if (currentAnimationType !== 'deletion') {
+                    if (!validateBases(newMut) || newMut.length !== 1) {
+                        mutantError.style.display = 'block';
+                        isValid = false;
+                    } else {
+                        mutantError.style.display = 'none';
+                    }
+                }
+
+                if (isValid) {
+                    currentSequence = newSeq;
+                    currentMutant = newMut;
+                    // Format input fields nicely
+                    baseSequenceInput.value = currentSequence;
+                    mutantBaseInput.value = currentMutant;
+                    resetAndStartAnimation();
+                }
+            });
+
+            // Allow Enter key to trigger update
+            baseSequenceInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') updateBtn.click(); });
+            mutantBaseInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') updateBtn.click(); });
+
+
+            // Clear any pending timeouts from previous animations
+            function clearAllTimeouts() {
+                animationTimeoutIds.forEach(id => clearTimeout(id));
+                animationTimeoutIds = [];
+            }
+
+            // Function to schedule tasks and store their IDs to allow cancellation
+            function scheduleTask(task, delay) {
+                const id = setTimeout(task, delay);
+                animationTimeoutIds.push(id);
+            }
+
+            let zoomScale = 0.5;
+            let panX = 0;
+            let isDragging = false;
+            let startX = 0;
+            let hasInitializedZoom = false;
+
+            function initZoomCanvas() {
+                if (hasInitializedZoom) {
+                    // Just reset centering if opening again
+                    updateZoomTransform();
+                    return;
+                }
+                hasInitializedZoom = true;
+
+                let html = '<div class="backbone top"></div><div class="backbone bottom"></div>';
+                const bases = ['A', 'C', 'G', 'T'];
+
+                // Generate 100 random bases
+                for(let i=0; i<100; i++) {
+                    const b = bases[Math.floor(Math.random() * bases.length)];
+                    html += createStaticPairHTML(b, complements[b]);
+                }
+                zoomCanvas.innerHTML = html;
+
+                // Initial positioning
+                updateZoomTransform();
+            }
+
+            function updateZoomTransform() {
+                // Clamp scale: min shows all 100 bases, max shows ~3 bases
+                zoomScale = Math.max(0.1, Math.min(zoomScale, 4.5));
+
+                const frameW = zoomFrame.clientWidth;
+                const frameH = zoomFrame.clientHeight;
+                const canvasW = zoomCanvas.scrollWidth * zoomScale;
+                const canvasH = 160; // Fixed height of pairs container
+
+                // Y is perfectly centered dynamically based on scale
+                const panY = (frameH - (canvasH * zoomScale)) / 2;
+
+                // Clamp PanX so we don't drag off screen
+                if (canvasW < frameW) {
+                    panX = (frameW - canvasW) / 2; // Center horizontally if fully zoomed out
+                } else {
+                    panX = Math.min(panX, 0); // clamp right edge
+                    panX = Math.max(panX, frameW - canvasW); // clamp left edge
+                }
+
+                zoomCanvas.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
+                zoomSlider.value = zoomScale;
+            }
+
+            // Zoom Mouse Wheel Event
+            zoomFrame.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY * -0.0015;
+                const oldScale = zoomScale;
+                zoomScale *= Math.exp(delta); // Smooth geometric zooming
+                zoomScale = Math.max(0.1, Math.min(zoomScale, 4.5));
+
+                // Zoom exactly relative to mouse pointer
+                const rect = zoomFrame.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                panX = mouseX - (mouseX - panX) * (zoomScale / oldScale);
+
+                updateZoomTransform();
+            });
+
+            // Pan Click & Drag Events
+            zoomFrame.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - panX;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                panX = e.clientX - startX;
+                updateZoomTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Slider Event
+            zoomSlider.addEventListener('input', (e) => {
+                const oldScale = zoomScale;
+                zoomScale = parseFloat(e.target.value);
+
+                // When sliding, zoom relative to center of frame
+                const frameW = zoomFrame.clientWidth;
+                const centerX = frameW / 2;
+                panX = centerX - (centerX - panX) * (zoomScale / oldScale);
+
+                updateZoomTransform();
+            });
+
+            // Update on window resize to maintain proper constraints and centering
+            window.addEventListener('resize', () => {
+                if (currentAnimationType === 'zoom' && hasInitializedZoom) {
+                    updateZoomTransform();
+                }
+            });
+
+
+            // Main function to kick off the chosen animation
+            function resetAndStartAnimation() {
+                clearAllTimeouts();
+                animFrame.style.animation = 'none'; // reset wiggle
+                pairsContainer.innerHTML = '';
+
+                if (currentAnimationType === 'insertion') {
+                    runInsertionAnimation();
+                } else if (currentAnimationType === 'deletion') {
+                    runDeletionAnimation();
+                } else if (currentAnimationType === 'substitution') {
+                    runSubstitutionAnimation();
+                }
+            }
+
+            // --- 1. Insertion Animation Logic ---
+            function runInsertionAnimation() {
+                const seq = currentSequence;
+                const insertBase = currentMutant;
+                const insertComp = complements[insertBase];
+
+                // Determine insertion point (middle of sequence)
+                const insertIndex = Math.floor(seq.length / 2);
+
+                let html = '';
+                for (let i = 0; i < seq.length; i++) {
+                    const topBase = seq[i];
+                    html += createPairHTML(i, topBase, complements[topBase]);
+                }
+
+                // Add the inserting pair
+                html += createPairHTML(-1, insertBase, insertComp, true, 'mutantPair');
+
+                pairsContainer.innerHTML = html;
+
+                const pairs = Array.from(pairsContainer.querySelectorAll('.pair'));
+                const mutant = document.getElementById('mutantPair');
+
+                const spacingInitial = 100 / seq.length;     // Spacing before insertion
+                const spacingFinal = 100 / (seq.length + 1); // Spacing after insertion
+
+                pairs.forEach((pair, index) => {
+                    pair.style.left = `${(index + 0.5) * spacingInitial}%`;
+                });
+
+                // Place mutant above the insertion point matching the final gap location
+                mutant.style.left = `${(insertIndex + 0.5) * spacingFinal}%`;
+                mutant.style.top = '0';
+                mutant.style.transform = 'translateY(-150px)'; // Start high
+                mutant.style.opacity = '0';
+
+                // Sequence
+                scheduleTask(() => {
+                    // Step 1: Mutant appears above
+                    mutant.style.transition = 'transform 1s ease, opacity 0.5s';
+                    mutant.style.transform = 'translateY(-80px)';
+                    mutant.style.opacity = '1';
+                }, 500);
+
+                scheduleTask(() => {
+                    // Step 2: Make exact room by transitioning to final spacing positions
+                    pairs.forEach((pair, index) => {
+                        if (index < insertIndex) {
+                            pair.style.left = `${(index + 0.5) * spacingFinal}%`;
+                        } else {
+                            // Shift the rest to the right by one precise slot
+                            pair.style.left = `${(index + 1 + 0.5) * spacingFinal}%`;
+                        }
+                    });
+                }, 1500);
+
+                scheduleTask(() => {
+                    // Step 3: Drop directly in after room is fully made
+                    mutant.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                    mutant.style.transform = 'translateY(0)';
+                }, 2300);
+
+                scheduleTask(() => {
+                    // Step 4: Wiggle
+                    animFrame.style.animation = 'wiggle 0.5s ease-in-out';
+                }, 3500);
+
+                scheduleTask(() => {
+                    scheduleTask(resetAndStartAnimation, 1500); // Loop
+                }, 4000);
+            }
+
+            // --- 2. Deletion Animation Logic ---
+            function runDeletionAnimation() {
+                const seq = currentSequence;
+                // Determine deletion point (middle of sequence)
+                const targetIndex = Math.floor(seq.length / 2);
+
+                let html = '';
+                for (let i = 0; i < seq.length; i++) {
+                    const topBase = seq[i];
+                    if (i === targetIndex) {
+                        html += createPairHTML(i, topBase, complements[topBase], false, 'targetPair');
+                    } else {
+                        html += createPairHTML(i, topBase, complements[topBase]);
+                    }
+                }
+
+                pairsContainer.innerHTML = html;
+
+                const pairs = Array.from(pairsContainer.querySelectorAll('.pair'));
+                const target = document.getElementById('targetPair');
+
+                const spacingInitial = 100 / seq.length;
+                const spacingFinal = seq.length > 1 ? 100 / (seq.length - 1) : 100;
+
+                pairs.forEach((pair, index) => {
+                    pair.style.left = `${(index + 0.5) * spacingInitial}%`;
+                });
+
+                scheduleTask(() => {
+                    // Step 1: Highlight target
+                    target.style.opacity = '0.5';
+                }, 500);
+
+                scheduleTask(() => {
+                    // Step 2: Delete target (fade up and out)
+                    target.style.transition = 'transform 1s ease, opacity 0.8s';
+                    target.style.transform = 'translateY(-100px)';
+                    target.style.opacity = '0';
+                }, 1500);
+
+                scheduleTask(() => {
+                    // Step 3: Close gap by shifting remaining bases to final positions
+                    target.style.display = 'none'; // remove from layout visually
+                    pairs.forEach((pair, index) => {
+                        if (index < targetIndex) {
+                           pair.style.left = `${(index + 0.5) * spacingFinal}%`;
+                        } else if (index > targetIndex) {
+                           pair.style.left = `${(index - 1 + 0.5) * spacingFinal}%`;
+                        }
+                    });
+                }, 2500);
+
+                scheduleTask(() => {
+                    animFrame.style.animation = 'wiggle 0.5s ease-in-out';
+                }, 3500);
+
+                scheduleTask(() => {
+                    scheduleTask(resetAndStartAnimation, 1500);
+                }, 4000);
+            }
+
+            // --- 3. Substitution Animation Logic ---
+            function runSubstitutionAnimation() {
+                const seq = currentSequence;
+                const newBase = currentMutant;
+                const newComp = complements[newBase];
+
+                // Determine substitution point
+                let targetIndex = Math.floor(seq.length / 2);
+
+                // Ensure we don't substitute with the exact same base (looks weird)
+                if (seq[targetIndex] === newBase) {
+                     // Try the next base if possible, otherwise just use it
+                     if (targetIndex + 1 < seq.length && seq[targetIndex+1] !== newBase) {
+                         targetIndex++;
+                     }
+                }
+
+                let html = '';
+                for (let i = 0; i < seq.length; i++) {
+                    const topBase = seq[i];
+                    if (i === targetIndex) {
+                        html += `<div class="pair" id="oldPair">
+                            <div class="nucleotide top-n color-${topBase}" id="oldTopN"></div>
+                            <div class="letter top-l text-${topBase}" id="oldTopL">${topBase}</div>
+                            <div class="letter bottom-l text-${complements[topBase]}" id="oldBotL">${complements[topBase]}</div>
+                            <div class="nucleotide bottom-n color-${complements[topBase]}" id="oldBotN"></div>
+                        </div>`;
+                    } else {
+                        html += createPairHTML(i, topBase, complements[topBase]);
+                    }
+                }
+
+                // The incoming replacing pair
+                html += `<div class="action-pair" id="newPair">
+                            <div class="nucleotide top-n color-${newBase}"></div>
+                            <div class="letter top-l text-${newBase}">${newBase}</div>
+                            <div class="letter bottom-l text-${newComp}">${newComp}</div>
+                            <div class="nucleotide bottom-n color-${newComp}"></div>
+                        </div>`;
+
+                pairsContainer.innerHTML = html;
+
+                const pairs = Array.from(pairsContainer.querySelectorAll('.pair'));
+
+                // Dynamic Positioning
+                const spacing = 100 / seq.length;
+                pairs.forEach((pair, index) => {
+                    pair.style.left = `${(index + 0.5) * spacing}%`;
+                });
+
+                const oldPairParts = {
+                    topN: document.getElementById('oldTopN'),
+                    topL: document.getElementById('oldTopL'),
+                    botL: document.getElementById('oldBotL'),
+                    botN: document.getElementById('oldBotN')
+                };
+                const newPair = document.getElementById('newPair');
+
+                // Position new pair below the frame at the substitution index
+                const targetPos = `${(targetIndex + 0.5) * spacing}%`;
+                newPair.style.left = targetPos;
+                newPair.style.top = '0';
+                newPair.style.transform = 'translateY(150px)';
+                newPair.style.opacity = '0';
+
+                scheduleTask(() => {
+                    // Step 1: Old pair starts to break apart (fade out top/bottom respectively)
+                    oldPairParts.topN.style.animation = 'fadeOutUp 1s forwards';
+                    oldPairParts.topL.style.animation = 'fadeOutUp 1s forwards';
+                    oldPairParts.botN.style.animation = 'fadeOutDown 1s forwards';
+                    oldPairParts.botL.style.animation = 'fadeOutDown 1s forwards';
+                }, 500);
+
+                scheduleTask(() => {
+                    // Step 2: New pair enters from below
+                    newPair.style.transition = 'transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s';
+                    newPair.style.transform = 'translateY(0)';
+                    newPair.style.opacity = '1';
+                }, 1200);
+
+                scheduleTask(() => {
+                    animFrame.style.animation = 'wiggle 0.5s ease-in-out';
+                }, 2500);
+
+                scheduleTask(() => {
+                    scheduleTask(resetAndStartAnimation, 1500);
+                }, 3000);
+            }
+
+            // Start initial animation
+            resetAndStartAnimation();
+        });
+    </script>
+</body>
+</html>

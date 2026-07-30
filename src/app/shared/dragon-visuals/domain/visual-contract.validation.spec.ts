@@ -76,6 +76,36 @@ describe('Dragon visual contract', () => {
     expect(bridge.lastEvent()?.targetId).toBe('sample-gene-wings');
   });
 
+  it('rejects trait inspector state that references records the scene does not contain', () => {
+    const errors = validateDragonVisualScene({
+      ...scene,
+      instrument: {
+        kind: 'trait-inspector',
+        sampleId: 'sample-one',
+        observations: [
+          {
+            id: 'scar',
+            labelId: 'observation.scar.label',
+            category: 'environmental',
+            sourceId: 'environment-log',
+            clueIds: ['scar.evidence', 'missing-clue'],
+          },
+        ],
+        clues: [
+          { id: 'scar.evidence', labelId: 'clue.scar.evidence', sourceId: 'environment-log' },
+        ],
+        placements: [
+          { observationId: 'not-in-scene', tray: 'inherited', status: 'pending', revealed: false },
+        ],
+        activeObservationId: 'also-missing',
+      },
+    });
+
+    expect(errors).toContain('Observation scar references missing clue missing-clue.');
+    expect(errors).toContain('Placement references missing observation not-in-scene.');
+    expect(errors).toContain('Active observation also-missing is not in the scene.');
+  });
+
   it('rejects a visual pack when an animation references a missing motion', () => {
     const errors = validateDragonVisualPack({
       ...FOUNDATION_DRAGON_VISUAL_PACK,

@@ -1,0 +1,423 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="100%" height="100%">
+  <defs>
+    <!-- Lighting and Gradients -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#020617" />
+    </radialGradient>
+
+    <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+
+    <linearGradient id="neonPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#D946EF" />
+    </linearGradient>
+
+    <linearGradient id="laserScan" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0" />
+      <stop offset="80%" stop-color="#38BDF8" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.8" />
+    </linearGradient>
+
+    <radialGradient id="platformGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.4" />
+      <stop offset="80%" stop-color="#06B6D4" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#06B6D4" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="heatGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0" />
+    </radialGradient>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- ================= BACKGROUND ================= -->
+  <g id="background">
+    <rect width="1600" height="900" fill="url(#bgGrad)" />
+    <!-- Wall/Floor Seam -->
+    <path d="M 0 600 L 1600 600" stroke="#334155" stroke-width="2" />
+    <path d="M 200 0 L 200 600 M 500 0 L 500 600 M 1100 0 L 1100 600 M 1400 0 L 1400 600" stroke="#1E293B" stroke-width="4" />
+    <polygon points="0,600 1600,600 1600,900 0,900" fill="#0F172A" />
+    <path d="M 800 600 L 0 900 M 800 600 L 400 900 M 800 600 L 800 900 M 800 600 L 1200 900 M 800 600 L 1600 900" stroke="#1E293B" stroke-width="2" />
+  </g>
+
+  <!-- ================= SCREENS & KIOSKS (Now with 3D Chassis) ================= -->
+  <g id="screens">
+
+    <!-- Evidence Replay (Center Top) -->
+    <g id="evidence-replay-screen">
+      <!-- Ceiling Mount Structure -->
+      <rect x="750" y="0" width="100" height="40" fill="#1E293B" />
+      <polygon points="760,0 750,40 850,40 840,0" fill="#334155" />
+      <rect x="780" y="40" width="40" height="40" fill="#0F172A" />
+
+      <!-- 3D Chassis Depth -->
+      <polygon points="560,70 540,90 540,330 560,310" fill="#1E293B" /> <!-- Left side -->
+      <polygon points="560,310 540,330 1020,330 1040,310" fill="#0F172A" /> <!-- Bottom side -->
+
+      <!-- Main Monitor Bezel -->
+      <rect x="550" y="50" width="500" height="260" rx="15" fill="#334155" stroke="#475569" stroke-width="4" />
+      <rect x="560" y="60" width="480" height="240" rx="10" fill="#000000" stroke="url(#neonCyan)" stroke-width="2" filter="url(#glow)"/>
+      <rect x="565" y="65" width="470" height="230" rx="5" fill="#082F49" fill-opacity="0.8" />
+
+      <!-- Replay Timeline UI -->
+      <polygon points="590,260 605,270 590,280" fill="#0EA5E9" />
+      <rect x="620" y="268" width="400" height="4" rx="2" fill="#1E293B" />
+      <circle cx="750" cy="270" r="6" fill="#38BDF8" filter="url(#glow)" />
+      <circle cx="850" cy="270" r="4" fill="#64748B" />
+
+      <!-- Saved Model Folder Icon -->
+      <path d="M 580 85 L 600 85 L 610 100 L 640 100 L 640 135 L 580 135 Z" fill="none" stroke="#38BDF8" stroke-width="2"/>
+      <line x1="590" y1="110" x2="630" y2="110" stroke="#38BDF8" stroke-width="2" />
+      <!-- Blank Data Region for injection -->
+      <rect x="660" y="85" width="360" height="150" rx="5" fill="#0284C7" fill-opacity="0.2" stroke="#0369A1" stroke-width="1" stroke-dasharray="4 4" />
+    </g>
+
+    <!-- Diversity Manager (Top Right Wall Monitor) -->
+    <g id="diversity-manager-screen">
+      <!-- Wall Mount Arm -->
+      <polygon points="1520,150 1600,140 1600,200 1520,210" fill="#1E293B" />
+      <rect x="1500" y="160" width="40" height="40" fill="#334155" />
+
+      <!-- 3D Chassis Depth (Angled left) -->
+      <polygon points="1150,80 1130,100 1130,300 1150,280" fill="#0F172A" /> <!-- Left depth -->
+      <polygon points="1150,280 1130,300 1480,300 1500,280" fill="#1E293B" /> <!-- Bottom depth -->
+
+      <!-- Main Monitor Bezel -->
+      <rect x="1150" y="80" width="350" height="200" rx="10" fill="#334155" stroke="#475569" stroke-width="3" />
+      <rect x="1155" y="85" width="340" height="190" rx="5" fill="#000000" fill-opacity="0.8" stroke="url(#neonPurple)" stroke-width="2" filter="url(#glow)"/>
+
+      <!-- Population Node Network -->
+      <circle cx="1200" cy="150" r="6" fill="#D946EF"/>
+      <circle cx="1250" cy="110" r="8" fill="#8B5CF6"/>
+      <circle cx="1280" cy="180" r="5" fill="#D946EF"/>
+      <circle cx="1320" cy="130" r="7" fill="#C084FC"/>
+      <path d="M 1200 150 L 1250 110 L 1280 180 L 1320 130 L 1250 110" fill="none" stroke="#A855F7" stroke-width="2" opacity="0.7"/>
+
+      <!-- Diversity Gauges -->
+      <path d="M 1430 180 A 30 30 0 1 1 1490 180" fill="none" stroke="#1E293B" stroke-width="6" stroke-linecap="round" />
+      <path d="M 1430 180 A 30 30 0 0 1 1460 150" fill="none" stroke="#D946EF" stroke-width="6" stroke-linecap="round" filter="url(#glow)" />
+      <!-- Hazard Warning Symbol -->
+      <polygon points="1460,95 1480,130 1440,130" fill="none" stroke="#F59E0B" stroke-width="2" filter="url(#glow)"/>
+      <line x1="1460" y1="105" x2="1460" y2="118" stroke="#F59E0B" stroke-width="2" />
+      <circle cx="1460" cy="125" r="1.5" fill="#F59E0B" />
+    </g>
+
+    <!-- Sibling Tracer (Top Left Wall Monitor) -->
+    <g id="sibling-tracer-screen">
+      <!-- Wall Mount Arm -->
+      <polygon points="0,140 80,150 80,210 0,200" fill="#1E293B" />
+      <rect x="60" y="160" width="40" height="40" fill="#334155" />
+
+      <!-- 3D Chassis Depth (Angled right) -->
+      <polygon points="450,80 470,100 470,300 450,280" fill="#0F172A" /> <!-- Right depth -->
+      <polygon points="100,280 120,300 470,300 450,280" fill="#1E293B" /> <!-- Bottom depth -->
+
+      <!-- Main Monitor Bezel -->
+      <rect x="100" y="80" width="350" height="200" rx="10" fill="#334155" stroke="#475569" stroke-width="3" />
+      <rect x="105" y="85" width="340" height="190" rx="5" fill="#000000" fill-opacity="0.8" stroke="#10B981" stroke-width="2" filter="url(#glow)"/>
+
+      <!-- Lineage / Pedigree Tree Indicators -->
+      <rect x="220" y="105" width="20" height="20" fill="none" stroke="#34D399" stroke-width="2" />
+      <circle cx="310" cy="115" r="10" fill="none" stroke="#34D399" stroke-width="2" />
+      <path d="M 240 115 L 300 115" stroke="#34D399" stroke-width="2" />
+      <path d="M 270 115 L 270 145 M 270 145 L 190 185 M 270 145 L 270 185 M 270 145 L 350 185" stroke="#059669" stroke-width="2" />
+      <rect x="180" y="185" width="20" height="20" fill="#10B981" />
+      <circle cx="270" cy="195" r="10" fill="#047857" />
+      <rect x="340" y="185" width="20" height="20" fill="#10B981" />
+    </g>
+
+    <!-- Reproduction Comparison (Middle Left Floor Kiosk) -->
+    <g id="reproduction-comparison-screen">
+      <!-- Floor Pedestal / Kiosk Base -->
+      <polygon points="120,500 320,500 340,750 100,750" fill="#1E293B" stroke="#0F172A" stroke-width="3" />
+      <polygon points="320,500 340,510 360,750 340,750" fill="#0F172A" /> <!-- Stand depth -->
+      <path d="M 160 500 L 280 500 L 290 700 L 150 700 Z" fill="#334155" /> <!-- Stand inset -->
+
+      <!-- 3D Monitor Chassis -->
+      <polygon points="360,310 380,330 380,510 360,490" fill="#0F172A" /> <!-- Monitor right side -->
+      <polygon points="80,490 100,510 380,510 360,490" fill="#1E293B" /> <!-- Monitor bottom side -->
+
+      <!-- Main Monitor Bezel -->
+      <rect x="80" y="310" width="280" height="180" rx="8" fill="#334155" stroke="#475569" stroke-width="3" />
+      <rect x="85" y="315" width="270" height="170" rx="5" fill="#000000" fill-opacity="0.8" stroke="#F59E0B" stroke-width="2" />
+
+      <!-- Cloning / Asexual Icon (Left) -->
+      <circle cx="130" cy="370" r="15" fill="none" stroke="#FBBF24" stroke-width="2" />
+      <path d="M 130 385 L 130 420 M 130 420 L 110 450 M 130 420 L 150 450" stroke="#FBBF24" stroke-width="2" />
+      <circle cx="110" cy="450" r="8" fill="#D97706" />
+      <circle cx="150" cy="450" r="8" fill="#D97706" />
+
+      <!-- Mixing / Sexual Icon (Right) -->
+      <circle cx="280" cy="370" r="15" fill="none" stroke="#38BDF8" stroke-width="2" />
+      <circle cx="320" cy="370" r="15" fill="none" stroke="#F472B6" stroke-width="2" />
+      <path d="M 300 385 L 300 430" stroke="#94A3B8" stroke-width="2" />
+      <circle cx="300" cy="440" r="10" fill="#A855F7" />
+      <line x1="220" y1="330" x2="220" y2="470" stroke="#475569" stroke-width="2" stroke-dasharray="5 5" />
+    </g>
+  </g>
+
+  <!-- ================= SPECIMEN PLATFORM ================= -->
+  <g id="specimen-platform">
+    <!-- Base Hardware with extra depth -->
+    <ellipse cx="800" cy="765" rx="360" ry="110" fill="#020617" />
+    <path d="M 440 765 A 360 110 0 0 0 1160 765 L 1160 750 A 360 110 0 0 1 440 750 Z" fill="#0F172A" /> <!-- Vertical rim -->
+    <ellipse cx="800" cy="750" rx="360" ry="110" fill="#020617" stroke="#1E293B" stroke-width="4" />
+    <ellipse cx="800" cy="740" rx="350" ry="100" fill="#0F172A" stroke="#334155" stroke-width="8" />
+
+    <!-- Glowing Bio-Ring -->
+    <ellipse cx="800" cy="740" rx="330" ry="90" fill="url(#platformGlow)" />
+    <ellipse cx="800" cy="740" rx="330" ry="90" fill="none" stroke="url(#neonCyan)" stroke-width="3" filter="url(#glow)" />
+
+    <!-- Tech lines/Grid on platform -->
+    <path d="M 500 740 L 1100 740 M 800 650 L 800 830" stroke="#06B6D4" stroke-width="1.5" stroke-opacity="0.6" stroke-dasharray="10 5" />
+    <circle cx="800" cy="740" r="50" fill="none" stroke="#38BDF8" stroke-width="1" stroke-opacity="0.5" />
+  </g>
+
+  <!-- ================= DRAGON ================= -->
+  <!-- Base specimen positioned centrally on the platform -->
+  <g id="dragon" transform="translate(100, 40)">
+    <!-- Back Wing -->
+    <g id="dragon-wings-back">
+      <path d="M 720 500 Q 600 300 500 250 Q 550 350 680 500 Z" fill="#7F1D1D" />
+    </g>
+    <!-- Body -->
+    <g id="dragon-body">
+      <!-- Tail -->
+      <path d="M 600 680 Q 400 750 300 650 Q 450 720 580 660 Z" fill="#DC2626" />
+      <!-- Legs -->
+      <path d="M 550 650 L 520 720 L 560 720 Z" fill="#B91C1C" />
+      <path d="M 750 680 L 730 750 L 770 750 Z" fill="#B91C1C" />
+      <!-- Torso & Neck -->
+      <path d="M 550 650 Q 650 720 780 680 Q 820 600 780 500 Q 750 400 850 380 Q 820 450 720 520 Q 600 550 550 650 Z" fill="#EF4444" />
+      <!-- Head -->
+      <path d="M 850 380 Q 920 370 950 400 Q 920 440 860 430 Z" fill="#EF4444" />
+    </g>
+    <!-- Scales -->
+    <g id="dragon-scales">
+      <path d="M 600 640 Q 620 660 640 640 M 650 660 Q 670 680 690 660 M 700 630 Q 720 650 740 630" fill="none" stroke="#991B1B" stroke-width="3" stroke-linecap="round" />
+    </g>
+    <!-- Horns -->
+    <g id="dragon-horns">
+      <path d="M 860 380 Q 830 320 800 300 Q 840 330 870 370 Z" fill="#FDE047" />
+      <path d="M 880 375 Q 860 330 840 310 Q 870 340 890 370 Z" fill="#FEF08A" />
+    </g>
+    <!-- Front Wing -->
+    <g id="dragon-wings">
+      <path d="M 700 530 Q 600 250 400 150 Q 550 300 650 550 Z" fill="#991B1B" />
+      <path d="M 400 150 Q 480 200 520 300 M 400 150 Q 420 220 440 320" fill="none" stroke="#7F1D1D" stroke-width="4" />
+    </g>
+    <!-- Scar -->
+    <g id="dragon-scar">
+      <path d="M 740 550 L 760 580 L 750 610" fill="none" stroke="#FDA4AF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <!-- Training Indicator (Armband) -->
+    <g id="dragon-training-indicator">
+      <rect x="765" y="470" width="30" height="15" rx="3" transform="rotate(-15, 780, 477)" fill="#3B82F6" stroke="#60A5FA" stroke-width="2" filter="url(#glow)"/>
+      <circle cx="780" cy="477" r="4" fill="#60A5FA" />
+    </g>
+    <!-- Mouth/Fire -->
+    <g id="dragon-mouth-fire">
+      <path d="M 940 410 L 1050 420 L 1080 380 L 1030 450 Z" fill="#F97316" opacity="0.8" filter="url(#glow)" />
+      <path d="M 940 410 L 1000 415 L 1020 390 L 980 430 Z" fill="#FEF08A" opacity="0.9" />
+    </g>
+  </g>
+
+  <!-- ================= STATION EQUIPMENT ================= -->
+  <g id="station-equipment">
+
+    <!-- Genotype Scanner (Arch) -->
+    <g id="genotype-scanner">
+      <!-- 3D Structural Arch Base Mounts -->
+      <rect x="400" y="720" width="80" height="30" fill="#0F172A" stroke="#1E293B" stroke-width="2" />
+      <polygon points="400,720 420,700 500,700 480,720" fill="#1E293B" />
+      <rect x="1120" y="720" width="80" height="30" fill="#0F172A" stroke="#1E293B" stroke-width="2" />
+      <polygon points="1120,720 1140,700 1220,700 1200,720" fill="#1E293B" />
+
+      <!-- Main Holographic Arch -->
+      <path d="M 450 710 A 350 250 0 0 1 1150 710" fill="none" stroke="#38BDF8" stroke-width="12" stroke-opacity="0.3" filter="url(#glow)"/>
+      <path d="M 450 710 A 350 250 0 0 1 1150 710" fill="none" stroke="#BAE6FD" stroke-width="2" stroke-dasharray="15 10" />
+
+      <!-- Downward Laser Scan Grid -->
+      <path d="M 650 465 L 550 740 M 700 461 L 650 740 M 750 460 L 750 740 M 800 460 L 850 740 M 850 461 L 950 740 M 900 465 L 1050 740" stroke="url(#laserScan)" stroke-width="3" />
+      <rect x="600" y="600" width="400" height="4" fill="#38BDF8" filter="url(#glow)" opacity="0.7" />
+
+      <!-- Floating DNA Scan indicator -->
+      <path d="M 800 320 Q 820 340 800 360 Q 780 380 800 400" fill="none" stroke="#BAE6FD" stroke-width="3" filter="url(#glow)"/>
+      <path d="M 800 320 Q 780 340 800 360 Q 820 380 800 400" fill="none" stroke="#7DD3FC" stroke-width="3" filter="url(#glow)"/>
+      <line x1="790" y1="340" x2="810" y2="340" stroke="#E0F2FE" stroke-width="1" />
+      <line x1="790" y1="380" x2="810" y2="380" stroke="#E0F2FE" stroke-width="1" />
+    </g>
+
+    <!-- Incubator Sampler (Bottom Right) -->
+    <g id="incubator-sampler">
+      <!-- 3D Pedestal Base -->
+      <path d="M 1150 800 A 150 60 0 0 0 1450 800 L 1450 840 A 150 60 0 0 1 1150 840 Z" fill="#020617" stroke="#1E293B" stroke-width="2" />
+      <ellipse cx="1300" cy="800" rx="150" ry="60" fill="#0F172A" stroke="#475569" stroke-width="4" />
+      <ellipse cx="1300" cy="800" rx="140" ry="50" fill="url(#heatGlow)" />
+
+      <!-- Glass Dome -->
+      <path d="M 1150 800 A 150 150 0 0 1 1450 800 Z" fill="#06B6D4" fill-opacity="0.1" stroke="#22D3EE" stroke-width="2" />
+
+      <!-- Generic Eggs inside -->
+      <ellipse cx="1220" cy="780" rx="20" ry="28" fill="#94A3B8" />
+      <ellipse cx="1290" cy="795" rx="20" ry="28" fill="#CBD5E1" />
+      <ellipse cx="1360" cy="775" rx="20" ry="28" fill="#64748B" />
+
+      <!-- Robotic Sampling Needle / Sensor Base (3D) -->
+      <ellipse cx="1300" cy="650" rx="15" ry="8" fill="#334155" />
+      <path d="M 1285 650 L 1315 650 L 1315 670 A 15 8 0 0 1 1285 670 Z" fill="#1E293B" />
+      <path d="M 1300 650 L 1300 700 L 1290 730" fill="none" stroke="#94A3B8" stroke-width="4" />
+      <rect x="1285" y="730" width="10" height="15" fill="#EF4444" filter="url(#glow)"/>
+
+      <!-- Console Arm & 3D Terminal -->
+      <polygon points="1350,830 1450,830 1480,850 1380,850" fill="#1E293B" /> <!-- Base Plate -->
+      <polygon points="1200,850 1420,850 1440,890 1220,890" fill="#334155" /> <!-- Console Angled Face -->
+      <polygon points="1420,850 1420,840 1440,880 1440,890" fill="#0F172A" /> <!-- Console Right Depth -->
+
+      <!-- Data Console Screen on Face -->
+      <polygon points="1210,855 1410,855 1425,885 1225,885" fill="#000000" stroke="#10B981" stroke-width="2" />
+
+      <!-- Mini Expected vs Observed Chart Icon (Skewed for perspective) -->
+      <rect x="1230" y="865" width="8" height="15" transform="skewX(-26)" fill="#34D399" />
+      <rect x="1245" y="872" width="8" height="8" transform="skewX(-26)" fill="#F87171" />
+      <rect x="1260" y="868" width="8" height="12" transform="skewX(-26)" fill="#34D399" />
+    </g>
+  </g>
+
+  <!-- ================= MICROSCOPES ================= -->
+  <g id="microscopes">
+    <!-- Genome Microscope (Bottom Left) -->
+    <g id="genome-microscope">
+      <!-- 3D Base & Stand -->
+      <path d="M 150 850 L 350 850 L 370 870 L 170 870 Z" fill="#0F172A" /> <!-- Base Depth -->
+      <path d="M 350 850 L 350 800 L 370 820 L 370 870 Z" fill="#0F172A" /> <!-- Right side depth -->
+      <path d="M 150 850 L 350 850 L 350 800 L 170 800 Z" fill="#1E293B" /> <!-- Top Base -->
+
+      <!-- Sturdy Arm -->
+      <path d="M 190 800 Q 150 650 250 550 L 290 580 Q 210 680 230 800 Z" fill="#334155" />
+      <path d="M 290 580 L 310 590 Q 230 690 250 800 L 230 800 Q 210 680 290 580 Z" fill="#1E293B" /> <!-- Arm Depth -->
+
+      <!-- Focus Knobs (3D Cylinder) -->
+      <ellipse cx="210" cy="760" rx="10" ry="25" fill="#1E293B" />
+      <ellipse cx="220" cy="760" rx="10" ry="25" fill="#475569" stroke="#1E293B" stroke-width="2" />
+      <circle cx="220" cy="760" r="10" fill="#94A3B8" />
+
+      <!-- Stage and Slide Tray (3D Plate) -->
+      <polygon points="230,700 340,700 360,715 250,715" fill="#334155" />
+      <polygon points="250,715 360,715 360,725 250,725" fill="#1E293B" />
+      <polygon points="250,705 310,705 320,712 260,712" fill="#38BDF8" filter="url(#glow)"/>
+
+      <!-- Turret & Multiple Lenses (for structural hierarchy zoom) -->
+      <polygon points="260,600 320,620 300,640 250,620" fill="#1E293B" />
+      <polygon points="320,620 320,630 300,650 300,640" fill="#0F172A" />
+      <rect x="255" y="625" width="15" height="40" transform="rotate(-15, 262, 645)" fill="#64748B" />
+      <rect x="285" y="635" width="20" height="50" transform="rotate(5, 295, 660)" fill="#CBD5E1" stroke="#38BDF8" stroke-width="2"/>
+
+      <!-- Holographic Projection: Cell to DNA -->
+      <ellipse cx="400" cy="580" rx="40" ry="15" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="4 4" filter="url(#glow)"/>
+      <path d="M 400 550 Q 410 570 400 590 M 390 560 Q 400 570 390 580" fill="none" stroke="#D946EF" stroke-width="2" />
+      <path d="M 330 630 L 370 600" stroke="#38BDF8" stroke-width="2" stroke-dasharray="3 3"/>
+    </g>
+  </g>
+
+  <!-- ================= INSTRUMENT PANELS ================= -->
+  <g id="instrument-panels">
+
+    <!-- Allele Workbench (Middle Right Floor Unit) -->
+    <g id="allele-workbench">
+      <!-- 3D Console Pedestal / Chassis -->
+      <polygon points="1400,450 1550,450 1550,440 1400,440" fill="#334155" /> <!-- Top ledge -->
+      <polygon points="1400,450 1550,450 1580,720 1370,720" fill="#1E293B" stroke="#475569" stroke-width="2" /> <!-- Front Face -->
+      <polygon points="1550,450 1550,440 1580,710 1580,720" fill="#0F172A" /> <!-- Right Side Depth -->
+
+      <!-- Holographic DNA Pillar Base (3D indent) -->
+      <ellipse cx="1475" cy="460" rx="40" ry="15" fill="#020617" stroke="#64748B" stroke-width="2" />
+      <rect x="1440" y="280" width="70" height="170" fill="url(#neonPurple)" fill-opacity="0.1" stroke="#C084FC" stroke-width="1" />
+
+      <path d="M 1455 290 Q 1475 320 1455 350 Q 1435 380 1455 410 Q 1475 440 1455 470" fill="none" stroke="#D8B4FE" stroke-width="4" />
+      <path d="M 1495 290 Q 1475 320 1495 350 Q 1515 380 1495 410 Q 1475 440 1495 470" fill="none" stroke="#C084FC" stroke-width="4" />
+      <line x1="1465" y1="320" x2="1485" y2="320" stroke="#F0ABFC" stroke-width="2" />
+      <line x1="1445" y1="380" x2="1505" y2="380" stroke="#F0ABFC" stroke-width="2" />
+
+      <!-- Mechanical Tweezers / Gene Editor Arms -->
+      <path d="M 1550 350 L 1510 380 L 1510 375" fill="none" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 1550 350 L 1510 380 L 1515 390" fill="none" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+      <polygon points="1498,375 1510,375 1515,385 1503,385" fill="#FDE047" stroke="#CA8A04" stroke-width="1" /> <!-- 3D Allele Block -->
+
+      <!-- Editable Sockets Hardware (Recessed in front panel) -->
+      <polygon points="1410,540 1460,540 1460,590 1410,590" fill="#020617" stroke="#A855F7" stroke-width="2" />
+      <polygon points="1490,540 1540,540 1540,590 1490,590" fill="#020617" stroke="#A855F7" stroke-width="2" />
+      <!-- Left Socket 3D Depth -->
+      <polygon points="1410,540 1420,550 1420,600 1410,590" fill="#1E293B" />
+      <polygon points="1410,540 1460,540 1450,550 1420,550" fill="#334155" />
+      <!-- Right Socket 3D Depth -->
+      <polygon points="1490,540 1500,550 1500,600 1490,590" fill="#1E293B" />
+      <polygon points="1490,540 1540,540 1530,550 1500,550" fill="#334155" />
+
+      <text x="1435" y="575" fill="#A855F7" font-size="24" font-family="sans-serif" text-anchor="middle" font-weight="bold">D</text>
+      <text x="1515" y="575" fill="#A855F7" font-size="24" font-family="sans-serif" text-anchor="middle" font-weight="bold">d</text>
+
+      <!-- Expression Result Screen (Angled OUT from chassis) -->
+      <polygon points="1400,610 1550,610 1560,670 1390,670" fill="#000000" stroke="#F472B6" stroke-width="2" />
+      <polygon points="1550,610 1560,610 1570,670 1560,670" fill="#0F172A" /> <!-- Screen Right Edge -->
+      <polygon points="1390,670 1560,670 1560,680 1390,680" fill="#1E293B" /> <!-- Screen Bottom Edge -->
+
+      <path d="M 1430 645 Q 1450 630 1470 645 Q 1450 660 1430 645 Z" fill="none" stroke="#F472B6" stroke-width="2"/>
+      <circle cx="1450" cy="645" r="5" fill="#F472B6" />
+    </g>
+
+    <!-- Punnett Composer (Middle Left Floor Unit) -->
+    <g id="punnett-composer">
+      <!-- 3D Console Pedestal / Chassis -->
+      <polygon points="40,500 260,500 260,490 40,490" fill="#334155" /> <!-- Top ledge -->
+      <polygon points="40,500 260,500 300,720 20,720" fill="#1E293B" stroke="#475569" stroke-width="2" /> <!-- Front Face -->
+      <polygon points="260,500 260,490 300,710 300,720" fill="#0F172A" /> <!-- Right Side Depth -->
+
+      <!-- Input Arrows indicating Parent Alleles (Adjusted for 3D face) -->
+      <path d="M 140,480 L 140,510 L 130,510 L 150,530 L 170,510 L 160,510 L 160,480 Z" fill="#FBBF24" opacity="0.8" />
+      <path d="M 10,600 L 40,600 L 40,590 L 60,610 L 40,630 L 40,620 L 10,620 Z" fill="#FBBF24" opacity="0.8" />
+
+      <!-- Glowing 2x2 Offspring Grid Console (Pushed out as a 3D block) -->
+      <!-- Base block behind grid -->
+      <polygon points="70,530 230,530 250,660 90,660" fill="#1E293B" />
+      <polygon points="230,530 240,530 260,660 250,660" fill="#0F172A" />
+      <polygon points="90,660 250,660 250,670 90,670" fill="#020617" />
+
+      <polygon points="80,540 220,540 240,650 100,650" fill="#000000" stroke="#FBBF24" stroke-width="3" filter="url(#glow)"/>
+
+      <!-- Individual Cells Skewed correctly to match face -->
+      <polygon points="90,550 145,550 150,590 95,590" fill="#334155" stroke="#F59E0B" stroke-width="1" />
+      <polygon points="155,550 210,550 215,590 160,590" fill="#334155" stroke="#F59E0B" stroke-width="1" />
+      <polygon points="100,600 155,600 160,640 105,640" fill="#334155" stroke="#F59E0B" stroke-width="1" />
+      <polygon points="165,600 220,600 225,640 170,640" fill="#334155" stroke="#F59E0B" stroke-width="1" />
+
+      <!-- Probability Meter (Circular Dial on Angled Face) -->
+      <!-- Flattened ellipse to match the slope -->
+      <ellipse cx="260" cy="620" rx="15" ry="25" fill="#020617" stroke="#94A3B8" stroke-width="2" />
+      <path d="M 260 595 A 15 25 0 0 1 275 620" fill="none" stroke="#F59E0B" stroke-width="4" />
+      <path d="M 275 620 A 15 25 0 1 1 260 595" fill="none" stroke="#38BDF8" stroke-width="4" />
+    </g>
+  </g>
+
+  <!-- ================= FOREGROUND ================= -->
+  <g id="foreground">
+    <!-- Lab railing / barrier -->
+    <rect x="0" y="870" width="1600" height="30" fill="#0F172A" />
+    <path d="M 0 870 L 1600 870" stroke="#38BDF8" stroke-width="4" filter="url(#glow)"/>
+    <circle cx="200" cy="870" r="10" fill="#1E293B" stroke="#06B6D4" stroke-width="3" />
+    <circle cx="800" cy="870" r="10" fill="#1E293B" stroke="#06B6D4" stroke-width="3" />
+    <circle cx="1400" cy="870" r="10" fill="#1E293B" stroke="#06B6D4" stroke-width="3" />
+  </g>
+</svg>

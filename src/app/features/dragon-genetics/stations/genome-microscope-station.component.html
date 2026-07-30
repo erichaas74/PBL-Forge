@@ -1,0 +1,71 @@
+<section class="station">
+  <header class="station-head">
+    <div>
+      <span class="eyebrow">Station 2 · Genome decoder · GEN-2</span>
+      <h3>Genome Microscope</h3>
+      <p>Trace one selected genome extract from the cell nucleus to an allele pair. The instrument shows scientific records only—not dragon anatomy.</p>
+    </div>
+    <span class="mode-tag">{{ modeLabel() }}</span>
+  </header>
+
+  <section class="sample-selector" aria-label="Choose a genome sample">
+    <div><span class="eyebrow">Sample console</span><strong>Choose a genome extract</strong></div>
+    @for (profile of profiles; track profile.id) {
+      <button
+        type="button"
+        [class.selected]="selectedSampleId() === profile.id"
+        [disabled]="runPhaseLocked()"
+        [attr.aria-pressed]="selectedSampleId() === profile.id"
+        (click)="selectSample(profile.id)">
+        <span aria-hidden="true"></span>
+        <strong>{{ profile.name }}</strong>
+        <small>Sample {{ profile.id.toUpperCase() }}</small>
+      </button>
+    }
+  </section>
+
+  <div class="station-grid">
+    <app-genome-microscope-display
+      [copy]="copy"
+      [feedback]="feedback()"
+      (stageEvent)="onStageEvent($event)" />
+
+    <aside class="evidence-dock" aria-label="Genome evidence dock">
+      <h4>Evidence dock</h4>
+      <dl>
+        <div><dt>Sample</dt><dd>{{ selectedSample().name }}</dd></div>
+        <div><dt>Focused gene</dt><dd>{{ focusTrait().geneSymbol }} · {{ focusTrait().name }}</dd></div>
+        <div><dt>Prediction</dt><dd>{{ currentPredictionLabel() }}</dd></div>
+        <div><dt>Map</dt><dd>{{ placedLabelCount() }}/5 labels · {{ hierarchyAttemptCount() }} checks</dd></div>
+        <div><dt>Evidence</dt><dd>{{ currentEvidenceLabel() }}</dd></div>
+      </dl>
+
+      <section class="notebook">
+        <h5>Genome notebook <b>{{ records().length }}</b></h5>
+        @if (!records().length) {
+          <p>Saved microscope records will list the prediction, hierarchy map, and pinned evidence.</p>
+        } @else {
+          <ol>
+            @for (record of records(); track record.taskId) {
+              <li [class.correct]="mode() !== 'official' && record.predictionCorrect && record.evidenceCorrect">
+                <span aria-hidden="true">{{ mode() === 'official' ? '•' : (record.predictionCorrect && record.evidenceCorrect ? '✓' : '!') }}</span>
+                <div>
+                  <strong>{{ taskLabel(record.taskId) }}</strong>
+                  <small>Predicted {{ record.predictedLevel }} · evidence {{ record.evidenceLevelId }}</small>
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      </section>
+
+      <p class="boundary"><strong>Model boundary</strong>A chromosome contains many genes. A gene contains many DNA bases. One A-T or C-G base pair is not an allele.</p>
+    </aside>
+  </div>
+
+  <div class="action-rail">
+    <p>{{ stepHint() }}</p>
+    <span>Task {{ activeTaskNumber() }} of {{ taskCount() }} · {{ correctCount() }} records fully supported</span>
+    <button type="button" [disabled]="primaryAction().disabled" (click)="runPrimaryAction()">{{ primaryAction().label }}</button>
+  </div>
+</section>

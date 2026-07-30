@@ -1,0 +1,158 @@
+@if (model(); as vm) {
+  <section
+    class="workbench"
+    id="allele-workbench"
+    [class.reduced-motion]="reducedMotion()"
+    [style]="themeVariables()"
+    role="group"
+    aria-label="Allele workbench">
+
+    <p class="sr-only" aria-live="polite">{{ vm.summary }}</p>
+
+    <header class="console-head">
+      <div class="sample-record">
+        <span class="sample-vial" aria-hidden="true"><i></i></span>
+        <div><span class="tag">Genome extract</span><strong>{{ vm.sample.label }}</strong><p>Gene {{ vm.focusGeneId }} · no anatomy shown</p></div>
+      </div>
+      <div class="run-state">
+        <span class="mode-chip">{{ vm.mode }} mode</span>
+        <ol class="phase-rail">
+          @for (step of phaseRail; track step.id) {
+            <li [class.active]="vm.phase === step.id" [class.done]="isPhaseDone(vm.phase, step.id)"><i aria-hidden="true"></i>{{ step.label }}</li>
+          }
+        </ol>
+      </div>
+    </header>
+
+    <section class="assignment">
+      <div><span class="tag">Assigned extract</span><strong>Build {{ vm.requestedAlleles.join('') }} at gene {{ vm.focusGeneId }}</strong><p>Starting pair {{ vm.startingAlleles.join('') }}. Replace allele tokens, then predict expression.</p></div>
+      <div class="prediction" aria-label="Phenotype prediction">
+        <span class="tag">Prediction</span>
+        <button type="button" [class.locked]="vm.predictedPhenotypeId === 'dominant'" [disabled]="!vm.predictionEnabled" (click)="lockPrediction('dominant')">Dominant · {{ vm.dominantPhenotypeLabel }}</button>
+        <button type="button" [class.locked]="vm.predictedPhenotypeId === 'recessive'" [disabled]="!vm.predictionEnabled" (click)="lockPrediction('recessive')">Recessive · {{ vm.recessivePhenotypeLabel }}</button>
+      </div>
+    </section>
+
+    <div class="instrument-grid">
+      <section class="chromosome-stage" aria-label="Homologous chromosome allele sockets">
+        <div class="stage-label"><span class="tag">Homologous chromosome pair</span><strong>Both gene copies stay visible</strong></div>
+        <div class="pair">
+          @for (copyIndex of [0, 1]; track copyIndex) {
+            <div class="chromosome-column">
+              <small>Allele copy {{ copyIndex + 1 }}</small>
+              <div class="chromosome">
+                <svg viewBox="0 0 92 360" aria-hidden="true" preserveAspectRatio="none">
+                  <rect class="rod" x="31" y="8" width="30" height="344" rx="15" />
+                  <path class="centromere" d="M31 178 Q46 190 61 178 M31 182 Q46 170 61 182" />
+                  @for (locus of vm.loci; track locus.geneId; let index = $index) {
+                    <rect class="band" [class.focus]="locus.focus" x="27" [attr.y]="35 + index * 82" width="38" height="13" rx="3" />
+                  }
+                </svg>
+                <div class="loci-overlay">
+                  @for (locus of vm.loci; track locus.geneId) {
+                    <div class="locus" [class.focus]="locus.focus">
+                      <span>{{ locus.geneId }}</span>
+                      @if (locus.focus) {
+                        <button
+                          type="button"
+                          class="allele-slot"
+                          [class.dominant]="vm.workingAlleles[copyIndex] === vm.dominantAllele"
+                          [class.recessive]="vm.workingAlleles[copyIndex] === vm.recessiveAllele"
+                          [class.cue-active]="cueActive(copyIndex === 0 ? vm.targets.alleleSlotA : vm.targets.alleleSlotB)"
+                          [disabled]="!vm.slotEnabled"
+                          [attr.data-target]="copyIndex === 0 ? vm.targets.alleleSlotA : vm.targets.alleleSlotB"
+                          [attr.aria-label]="'Allele slot ' + (copyIndex + 1) + ' contains ' + vm.workingAlleles[copyIndex] + '. Select an allele token, then choose this slot to replace it.'"
+                          (click)="placeAllele(copyIndex === 0 ? 'allele-slot-a' : 'allele-slot-b')"
+                          (dragover)="onSlotDragOver($event)"
+                          (drop)="onSlotDrop(copyIndex === 0 ? 'allele-slot-a' : 'allele-slot-b', $event)">
+                          {{ vm.workingAlleles[copyIndex] }}
+                        </button>
+                      } @else {
+                        <i>{{ locus.alleles[copyIndex] }}</i>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="expression-console" aria-label="Allele expression trace">
+        <div class="token-bank" [attr.data-target]="vm.targets.alleleToken">
+          <span class="tag">Allele token bank</span>
+          <div>
+            <button
+              type="button"
+              draggable="true"
+              class="allele-token dominant"
+              [class.selected]="selectedAllele() === vm.dominantAllele"
+              [disabled]="!vm.tokenEnabled"
+              [attr.aria-pressed]="selectedAllele() === vm.dominantAllele"
+              [attr.data-target]="vm.targets.dominantAllele"
+              (click)="selectAllele(vm.dominantAllele)"
+              (dragstart)="onTokenDragStart(vm.dominantAllele, $event)">{{ vm.dominantAllele }}<small>dominant</small></button>
+            <button
+              type="button"
+              draggable="true"
+              class="allele-token recessive"
+              [class.selected]="selectedAllele() === vm.recessiveAllele"
+              [disabled]="!vm.tokenEnabled"
+              [attr.aria-pressed]="selectedAllele() === vm.recessiveAllele"
+              [attr.data-target]="vm.targets.recessiveAllele"
+              (click)="selectAllele(vm.recessiveAllele)"
+              (dragstart)="onTokenDragStart(vm.recessiveAllele, $event)">{{ vm.recessiveAllele }}<small>recessive</small></button>
+          </div>
+          <p>Select a token, then a chromosome socket. Dragging works too.</p>
+        </div>
+
+        <div class="expression-path" [class.cue-active]="cueActive(vm.targets.expressionPath)" [attr.data-target]="vm.targets.expressionPath">
+          <div class="pair-readout"><i>{{ vm.workingAlleles[0] }}</i><span>+</span><i>{{ vm.workingAlleles[1] }}</i></div>
+          <div class="trace" aria-hidden="true"><i [style.width.%]="traceProgress() * 100"></i><b>expression rule</b></div>
+          <div class="phenotype-readout" [class.revealed]="vm.expressionRevealed" [class.cue-active]="cueActive(vm.targets.phenotypeReadout)" [attr.data-target]="vm.targets.phenotypeReadout">
+            <span class="tag">Scientific phenotype readout</span>
+            @if (vm.expressionRevealed) {
+              <strong>{{ vm.actualPhenotypeId === 'dominant' ? vm.dominantPhenotypeLabel : vm.recessivePhenotypeLabel }}</strong>
+              <small>{{ vm.genotypeClassLabel }} · {{ vm.workingAlleles.join('') }}</small>
+            } @else {
+              <strong>Result shielded</strong><small>Lock a prediction, then run the trace.</small>
+            }
+          </div>
+        </div>
+
+        <div class="carrier" [class.active]="vm.expressionRevealed && vm.carrierState" [class.cue-active]="cueActive(vm.targets.carrierIndicator)" [attr.data-target]="vm.targets.carrierIndicator">
+          <span aria-hidden="true">{{ vm.expressionRevealed && vm.carrierState ? '±' : '○' }}</span>
+          <div><strong>{{ vm.expressionRevealed && vm.carrierState ? 'Heterozygous: recessive allele retained' : 'Carrier-state check' }}</strong><small>{{ vm.expressionRevealed ? (vm.carrierState ? 'The recessive allele is present but not expressed.' : 'This pair is not heterozygous.') : 'Available after expression trace.' }}</small></div>
+        </div>
+
+        @if (vm.revealEnabled) { <button type="button" class="energize" (click)="reveal()">Run expression trace</button> }
+        @if (caption()) { <p class="sequence-caption">{{ caption() }}</p> }
+      </section>
+    </div>
+
+    <section class="reference-rail" aria-label="Genotype class reference">
+      <span class="tag">One gene · three genotype classes</span>
+      <div>
+        <article [class.current]="vm.genotypeClassId === 'homozygous-dominant'"><strong>{{ vm.dominantAllele }}{{ vm.dominantAllele }}</strong><span>Homozygous dominant</span><small>{{ vm.dominantPhenotypeLabel }}</small></article>
+        <article [class.current]="vm.genotypeClassId === 'heterozygous'"><strong>{{ vm.dominantAllele }}{{ vm.recessiveAllele }}</strong><span>Heterozygous</span><small>{{ vm.dominantPhenotypeLabel }}; recessive retained</small></article>
+        <article [class.current]="vm.genotypeClassId === 'homozygous-recessive'"><strong>{{ vm.recessiveAllele }}{{ vm.recessiveAllele }}</strong><span>Homozygous recessive</span><small>{{ vm.recessivePhenotypeLabel }}</small></article>
+      </div>
+    </section>
+
+    @if (vm.phase === 'explain') {
+      <section class="evidence-bank" aria-label="Choose rule evidence">
+        <span class="tag">Pin the rule that supports this result</span>
+        <div>
+          @for (item of vm.evidence; track item.id) {
+            <button type="button" [class.selected]="item.selected" [attr.aria-pressed]="item.selected" (click)="pinEvidence(item.id)">{{ item.label }}</button>
+          }
+        </div>
+      </section>
+    }
+
+    @if (feedback(); as note) {
+      <aside class="feedback" [ngClass]="note.tone" role="status"><strong>{{ note.headline }}</strong>@if (note.detail) { <span>{{ note.detail }}</span> }</aside>
+    }
+  </section>
+}

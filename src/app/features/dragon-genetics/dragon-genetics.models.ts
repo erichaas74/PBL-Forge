@@ -3,6 +3,10 @@ import {
   DragonTraitId,
   TraitSortCategory,
 } from './simulation/domain/dragon-lab.models';
+import { TraitEvidenceRecord } from './simulation/domain/trait-evidence.models';
+import { GenomeMicroscopeRecord } from './simulation/domain/genome-microscope.models';
+import { GenotypeScanRecord } from './simulation/domain/genotype-scanner.models';
+import { AlleleWorkbenchRecord } from './simulation/domain/allele-workbench.models';
 
 export type DragonModuleNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export type DragonLabMode = 'learn' | 'practice' | 'official';
@@ -88,6 +92,14 @@ export interface DragonGeneticsSnapshot {
   correctedMisconception: string;
   teamRole: string;
   sortAnswers: Partial<Record<string, TraitSortCategory>>;
+  /** Trait Evidence Analyzer results: one compact record per completed observation. */
+  traitEvidenceRecords: TraitEvidenceRecord[];
+  /** Genome Microscope prediction, hierarchy, and evidence records. */
+  genomeMicroscopeRecords: GenomeMicroscopeRecord[];
+  /** Genotype Scanner selection, scan, and evidence records. */
+  genotypeScanRecords: GenotypeScanRecord[];
+  /** Allele Workbench construction, prediction, expression, and evidence records. */
+  alleleWorkbenchRecords: AlleleWorkbenchRecord[];
   genomePath: string[];
   genomeQuickAnswers: Record<string, string>;
   phenotypeAnswers: Record<string, string>;

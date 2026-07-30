@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Allele Diagram</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem;
+            color: #1a1a1a;
+        }
+
+        .diagram-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6rem;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .top-section {
+            display: flex;
+            justify-content: center;
+            gap: 8rem;
+        }
+
+        .single-chromosome-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .chromosome-label {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .chromosome-graphic-area {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .allele-label {
+            font-size: 1.8rem;
+            font-weight: bold;
+            position: absolute;
+            white-space: nowrap;
+        }
+
+        .allele-label.left {
+            right: calc(100% + 2.5rem);
+        }
+
+        .allele-label.right {
+            left: calc(100% + 2.5rem);
+        }
+
+        .letter-label {
+            font-size: 1.2rem;
+            position: absolute;
+        }
+
+        .letter-label.left {
+            right: calc(100% + 0.5rem);
+            text-align: right;
+        }
+
+        .letter-label.right {
+            left: calc(100% + 0.5rem);
+            text-align: left;
+        }
+
+        .bottom-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 2rem;
+        }
+
+        .pair-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .chromosome-pair {
+            display: flex;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .pair-label {
+            font-size: 1.1rem;
+        }
+
+        .heterozygous-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .heterozygous-pairs {
+            display: flex;
+            gap: 4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .bracket-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .bracket-line {
+            width: 100%;
+            height: 10px;
+            border-bottom: 1px solid #333;
+            border-left: 1px solid #333;
+            border-right: 1px solid #333;
+            margin-bottom: 0.5rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <!-- Define the basic chromosome shape with default banding pattern -->
+            <g id="chromosome">
+                <!-- Outer glow/border -->
+                <rect x="0" y="0" width="18" height="200" rx="9" fill="#e0ffff" stroke="#1d4ed8" stroke-width="1.5" />
+
+                <!-- Centromere pinch -->
+                <line x1="0" y1="100" x2="18" y2="100" stroke="#1d4ed8" stroke-width="1.5" />
+
+                <!-- Background Banding patterns (adjusted to leave room for 4 traits) -->
+                <rect x="1.5" y="10" width="15" height="10" fill="#a5f3fc" />
+                <rect x="1.5" y="37" width="15" height="20" fill="#67e8f9" />
+                <rect x="1.5" y="77" width="15" height="15" fill="#a5f3fc" />
+
+                <rect x="1.5" y="108" width="15" height="15" fill="#a5f3fc" />
+                <rect x="1.5" y="142" width="15" height="20" fill="#67e8f9" />
+                <rect x="1.5" y="182" width="15" height="12" fill="#a5f3fc" />
+            </g>
+        </defs>
+    </svg>
+
+    <div class="diagram-container">
+
+        <div class="top-section">
+
+            <!-- Allele 1 (Left Side Always) -->
+            <div class="single-chromosome-wrapper">
+                <div class="chromosome-label">Chromosome</div>
+                <div class="chromosome-graphic-area">
+                    <div class="allele-label left">Allele 1</div>
+
+                    <!-- Labels for Traits -->
+                    <div class="letter-label left" style="top: 25px;">A</div>
+                    <div class="letter-label left" style="top: 65px;">B</div>
+                    <div class="letter-label left" style="top: 130px;">C</div>
+                    <div class="letter-label left" style="top: 170px;">D</div>
+
+                    <svg width="18" height="200">
+                        <use href="#chromosome" />
+
+                        <!-- Trait 1 Band (Red) -->
+                        <rect x="1" y="25" width="16" height="6" fill="#dc2626" />
+                        <line x1="-10" y1="28" x2="1" y2="28" stroke="#333" stroke-width="1" />
+
+                        <!-- Trait 2 Band (Green) -->
+                        <rect x="1" y="65" width="16" height="6" fill="#16a34a" />
+                        <line x1="-10" y1="68" x2="1" y2="68" stroke="#333" stroke-width="1" />
+
+                        <!-- Trait 3 Band (Dark Blue) -->
+                        <rect x="1" y="130" width="16" height="6" fill="#1e3a8a" />
+                        <line x1="-10" y1="133" x2="1" y2="133" stroke="#333" stroke-width="1" />
+
+                        <!-- Trait 4 Band (Purple) -->
+                        <rect x="1" y="170" width="16" height="6" fill="#9333ea" />
+                        <line x1="-10" y1="173" x2="1" y2="173" stroke="#333" stroke-width="1" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Allele 2 (Right Side Always) -->
+            <div class="single-chromosome-wrapper">
+                <div class="chromosome-label">Chromosome</div>
+                <div class="chromosome-graphic-area">
+                    <svg width="18" height="200">
+                        <use href="#chromosome" />
+
+                        <!-- Trait 1 Band -->
+                        <rect x="1" y="25" width="16" height="6" fill="#dc2626" />
+                        <line x1="17" y1="28" x2="28" y2="28" stroke="#333" stroke-width="1" />
+
+                        <!-- Trait 2 Band -->
+                        <rect x="1" y="65" width="16" height="6" fill="#16a34a" />
+                        <line x1="17" y1="68" x2="28" y2="68" stroke="#333" stroke-width="1" />
+
+                        <!-- Trait 3 Band -->
+                        <rect x="1" y="130" width="16" height="6" fill="#1e3a8a" />
+                        <line x1="17" y1="133" x2="28" y2="133" stroke="#333" stroke-width="1" />
+
+                        <!-- Trait 4 Band -->
+                        <rect x="1" y="170" width="16" height="6" fill="#9333ea" />
+                        <line x1="17" y1="173" x2="28" y2="173" stroke="#333" stroke-width="1" />
+                    </svg>
+
+                    <!-- Labels for Traits -->
+                    <div class="letter-label right" style="top: 25px;">a</div>
+                    <div class="letter-label right" style="top: 65px;">b</div>
+                    <div class="letter-label right" style="top: 130px;">c</div>
+                    <div class="letter-label right" style="top: 170px;">d</div>
+
+                    <div class="allele-label right">Allele 2</div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="bottom-section">
+
+            <!-- Homozygous Dominant -->
+            <div class="pair-wrapper">
+                <div class="chromosome-pair">
+                    <!-- Left Chromosome Labels -->
+                    <div class="letter-label left" style="top: 25px;">A</div>
+                    <div class="letter-label left" style="top: 65px;">B</div>
+                    <div class="letter-label left" style="top: 130px;">C</div>
+                    <div class="letter-label left" style="top: 170px;">D</div>
+
+                    <!-- Left Chromosome -->
+                    <svg width="18" height="200">
+                        <use href="#chromosome" />
+                        <rect x="1" y="25" width="16" height="6" fill="#dc2626" />
+                        <line x1="-10" y1="28" x2="1" y2="28" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="65" width="16" height="6" fill="#16a34a" />
+                        <line x1="-10" y1="68" x2="1" y2="68" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="130" width="16" height="6" fill="#1e3a8a" />
+                        <line x1="-10" y1="133" x2="1" y2="133" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="170" width="16" height="6" fill="#9333ea" />
+                        <line x1="-10" y1="173" x2="1" y2="173" stroke="#333" stroke-width="1" />
+                    </svg>
+
+                    <!-- Right Chromosome -->
+                    <svg width="18" height="200">
+                        <use href="#chromosome" />
+                        <rect x="1" y="25" width="16" height="6" fill="#dc2626" />
+                        <line x1="17" y1="28" x2="28" y2="28" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="65" width="16" height="6" fill="#16a34a" />
+                        <line x1="17" y1="68" x2="28" y2="68" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="130" width="16" height="6" fill="#1e3a8a" />
+                        <line x1="17" y1="133" x2="28" y2="133" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="170" width="16" height="6" fill="#9333ea" />
+                        <line x1="17" y1="173" x2="28" y2="173" stroke="#333" stroke-width="1" />
+                    </svg>
+
+                    <!-- Right Chromosome Labels -->
+                    <div class="letter-label right" style="top: 25px;">A</div>
+                    <div class="letter-label right" style="top: 65px;">B</div>
+                    <div class="letter-label right" style="top: 130px;">C</div>
+                    <div class="letter-label right" style="top: 170px;">D</div>
+                </div>
+                <div class="pair-label">Homozygous AABBCCDD</div>
+            </div>
+
+            <!-- Heterozygous Group -->
+            <div class="heterozygous-group">
+                <div class="heterozygous-pairs">
+
+                    <!-- Pair 1: ABCD / abcd -->
+                    <div class="chromosome-pair">
+                        <!-- Left Chromosome Labels -->
+                        <div class="letter-label left" style="top: 25px;">A</div>
+                        <div class="letter-label left" style="top: 65px;">B</div>
+                        <div class="letter-label left" style="top: 130px;">C</div>
+                        <div class="letter-label left" style="top: 170px;">D</div>
+
+                        <!-- Left Chromosome -->
+                        <svg width="18" height="200">
+                            <use href="#chromosome" />
+                            <rect x="1" y="25" width="16" height="6" fill="#dc2626" />
+                            <line x1="-10" y1="28" x2="1" y2="28" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="65" width="16" height="6" fill="#16a34a" />
+                            <line x1="-10" y1="68" x2="1" y2="68" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="130" width="16" height="6" fill="#1e3a8a" />
+                            <line x1="-10" y1="133" x2="1" y2="133" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="170" width="16" height="6" fill="#9333ea" />
+                            <line x1="-10" y1="173" x2="1" y2="173" stroke="#333" stroke-width="1" />
+                        </svg>
+
+                        <!-- Right Chromosome -->
+                        <svg width="18" height="200">
+                            <use href="#chromosome" />
+                            <rect x="1" y="25" width="16" height="6" fill="#dc2626" />
+                            <line x1="17" y1="28" x2="28" y2="28" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="65" width="16" height="6" fill="#16a34a" />
+                            <line x1="17" y1="68" x2="28" y2="68" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="130" width="16" height="6" fill="#1e3a8a" />
+                            <line x1="17" y1="133" x2="28" y2="133" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="170" width="16" height="6" fill="#9333ea" />
+                            <line x1="17" y1="173" x2="28" y2="173" stroke="#333" stroke-width="1" />
+                        </svg>
+
+                        <!-- Right Chromosome Labels -->
+                        <div class="letter-label right" style="top: 25px;">a</div>
+                        <div class="letter-label right" style="top: 65px;">b</div>
+                        <div class="letter-label right" style="top: 130px;">c</div>
+                        <div class="letter-label right" style="top: 170px;">d</div>
+                    </div>
+
+                    <!-- Pair 2: abcd / ABCD -->
+                    <div class="chromosome-pair">
+                        <!-- Left Chromosome Labels -->
+                        <div class="letter-label left" style="top: 25px;">a</div>
+                        <div class="letter-label left" style="top: 65px;">b</div>
+                        <div class="letter-label left" style="top: 130px;">c</div>
+                        <div class="letter-label left" style="top: 170px;">d</div>
+
+                        <!-- Left Chromosome -->
+                        <svg width="18" height="200">
+                            <use href="#chromosome" />
+                            <rect x="1" y="25" width="16" height="6" fill="#dc2626" />
+                            <line x1="-10" y1="28" x2="1" y2="28" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="65" width="16" height="6" fill="#16a34a" />
+                            <line x1="-10" y1="68" x2="1" y2="68" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="130" width="16" height="6" fill="#1e3a8a" />
+                            <line x1="-10" y1="133" x2="1" y2="133" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="170" width="16" height="6" fill="#9333ea" />
+                            <line x1="-10" y1="173" x2="1" y2="173" stroke="#333" stroke-width="1" />
+                        </svg>
+
+                        <!-- Right Chromosome -->
+                        <svg width="18" height="200">
+                            <use href="#chromosome" />
+                            <rect x="1" y="25" width="16" height="6" fill="#dc2626" />
+                            <line x1="17" y1="28" x2="28" y2="28" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="65" width="16" height="6" fill="#16a34a" />
+                            <line x1="17" y1="68" x2="28" y2="68" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="130" width="16" height="6" fill="#1e3a8a" />
+                            <line x1="17" y1="133" x2="28" y2="133" stroke="#333" stroke-width="1" />
+                            <rect x="1" y="170" width="16" height="6" fill="#9333ea" />
+                            <line x1="17" y1="173" x2="28" y2="173" stroke="#333" stroke-width="1" />
+                        </svg>
+
+                        <!-- Right Chromosome Labels -->
+                        <div class="letter-label right" style="top: 25px;">A</div>
+                        <div class="letter-label right" style="top: 65px;">B</div>
+                        <div class="letter-label right" style="top: 130px;">C</div>
+                        <div class="letter-label right" style="top: 170px;">D</div>
+                    </div>
+                </div>
+
+                <div class="bracket-container">
+                    <div class="bracket-line"></div>
+                    <div class="pair-label">Heterozygous AaBbCcDd</div>
+                </div>
+            </div>
+
+            <!-- Homozygous Recessive -->
+            <div class="pair-wrapper">
+                <div class="chromosome-pair">
+                    <!-- Left Chromosome Labels -->
+                    <div class="letter-label left" style="top: 25px;">a</div>
+                    <div class="letter-label left" style="top: 65px;">b</div>
+                    <div class="letter-label left" style="top: 130px;">c</div>
+                    <div class="letter-label left" style="top: 170px;">d</div>
+
+                    <!-- Left Chromosome -->
+                    <svg width="18" height="200">
+                        <use href="#chromosome" />
+                        <rect x="1" y="25" width="16" height="6" fill="#dc2626" />
+                        <line x1="-10" y1="28" x2="1" y2="28" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="65" width="16" height="6" fill="#16a34a" />
+                        <line x1="-10" y1="68" x2="1" y2="68" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="130" width="16" height="6" fill="#1e3a8a" />
+                        <line x1="-10" y1="133" x2="1" y2="133" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="170" width="16" height="6" fill="#9333ea" />
+                        <line x1="-10" y1="173" x2="1" y2="173" stroke="#333" stroke-width="1" />
+                    </svg>
+
+                    <!-- Right Chromosome -->
+                    <svg width="18" height="200">
+                        <use href="#chromosome" />
+                        <rect x="1" y="25" width="16" height="6" fill="#dc2626" />
+                        <line x1="17" y1="28" x2="28" y2="28" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="65" width="16" height="6" fill="#16a34a" />
+                        <line x1="17" y1="68" x2="28" y2="68" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="130" width="16" height="6" fill="#1e3a8a" />
+                        <line x1="17" y1="133" x2="28" y2="133" stroke="#333" stroke-width="1" />
+                        <rect x="1" y="170" width="16" height="6" fill="#9333ea" />
+                        <line x1="17" y1="173" x2="28" y2="173" stroke="#333" stroke-width="1" />
+                    </svg>
+
+                    <!-- Right Chromosome Labels -->
+                    <div class="letter-label right" style="top: 25px;">a</div>
+                    <div class="letter-label right" style="top: 65px;">b</div>
+                    <div class="letter-label right" style="top: 130px;">c</div>
+                    <div class="letter-label right" style="top: 170px;">d</div>
+                </div>
+                <div class="pair-label">Homozygous aabbccdd</div>
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

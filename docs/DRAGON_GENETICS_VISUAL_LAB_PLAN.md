@@ -1,5 +1,8 @@
 # Dragon Genetics visual laboratory plan
 
+Use the [station simulation build guides](dragon-genetics-simulations/README.md) for the code-facing
+specification of each independent display.
+
 ## Product decision
 
 Build one continuous **Royal Dragon Genetics Laboratory** with ten stations, not ten unrelated pages. The laboratory shell stays familiar while the active instrument changes. Students should feel that they are carrying the same specimens, predictions, and evidence from the observation bay through the hatchery and finally into the arena.
@@ -108,6 +111,19 @@ These ten primitives cover the whole unit. They are separate simulations paramet
 | V9 | Population diversity table | A breeding pool appears as sample nodes connected to allele and genotype counters. Narrow and balanced strategies can be run side by side; lost alleles fade from the pool and the simulation indicator updates. | GEN-8 teaching, strategy comparison, mastery, and official planning |
 | V10 | Evidence replay and arena bridge | A timeline replays a real prediction, parent cross, offspring result, champion selection, and arena outcome. Students pin visual evidence to a claim while genetics, diversity/evidence, tactics, and battle results remain separate. | Official challenge, final evidence defense, report, reflection, and teacher review |
 
+### Current implementation status
+
+| Primitive | Status | Integrated behavior |
+| --- | --- | --- |
+| V1 Trait Evidence Analyzer | Implemented | Module 1 uses the shared renderer, semantic scene adapter, evidence-path sequence, lesson-owned grading, misconception-driven reteach, and compact saved evidence. |
+| V2 Genome Microscope | Implemented | Module 2 uses a selected genome extract, five-bay scientific SVG track, predict-before-reveal gate, keyboard/drag hierarchy mapping, actual sample allele reveal, evidence pinning, fixed-seed mode variants, misconception records, and the existing GEN-2 mastery check. |
+| V3 Genotype Scanner | Implemented | Module 3 uses phenotype-first and genotype-first sample scans, shielded genotype evidence, multi-select claims, comparison records, evidence pinning, misconception diagnosis, and the existing GEN-3 mastery check. |
+| V4 Allele Workbench | Implemented | Module 4 uses paired SVG chromosomes, data-driven allele tokens, four one-allele changes, a prediction-shielded expression trace, carrier-state evidence, keyboard/drag placement, misconception records, and an all-four-record GEN-4 completion gate. |
+
+V2 through V4 are the reference implementations for subsequent instruments: renderer presentation state remains
+in `shared/dragon-visuals`, while task correctness, feedback, progress, and evidence persistence stay
+inside the Dragon Genetics feature.
+
 ## Ten-module visual blueprint
 
 ### Module 1 - Trait Detective: Observation Bay
@@ -120,9 +136,12 @@ These ten primitives cover the whole unit. They are separate simulations paramet
 
 ### Module 2 - Genome Decoder: Genome Microscope
 
-- Load the selected sample tube or egg record, then use one uninterrupted zoom: cell, chromosome pair, DNA, highlighted gene, allele pair.
-- Students build the hierarchy on the microscope depth rail and place labels directly on the visual.
-- Quick-check questions reuse the microscope and ask students to point to, outline, or match a structure before choosing an answer.
+- Load a selected generic genome extract, then keep all five nested levels visible while a reusable timeline focuses cell nucleus, chromosome pair, DNA, highlighted gene locus, and allele pair.
+- Require a level prediction before label mapping or allele reveal. Students select or drag the five labels onto numbered bays; keyboard users select a label and then its destination.
+- Reveal the focused sample's actual allele symbols only after the hierarchy is correct. The renderer displays lesson-owned placement status and never grades the hierarchy itself.
+- Require students to pin the microscope level that directly supports the assignment before saving a compact evidence record.
+- Learn uses one guided allele task; Practice uses three fixed-seed tasks; Official uses four tasks with hints and immediate scoring removed; Reteach contrasts DNA base pairs, genes, and alleles with fresh examples.
+- The existing four-question quick check remains the final Module 2 verification and combines with the microscope evidence for GEN-2 mastery.
 - Stop at the required Grade 7 model; do not branch into replication, transcription, translation, or meiosis.
 
 ### Module 3 - Genotype / Phenotype Reveal: Genotype Scanner
@@ -135,10 +154,12 @@ These ten primitives cover the whole unit. They are separate simulations paramet
 
 ### Module 4 - Dominant / Recessive Trait Rule Lab: Allele Workbench
 
-- Put two physical allele tokens into a gene console and show the resulting phenotype on an instrument readout.
-- Require a phenotype prediction before the new allele token can be activated.
-- Keep both allele tokens visible after the phenotype changes so a hidden recessive allele never appears to disappear.
-- Use neutral language and a permanent model label: dominance is an expression rule, not strength, health, rarity, or value.
+- The implemented workbench adapts the supplied allele diagram into two SVG chromosome rods with aligned `W`, `F`, `S`, and `H` loci and an illuminated selected-gene socket pair.
+- Students change one allele using drag or select-then-place controls, then lock the assigned pair before predicting its phenotype.
+- The declarative expression trace keeps both allele symbols visible, reveals a phenotype-only scientific readout, and labels homozygous dominant, heterozygous, or homozygous recessive state.
+- Heterozygous results activate a carrier-state explanation showing that the recessive allele remains present.
+- Each of the four genes requires a saved construction, prediction, trace, and pinned rule-evidence record; the former static choices can no longer bypass the simulation.
+- Neutral wording remains permanent: dominance is an expression rule, not strength, health, rarity, value, or battle usefulness.
 
 ### Module 5 - Breeding Predictor: Breeding Console
 
@@ -265,10 +286,11 @@ src/app/shared/dragon-visuals/
     foundation-visual-pack.ts
   state/
     dragon-visual.bridge.ts
-  renderers/
-    svg-station-renderer/
-    cutscene-renderer/
-    three-arena-renderer/
+  displays/
+    shared/
+    trait-inspector/
+    genome-microscope/
+    future-station-renderers/
 
 src/app/features/dragon-genetics/
   visual-adapter/
@@ -288,7 +310,7 @@ visual-packs/ or versioned remote storage/
 ### Component boundaries
 
 - `DragonGeneticsStore` remains the source of student progress, mastery, parent selection, trials, and official limits.
-- Existing inheritance functions remain the only source of scientific outcomes. The adapter converts those outcomes into a versioned `DragonVisualScene` containing subjects, alleles, phenotypes, selection, metrics, phase, and deterministic seed.
+- Existing inheritance functions remain the only source of scientific outcomes. The adapter converts those outcomes into a versioned `DragonVisualScene` containing analysis samples, instrument state, alleles, phenotypes, selection, metrics, phase, and deterministic seed.
 - `DragonVisualBridge` exposes the active scene, teaching sequence, presentation surface, and last semantic event as Angular read-only signals.
 - Replaceable renderers consume those signals. They may use SVG, Canvas, Three.js, CSS, sprite sheets, or future graphics technology without changing lesson code.
 - A renderer owns only short-lived presentation state such as microscope depth, selected readout, transition progress, and replay position. It does not decide whether an answer is correct or whether a module unlocks.

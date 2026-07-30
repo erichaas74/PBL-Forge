@@ -2,6 +2,10 @@
 
 This package is the contract between Dragon Genetics lessons and replaceable graphics.
 
+Implementation guidance for every station is indexed in the
+[Dragon Genetics simulation build guides](../../../../docs/dragon-genetics-simulations/README.md).
+New renderers belong under [`displays`](displays/README.md).
+
 ## Dependency rule
 
 `src/app/shared/dragon-visuals` must not import Dragon Genetics pages, content, stores, repositories, Firestore, routes, or assessment rules. It accepts versioned semantic scene data and emits semantic stage events.

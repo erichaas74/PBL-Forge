@@ -1,0 +1,265 @@
+// Lesson chrome around the Trait Evidence Analyzer instrument. Instrument styling lives in
+// the shared display; this file only styles the mission header, evidence dock, and rail.
+
+:host { display: block; }
+
+.station {
+  display: grid;
+  gap: .8rem;
+}
+
+.station-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: .8rem;
+
+  h3 {
+    margin: .3rem 0 .35rem;
+    font-family: var(--font-display, inherit);
+    font-size: 1.3rem;
+    line-height: 1.1;
+  }
+
+  p {
+    max-width: 44rem;
+    margin: 0;
+    color: #66716e;
+    font-size: .74rem;
+    line-height: 1.55;
+  }
+}
+
+.eyebrow {
+  color: var(--dragon-green, #2e735e);
+  font-size: .62rem;
+  font-weight: 850;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.mode-tag {
+  padding: .4rem .7rem;
+  border: 1px solid #cfc7b9;
+  border-radius: 999px;
+  background: #fffaf0;
+  color: #7a6738;
+  font-size: .64rem;
+  font-weight: 800;
+}
+
+.reteach-banner {
+  display: grid;
+  gap: .2rem;
+  padding: .8rem 1rem;
+  border: 1px solid #d3c294;
+  border-left: 4px solid var(--dragon-gold, #e6b849);
+  border-radius: .7rem;
+  background: #fff8e5;
+
+  strong { font-size: .72rem; }
+  p { margin: 0; color: #6d6350; font-size: .72rem; line-height: 1.5; }
+}
+
+.station-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 17rem);
+  gap: .8rem;
+  align-items: start;
+}
+
+// ------------------------------------------------------------- evidence dock
+
+.evidence-dock {
+  display: grid;
+  gap: .8rem;
+  align-content: start;
+  padding: 1rem;
+  border: 1px solid #d7d0c2;
+  border-radius: .9rem;
+  background: rgb(255 255 255 / 88%);
+  box-shadow: 0 8px 26px rgb(46 53 48 / 5%);
+
+  h4 {
+    margin: 0;
+    font-family: var(--font-display, inherit);
+    font-size: .92rem;
+  }
+
+  h5 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 .4rem;
+    color: #4a5854;
+    font-size: .66rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+
+    b {
+      padding: .1rem .4rem;
+      border-radius: .35rem;
+      background: #eee8dc;
+      font-size: .62rem;
+    }
+  }
+}
+
+.current-record {
+  display: grid;
+  gap: .4rem;
+  margin: 0;
+
+  div {
+    display: grid;
+    grid-template-columns: 6.2rem minmax(0, 1fr);
+    gap: .5rem;
+    padding-bottom: .4rem;
+    border-bottom: 1px dashed #e2dbcd;
+  }
+
+  dt {
+    color: #78827e;
+    font-size: .6rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0;
+    font-size: .7rem;
+    font-weight: 700;
+    line-height: 1.4;
+    text-transform: capitalize;
+  }
+
+  dd.clue {
+    font-weight: 500;
+    text-transform: none;
+  }
+}
+
+.notebook {
+  ol {
+    display: grid;
+    gap: .35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: 1.15rem minmax(0, 1fr);
+    gap: .45rem;
+    padding: .45rem .5rem;
+    border-left: 3px solid #c8c0b1;
+    border-radius: .35rem;
+    background: #f7f4ed;
+  }
+
+  li.correct { border-left-color: #4f9d82; }
+  li.incorrect { border-left-color: #d0846f; }
+
+  .mark {
+    display: grid;
+    width: 1.15rem;
+    height: 1.15rem;
+    place-items: center;
+    border-radius: 50%;
+    background: #e6e0d3;
+    font-size: .6rem;
+    font-weight: 850;
+  }
+
+  li.correct .mark { background: #d8efe5; color: #2c6a56; }
+  li.incorrect .mark { background: #fbe0d8; color: #93493a; }
+
+  strong { display: block; font-size: .68rem; line-height: 1.3; }
+  small { display: block; margin-top: .12rem; color: #77817d; font-size: .6rem; text-transform: capitalize; }
+  .empty { margin: 0; color: #78827e; font-size: .66rem; line-height: 1.45; }
+}
+
+.watch-list {
+  ul {
+    display: grid;
+    gap: .35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: .4rem;
+    color: #6d6250;
+    font-size: .64rem;
+    line-height: 1.45;
+  }
+
+  strong { color: #96593f; }
+}
+
+.boundary {
+  margin: 0;
+  padding: .7rem .75rem;
+  border-left: 4px solid var(--dragon-gold, #e6b849);
+  background: #fff8e5;
+  color: #6d6350;
+  font-size: .64rem;
+  line-height: 1.5;
+
+  strong { display: block; color: #79602b; }
+}
+
+// ---------------------------------------------------------------- action rail
+
+.action-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem;
+  padding: .7rem .9rem;
+  border: 1px solid #d7d0c2;
+  border-radius: .8rem;
+  background: rgb(255 255 255 / 88%);
+
+  .step-hint {
+    flex: 1 1 18rem;
+    margin: 0;
+    color: #55605c;
+    font-size: .72rem;
+    line-height: 1.45;
+  }
+
+  .counter {
+    color: #78827e;
+    font-size: .66rem;
+    font-weight: 800;
+  }
+
+  .primary {
+    padding: .7rem 1rem;
+    border: 1px solid var(--dragon-green, #2e735e);
+    border-radius: .6rem;
+    background: var(--dragon-green, #2e735e);
+    color: white;
+    font-size: .74rem;
+    font-weight: 850;
+    cursor: pointer;
+  }
+
+  .primary:disabled {
+    border-color: #c3bcae;
+    background: #ece7dc;
+    color: #8b938f;
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 1050px) {
+  .station-grid { grid-template-columns: minmax(0, 1fr); }
+}

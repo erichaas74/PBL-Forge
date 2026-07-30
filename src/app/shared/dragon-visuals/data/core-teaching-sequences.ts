@@ -22,7 +22,7 @@ export const ALLELE_EXPRESSION_SEQUENCE: DragonTeachingSequence = {
       atMs: 900,
       durationMs: 0,
       action: 'pause-for-prediction',
-      targetIds: ['phenotype-display'],
+      targetIds: ['phenotype-readout'],
       captionId: 'allele-expression.predict',
       checkpointId: 'expression-prediction',
     },
@@ -31,7 +31,7 @@ export const ALLELE_EXPRESSION_SEQUENCE: DragonTeachingSequence = {
       atMs: 1200,
       durationMs: 1400,
       action: 'trace',
-      targetIds: ['dominant-allele', 'phenotype-display'],
+      targetIds: ['dominant-allele', 'phenotype-readout'],
       motionId: 'allele-trace',
       captionId: 'allele-expression.trace',
     },
@@ -40,7 +40,7 @@ export const ALLELE_EXPRESSION_SEQUENCE: DragonTeachingSequence = {
       atMs: 2700,
       durationMs: 1200,
       action: 'morph',
-      targetIds: ['dragon-specimen', 'phenotype-display'],
+      targetIds: ['phenotype-readout'],
       motionId: 'trait-morph',
       captionId: 'allele-expression.reveal',
     },
@@ -111,8 +111,203 @@ export const PARENT_ALLELE_TRACE_SEQUENCE: DragonTeachingSequence = {
   ],
 };
 
+/**
+ * Trait Evidence Analyzer reveal. The station plays this after a student places an
+ * observation: the recording instrument lights up, the source path is traced to the card,
+ * the card travels to its tray, and the pinned evidence mark is revealed.
+ */
+export const EVIDENCE_PATH_SEQUENCE: DragonTeachingSequence = {
+  contractVersion: DRAGON_VISUAL_CONTRACT_VERSION,
+  sequenceId: 'evidence-path-v1',
+  conceptId: 'inherited-versus-acquired-evidence',
+  supportedSurfaces: ['station', 'cutscene'],
+  durationMs: 4600,
+  cues: [
+    {
+      id: 'focus-observation',
+      atMs: 0,
+      durationMs: 700,
+      action: 'focus',
+      targetIds: ['observation-card'],
+      motionId: 'instrument-focus',
+      captionId: 'evidence-path.inspect',
+    },
+    {
+      id: 'request-classification',
+      atMs: 800,
+      durationMs: 0,
+      action: 'pause-for-prediction',
+      targetIds: ['prediction-control'],
+      captionId: 'evidence-path.predict',
+      checkpointId: 'classification-prediction',
+    },
+    {
+      id: 'trace-source-path',
+      atMs: 1000,
+      durationMs: 1500,
+      action: 'trace',
+      targetIds: ['evidence-source', 'observation-card'],
+      motionId: 'evidence-path',
+      captionId: 'evidence-path.trace',
+    },
+    {
+      id: 'move-card-to-tray',
+      atMs: 2500,
+      durationMs: 1200,
+      action: 'move',
+      targetIds: ['observation-card', 'category-tray'],
+      motionId: 'card-to-tray',
+      captionId: 'evidence-path.place',
+    },
+    {
+      id: 'reveal-evidence-mark',
+      atMs: 3700,
+      durationMs: 900,
+      action: 'reveal',
+      targetIds: ['evidence-mark'],
+      motionId: 'evidence-highlight',
+      captionId: 'evidence-path.reveal',
+    },
+  ],
+};
+
+/** Cell-to-allele containment journey used by the Genome Microscope station and cutscenes. */
+export const GENOME_ZOOM_SEQUENCE: DragonTeachingSequence = {
+  contractVersion: DRAGON_VISUAL_CONTRACT_VERSION,
+  sequenceId: 'genome-zoom-v1',
+  conceptId: 'cell-to-allele-containment',
+  supportedSurfaces: ['station', 'cutscene'],
+  durationMs: 6000,
+  cues: [
+    {
+      id: 'focus-cell-level',
+      atMs: 0,
+      durationMs: 650,
+      action: 'focus',
+      targetIds: ['cell-level'],
+      motionId: 'microscope-focus',
+      captionId: 'genome-zoom.cell',
+    },
+    {
+      id: 'request-level-prediction',
+      atMs: 700,
+      durationMs: 0,
+      action: 'pause-for-prediction',
+      targetIds: ['prediction-control'],
+      captionId: 'genome-zoom.predict',
+      checkpointId: 'genome-level-prediction',
+    },
+    {
+      id: 'focus-chromosome-level',
+      atMs: 900,
+      durationMs: 850,
+      action: 'move',
+      targetIds: ['cell-level', 'chromosome-level'],
+      motionId: 'microscope-focus',
+      captionId: 'genome-zoom.chromosome',
+    },
+    {
+      id: 'trace-dna-level',
+      atMs: 1800,
+      durationMs: 1000,
+      action: 'trace',
+      targetIds: ['chromosome-level', 'dna-level'],
+      motionId: 'dna-uncoil',
+      captionId: 'genome-zoom.dna',
+    },
+    {
+      id: 'focus-gene-locus',
+      atMs: 2900,
+      durationMs: 1000,
+      action: 'focus',
+      targetIds: ['dna-level', 'gene-locus'],
+      motionId: 'gene-locus-focus',
+      captionId: 'genome-zoom.gene',
+    },
+    {
+      id: 'reveal-allele-pair',
+      atMs: 4000,
+      durationMs: 1250,
+      action: 'reveal',
+      targetIds: ['gene-locus', 'allele-slot-a', 'allele-slot-b'],
+      motionId: 'allele-reveal',
+      captionId: 'genome-zoom.allele',
+    },
+    {
+      id: 'highlight-containment-path',
+      atMs: 5300,
+      durationMs: 700,
+      action: 'highlight',
+      targetIds: ['zoom-path'],
+      motionId: 'evidence-highlight',
+      captionId: 'genome-zoom.containment',
+    },
+  ],
+};
+
+/**
+ * Genotype Scanner reveal. The shield opens only after the student's selection is locked, then
+ * the scanned allele pair is tied back to the phenotype readout that never changed.
+ */
+export const GENOTYPE_SCAN_SEQUENCE: DragonTeachingSequence = {
+  contractVersion: DRAGON_VISUAL_CONTRACT_VERSION,
+  sequenceId: 'genotype-scan-v1',
+  conceptId: 'phenotype-versus-genotype',
+  supportedSurfaces: ['station', 'cutscene'],
+  durationMs: 4200,
+  cues: [
+    {
+      id: 'read-phenotype',
+      atMs: 0,
+      durationMs: 700,
+      action: 'focus',
+      targetIds: ['phenotype-readout'],
+      motionId: 'instrument-focus',
+      captionId: 'genotype-scan.read',
+    },
+    {
+      id: 'request-genotype-selection',
+      atMs: 800,
+      durationMs: 0,
+      action: 'pause-for-prediction',
+      targetIds: ['genotype-option'],
+      captionId: 'genotype-scan.predict',
+      checkpointId: 'genotype-selection',
+    },
+    {
+      id: 'sweep-scan',
+      atMs: 1000,
+      durationMs: 1200,
+      action: 'trace',
+      targetIds: ['concealed-allele-pair'],
+      motionId: 'scan-sweep',
+      captionId: 'genotype-scan.scan',
+    },
+    {
+      id: 'reveal-allele-pair',
+      atMs: 2200,
+      durationMs: 1000,
+      action: 'reveal',
+      targetIds: ['allele-slot-a', 'allele-slot-b'],
+      motionId: 'allele-reveal',
+      captionId: 'genotype-scan.reveal',
+    },
+    {
+      id: 'link-readout-to-alleles',
+      atMs: 3300,
+      durationMs: 900,
+      action: 'highlight',
+      targetIds: ['phenotype-readout', 'evidence-mark'],
+      motionId: 'evidence-highlight',
+      captionId: 'genotype-scan.compare',
+    },
+  ],
+};
+
 export const CORE_DRAGON_TEACHING_SEQUENCES = [
   ALLELE_EXPRESSION_SEQUENCE,
   PARENT_ALLELE_TRACE_SEQUENCE,
+  EVIDENCE_PATH_SEQUENCE,
+  GENOME_ZOOM_SEQUENCE,
+  GENOTYPE_SCAN_SEQUENCE,
 ] as const;
-

@@ -1,0 +1,93 @@
+<section class="station">
+  <header class="station-head">
+    <div>
+      <span class="eyebrow">Station 3 · Genotype reveal · GEN-3</span>
+      <h3>Genotype Scanner</h3>
+      <p>
+        The readout reports what an observer can see. The scan reports the allele pair. Decide what
+        the evidence supports before the shield opens.
+      </p>
+    </div>
+    <span class="mode-tag">{{ modeLabel() }}</span>
+  </header>
+
+  @if (activeTask(); as task) {
+    <p class="assignment"><strong>Scan {{ savedCount() + 1 }} of {{ tasks().length }}:</strong> {{ task.prompt }}</p>
+  }
+
+  <div class="station-grid">
+    <app-genotype-scanner-display
+      [copy]="copy"
+      [feedback]="feedback()"
+      (stageEvent)="onStageEvent($event)" />
+
+    <aside class="evidence-dock" aria-label="Scan dock">
+      <h4>Scan dock</h4>
+
+      <dl class="current-record">
+        <div>
+          <dt>Direction</dt>
+          <dd>{{ activeTask()?.direction === 'genotype-first' ? 'Scan open, readout sealed' : 'Readout open, scan sealed' }}</dd>
+        </div>
+        <div>
+          <dt>Selected</dt>
+          <dd class="mono">{{ selectedLabels() || 'Nothing selected' }}</dd>
+        </div>
+        <div>
+          <dt>Pinned evidence</dt>
+          <dd class="note">{{ evidenceTextFor(pinnedMarkId()) || 'Not pinned' }}</dd>
+        </div>
+      </dl>
+
+      <section class="record-list">
+        <h5>Scan records <b>{{ records().length }}</b></h5>
+        @if (!records().length) {
+          <p class="empty">Saved scans appear here with the records you selected and the evidence you pinned.</p>
+        } @else {
+          <ol>
+            @for (record of records(); track record.taskId) {
+              <li [class.correct]="record.selectionCorrect" [class.incorrect]="!record.selectionCorrect">
+                <span class="mark" aria-hidden="true">{{ record.selectionCorrect ? '✓' : '!' }}</span>
+                <div>
+                  <strong class="mono">{{ record.geneId }} · {{ record.revealedGenotype }}</strong>
+                  <small>
+                    Selected {{ record.selectedOptionIds.join(', ') }} ·
+                    supported {{ record.supportedOptionIds.join(', ') }} ·
+                    evidence {{ record.evidenceCorrect ? 'supported' : 'not supported' }}
+                  </small>
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      </section>
+
+      @if (openMisconceptions().length) {
+        <section class="watch-list">
+          <h5>Misconception watch</h5>
+          <ul>
+            @for (entry of openMisconceptions(); track entry.flag) {
+              <li><strong>{{ entry.count }}×</strong><span>{{ misconceptionNotes[entry.flag] }}</span></li>
+            }
+          </ul>
+        </section>
+      }
+
+      <p class="boundary">
+        <strong>Dominant ≠ better</strong>
+        Dominant describes expression in this model. It does not mean stronger, healthier, more
+        common, or more useful in the arena.
+      </p>
+    </aside>
+  </div>
+
+  <div class="action-rail">
+    <p class="step-hint">{{ stepHint() }}</p>
+    <span class="counter">{{ savedCount() }} saved · {{ correctCount() }} fully supported</span>
+    <button
+      type="button"
+      class="primary"
+      [disabled]="primaryAction().disabled"
+      (click)="runPrimaryAction()">{{ primaryAction().label }}</button>
+  </div>
+</section>

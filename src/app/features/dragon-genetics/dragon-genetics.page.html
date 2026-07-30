@@ -108,34 +108,33 @@
               </div>
             </article>
           </section>
-          <section class="card-grid sort-grid" aria-label="Trait classification cards">
-            @for (card of sortCards; track card.id) {
-              <article class="task-card" [class.correct]="hasChecked(1) && store.snapshot().sortAnswers[card.id] === card.category" [class.incorrect]="hasChecked(1) && store.snapshot().sortAnswers[card.id] !== card.category">
-                <span class="card-number">{{ $index + 1 }}</span><h3>{{ card.label }}</h3><p>{{ card.detail }}</p>
-                <div class="choice-row">
-                  <button type="button" [class.selected]="store.snapshot().sortAnswers[card.id] === 'inherited'" (click)="store.setTraitSortAnswer(card.id, 'inherited')">Inherited</button>
-                  <button type="button" [class.selected]="store.snapshot().sortAnswers[card.id] === 'learned-environmental'" (click)="store.setTraitSortAnswer(card.id, 'learned-environmental')">Learned / environment</button>
-                </div>
-                @if (hasChecked(1)) { <small>{{ store.snapshot().sortAnswers[card.id] === card.category ? 'Evidence supports this.' : 'Reconsider when this developed.' }}</small> }
-              </article>
-            }
-          </section>
+          <app-trait-evidence-station
+            [mode]="store.activeMode()"
+            (evidenceSaved)="store.recordTraitEvidence($event)"
+            (setCompleted)="onTraitEvidenceComplete($event)" />
+          @if (hasChecked(1)) {
+            <section class="sort-review panel" aria-label="Classification review">
+              <div class="section-heading"><div><span class="eyebrow">Classification review</span><h2>Where the evidence landed</h2></div></div>
+              <div class="card-grid">
+                @for (card of sortCards; track card.id) {
+                  <article class="task-card" [class.correct]="store.snapshot().sortAnswers[card.id] === card.category" [class.incorrect]="store.snapshot().sortAnswers[card.id] !== card.category">
+                    <span class="card-number">{{ $index + 1 }}</span><h3>{{ card.label }}</h3><p>{{ card.detail }}</p>
+                    <small>{{ store.snapshot().sortAnswers[card.id] ? (store.snapshot().sortAnswers[card.id] === card.category ? 'Evidence supports this classification.' : 'Reconsider when this characteristic developed.') : 'Not classified in the analyzer yet.' }}</small>
+                  </article>
+                }
+              </div>
+            </section>
+          }
           <label class="writing-prompt">Misconception correction <small>Use evidence from the sort to correct one idea you had at mission launch.</small><textarea rows="4" [value]="store.snapshot().correctedMisconception" (input)="store.setCorrectedMisconception($any($event.target).value)" placeholder="At first I thought… Now the evidence shows…"></textarea><i>{{ store.snapshot().correctedMisconception.length }}/30 minimum</i></label>
           <div class="action-row"><button class="primary" type="button" (click)="checkTraitSort()">Check all classifications</button></div>
         }
 
         @case (2) {
-          <section class="module-intro"><span class="eyebrow">Learn · GEN-2</span><h2>Zoom from a dragon to an allele</h2><p>Select the levels from largest system to smallest information unit. Each step should explain where the next one belongs.</p></section>
-          <section class="decoder panel">
-            <div class="term-bank" aria-label="Available pathway terms">
-              @for (term of genomeTerms; track term) { <button type="button" [disabled]="store.snapshot().genomePath.includes(term)" (click)="store.chooseGenomePathTerm(term)">{{ term }}</button> }
-            </div>
-            <div class="pathway" aria-label="Selected biological information pathway">
-              @for (term of store.snapshot().genomePath; track $index) { <span><i>{{ $index + 1 }}</i><strong>{{ term }}</strong>@if (!$last) { <b>→</b> }</span> }
-              @if (!store.snapshot().genomePath.length) { <p>Select the whole organism first.</p> }
-            </div>
-            <div class="decoder-actions"><button type="button" (click)="store.resetGenomePath()">Clear pathway</button><button class="primary" type="button" (click)="checkGenomePath()">Check pathway</button></div>
-          </section>
+          <section class="module-intro"><span class="eyebrow">Learn · GEN-2</span><h2>Resolve the information inside a genome sample</h2><p>Use the Genome Microscope to predict a level, reconstruct the containment map, reveal the selected gene, and defend your answer with visual evidence.</p></section>
+          <app-genome-microscope-station
+            [mode]="store.activeMode()"
+            (evidenceSaved)="store.recordGenomeMicroscope($event)"
+            (setCompleted)="onGenomeMicroscopeComplete($event)" />
           <section class="license panel quick-check"><div class="section-heading"><div><span class="eyebrow">Genome Decoder quick check</span><h2>Show what each level means</h2><p>Answer all four before checking the pathway.</p></div></div>
             <div class="license-questions">
               @for (question of genomeQuickQuestions; track question.id) {
@@ -145,6 +144,7 @@
               }
             </div>
           </section>
+          <div class="action-row"><span>The microscope map and all four answers are required.</span><button class="primary" type="button" (click)="checkGenomePath()">Verify Module 2 evidence</button></div>
           <section class="concept-strip">
             <article><span>Chromosome</span><strong>packages a long DNA molecule</strong></article><article><span>Gene</span><strong>is a section of DNA</strong></article><article><span>Allele</span><strong>is a version of a gene</strong></article>
           </section>
@@ -152,31 +152,34 @@
 
         @case (3) {
           <section class="module-intro"><span class="eyebrow">Practice · GEN-3</span><h2>Read the visible trait—and the hidden alleles</h2><p>A phenotype is what you observe. A genotype names the two modeled alleles. Predict before opening the evidence feedback.</p></section>
-          <section class="question-stack">
-            @for (question of phenotypeQuestions; track question.id) {
-              <article class="question-card"><span>Evidence {{ $index + 1 }}</span><h3>{{ question.prompt }}</h3>
-                <div class="option-list">
-                  @for (option of question.options; track option.id) { <button type="button" [class.selected]="store.snapshot().phenotypeAnswers[question.id] === option.id" (click)="store.setPhenotypeAnswer(question.id, option.id)">{{ option.label }}</button> }
-                </div>
-                @if (hasChecked(3)) { <p class="feedback" [class.good]="store.snapshot().phenotypeAnswers[question.id] === question.correctOptionId">{{ question.explanation }}</p> }
-              </article>
-            }
-          </section>
+          <app-genotype-scanner-station
+            [mode]="store.activeMode()"
+            (evidenceSaved)="store.recordGenotypeScan($event)"
+            (setCompleted)="onGenotypeScannerComplete($event)" />
+          @if (hasChecked(3)) {
+            <section class="question-stack">
+              @for (question of phenotypeQuestions; track question.id) {
+                <article class="question-card"><span>Evidence {{ $index + 1 }}</span><h3>{{ question.prompt }}</h3>
+                  <div class="option-list">
+                    @for (option of question.options; track option.id) { <button type="button" [class.selected]="store.snapshot().phenotypeAnswers[question.id] === option.id" (click)="store.setPhenotypeAnswer(question.id, option.id)">{{ option.label }}</button> }
+                  </div>
+                  <p class="feedback" [class.good]="store.snapshot().phenotypeAnswers[question.id] === question.correctOptionId">{{ question.explanation }}</p>
+                </article>
+              }
+            </section>
+          }
           <aside class="model-boundary warning"><strong>Dominant ≠ better</strong><span>Dominant does not mean stronger, healthier, more common, or more useful in battle. It only describes expression in this model.</span></aside>
           <div class="action-row"><button class="primary" type="button" (click)="checkPhenotypes()">Reveal evidence feedback</button></div>
         }
 
         @case (4) {
-          <section class="module-intro"><span class="eyebrow">Practice · GEN-4</span><h2>Change an allele. Predict the effect.</h2><p>Apply the same simplified rule at four different genes. Uppercase alleles are dominant in this classroom model.</p></section>
-          <section class="card-grid rule-grid">
-            @for (challenge of ruleChallenges; track challenge.id) {
-              <article class="task-card rule-card"><span class="gene-badge">Chr {{ traits[$index].chromosomeModel }}</span><h3>{{ challenge.genotype.join('') }}</h3><p>{{ challenge.prompt }}</p>
-                <div class="choice-row"><button type="button" [class.selected]="store.snapshot().ruleAnswers[challenge.id] === 'dominant'" (click)="store.setRuleAnswer(challenge.id, 'dominant')">Dominant phenotype</button><button type="button" [class.selected]="store.snapshot().ruleAnswers[challenge.id] === 'recessive'" (click)="store.setRuleAnswer(challenge.id, 'recessive')">Recessive phenotype</button></div>
-                @if (hasChecked(4)) { <small>{{ store.snapshot().ruleAnswers[challenge.id] === challenge.correctAnswer ? 'Prediction supported.' : 'Use the case of each allele.' }}</small> }
-              </article>
-            }
-          </section>
-          <div class="action-row"><button class="primary" type="button" (click)="checkRules()">Test trait rules</button></div>
+          <section class="module-intro"><span class="eyebrow">Interactive lab · GEN-4</span><h2>Change an allele. Predict the effect.</h2><p>Build and analyze four allele pairs. The chromosome workbench keeps both alleles visible while it traces dominant and recessive expression.</p></section>
+          <app-allele-workbench-station
+            [mode]="store.activeMode()"
+            (evidenceSaved)="store.recordAlleleWorkbench($event)"
+            (setCompleted)="onAlleleWorkbenchComplete($event)" />
+          <aside class="model-boundary warning"><strong>Dominant ≠ better</strong><span>Dominant does not mean stronger, healthier, more common, or more useful in battle. It only describes expression in this model.</span></aside>
+          <div class="action-row"><button class="primary" type="button" (click)="checkRules()">Verify all four workbench records</button></div>
         }
 
         @case (5) {

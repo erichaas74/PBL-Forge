@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Detailed DNA Uncoiling Canvas</title>
+  <style>
+    :root {
+      --panel: #ffffff;
+      --card: #f6f7fb;
+      --text: #172033;
+      --muted: #657089;
+      --border: #d9deea;
+      --accent: #4f67d8;
+      --accent-soft: #e7ebff;
+      --series-1: #7757c7;
+      --series-2: #2f9ca6;
+      --series-3: #d46f56;
+      --series-4: #a78839;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: #eef1f7;
+    }
+
+    .app {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .controls,
+    .info,
+    .note {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .button-row,
+    .toggle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--card);
+      color: var(--text);
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover { border-color: var(--accent); }
+
+    button.active {
+      color: white;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .sliders {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .toggle-row label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 400;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--panel);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .hint {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,.92);
+      color: var(--muted);
+      padding: 6px 10px;
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .stage-buttons {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .info {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stage-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 14px;
+    }
+
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 4px; }
+    h2 { margin-bottom: 6px; font-size: 18px; }
+    p { margin-bottom: 0; line-height: 1.5; }
+
+    .note {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 12px; }
+      .stage-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .sliders, .details, .info { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>Detailed DNA Uncoiling Canvas</h1>
+      <p>Each stage now contains more structure and motion while keeping the original color palette.</p>
+    </header>
+
+    <section class="controls">
+      <div class="button-row">
+        <button id="play" type="button">Play uncoiling</button>
+        <button id="previous" type="button">Previous</button>
+        <button id="next" type="button">Next</button>
+        <button id="reset" type="button">Reset</button>
+      </div>
+
+      <div class="sliders">
+        <label>
+          Uncoiling stage
+          <input id="stage" type="range" min="0" max="5" value="0" step="1">
+        </label>
+        <label>
+          Animation speed
+          <input id="speed" type="range" min="1" max="5" value="3" step="1">
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <label><input id="labels" type="checkbox" checked> Show labels</label>
+        <label><input id="motion" type="checkbox" checked> Animate structures</label>
+        <label><input id="connections" type="checkbox" checked> Show zoom connections</label>
+      </div>
+    </section>
+
+    <section class="canvas-wrap" id="canvasWrap">
+      <canvas id="dnaCanvas" aria-label="Detailed animated DNA uncoiling sequence"></canvas>
+      <div class="hint">Click any stage to examine it.</div>
+    </section>
+
+    <nav class="stage-buttons" aria-label="DNA stages">
+      <button type="button" data-stage="0">Chromosome</button>
+      <button type="button" data-stage="1">Chromatin loops</button>
+      <button type="button" data-stage="2">Coiled fiber</button>
+      <button type="button" data-stage="3">Nucleosomes</button>
+      <button type="button" data-stage="4">Double helix</button>
+      <button type="button" data-stage="5">DNA opening</button>
+    </nav>
+
+    <section class="info">
+      <div>
+        <div>Current stage</div>
+        <div id="stageNumber" class="stage-number">1 of 6</div>
+      </div>
+      <div>
+        <h2 id="stageTitle">Condensed chromosome</h2>
+        <p id="stageSummary">Two sister chromatids contain tightly folded chromatin organized around a centromere.</p>
+
+        <div class="details">
+          <div>
+            <h2>What is moving</h2>
+            <p id="motionDescription">Chromatin bands shift subtly to show that the chromosome is built from many layers of folded material.</p>
+          </div>
+          <div>
+            <h2>Main structures</h2>
+            <p id="structures">Sister chromatids, centromere, condensed chromatin bands</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="note">
+      This is a conceptual scale model. Structures are enlarged and simplified so students can see how each level of DNA packaging connects to the next.
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("dnaCanvas");
+    const ctx = canvas.getContext("2d");
+    const wrap = document.getElementById("canvasWrap");
+
+    const playButton = document.getElementById("play");
+    const previousButton = document.getElementById("previous");
+    const nextButton = document.getElementById("next");
+    const resetButton = document.getElementById("reset");
+    const stageSlider = document.getElementById("stage");
+    const speedSlider = document.getElementById("speed");
+    const labelsToggle = document.getElementById("labels");
+    const motionToggle = document.getElementById("motion");
+    const connectionsToggle = document.getElementById("connections");
+    const stageButtons = [...document.querySelectorAll("[data-stage]")];
+
+    const stageNumber = document.getElementById("stageNumber");
+    const stageTitle = document.getElementById("stageTitle");
+    const stageSummary = document.getElementById("stageSummary");
+    const motionDescription = document.getElementById("motionDescription");
+    const structures = document.getElementById("structures");
+
+    const stageData = [
+      {
+        title: "Condensed chromosome",
+        summary: "Two sister chromatids contain tightly folded chromatin organized around a centromere.",
+        motion: "Chromatin bands shift subtly to show that the chromosome is built from many layers of folded material.",
+        structures: "Sister chromatids, centromere, condensed chromatin bands"
+      },
+      {
+        title: "Chromatin loops",
+        summary: "Many loops of chromatin attach to a central protein scaffold at organized anchor points.",
+        motion: "The loops expand and contract slightly while attachment proteins remain fixed to the scaffold.",
+        structures: "Protein scaffold, looped domains, attachment proteins"
+      },
+      {
+        title: "Coiled chromatin fiber",
+        summary: "A thick chromatin fiber coils into a three-dimensional solenoid-like structure.",
+        motion: "The coil rotates slowly while individual nucleosome-sized beads move around the fiber.",
+        structures: "Folded fiber, internal nucleosome chain, higher-order coiling"
+      },
+      {
+        title: "Nucleosomes",
+        summary: "DNA wraps around histone protein groups, forming repeating nucleosome units.",
+        motion: "DNA winds around each histone core while the linker DNA flexes between neighboring nucleosomes.",
+        structures: "Histone octamer, wrapped DNA, linker DNA, H1-like connector"
+      },
+      {
+        title: "DNA double helix",
+        summary: "The two DNA backbones twist around paired nitrogen bases.",
+        motion: "The helix rotates, making the alternating major and minor grooves easier to see.",
+        structures: "Sugar-phosphate backbones, base pairs, hydrogen-bond region"
+      },
+      {
+        title: "DNA opening",
+        summary: "A helicase-like protein separates the strands and exposes template bases.",
+        motion: "The fork opens while free nucleotides drift toward exposed bases and short daughter strands begin to form.",
+        structures: "Replication fork, helicase, template strands, new nucleotides"
+      }
+    ];
+
+    const colors = {
+      panel: "#ffffff",
+      card: "#f6f7fb",
+      text: "#172033",
+      muted: "#657089",
+      border: "#d9deea",
+      accent: "#4f67d8",
+      accentSoft: "#e7ebff",
+      series1: "#7757c7",
+      series2: "#2f9ca6",
+      series3: "#d46f56",
+      series4: "#a78839"
+    };
+
+    let width = 900;
+    let height = 520;
+    let pixelRatio = 1;
+    let selectedStage = 0;
+    let displayStage = 0;
+    let targetStage = 0;
+    let playing = false;
+    let lastTime = 0;
+    let playElapsed = 0;
+    let phase = 0;
+    let boxes = [];
+
+    function resizeCanvas() {
+      const rect = wrap.getBoundingClientRect();
+      width = Math.max(320, rect.width);
+      height = width < 580 ? 690 : 520;
+      pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.round(width * pixelRatio);
+      canvas.height = Math.round(height * pixelRatio);
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    }
+
+    function roundedRect(x, y, w, h, radius) {
+      const r = Math.min(radius, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function line(x1, y1, x2, y2, color, lineWidth = 2, dash = []) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.setLineDash(dash);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function circle(x, y, radius, fill, stroke = null, lineWidth = 1, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawArrow(from, to, active) {
+      const horizontal = Math.abs(from.y - to.y) < 5;
+      const x1 = horizontal ? from.x + from.w / 2 : from.x;
+      const y1 = horizontal ? from.y : from.y + from.h / 2;
+      const x2 = horizontal ? to.x - to.w / 2 : to.x;
+      const y2 = horizontal ? to.y : to.y - to.h / 2;
+      const color = active ? colors.accent : colors.muted;
+
+      line(x1, y1, x2, y2, color, active ? 3 : 2, active ? [] : [5, 6]);
+
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      ctx.save();
+      ctx.translate(x2, y2);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-10, -6);
+      ctx.lineTo(-10, 6);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawChromatid(offset, direction, pulse) {
+      ctx.save();
+      ctx.translate(offset, 0);
+      ctx.lineCap = "round";
+
+      ctx.strokeStyle = colors.series1;
+      ctx.lineWidth = 25;
+      ctx.beginPath();
+      ctx.moveTo(direction * 28, -92);
+      ctx.bezierCurveTo(-direction * 18, -50, -direction * 18, 50, direction * 28, 92);
+      ctx.stroke();
+
+      for (let band = -72; band <= 72; band += 18) {
+        const centerX = Math.sin((band + phase * 12) * 0.07) * 12 * direction;
+        ctx.strokeStyle = band % 36 === 0 ? colors.accent : colors.series2;
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.arc(centerX, band + pulse, 12, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawChromosome(cx, cy, scale) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      const pulse = motionToggle.checked ? Math.sin(phase * 2) * 2 : 0;
+      drawChromatid(-3, 1, pulse);
+      drawChromatid(3, -1, -pulse);
+
+      circle(0, 0, 15, colors.accentSoft, colors.accent, 3);
+      circle(-5, 0, 4, colors.series2);
+      circle(5, 0, 4, colors.series2);
+
+      ctx.strokeStyle = colors.muted;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 23, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawLoopPath(anchorY, side, loopSize, wave) {
+      const anchorX = 0;
+      const outerX = side * (70 + loopSize);
+      const topY = anchorY - 17;
+      const bottomY = anchorY + 17;
+
+      ctx.beginPath();
+      ctx.moveTo(anchorX, topY);
+      ctx.bezierCurveTo(outerX, anchorY - 28 - wave, outerX, anchorY + 28 + wave, anchorX, bottomY);
+      ctx.strokeStyle = colors.series1;
+      ctx.lineWidth = 7;
+      ctx.stroke();
+
+      for (let t = 0.15; t < 0.95; t += 0.17) {
+        const u = 1 - t;
+        const x =
+          u * u * u * anchorX +
+          3 * u * u * t * outerX +
+          3 * u * t * t * outerX +
+          t * t * t * anchorX;
+        const y =
+          u * u * u * topY +
+          3 * u * u * t * (anchorY - 28 - wave) +
+          3 * u * t * t * (anchorY + 28 + wave) +
+          t * t * t * bottomY;
+
+        circle(x, y, 3.5, colors.accent);
+      }
+    }
+
+    function drawLoops(cx, cy, scale) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+      ctx.lineCap = "round";
+
+      line(0, -100, 0, 100, colors.muted, 9);
+
+      const anchors = [-78, -39, 0, 39, 78];
+      anchors.forEach((anchorY, index) => {
+        const side = index % 2 === 0 ? -1 : 1;
+        const wave = motionToggle.checked ? Math.sin(phase * 2 + index) * 7 : 0;
+        const loopSize = motionToggle.checked ? Math.sin(phase * 1.4 + index) * 5 : 0;
+
+        drawLoopPath(anchorY, side, loopSize, wave);
+        circle(0, anchorY, 8, colors.accentSoft, colors.accent, 2);
+        circle(0, anchorY, 3, colors.series2);
+      });
+
+      for (let y = -92; y <= 92; y += 12) {
+        circle(0, y, 2.2, colors.border);
+      }
+
+      ctx.restore();
+    }
+
+    function drawFiber(cx, cy, scale) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      const turns = 4.5;
+      const count = 80;
+
+      for (let index = 0; index < count; index += 1) {
+        const t = index / (count - 1);
+        const angle = t * Math.PI * 2 * turns + phase * 0.7;
+        const y = -96 + t * 192;
+        const x = Math.sin(angle) * 34;
+        const depth = (Math.cos(angle) + 1) / 2;
+        const radius = 5 + depth * 4;
+        const alpha = 0.35 + depth * 0.65;
+
+        circle(
+          x,
+          y,
+          radius,
+          index % 2 === 0 ? colors.series1 : colors.series2,
+          colors.border,
+          1,
+          alpha
+        );
+      }
+
+      ctx.beginPath();
+      for (let index = 0; index < count; index += 1) {
+        const t = index / (count - 1);
+        const angle = t * Math.PI * 2 * turns + phase * 0.7;
+        const y = -96 + t * 192;
+        const x = Math.sin(angle) * 34;
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = colors.accent;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.beginPath();
+      for (let y = -92; y <= 92; y += 4) {
+        const x = Math.sin(y * 0.11 - phase * 0.5) * 17;
+        if (y === -92) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = colors.muted;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawHistoneCore(x, y, radius) {
+      const subunitRadius = radius * 0.36;
+
+      for (let index = 0; index < 8; index += 1) {
+        const angle = index * Math.PI / 4 + phase * 0.15;
+        const sx = x + Math.cos(angle) * radius * 0.48;
+        const sy = y + Math.sin(angle) * radius * 0.48;
+        circle(
+          sx,
+          sy,
+          subunitRadius,
+          index % 2 === 0 ? colors.series1 : colors.series2,
+          colors.border,
+          1.3
+        );
+      }
+
+      circle(x, y, radius * 0.28, colors.accentSoft, colors.accent, 1.5);
+    }
+
+    function drawWrappedDNA(x, y, radius, phaseOffset) {
+      ctx.save();
+      ctx.beginPath();
+
+      const turns = 1.65;
+      for (let index = 0; index <= 70; index += 1) {
+        const t = index / 70;
+        const angle = phaseOffset + t * Math.PI * 2 * turns;
+        const wobble = motionToggle.checked ? Math.sin(phase * 2 + t * 8) * 1.2 : 0;
+        const px = x + Math.cos(angle) * (radius + 7 + wobble);
+        const py = y + Math.sin(angle) * (radius * 0.72 + 5);
+
+        if (index === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+
+      ctx.strokeStyle = colors.accent;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawNucleosomes(cx, cy, scale) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      const nodes = [
+        { x: -30, y: -72 },
+        { x: 30, y: -23 },
+        { x: -28, y: 28 },
+        { x: 30, y: 77 }
+      ];
+
+      for (let index = 0; index < nodes.length - 1; index += 1) {
+        const a = nodes[index];
+        const b = nodes[index + 1];
+        const bend = motionToggle.checked ? Math.sin(phase * 2 + index) * 7 : 0;
+
+        ctx.beginPath();
+        ctx.moveTo(a.x + 10, a.y + 14);
+        ctx.quadraticCurveTo((a.x + b.x) / 2 + bend, (a.y + b.y) / 2, b.x - 10, b.y - 14);
+        ctx.strokeStyle = colors.accent;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        circle((a.x + b.x) / 2 + bend * 0.4, (a.y + b.y) / 2, 4, colors.series4);
+      }
+
+      nodes.forEach((node, index) => {
+        drawHistoneCore(node.x, node.y, 19);
+        drawWrappedDNA(node.x, node.y, 19, index * 0.8 + phase * 0.08);
+      });
+
+      ctx.restore();
+    }
+
+    function helixPoint(y, side, rotation) {
+      return Math.sin(y * 0.058 + rotation + side * Math.PI) * 31;
+    }
+
+    function baseLabel(index) {
+      const labels = [["A", "T"], ["C", "G"], ["T", "A"], ["G", "C"]];
+      return labels[index % labels.length];
+    }
+
+    function drawHelix(cx, cy, scale, openingAmount = 0) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+      ctx.lineCap = "round";
+
+      const rotation = phase * 0.85;
+
+      for (let side = 0; side < 2; side += 1) {
+        ctx.beginPath();
+
+        for (let y = -104; y <= 104; y += 3) {
+          const forkFactor = openingAmount * Math.max(0, (30 - y) / 134);
+          const opening = forkFactor * 58;
+          const direction = side === 0 ? -1 : 1;
+          const x = helixPoint(y, side, rotation) + direction * opening;
+
+          if (y === -104) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+
+        ctx.strokeStyle = side === 0 ? colors.series1 : colors.accent;
+        ctx.lineWidth = 7;
+        ctx.stroke();
+      }
+
+      let pairIndex = 0;
+      for (let y = -92; y <= 96; y += 17) {
+        const forkFactor = openingAmount * Math.max(0, (30 - y) / 134);
+        const opening = forkFactor * 58;
+        if (openingAmount > 0 && opening > 24 && y < 25) continue;
+
+        const x1 = helixPoint(y, 0, rotation) - opening;
+        const x2 = helixPoint(y, 1, rotation) + opening;
+        const depth = (Math.cos(y * 0.058 + rotation) + 1) / 2;
+        const alpha = 0.35 + depth * 0.65;
+        const labels = baseLabel(pairIndex);
+
+        line(x1, y, x2, y, colors.muted, 2.5);
+
+        circle(x1 + (x2 - x1) * 0.25, y, 5, colors.series3, null, 1, alpha);
+        circle(x1 + (x2 - x1) * 0.75, y, 5, colors.series4, null, 1, alpha);
+
+        if (labelsToggle.checked && scale > 0.65) {
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = colors.text;
+          ctx.font = "8px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(labels[0], x1 + (x2 - x1) * 0.25, y + 3);
+          ctx.fillText(labels[1], x1 + (x2 - x1) * 0.75, y + 3);
+          ctx.restore();
+        }
+
+        pairIndex += 1;
+      }
+
+      if (openingAmount > 0) {
+        const forkY = 30;
+        const helicasePulse = motionToggle.checked ? Math.sin(phase * 3) * 1.8 : 0;
+        circle(0, forkY, 14 + helicasePulse, colors.accentSoft, colors.accent, 3);
+        circle(0, forkY, 6, colors.series2);
+
+        for (let index = 0; index < 8; index += 1) {
+          const angle = index * Math.PI / 4 + phase * 0.4;
+          circle(
+            Math.cos(angle) * 10,
+            forkY + Math.sin(angle) * 10,
+            2.5,
+            index % 2 === 0 ? colors.series1 : colors.series2
+          );
+        }
+
+        drawReplicationDetails(rotation);
+      }
+
+      ctx.restore();
+    }
+
+    function drawReplicationDetails(rotation) {
+      const nucleotideColors = [colors.series3, colors.series4, colors.series2, colors.accent];
+
+      for (let index = 0; index < 8; index += 1) {
+        const startX = index % 2 === 0 ? -82 : 82;
+        const startY = -86 + index * 20;
+        const drift = motionToggle.checked ? (phase * 22 + index * 11) % 35 : 12;
+        const direction = startX < 0 ? 1 : -1;
+        const x = startX + direction * drift;
+        const y = startY + Math.sin(phase * 2 + index) * 5;
+
+        circle(x, y, 5, nucleotideColors[index % nucleotideColors.length], colors.border, 1);
+      }
+
+      ctx.strokeStyle = colors.series2;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      for (let y = -12; y >= -76; y -= 4) {
+        const opening = Math.max(0, (30 - y) / 134) * 58;
+        const x = helixPoint(y, 0, rotation) - opening + 12;
+        if (y === -12) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      for (let fragment = 0; fragment < 3; fragment += 1) {
+        ctx.beginPath();
+        for (let step = 0; step <= 7; step += 1) {
+          const y = -18 - fragment * 30 - step * 3;
+          const opening = Math.max(0, (30 - y) / 134) * 58;
+          const x = helixPoint(y, 1, rotation) + opening - 12;
+
+          if (step === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = colors.series2;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+    }
+
+    function calculateLayout() {
+      boxes = [];
+
+      if (width < 580) {
+        const gap = 14;
+        const margin = 14;
+        const boxWidth = (width - margin * 2 - gap) / 2;
+        const boxHeight = (height - margin * 2 - gap * 2) / 3;
+
+        for (let index = 0; index < 6; index += 1) {
+          const row = Math.floor(index / 2);
+          const position = index % 2;
+          const column = row % 2 === 1 ? 1 - position : position;
+
+          boxes.push({
+            x: margin + boxWidth / 2 + column * (boxWidth + gap),
+            y: margin + boxHeight / 2 + row * (boxHeight + gap),
+            w: boxWidth,
+            h: boxHeight
+          });
+        }
+      } else {
+        const gap = 11;
+        const margin = 12;
+        const boxWidth = (width - margin * 2 - gap * 5) / 6;
+        const boxHeight = height - 70;
+
+        for (let index = 0; index < 6; index += 1) {
+          boxes.push({
+            x: margin + boxWidth / 2 + index * (boxWidth + gap),
+            y: height / 2,
+            w: boxWidth,
+            h: boxHeight
+          });
+        }
+      }
+    }
+
+    function drawStage(index, box) {
+      const distance = Math.abs(displayStage - index);
+      const strength = Math.max(0, 1 - distance);
+
+      ctx.save();
+      ctx.translate(box.x, box.y);
+      ctx.scale(1 + strength * 0.1, 1 + strength * 0.1);
+      ctx.translate(-box.x, -box.y);
+
+      roundedRect(box.x - box.w / 2, box.y - box.h / 2, box.w, box.h, 22);
+      ctx.fillStyle = strength > 0.35 ? colors.accentSoft : colors.card;
+      ctx.globalAlpha = 0.24 + strength * 0.4;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.strokeStyle = strength > 0.35 ? colors.accent : colors.border;
+      ctx.lineWidth = strength > 0.35 ? 3 : 1.5;
+      ctx.stroke();
+
+      const scale = Math.min(box.w / 150, box.h / 255);
+      const centerY = box.y - 7;
+
+      if (index === 0) drawChromosome(box.x, centerY, scale);
+      if (index === 1) drawLoops(box.x, centerY, scale);
+      if (index === 2) drawFiber(box.x, centerY, scale);
+      if (index === 3) drawNucleosomes(box.x, centerY, scale);
+      if (index === 4) drawHelix(box.x, centerY, scale, 0);
+      if (index === 5) drawHelix(box.x, centerY, scale, 1);
+
+      if (labelsToggle.checked) {
+        ctx.fillStyle = colors.text;
+        ctx.textAlign = "center";
+        ctx.font = `${Math.max(11, box.w * 0.078)}px sans-serif`;
+        ctx.fillText(stageData[index].title, box.x, box.y + box.h / 2 - 17);
+
+        ctx.fillStyle = strength > 0.35 ? colors.accent : colors.muted;
+        ctx.font = `${Math.max(10, box.w * 0.07)}px sans-serif`;
+        ctx.fillText(String(index + 1), box.x, box.y - box.h / 2 + 21);
+      }
+
+      ctx.restore();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = colors.panel;
+      ctx.fillRect(0, 0, width, height);
+
+      calculateLayout();
+
+      if (connectionsToggle.checked) {
+        for (let index = 0; index < boxes.length - 1; index += 1) {
+          drawArrow(boxes[index], boxes[index + 1], displayStage > index + 0.2);
+        }
+      }
+
+      boxes.forEach((box, index) => drawStage(index, box));
+    }
+
+    function updateText() {
+      const data = stageData[selectedStage];
+
+      stageSlider.value = selectedStage;
+      stageNumber.textContent = `${selectedStage + 1} of 6`;
+      stageTitle.textContent = data.title;
+      stageSummary.textContent = data.summary;
+      motionDescription.textContent = data.motion;
+      structures.textContent = data.structures;
+
+      stageButtons.forEach((button, index) => {
+        button.classList.toggle("active", index === selectedStage);
+      });
+
+      previousButton.disabled = selectedStage === 0;
+      nextButton.disabled = selectedStage === 5;
+    }
+
+    function setStage(stage) {
+      selectedStage = Math.max(0, Math.min(5, Number(stage)));
+      targetStage = selectedStage;
+      updateText();
+    }
+
+    function stopPlaying() {
+      playing = false;
+      playElapsed = 0;
+      playButton.textContent = "Play uncoiling";
+    }
+
+    function togglePlay() {
+      if (playing) {
+        stopPlaying();
+        return;
+      }
+
+      if (selectedStage === 5) setStage(0);
+
+      playing = true;
+      playElapsed = 0;
+      playButton.textContent = "Pause";
+    }
+
+    function findClickedStage(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      return boxes.findIndex(box =>
+        x >= box.x - box.w / 2 &&
+        x <= box.x + box.w / 2 &&
+        y >= box.y - box.h / 2 &&
+        y <= box.y + box.h / 2
+      );
+    }
+
+    function animate(timestamp) {
+      const delta = lastTime ? Math.min(50, timestamp - lastTime) : 16;
+      lastTime = timestamp;
+
+      if (motionToggle.checked) {
+        phase += delta * 0.001;
+      }
+
+      displayStage += (targetStage - displayStage) * Math.min(1, delta * 0.012);
+
+      if (playing) {
+        playElapsed += delta;
+        const delay = 3200 - Number(speedSlider.value) * 420;
+
+        if (playElapsed >= delay) {
+          playElapsed = 0;
+
+          if (selectedStage < 5) {
+            setStage(selectedStage + 1);
+          } else {
+            stopPlaying();
+          }
+        }
+      }
+
+      render();
+      requestAnimationFrame(animate);
+    }
+
+    canvas.addEventListener("click", event => {
+      const clicked = findClickedStage(event);
+
+      if (clicked >= 0) {
+        stopPlaying();
+        setStage(clicked);
+      }
+    });
+
+    canvas.addEventListener("mousemove", event => {
+      canvas.style.cursor = findClickedStage(event) >= 0 ? "pointer" : "default";
+    });
+
+    playButton.addEventListener("click", togglePlay);
+
+    previousButton.addEventListener("click", () => {
+      stopPlaying();
+      setStage(selectedStage - 1);
+    });
+
+    nextButton.addEventListener("click", () => {
+      stopPlaying();
+      setStage(selectedStage + 1);
+    });
+
+    resetButton.addEventListener("click", () => {
+      stopPlaying();
+      displayStage = 0;
+      setStage(0);
+    });
+
+    stageSlider.addEventListener("input", event => {
+      stopPlaying();
+      setStage(event.target.value);
+    });
+
+    stageButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        stopPlaying();
+        setStage(button.dataset.stage);
+      });
+    });
+
+    [labelsToggle, motionToggle, connectionsToggle].forEach(control => {
+      control.addEventListener("change", render);
+    });
+
+    const resizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+      render();
+    });
+
+    resizeObserver.observe(wrap);
+    resizeCanvas();
+    updateText();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

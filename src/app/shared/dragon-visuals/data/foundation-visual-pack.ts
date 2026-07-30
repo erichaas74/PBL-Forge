@@ -5,15 +5,22 @@ import { DragonVisualPackManifest } from '../domain/visual-pack.models';
 export const FOUNDATION_DRAGON_VISUAL_PACK: DragonVisualPackManifest = {
   manifestVersion: 1,
   packId: 'royal-hatchery-foundation',
-  packVersion: '1.0.0',
+  packVersion: '1.2.0',
   compatibleContractVersions: [DRAGON_VISUAL_CONTRACT_VERSION],
   assets: [],
   motions: [
     motion('instrument-focus', 800),
     motion('allele-trace', 1400),
     motion('trait-morph', 1200),
-    motion('evidence-highlight', 800),
+    motion('evidence-highlight', 900),
     motion('allele-transfer', 1300),
+    motion('evidence-path', 1500),
+    motion('card-to-tray', 1200),
+    motion('microscope-focus', 850),
+    motion('dna-uncoil', 1000),
+    motion('gene-locus-focus', 1000),
+    motion('allele-reveal', 1250),
+    motion('scan-sweep', 1200),
   ],
   teachingSequences: CORE_DRAGON_TEACHING_SEQUENCES,
 };
@@ -29,4 +36,3 @@ function motion(id: string, durationMs: number) {
     ],
   } as const;
 }
-

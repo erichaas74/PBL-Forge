@@ -1,0 +1,157 @@
+@if (model(); as vm) {
+  <section
+    class="microscope"
+    id="genome-microscope"
+    [class.reduced-motion]="reducedMotion()"
+    [style]="themeVariables()"
+    role="group"
+    aria-label="Genome microscope">
+
+    <p class="sr-only" aria-live="polite">{{ vm.summary }}</p>
+
+    <header class="console-head">
+      <div class="sample-record" [attr.data-target]="vm.targets.sampleRecord">
+        <span class="sample-vial" aria-hidden="true"><i></i></span>
+        <div>
+          <span class="tag">Analysis sample</span>
+          <strong>{{ vm.sample.label }}</strong>
+          <p>{{ vm.sample.caption }}</p>
+        </div>
+      </div>
+
+      <div class="run-state">
+        <span class="mode-chip">{{ vm.mode }} mode</span>
+        <ol class="phase-rail">
+          @for (step of phaseRail; track step.id) {
+            <li [class.active]="vm.phase === step.id" [class.done]="isPhaseDone(vm.phase, step.id)">
+              <i aria-hidden="true"></i>{{ step.label }}
+            </li>
+          }
+        </ol>
+      </div>
+    </header>
+
+    <section class="task-console" [attr.data-target]="vm.targets.predictionControl">
+      <div>
+        <span class="tag">Microscope assignment</span>
+        <strong>{{ vm.taskPrompt || 'Map the nested genetic information in this sample.' }}</strong>
+        @if (caption()) { <p class="sequence-caption">{{ caption() }}</p> }
+      </div>
+      <div class="prediction-options" aria-label="Predict the microscope level">
+        @for (level of vm.levels; track level.id) {
+          <button
+            type="button"
+            [class.locked]="vm.lockedPrediction === level.id"
+            [disabled]="!vm.predictionEnabled"
+            [attr.aria-pressed]="vm.lockedPrediction === level.id"
+            (click)="lockPrediction(level.id)">{{ level.title }}</button>
+        }
+      </div>
+    </section>
+
+    <div class="microscope-track" [attr.data-target]="vm.targets.zoomPath">
+      <div class="containment-line" aria-hidden="true">
+        <i [style.width.%]="traceProgress() * 100"></i>
+      </div>
+
+      @for (level of vm.levels; track level.id) {
+        <article
+          class="level-bay"
+          [class.active]="level.active"
+          [class.cue-active]="levelIsCueActive(level)"
+          [class.revealed]="level.revealed"
+          [class.evidence-selected]="level.evidenceSelected"
+          [style.--gm-level-accent]="level.accent"
+          [attr.data-target]="level.targetId">
+          <header><span>{{ level.position }}</span><small>{{ level.revealed ? 'Resolved' : 'Nested level' }}</small></header>
+          <button
+            type="button"
+            class="level-focus"
+            [attr.aria-label]="level.identityVisible ? 'Focus ' + level.title + ': ' + level.caption : 'Focus microscope bay ' + level.position"
+            [attr.aria-pressed]="level.active"
+            (click)="focusLevel(level)">
+            <app-genome-level-glyph
+              [level]="level.id"
+              [alleles]="vm.gene?.allelePair ?? ['?', '?']"
+              [revealed]="level.id === 'allele' && level.revealed" />
+            <span class="level-copy">
+              <strong>{{ level.identityVisible ? level.title : 'Microscope bay ' + level.position }}</strong>
+              <small>{{ level.identityVisible ? level.caption : 'Use the scientific model to choose its label' }}</small>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="label-slot"
+            [ngClass]="level.placement?.status ?? ''"
+            [class.drop-ready]="level.dropEnabled && !!selectedLabel()"
+            [disabled]="!level.dropEnabled"
+            [attr.data-target]="vm.targets.labelDropzone"
+            [attr.aria-label]="level.placedLabel ? level.placedLabel + ' label placed in slot ' + level.position : 'Place selected label in slot ' + level.position"
+            (click)="placeSelectedLabel(level)"
+            (dragover)="onSlotDragOver(level, $event)"
+            (drop)="onSlotDrop(level, $event)">
+            <span>{{ level.placedLabel || (level.dropEnabled ? 'Place selected label' : 'Unlabeled') }}</span>
+            @if (level.placement?.revealed) {
+              <b aria-hidden="true">{{ level.placement?.status === 'correct' ? '✓' : '!' }}</b>
+            }
+          </button>
+
+          @if (level.evidenceEnabled) {
+            <button
+              type="button"
+              class="evidence-pin"
+              [class.selected]="level.evidenceSelected"
+              [attr.aria-pressed]="level.evidenceSelected"
+              [attr.data-target]="vm.targets.evidenceMark"
+              (click)="pinEvidence(level)">{{ level.evidenceSelected ? 'Evidence pinned' : 'Pin as evidence' }}</button>
+          }
+        </article>
+      }
+    </div>
+
+    <footer class="console-foot">
+      <section class="label-bank" aria-label="Hierarchy label bank">
+        <span class="tag">Hierarchy labels</span>
+        <div>
+          @for (label of vm.labels; track label.id) {
+            <button
+              type="button"
+              draggable="true"
+              [disabled]="!label.enabled"
+              [class.selected]="selectedLabel() === label.id"
+              [class.placed]="label.placed"
+              [attr.aria-pressed]="selectedLabel() === label.id"
+              (click)="selectLabel(label)"
+              (dragstart)="onLabelDragStart(label, $event)"
+              (dragend)="onLabelDragEnd()">{{ label.label }}</button>
+          }
+        </div>
+      </section>
+
+      <section class="gene-readout" aria-label="Selected gene readout">
+        <span class="tag">Focused gene</span>
+        <strong>{{ vm.gene?.id ?? 'No gene loaded' }}</strong>
+        <small>Chromosome model {{ vm.gene?.chromosomeModel ?? '—' }} · {{ vm.gene?.traitId ?? '—' }}</small>
+        @if (vm.levels[4].revealed && vm.gene) {
+          <div class="allele-readout">
+            <i [attr.data-target]="vm.targets.alleleSlotA">{{ vm.gene.allelePair[0] }}</i>
+            <span>allele pair</span>
+            <i [attr.data-target]="vm.targets.alleleSlotB">{{ vm.gene.allelePair[1] }}</i>
+          </div>
+        }
+      </section>
+
+      @if (vm.revealEnabled) {
+        <button type="button" class="replay" (click)="replayZoom()">Replay containment zoom</button>
+      }
+    </footer>
+
+    @if (feedback(); as note) {
+      <aside class="feedback" [ngClass]="note.tone" role="status">
+        <strong>{{ note.headline }}</strong>
+        @if (note.detail) { <span>{{ note.detail }}</span> }
+      </aside>
+    }
+  </section>
+}

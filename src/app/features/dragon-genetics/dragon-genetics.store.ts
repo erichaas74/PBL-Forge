@@ -11,6 +11,18 @@ import {
   TraitSortCategory,
 } from './simulation/domain/dragon-lab.models';
 import {
+  TraitEvidenceMisconception,
+  TraitEvidenceRecord,
+} from './simulation/domain/trait-evidence.models';
+import { GenomeMicroscopeRecord } from './simulation/domain/genome-microscope.models';
+import {
+  GenotypeScanAnswer,
+  GenotypeScanRecord,
+  GenotypeScannerMisconception,
+} from './simulation/domain/genotype-scanner.models';
+import { genotypeScannerTask } from './simulation/data/genotype-scanner-content';
+import { AlleleWorkbenchRecord } from './simulation/domain/allele-workbench.models';
+import {
   GENOME_PATH,
   GENOME_QUICK_QUESTIONS,
   LICENSE_QUESTIONS,
@@ -48,6 +60,10 @@ import { DragonGeneticsRepository } from './dragon-genetics.repository';
 const STORAGE_KEY = 'pbl-forge.dragon-genetics.v3';
 const LEGACY_STORAGE_KEY = 'pbl-forge.dragon-genetics.v2';
 const MAX_EVENTS = 120;
+const MAX_TRAIT_EVIDENCE_RECORDS = 40;
+const MAX_GENOME_MICROSCOPE_RECORDS = 30;
+const MAX_GENOTYPE_SCAN_RECORDS = 30;
+const MAX_ALLELE_WORKBENCH_RECORDS = 30;
 
 @Injectable()
 export class DragonGeneticsStore {
@@ -136,13 +152,42 @@ export class DragonGeneticsStore {
     }));
   }
 
+  /**
+   * Saves one Trait Evidence Analyzer result and mirrors its classification into the
+   * Module 1 trait-sort answers so existing completion and mastery rules keep working.
+   */
+  recordTraitEvidence(record: TraitEvidenceRecord): void {
+    const sortCardId = TRAIT_SORT_CARDS
+      .find(card => card.id === record.observationId)?.id;
+    this.update(snapshot => ({
+      ...snapshot,
+      traitEvidenceRecords: [
+        ...snapshot.traitEvidenceRecords.filter(existing =>
+          existing.observationId !== record.observationId || existing.mode !== record.mode),
+        record,
+      ].slice(-MAX_TRAIT_EVIDENCE_RECORDS),
+      sortAnswers: sortCardId
+        ? {
+          ...snapshot.sortAnswers,
+          [sortCardId]: record.placedCategory === 'inherited' ? 'inherited' : 'learned-environmental',
+        }
+        : snapshot.sortAnswers,
+    }));
+    this.addEvent(1, 'trait-evidence', `${record.observationId}: placed ${record.placedCategory} (${record.correct ? 'correct' : 'incorrect'}), evidence ${record.clueCorrect ? 'supported' : 'unsupported'}`);
+  }
+
   checkTraitSort(): { correct: number; total: number; complete: boolean } {
     const correct = TRAIT_SORT_CARDS.filter(card => this.snapshot().sortAnswers[card.id] === card.category).length;
     const total = TRAIT_SORT_CARDS.length;
-    const flags = TRAIT_SORT_CARDS
-      .filter(card => this.snapshot().sortAnswers[card.id] && this.snapshot().sortAnswers[card.id] !== card.category)
-      .map(card => card.category === 'inherited' ? 'inherited-marked-acquired' : 'acquired-marked-inherited');
-    this.recordMastery('GEN-1', correct, total, flags);
+    const flags = [
+      ...TRAIT_SORT_CARDS
+        .filter(card => this.snapshot().sortAnswers[card.id] && this.snapshot().sortAnswers[card.id] !== card.category)
+        .map(card => card.category === 'inherited' ? 'inherited-marked-acquired' : 'acquired-marked-inherited'),
+      ...this.snapshot().traitEvidenceRecords
+        .map(record => record.misconception)
+        .filter((flag): flag is TraitEvidenceMisconception => !!flag),
+    ];
+    this.recordMastery('GEN-1', correct, total, [...new Set(flags)]);
     const diagnosticReady = Object.values(this.snapshot().diagnosticAnswers)
       .filter(answer => answer.trim().length >= 10).length >= 3;
     const correctionReady = this.snapshot().correctedMisconception.trim().length >= 30;
@@ -161,6 +206,24 @@ export class DragonGeneticsStore {
     this.update(snapshot => ({ ...snapshot, genomePath: [] }));
   }
 
+  /** Saves compact microscope evidence and mirrors a verified hierarchy into Module 2. */
+  recordGenomeMicroscope(record: GenomeMicroscopeRecord): void {
+    this.update(snapshot => ({
+      ...snapshot,
+      genomeMicroscopeRecords: [
+        ...snapshot.genomeMicroscopeRecords.filter(existing =>
+          existing.taskId !== record.taskId || existing.mode !== record.mode),
+        record,
+      ].slice(-MAX_GENOME_MICROSCOPE_RECORDS),
+      genomePath: record.hierarchyCorrect ? [...GENOME_PATH] : snapshot.genomePath,
+    }));
+    this.addEvent(
+      2,
+      'genome-microscope',
+      `${record.taskId}: predicted ${record.predictedLevel}, evidence ${record.evidenceLevelId}, hierarchy ${record.hierarchyCorrect ? 'verified' : 'unverified'}`,
+    );
+  }
+
   setGenomeQuickAnswer(questionId: string, optionId: string): void {
     this.update(snapshot => ({
       ...snapshot,
@@ -172,10 +235,23 @@ export class DragonGeneticsStore {
     const pathCorrect = GENOME_PATH.every((term, index) => this.snapshot().genomePath[index] === term);
     const quickCorrect = GENOME_QUICK_QUESTIONS.filter(question =>
       this.snapshot().genomeQuickAnswers[question.id] === question.correctOptionId).length;
-    const correct = pathCorrect && quickCorrect === GENOME_QUICK_QUESTIONS.length;
-    const score = countMatchingPositions(this.snapshot().genomePath, GENOME_PATH) + quickCorrect;
-    this.recordMastery('GEN-2', score, GENOME_PATH.length + GENOME_QUICK_QUESTIONS.length,
-      correct ? [] : ['hierarchy-confusion']);
+    const microscopeReady = this.snapshot().genomeMicroscopeRecords.some(record =>
+      record.hierarchyCorrect && record.predictionCorrect && record.evidenceCorrect);
+    const correct = pathCorrect
+      && microscopeReady
+      && quickCorrect === GENOME_QUICK_QUESTIONS.length;
+    const score = countMatchingPositions(this.snapshot().genomePath, GENOME_PATH)
+      + quickCorrect
+      + (microscopeReady ? 1 : 0);
+    const microscopeFlags = this.snapshot().genomeMicroscopeRecords
+      .map(record => record.misconception)
+      .filter((flag): flag is NonNullable<typeof flag> => !!flag);
+    this.recordMastery(
+      'GEN-2',
+      score,
+      GENOME_PATH.length + GENOME_QUICK_QUESTIONS.length + 1,
+      [...new Set([...(!correct ? ['hierarchy-confusion'] : []), ...microscopeFlags])],
+    );
     if (correct) this.completeModule(2, 'Biological information pathway decoded');
     return correct;
   }
@@ -187,11 +263,48 @@ export class DragonGeneticsStore {
     }));
   }
 
+  /**
+   * Saves one Genotype Scanner result and mirrors its verdict into the Module 3 phenotype
+   * answers so the existing completion gate and GEN-3 mastery keep working.
+   */
+  recordGenotypeScan(record: GenotypeScanRecord): void {
+    const questionId = genotypeScannerTask(record.taskId).questionId;
+    const mirrored = questionId
+      ? phenotypeAnswerFor({
+        taskId: record.taskId,
+        questionId,
+        correct: record.selectionCorrect,
+      })
+      : null;
+    this.update(snapshot => ({
+      ...snapshot,
+      genotypeScanRecords: [
+        ...snapshot.genotypeScanRecords.filter(existing =>
+          existing.taskId !== record.taskId || existing.mode !== record.mode),
+        record,
+      ].slice(-MAX_GENOTYPE_SCAN_RECORDS),
+      phenotypeAnswers: mirrored
+        ? { ...snapshot.phenotypeAnswers, [mirrored.questionId]: mirrored.optionId }
+        : snapshot.phenotypeAnswers,
+    }));
+    this.addEvent(
+      3,
+      'genotype-scan',
+      `${record.taskId}: selected ${record.selectedOptionIds.join('/') || 'nothing'} against ${record.revealedGenotype} (${record.selectionCorrect ? 'supported' : 'unsupported'}), evidence ${record.evidenceCorrect ? 'supported' : 'unsupported'}`,
+    );
+  }
+
   checkPhenotypeAnswers(): { correct: number; total: number; complete: boolean } {
     const correct = PHENOTYPE_QUESTIONS.filter(question =>
       this.snapshot().phenotypeAnswers[question.id] === question.correctOptionId).length;
     const total = PHENOTYPE_QUESTIONS.length;
-    this.recordMastery('GEN-3', correct, total, correct === total ? [] : ['genotype-phenotype-swap']);
+    const flags = [
+      ...(correct === total ? [] : ['genotype-phenotype-swap']),
+      ...this.snapshot().genotypeScanRecords
+        .map(record => record.misconception)
+        .filter((flag): flag is GenotypeScannerMisconception => !!flag),
+    ];
+    this.recordMastery('GEN-3', correct, total, [...new Set(flags)]);
     const complete = correct === total;
     if (complete) this.completeModule(3, 'Genotype and phenotype evidence verified');
     return { correct, total, complete };
@@ -204,12 +317,37 @@ export class DragonGeneticsStore {
     }));
   }
 
+  /** Saves compact workbench evidence and mirrors its prediction into Module 4 grading. */
+  recordAlleleWorkbench(record: AlleleWorkbenchRecord): void {
+    this.update(snapshot => ({
+      ...snapshot,
+      alleleWorkbenchRecords: [
+        ...snapshot.alleleWorkbenchRecords.filter(existing =>
+          existing.taskId !== record.taskId || existing.mode !== record.mode),
+        record,
+      ].slice(-MAX_ALLELE_WORKBENCH_RECORDS),
+      ruleAnswers: {
+        ...snapshot.ruleAnswers,
+        [record.taskId]: record.predictedPhenotypeId,
+      },
+    }));
+    this.addEvent(
+      4,
+      'allele-workbench',
+      `${record.taskId}: ${record.workingAlleles.join('')} predicted ${record.predictedPhenotypeId}, result ${record.actualPhenotypeId}, evidence ${record.evidenceId}`,
+    );
+  }
+
   checkRuleAnswers(): { correct: number; total: number; complete: boolean } {
     const correct = TRAIT_RULE_CHALLENGES.filter(challenge =>
       this.snapshot().ruleAnswers[challenge.id] === challenge.correctAnswer).length;
     const total = TRAIT_RULE_CHALLENGES.length;
     this.recordMastery('GEN-4', correct, total, correct === total ? [] : ['dominance-rule-error']);
-    const complete = correct === total;
+    const supportedTasks = new Set(this.snapshot().alleleWorkbenchRecords
+      .filter(record => record.constructionCorrect && record.predictionCorrect && record.evidenceCorrect)
+      .map(record => record.taskId));
+    const workbenchReady = TRAIT_RULE_CHALLENGES.every(challenge => supportedTasks.has(challenge.id));
+    const complete = correct === total && workbenchReady;
     if (complete) this.completeModule(4, 'Dominant/recessive rules applied');
     return { correct, total, complete };
   }
@@ -700,6 +838,20 @@ export function migrateDragonSnapshot(value: unknown): DragonGeneticsSnapshot | 
     };
   }
   return migrated;
+}
+
+/**
+ * Converts a scanner verdict into the Module 3 question bank answer it stands for, so a
+ * supported selection records the correct option and an unsupported one records a wrong option.
+ */
+function phenotypeAnswerFor(
+  answer: GenotypeScanAnswer,
+): { questionId: string; optionId: string } | null {
+  const question = PHENOTYPE_QUESTIONS.find(candidate => candidate.id === answer.questionId);
+  if (!question) return null;
+  if (answer.correct) return { questionId: question.id, optionId: question.correctOptionId };
+  const wrong = question.options.find(option => option.id !== question.correctOptionId);
+  return wrong ? { questionId: question.id, optionId: wrong.id } : null;
 }
 
 function countMatchingPositions(actual: readonly string[], expected: readonly string[]): number {

@@ -2,7 +2,7 @@
 
 PBL Forge is an Angular and Firebase foundation for delivering project-based learning experiences to students. It includes a Firestore-backed project catalog, sequenced activity player, response saving, teacher dashboards, local demo data, and tested deny-by-default security rules. The featured Dragon Genetics experience is a complete three-week Grade 7 heredity PBL with genetics simulation, official breeding, and a physics arena.
 
-Active application code lives under `src/app`; reusable assembly, garage, arena, and creation-library code is under `src/app/shared`. Historical standalone and migration implementations remain outside `src` and are not compiled. See [Code organization](docs/CODE_ORGANIZATION.md) and the [Dragon Genetics visual laboratory plan](docs/DRAGON_GENETICS_VISUAL_LAB_PLAN.md).
+Active application code lives under `src/app`; reusable assembly, garage, arena, and creation-library code is under `src/app/shared`. Historical standalone and migration implementations remain outside `src` and are not compiled. See [Code organization](docs/CODE_ORGANIZATION.md), the [Dragon Genetics visual laboratory plan](docs/DRAGON_GENETICS_VISUAL_LAB_PLAN.md), and the [station simulation build guides](docs/dragon-genetics-simulations/README.md).
 
 ## Start locally
 

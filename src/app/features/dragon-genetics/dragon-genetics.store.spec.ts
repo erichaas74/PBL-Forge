@@ -12,6 +12,8 @@ import {
   WEEK2_MASTERY_QUESTIONS,
 } from './dragon-genetics.content';
 import { createDefaultDragonSnapshot } from './dragon-genetics.domain';
+import { alleleWorkbenchTask } from './simulation/data/allele-workbench-content';
+import { getTrait } from './simulation/domain/dragon-inheritance';
 import { DragonGeneticsRepository } from './dragon-genetics.repository';
 import { DragonGeneticsStore, migrateDragonSnapshot } from './dragon-genetics.store';
 
@@ -71,6 +73,24 @@ describe('DragonGeneticsStore', () => {
     expect(store.checkTraitSort().complete).toBeTrue();
 
     for (const term of GENOME_PATH) store.chooseGenomePathTerm(term);
+    store.recordGenomeMicroscope({
+      sceneId: 'module-2-genome-test',
+      seed: 'module-2:test',
+      sampleId: 'ember',
+      taskId: 'find-allele-versions',
+      mode: 'learn',
+      focusGeneId: 'W',
+      predictedLevel: 'allele',
+      requestedLevel: 'allele',
+      predictionCorrect: true,
+      hierarchyCorrect: true,
+      hierarchyAttempts: 1,
+      evidenceLevelId: 'allele',
+      evidenceCorrect: true,
+      misconception: null,
+      elapsedMs: 1200,
+      createdAtIso: '2026-07-30T00:00:00.000Z',
+    });
     for (const question of GENOME_QUICK_QUESTIONS) {
       store.setGenomeQuickAnswer(question.id, question.correctOptionId);
     }
@@ -82,7 +102,37 @@ describe('DragonGeneticsStore', () => {
     expect(store.checkPhenotypeAnswers().complete).toBeTrue();
 
     for (const challenge of TRAIT_RULE_CHALLENGES) {
-      store.setRuleAnswer(challenge.id, challenge.correctAnswer);
+      const task = alleleWorkbenchTask(challenge.id);
+      const trait = getTrait(challenge.traitId);
+      const genotypeClassId = challenge.genotype[0] !== challenge.genotype[1]
+        ? 'heterozygous' as const
+        : challenge.genotype[0] === trait.dominantAllele
+          ? 'homozygous-dominant' as const
+          : 'homozygous-recessive' as const;
+      store.recordAlleleWorkbench({
+        sceneId: `module-4-${challenge.id}`,
+        seed: `module-4:${challenge.id}`,
+        sampleId: 'ember',
+        taskId: challenge.id,
+        mode: 'learn',
+        traitId: challenge.traitId,
+        focusGeneId: trait.geneSymbol,
+        startingAlleles: task.startingAlleles,
+        workingAlleles: challenge.genotype,
+        requestedAlleles: challenge.genotype,
+        constructionCorrect: true,
+        predictedPhenotypeId: challenge.correctAnswer,
+        actualPhenotypeId: challenge.correctAnswer,
+        predictionCorrect: true,
+        genotypeClassId,
+        carrierState: genotypeClassId === 'heterozygous',
+        evidenceId: task.evidenceId,
+        evidenceCorrect: true,
+        misconception: null,
+        moveCount: 1,
+        elapsedMs: 900,
+        createdAtIso: '2026-07-30T00:00:00.000Z',
+      });
     }
     expect(store.checkRuleAnswers().complete).toBeTrue();
 

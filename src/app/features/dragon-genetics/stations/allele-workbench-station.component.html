@@ -1,0 +1,58 @@
+<section class="station">
+  <header class="station-head">
+    <div><span class="eyebrow">Station 4 · Expression rule lab · GEN-4</span><h3>Allele Workbench</h3><p>Change one allele, predict the phenotype, then trace expression. This scientific instrument shows genes, allele pairs, and rule evidence—not dragon body parts.</p></div>
+    <span class="mode-tag">{{ modeLabel() }}</span>
+  </header>
+
+  <section class="sample-selector" aria-label="Choose a genome extract">
+    <div><span class="eyebrow">Sample console</span><strong>Choose a genome extract</strong></div>
+    @for (profile of profiles; track profile.id) {
+      <button type="button" [class.selected]="selectedSampleId() === profile.id" [disabled]="runPhaseLocked()" [attr.aria-pressed]="selectedSampleId() === profile.id" (click)="selectSample(profile.id)">
+        <span aria-hidden="true"></span><strong>{{ profile.name }}</strong><small>Sample {{ profile.id.toUpperCase() }}</small>
+      </button>
+    }
+  </section>
+
+  <section class="task-strip" aria-label="Current allele assignment">
+    <span class="gene-badge">Chromosome model {{ focusTrait().chromosomeModel }} · gene {{ focusTrait().geneSymbol }}</span>
+    <div><strong>{{ activeTask().prompt }}</strong><small>Starting pair {{ activeTask().startingAlleles.join('') }} → assigned pair {{ activeTask().requestedAlleles.join('') }}</small></div>
+  </section>
+
+  <div class="station-grid">
+    <app-allele-switchboard-display [copy]="copy" [feedback]="feedback()" (stageEvent)="onStageEvent($event)" />
+
+    <aside class="evidence-dock" aria-label="Allele evidence dock">
+      <h4>Expression notebook</h4>
+      <dl>
+        <div><dt>Sample</dt><dd>{{ selectedSample().name }}</dd></div>
+        <div><dt>Gene</dt><dd>{{ focusTrait().geneSymbol }} · {{ focusTrait().name }}</dd></div>
+        <div><dt>Pair</dt><dd>{{ currentPair() }}</dd></div>
+        <div><dt>Prediction</dt><dd>{{ currentPrediction() }}</dd></div>
+        <div><dt>Evidence</dt><dd>{{ currentEvidence() }}</dd></div>
+      </dl>
+
+      <section class="notebook">
+        <h5>Saved records <b>{{ records().length }}</b></h5>
+        @if (!records().length) {
+          <p>Completed records will preserve the starting pair, working pair, prediction, result, carrier state, and rule evidence.</p>
+        } @else {
+          <ol>
+            @for (record of records(); track record.taskId) {
+              <li [class.correct]="mode() !== 'official' && record.predictionCorrect && record.evidenceCorrect">
+                <span aria-hidden="true">{{ mode() === 'official' ? '•' : (record.predictionCorrect && record.evidenceCorrect ? '✓' : '!') }}</span>
+                <div><strong>{{ taskLabel(record.taskId) }}</strong><small>{{ record.workingAlleles.join('') }} · {{ record.genotypeClassId.replaceAll('-', ' ') }} · {{ record.actualPhenotypeId }}</small></div>
+              </li>
+            }
+          </ol>
+        }
+      </section>
+
+      <p class="boundary"><strong>Dominant ≠ stronger</strong>Dominant does not mean better, healthier, more common, or more useful in battle. It only describes expression in this classroom model.</p>
+    </aside>
+  </div>
+
+  <div class="action-rail">
+    <p>{{ stepHint() }}</p><span>Task {{ activeTaskNumber() }} of {{ taskCount() }} · {{ correctCount() }} records fully supported</span>
+    <button type="button" [disabled]="primaryAction().disabled" (click)="runPrimaryAction()">{{ primaryAction().label }}</button>
+  </div>
+</section>

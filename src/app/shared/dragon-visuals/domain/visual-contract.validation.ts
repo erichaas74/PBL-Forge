@@ -1,4 +1,12 @@
-import { DRAGON_VISUAL_CONTRACT_VERSION, DragonVisualScene } from './dragon-visual.models';
+import {
+  DRAGON_VISUAL_CONTRACT_VERSION,
+  AlleleSwitchboardInstrument,
+  DragonGenomeLevelId,
+  DragonVisualScene,
+  GenomeMicroscopeInstrument,
+  GenotypeScannerInstrument,
+  TraitInspectorInstrument,
+} from './dragon-visual.models';
 import { DragonTeachingSequence } from './teaching-sequence.models';
 import { DragonVisualPackManifest } from './visual-pack.models';
 
@@ -21,6 +29,167 @@ export function validateDragonVisualScene(scene: DragonVisualScene): string[] {
     if (!sampleIds.has(referencedSampleId)) {
       errors.push(`Instrument references missing analysis sample ${referencedSampleId}.`);
     }
+  }
+  if (scene.instrument.kind === 'trait-inspector') {
+    errors.push(...validateTraitInspector(scene.instrument));
+  }
+  if (scene.instrument.kind === 'genome-microscope') {
+    errors.push(...validateGenomeMicroscope(scene, scene.instrument));
+  }
+  if (scene.instrument.kind === 'genotype-scanner') {
+    errors.push(...validateGenotypeScanner(scene, scene.instrument));
+  }
+  if (scene.instrument.kind === 'allele-switchboard') {
+    errors.push(...validateAlleleSwitchboard(scene, scene.instrument));
+  }
+  return errors;
+}
+
+function validateAlleleSwitchboard(
+  scene: DragonVisualScene,
+  instrument: AlleleSwitchboardInstrument,
+): string[] {
+  const errors: string[] = [];
+  const sample = scene.samples.find(candidate => candidate.id === instrument.sampleId);
+  if (sample && !sample.genes.some(gene =>
+    gene.geneId === instrument.focusGeneId || gene.traitId === instrument.focusGeneId)) {
+    errors.push(`Allele switchboard focus gene ${instrument.focusGeneId} is missing from the sample.`);
+  }
+  const allowed = new Set([instrument.dominantAllele, instrument.recessiveAllele]);
+  for (const symbol of [
+    ...instrument.startingAlleles,
+    ...instrument.requestedAlleles,
+    ...instrument.workingAlleles,
+  ]) {
+    if (!allowed.has(symbol)) errors.push(`Allele switchboard contains unknown allele ${symbol}.`);
+  }
+  if (instrument.dominantAllele === instrument.recessiveAllele) {
+    errors.push('Dominant and recessive allele symbols must be different.');
+  }
+  const evidenceIds = (instrument.evidenceMarks ?? []).map(mark => mark.id);
+  const markIds = new Set(evidenceIds);
+  if (hasDuplicateIds(evidenceIds)) errors.push('Allele switchboard evidence mark IDs must be unique.');
+  if (instrument.evidenceMarkId && !markIds.has(instrument.evidenceMarkId)) {
+    errors.push(`Pinned allele evidence ${instrument.evidenceMarkId} is not in the scene.`);
+  }
+  return errors;
+}
+
+function validateGenotypeScanner(
+  scene: DragonVisualScene,
+  instrument: GenotypeScannerInstrument,
+): string[] {
+  const errors: string[] = [];
+  const sample = scene.samples.find(candidate => candidate.id === instrument.sampleId);
+  if (sample && !sample.genes.some(gene =>
+    gene.geneId === instrument.focusGeneId || gene.traitId === instrument.focusGeneId)) {
+    errors.push(`Genotype scanner focus gene ${instrument.focusGeneId} is missing from the sample.`);
+  }
+  if (instrument.comparisonSampleId
+    && !scene.samples.some(candidate => candidate.id === instrument.comparisonSampleId)) {
+    errors.push(`Comparison sample ${instrument.comparisonSampleId} is not in the scene.`);
+  }
+
+  const options = instrument.options ?? [];
+  if (hasDuplicateIds(options.map(option => option.id))) {
+    errors.push('Scanner option IDs must be unique.');
+  }
+  const optionIds = new Set(options.map(option => option.id));
+  for (const selectedId of instrument.selectedOptionIds ?? []) {
+    if (!optionIds.has(selectedId)) {
+      errors.push(`Scanner selection references missing option ${selectedId}.`);
+    }
+  }
+  for (const status of instrument.optionStatuses ?? []) {
+    if (!optionIds.has(status.optionId)) {
+      errors.push(`Scanner status references missing option ${status.optionId}.`);
+    }
+  }
+  for (const option of options) {
+    if (option.kind === 'genotype' && !option.alleles) {
+      errors.push(`Genotype option ${option.id} requires an allele pair.`);
+    }
+    if (option.kind === 'phenotype' && !option.labelId) {
+      errors.push(`Phenotype option ${option.id} requires a label ID.`);
+    }
+  }
+
+  const markIds = new Set((instrument.evidenceMarks ?? []).map(mark => mark.id));
+  if (hasDuplicateIds((instrument.evidenceMarks ?? []).map(mark => mark.id))) {
+    errors.push('Evidence mark IDs must be unique.');
+  }
+  if (instrument.evidenceMarkId && !markIds.has(instrument.evidenceMarkId)) {
+    errors.push(`Pinned evidence mark ${instrument.evidenceMarkId} is not in the scene.`);
+  }
+  return errors;
+}
+
+const GENOME_LEVELS: readonly DragonGenomeLevelId[] = [
+  'cell',
+  'chromosome',
+  'dna',
+  'gene',
+  'allele',
+];
+
+function validateGenomeMicroscope(
+  scene: DragonVisualScene,
+  instrument: GenomeMicroscopeInstrument,
+): string[] {
+  const errors: string[] = [];
+  const sample = scene.samples.find(candidate => candidate.id === instrument.sampleId);
+  if (instrument.focusGeneId && sample && !sample.genes.some(gene =>
+    gene.geneId === instrument.focusGeneId || gene.traitId === instrument.focusGeneId)) {
+    errors.push(`Genome microscope focus gene ${instrument.focusGeneId} is missing from the sample.`);
+  }
+  const placements = instrument.labelPlacements ?? [];
+  if (hasDuplicateIds(placements.map(placement => placement.labelId))) {
+    errors.push('Genome microscope label IDs must be unique.');
+  }
+  if (hasDuplicateIds(placements.map(placement => placement.levelId))) {
+    errors.push('Genome microscope level slots may contain only one label.');
+  }
+  for (const placement of placements) {
+    if (!GENOME_LEVELS.includes(placement.labelId)
+      || !GENOME_LEVELS.includes(placement.levelId)) {
+      errors.push('Genome microscope placement references an unknown hierarchy level.');
+    }
+  }
+  if (instrument.evidenceLevelId
+    && !GENOME_LEVELS.includes(instrument.evidenceLevelId)) {
+    errors.push('Genome microscope evidence references an unknown hierarchy level.');
+  }
+  return errors;
+}
+
+function validateTraitInspector(instrument: TraitInspectorInstrument): string[] {
+  const errors: string[] = [];
+  const observationIds = instrument.observations.map(observation => observation.id);
+  if (hasDuplicateIds(observationIds)) errors.push('Observation IDs must be unique.');
+
+  const clueIds = new Set((instrument.clues ?? []).map(clue => clue.id));
+  if (hasDuplicateIds((instrument.clues ?? []).map(clue => clue.id))) {
+    errors.push('Evidence clue IDs must be unique.');
+  }
+  for (const observation of instrument.observations) {
+    for (const clueId of observation.clueIds ?? []) {
+      if (!clueIds.has(clueId)) {
+        errors.push(`Observation ${observation.id} references missing clue ${clueId}.`);
+      }
+    }
+  }
+
+  const knownObservationIds = new Set(observationIds);
+  for (const placement of instrument.placements ?? []) {
+    if (!knownObservationIds.has(placement.observationId)) {
+      errors.push(`Placement references missing observation ${placement.observationId}.`);
+    }
+    if (placement.pinnedClueId && !clueIds.has(placement.pinnedClueId)) {
+      errors.push(`Placement ${placement.observationId} pins missing clue ${placement.pinnedClueId}.`);
+    }
+  }
+  if (instrument.activeObservationId && !knownObservationIds.has(instrument.activeObservationId)) {
+    errors.push(`Active observation ${instrument.activeObservationId} is not in the scene.`);
   }
   return errors;
 }

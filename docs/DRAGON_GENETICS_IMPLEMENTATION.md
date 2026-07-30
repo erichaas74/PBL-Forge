@@ -1,6 +1,8 @@
 # Dragon Genetics implementation guide
 
 The laboratory visual redesign and per-question simulation coverage plan is documented in [DRAGON_GENETICS_VISUAL_LAB_PLAN.md](DRAGON_GENETICS_VISUAL_LAB_PLAN.md).
+Detailed renderer and teaching specifications are indexed in the
+[Dragon Genetics simulation build guides](dragon-genetics-simulations/README.md).
 
 This experience implements the supplied three-week lesson plan and teaching/assessment requirements as a ten-module student journey. It is designed for Grade 7 MS-LS3 heredity and variation, with supporting MS-LS1 reproduction concepts.
 
@@ -17,7 +19,7 @@ Modules unlock in sequence. Local emulator mode includes a teacher-preview navig
 | 1 | 1. Trait Detective | Impossible Hatchling diagnostic, rotating role, eight classifications, misconception correction | GEN-1 |
 | 1 | 2. Genome Decoder | Dragon-to-allele pathway plus four-question quick check | GEN-2 |
 | 1 | 3. Genotype → Phenotype | Phenotype-first and genotype-first evidence | GEN-3 |
-| 1 | 4. Trait Rule Lab | Four predict-before-reveal dominance trials | GEN-4 |
+| 1 | 4. Trait Rule Lab | Four Allele Workbench construction, prediction, expression-trace, and rule-evidence records | GEN-4 |
 | 1 | 5. Breeding Predictor | Four locked genotype/phenotype distributions plus 10-question Week 1 mastery | GEN-1–5 |
 | 2 | 6. Probability vs. Actual | 8-offspring and 100-offspring comparisons | GEN-5, GEN-7 |
 | 2 | 7. Sexual vs. Asexual | Two-parent versus clone-style model | GEN-6, GEN-7 |
