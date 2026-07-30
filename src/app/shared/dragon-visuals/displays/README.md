@@ -21,6 +21,7 @@ Station folders correspond to these contract kinds:
 - `genome-microscope` - built ([station README](genome-microscope/README.md))
 - `genotype-scanner` — built ([station README](genotype-scanner/README.md))
 - `allele-switchboard` - built ([station README](allele-switchboard/README.md))
+- `dragon-hatchery` — built, shared by several modules ([station README](dragon-hatchery/README.md))
 - `punnett-composer`
 - `incubator-sampler`
 - `reproduction-comparison`
