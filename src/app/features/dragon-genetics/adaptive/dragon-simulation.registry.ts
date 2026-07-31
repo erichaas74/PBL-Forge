@@ -1,0 +1,292 @@
+import {
+  DragonAssignment,
+  DragonSimulationDefinition,
+  DragonSimulationId,
+  InstructionLevel,
+  InstructionLevelProfile,
+  INSTRUCTION_LEVEL_LABELS,
+  LevelChallenge,
+  SimulationSectionDefinition,
+} from './dragon-simulation.models';
+
+export const DRAGON_SIMULATION_CONTENT_VERSION = 1;
+
+export const LEVEL_PROFILES: Record<InstructionLevel, InstructionLevelProfile> = {
+  'grade-7': {
+    id: 'grade-7',
+    label: INSTRUCTION_LEVEL_LABELS['grade-7'],
+    shortLabel: 'G7',
+    questionCount: 3,
+    scaffold: 'high',
+    hintsAllowed: true,
+    reasoningLabel: 'Identify and connect visible evidence',
+  },
+  'grade-8': {
+    id: 'grade-8',
+    label: INSTRUCTION_LEVEL_LABELS['grade-8'],
+    shortLabel: 'G8',
+    questionCount: 3,
+    scaffold: 'medium',
+    hintsAllowed: true,
+    reasoningLabel: 'Use genotype notation and ratios',
+  },
+  'high-school': {
+    id: 'high-school',
+    label: INSTRUCTION_LEVEL_LABELS['high-school'],
+    shortLabel: 'HS',
+    questionCount: 4,
+    scaffold: 'low',
+    hintsAllowed: false,
+    reasoningLabel: 'Build multi-step probability arguments',
+  },
+  'ap-biology': {
+    id: 'ap-biology',
+    label: INSTRUCTION_LEVEL_LABELS['ap-biology'],
+    shortLabel: 'AP',
+    questionCount: 5,
+    scaffold: 'none',
+    hintsAllowed: false,
+    reasoningLabel: 'Evaluate data, assumptions, and model limitations',
+  },
+};
+
+const SECTIONS: readonly SimulationSectionDefinition[] = [
+  { id: 'observe', phase: 'observe', title: 'Inspect the system', cue: 'Open the evidence before making a claim.' },
+  { id: 'predict', phase: 'predict', title: 'Lock a prediction', cue: 'Commit before the model reveals its result.' },
+  { id: 'manipulate', phase: 'manipulate', title: 'Operate the model', cue: 'Change or trace one meaningful part.' },
+  { id: 'explain', phase: 'explain', title: 'Defend with evidence', cue: 'Select the evidence that actually supports the claim.' },
+];
+
+function challenge(
+  prompt: string,
+  options: readonly [string, string, string],
+  correctIndex: 0 | 1 | 2,
+  explanation: string,
+  misconceptionFlag: string,
+  focusNodeId?: string,
+): LevelChallenge {
+  const ids = ['a', 'b', 'c'] as const;
+  return {
+    prompt,
+    options: options.map((label, index) => ({ id: ids[index], label })),
+    correctOptionId: ids[correctIndex],
+    explanation,
+    misconceptionFlag,
+    focusNodeId,
+  };
+}
+
+export const DRAGON_SIMULATIONS: readonly DragonSimulationDefinition[] = [
+  {
+    id: 'trait-evidence', module: 1, title: 'Trait Evidence Analyzer', shortTitle: 'Trait evidence', skill: 'GEN-1',
+    goal: 'Separate inherited traits from learned and environmental characteristics using records.', visualKind: 'evidence', accent: '#ff8f70', sections: SECTIONS,
+    nodes: [
+      { id: 'appearance', label: 'Visible trait', detail: 'What can be observed directly?', symbol: '◉' },
+      { id: 'gene-record', label: 'Gene record', detail: 'A parent-to-offspring allele record.', symbol: 'DNA' },
+      { id: 'training-log', label: 'Training log', detail: 'A behavior practiced during life.', symbol: '↗' },
+      { id: 'environment', label: 'Environment', detail: 'A condition that changed the individual.', symbol: '☁' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('Which record is direct evidence that a scale pattern was inherited?', ['A gene record shared with a parent', 'A drawing of shiny scales', 'A note that the pattern is useful'], 0, 'Inheritance needs parent-to-offspring genetic evidence.', 'appearance-as-proof', 'gene-record'),
+      'grade-8': challenge('A dragon develops stronger flight after six weeks of practice. How should the change be classified?', ['Inherited allele', 'Learned or developed characteristic', 'Dominant phenotype'], 1, 'A change produced during practice is acquired, not inherited at fertilization.', 'learned-is-genetic', 'training-log'),
+      'high-school': challenge('Siblings share an allele but show different scar patterns. Which model best explains the scars?', ['Simple dominance', 'Environmental history', 'Both must have different parents'], 1, 'Shared alleles do not make injuries or environmental effects inherited.', 'environment-is-genetic', 'environment'),
+      'ap-biology': challenge('Which evidence most directly supports heritability rather than environmental covariance?', ['Trait similarity in one habitat', 'Parent-offspring resemblance across controlled environments', 'A trait improving survival'], 1, 'Controlling environmental covariance makes parent-offspring resemblance stronger evidence of heritability.', 'correlation-as-causation', 'gene-record'),
+    },
+  },
+  {
+    id: 'genome-microscope', module: 2, title: 'Genome Microscope', shortTitle: 'Genome microscope', skill: 'GEN-2',
+    goal: 'Travel from organism to chromosome, DNA, gene, and allele without collapsing the hierarchy.', visualKind: 'microscope', accent: '#65c8bc', sections: SECTIONS,
+    nodes: [
+      { id: 'cell', label: 'Cell', detail: 'Contains the nucleus and chromosomes.', symbol: '○' },
+      { id: 'chromosome', label: 'Chromosome', detail: 'A packaged DNA molecule containing many genes.', symbol: 'X' },
+      { id: 'gene', label: 'Gene', detail: 'A section of DNA.', symbol: '▤' },
+      { id: 'allele', label: 'Allele', detail: 'One version of a gene.', symbol: 'W' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('Which object contains many genes?', ['Chromosome', 'Visible trait', 'Allele'], 0, 'A chromosome is packaged DNA containing many genes.', 'hierarchy-confusion', 'chromosome'),
+      'grade-8': challenge('W and w are different versions of the same wings gene. What are they?', ['Cells', 'Alleles', 'Chromosomes'], 1, 'Alleles are versions of a gene.', 'allele-definition', 'allele'),
+      'high-school': challenge('Where should a regulatory sequence associated with a gene be placed in this model?', ['Within DNA near the gene', 'Outside the cell', 'As a phenotype'], 0, 'Regulatory sequences are DNA and can influence gene expression.', 'dna-structure-confusion', 'gene'),
+      'ap-biology': challenge('Which limitation matters most when this model zooms directly from gene to phenotype?', ['It omits transcriptional regulation and environment', 'Chromosomes contain DNA', 'Alleles are gene variants'], 0, 'Phenotype often depends on regulation, interactions, development, and environment.', 'one-gene-one-trait', 'gene'),
+    },
+  },
+  {
+    id: 'genotype-scanner', module: 3, title: 'Genotype Scanner', shortTitle: 'Genotype scanner', skill: 'GEN-3',
+    goal: 'Use allele evidence to distinguish genotype from phenotype.', visualKind: 'scanner', accent: '#f2c85b', sections: SECTIONS,
+    nodes: [
+      { id: 'phenotype', label: 'Phenotype', detail: 'The observable result.', symbol: '◈' },
+      { id: 'allele-a', label: 'Allele from A', detail: 'One inherited gene version.', symbol: 'W' },
+      { id: 'allele-b', label: 'Allele from B', detail: 'The second inherited version.', symbol: 'w' },
+      { id: 'genotype', label: 'Genotype', detail: 'The complete allele pair.', symbol: 'Ww' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('Which readout names the allele pair a dragon carries?', ['Phenotype', 'Genotype', 'Training record'], 1, 'Genotype names the allele combination.', 'genotype-phenotype-swap', 'genotype'),
+      'grade-8': challenge('Two horned dragons could have which genotypes?', ['Only HH', 'HH or Hh', 'Only hh'], 1, 'A dominant phenotype can come from two genotypes.', 'dominant-means-homozygous', 'genotype'),
+      'high-school': challenge('A recessive phenotype is observed. What genotype is supported in this complete-dominance model?', ['Homozygous recessive', 'Heterozygous', 'Either genotype'], 0, 'The recessive phenotype requires two recessive alleles in this model.', 'recessive-carrier-visible', 'genotype'),
+      'ap-biology': challenge('Why can phenotype alone be insufficient for genotype inference?', ['Dominance can mask an allele', 'Every phenotype has one genotype', 'Alleles disappear after expression'], 0, 'Dominance can make heterozygotes and dominant homozygotes look alike.', 'phenotype-determines-genotype', 'phenotype'),
+    },
+  },
+  {
+    id: 'allele-workbench', module: 4, title: 'Allele Workbench', shortTitle: 'Allele workbench', skill: 'GEN-4',
+    goal: 'Change an allele, predict expression, and keep both alleles visible in the model.', visualKind: 'chromosome', accent: '#ad8bd2', sections: SECTIONS,
+    nodes: [
+      { id: 'slot-a', label: 'Chromosome A', detail: 'First allele socket.', symbol: 'W' },
+      { id: 'slot-b', label: 'Chromosome B', detail: 'Second allele socket.', symbol: 'w' },
+      { id: 'expression', label: 'Expression path', detail: 'The model applies its allele rule.', symbol: '→' },
+      { id: 'carrier', label: 'Carrier state', detail: 'A recessive allele remains present.', symbol: 'Ww' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('If W is dominant, which pair shows the winged phenotype?', ['ww only', 'Ww', 'No pair'], 1, 'One W produces the modeled dominant phenotype.', 'dominant-means-two', 'expression'),
+      'grade-8': challenge('What changes when Ww becomes ww?', ['One allele and the phenotype', 'The entire chromosome count', 'The parent source'], 0, 'Replacing W with w changes the pair and modeled expression.', 'allele-chromosome-swap', 'slot-a'),
+      'high-school': challenge('Why must Ww still display both allele tokens after expression?', ['Expression does not delete the recessive allele', 'w changes into W', 'Only phenotype matters'], 0, 'Dominance describes expression, not removal of an allele.', 'recessive-disappears', 'carrier'),
+      'ap-biology': challenge('Which statement is a limitation of this workbench model?', ['It assumes simple complete dominance', 'Diploid organisms have allele pairs', 'Alleles occupy gene loci'], 0, 'Many traits involve incomplete dominance, codominance, interactions, or environment.', 'model-is-universal', 'expression'),
+    },
+  },
+  {
+    id: 'punnett-composer', module: 5, title: 'Punnett Composer', shortTitle: 'Punnett composer', skill: 'GEN-5',
+    goal: 'Compose offspring cells from one allele per parent and convert counts to probabilities.', visualKind: 'punnett', accent: '#5eb5e8', sections: SECTIONS,
+    nodes: [
+      { id: 'parent-a', label: 'Parent A gametes', detail: 'One allele enters each column.', symbol: 'A' },
+      { id: 'parent-b', label: 'Parent B gametes', detail: 'One allele enters each row.', symbol: 'B' },
+      { id: 'cells', label: 'Four combinations', detail: 'Each cell receives one allele from each parent.', symbol: '▦' },
+      { id: 'probability', label: 'Predicted ratio', detail: 'Counts are converted to probability.', symbol: '%' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('How many alleles belong in each offspring cell?', ['One total', 'One from each parent', 'Four from each parent'], 1, 'A diploid offspring receives one modeled allele from each parent.', 'two-from-one-parent', 'cells'),
+      'grade-8': challenge('For Ww × ww, what fraction of cells are Ww?', ['1/4', '1/2', 'All'], 1, 'Two of four equally likely cells are Ww.', 'punnett-count-error', 'probability'),
+      'high-school': challenge('For Ww × Ww, what is the expected recessive phenotype probability?', ['25%', '50%', '75%'], 0, 'Only ww, one of four cells, has the recessive phenotype.', 'genotype-phenotype-ratio', 'probability'),
+      'ap-biology': challenge('What assumption makes the four Punnett cells equally likely?', ['Equal segregation and random fertilization', 'Dominant alleles are more common', 'Every family has four offspring'], 0, 'The model assumes equal gamete probabilities and random combination.', 'grid-equals-family', 'cells'),
+    },
+  },
+  {
+    id: 'incubator-sampler', module: 6, title: 'Incubator Sampler', shortTitle: 'Incubator sampler', skill: 'GEN-7',
+    goal: 'Compare expected probabilities with observed results from small and large samples.', visualKind: 'sampler', accent: '#f29b56', sections: SECTIONS,
+    nodes: [
+      { id: 'expectation', label: 'Expected', detail: 'Probability predicted before sampling.', symbol: '50%' },
+      { id: 'small-sample', label: '8 eggs', detail: 'A small sample can vary widely.', symbol: '8' },
+      { id: 'large-sample', label: '100 eggs', detail: 'A larger sample is often closer to expectation.', symbol: '100' },
+      { id: 'difference', label: 'Difference', detail: 'Observed minus expected.', symbol: 'Δ' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('A 50% prediction produces 3 of 8 winged offspring. Is the model automatically wrong?', ['Yes', 'No, small samples vary', 'Only if wings are dominant'], 1, 'Random small samples often differ from the expected percentage.', 'probability-guarantee', 'small-sample'),
+      'grade-8': challenge('Which sample should usually be closer to a 50% expectation?', ['8 trials', '100 trials', 'They must be identical'], 1, 'Larger samples generally reduce proportional sampling variation.', 'sample-size-irrelevant', 'large-sample'),
+      'high-school': challenge('A result is 58 winged out of 100. What is its difference from a 50% expectation?', ['8 percentage points', '42 percentage points', '58 percentage points'], 0, '58% − 50% is an 8-point difference.', 'percent-difference-error', 'difference'),
+      'ap-biology': challenge('Which analysis can test whether observed counts differ more than expected by chance?', ['Chi-square goodness-of-fit', 'Punnett square alone', 'Phenotype ranking'], 0, 'A chi-square goodness-of-fit test compares observed and expected categorical counts.', 'no-statistical-test', 'difference'),
+    },
+  },
+  {
+    id: 'reproduction-comparison', module: 7, title: 'Reproduction Comparison', shortTitle: 'Reproduction', skill: 'GEN-6',
+    goal: 'Compare one-parent genotype copying with two-parent allele combination.', visualKind: 'comparison', accent: '#76c98b', sections: SECTIONS,
+    nodes: [
+      { id: 'one-parent', label: 'One parent', detail: 'The modeled genotype is copied.', symbol: '1' },
+      { id: 'two-parent', label: 'Two parents', detail: 'Alleles combine from two sources.', symbol: '2' },
+      { id: 'copied-output', label: 'Copied outputs', detail: 'Low modeled genetic variation.', symbol: '=' },
+      { id: 'mixed-output', label: 'Mixed outputs', detail: 'New allele combinations can form.', symbol: '≠' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('Which pathway combines genetic information from two parents?', ['Asexual', 'Sexual', 'Training'], 1, 'Sexual reproduction combines genetic information from two parents.', 'reproduction-swap', 'two-parent'),
+      'grade-8': challenge('Why can siblings from sexual reproduction differ?', ['They can receive different allele combinations', 'Alleles are learned', 'Every cell mutates'], 0, 'Segregation and fertilization can create different combinations.', 'variation-needs-mutation', 'mixed-output'),
+      'high-school': challenge('What does the one-parent chamber intentionally hold constant?', ['Starting genotype', 'All environmental conditions forever', 'Mutation rate at zero in nature'], 0, 'The classroom model isolates genotype copying for comparison.', 'model-overgeneralization', 'copied-output'),
+      'ap-biology': challenge('Which process adds variation during sexual reproduction before fertilization?', ['Independent assortment and recombination', 'Mitosis only', 'Dominance'], 0, 'Meiosis can reshuffle alleles through assortment and recombination.', 'fertilization-only-variation', 'mixed-output'),
+    },
+  },
+  {
+    id: 'sibling-tracer', module: 8, title: 'Sibling Tracer', shortTitle: 'Sibling tracer', skill: 'GEN-7',
+    goal: 'Trace each offspring allele to a parent and explain sibling differences.', visualKind: 'pedigree', accent: '#dc78a6', sections: SECTIONS,
+    nodes: [
+      { id: 'parent-a-path', label: 'Parent A path', detail: 'One allele travels to each offspring.', symbol: 'A→' },
+      { id: 'parent-b-path', label: 'Parent B path', detail: 'A second allele completes the pair.', symbol: 'B→' },
+      { id: 'sibling-one', label: 'Sibling 1', detail: 'One possible allele combination.', symbol: 'Ww' },
+      { id: 'sibling-two', label: 'Sibling 2', detail: 'A different possible combination.', symbol: 'ww' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('How many modeled alleles does each sibling receive for one gene?', ['One total', 'One from each parent', 'All four parent alleles'], 1, 'Each sibling receives one allele from each parent.', 'inheritance-source-error', 'sibling-one'),
+      'grade-8': challenge('Ww × ww produces siblings Ww and ww. Which parent must supply W?', ['The Ww parent', 'The ww parent', 'Either parent'], 0, 'Only the heterozygous parent carries W.', 'allele-source-error', 'parent-a-path'),
+      'high-school': challenge('Why can two siblings with the same parents have different genotypes?', ['Independent gamete sampling', 'Parents change genotype each birth', 'Dominant alleles divide twice'], 0, 'Each fertilization samples from the parents’ possible gametes.', 'parent-genotype-changes', 'sibling-two'),
+      'ap-biology': challenge('Why is crossing over not the only explanation for sibling variation?', ['Segregation, assortment, and random fertilization also vary combinations', 'Crossing over never happens', 'Siblings inherit identical gametes'], 0, 'Multiple meiotic and fertilization processes contribute to variation.', 'crossing-over-only', 'parent-b-path'),
+    },
+  },
+  {
+    id: 'diversity-manager', module: 9, title: 'Diversity Manager', shortTitle: 'Diversity manager', skill: 'GEN-8',
+    goal: 'Use allele frequency and genotype evidence to preserve population variation.', visualKind: 'population', accent: '#76a6e8', sections: SECTIONS,
+    nodes: [
+      { id: 'population', label: 'Starting population', detail: 'The same baseline is used for each strategy.', symbol: '●●●' },
+      { id: 'narrow', label: 'Narrow strategy', detail: 'Repeatedly favors one visible phenotype.', symbol: '▼' },
+      { id: 'balanced', label: 'Balanced strategy', detail: 'Retains more alleles and genotypes.', symbol: '◆' },
+      { id: 'metrics', label: 'Diversity metrics', detail: 'Allele frequency and unique genotype counts.', symbol: '▥' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('Which strategy better preserves different alleles?', ['Use only one parent pair repeatedly', 'Use a balanced set of carriers', 'Choose the strongest-looking dragon'], 1, 'A balanced breeding pool is more likely to retain different alleles.', 'phenotype-equals-diversity', 'balanced'),
+      'grade-8': challenge('Which metric directly shows that an allele was lost?', ['Allele frequency reaches zero', 'Average body size rises', 'Battle score changes'], 0, 'A zero allele frequency means the modeled population no longer contains it.', 'wrong-diversity-metric', 'metrics'),
+      'high-school': challenge('Why compare strategies from the same starting population and seed?', ['To isolate strategy effects', 'To guarantee identical offspring', 'To favor dominant alleles'], 0, 'Equivalent starting conditions make the strategy comparison interpretable.', 'confounded-comparison', 'population'),
+      'ap-biology': challenge('A rare recessive allele remains mostly in heterozygotes. Which metric must be tracked?', ['Allele frequency, not phenotype frequency alone', 'Battle wins', 'Only homozygous recessive count'], 0, 'A recessive allele can persist while hidden in heterozygotes.', 'phenotype-frequency-equals-allele', 'metrics'),
+    },
+  },
+  {
+    id: 'evidence-replay', module: 10, title: 'Evidence Replay', shortTitle: 'Evidence replay', skill: 'GEN-8',
+    goal: 'Reconstruct a prediction, cross, result, and defensible inheritance claim from saved evidence.', visualKind: 'timeline', accent: '#ea6f62', sections: SECTIONS,
+    nodes: [
+      { id: 'prediction', label: 'Prediction', detail: 'The claim locked before breeding.', symbol: '?' },
+      { id: 'cross', label: 'Parent cross', detail: 'Parent alleles and deterministic seed.', symbol: '×' },
+      { id: 'result', label: 'Observed result', detail: 'The actual sampled offspring.', symbol: '✓' },
+      { id: 'claim', label: 'Evidence claim', detail: 'Reasoning tied to the saved record.', symbol: '∴' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('Which event must appear before the result in an honest replay?', ['Prediction', 'Celebration', 'Final score'], 0, 'A saved pre-result prediction shows the student did not reason backward.', 'hindsight-as-prediction', 'prediction'),
+      'grade-8': challenge('Which record makes a breeding result reproducible?', ['Parent IDs and seed', 'A screenshot only', 'Dragon name only'], 0, 'Compact inputs and a deterministic seed can reconstruct the trial.', 'screenshot-as-data', 'cross'),
+      'high-school': challenge('A predicted 75% trait appears in 5 of 8 offspring. What should the claim say?', ['The sample is compatible with variation around the prediction', 'The probability law failed', 'Exactly six were required'], 0, 'Expected probability does not prescribe an exact small-sample count.', 'probability-guarantee', 'result'),
+      'ap-biology': challenge('Which conclusion is supported if an arena winner carried allele W?', ['W was present; victory still has multiple causes', 'W caused the victory', 'W must increase population fitness'], 0, 'The replay must separate inheritance evidence from complex performance outcomes.', 'correlation-as-causation', 'claim'),
+    },
+  },
+  {
+    id: 'dragon-hatchery', module: 11, title: 'Dragon Hatchery', shortTitle: 'Shared hatchery', skill: 'GEN-3',
+    goal: 'Examine, sample, and hatch sealed eggs while managing limited evidence tools.', visualKind: 'hatchery', accent: '#e7bd69', sections: SECTIONS,
+    nodes: [
+      { id: 'sealed-egg', label: 'Sealed egg', detail: 'No trait or genotype information is exposed.', symbol: '◯' },
+      { id: 'examine', label: 'Candling scan', detail: 'Reveals permitted phenotype evidence.', symbol: '◉' },
+      { id: 'sample', label: 'Allele sample', detail: 'Uses a limited tool to reveal a genotype.', symbol: 'DNA' },
+      { id: 'hatch', label: 'Hatch tray', detail: 'Commits only the eggs staged by the student.', symbol: '◇' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('Which tool should reveal an allele pair?', ['Candling only', 'Allele sampling', 'Looking at the shell'], 1, 'A genotype requires the modeled allele-sampling record.', 'phenotype-as-genotype', 'sample'),
+      'grade-8': challenge('Two eggs look alike after candling. What could still differ?', ['Their genotypes', 'Whether they are eggs', 'Their parent count'], 0, 'A shared phenotype can hide different allele pairs.', 'same-look-same-genotype', 'sealed-egg'),
+      'high-school': challenge('Why should a prediction be locked before opening the hatch tray?', ['To preserve pre-result reasoning evidence', 'To force an exact ratio', 'To change the genotype'], 0, 'A locked prediction distinguishes reasoning from hindsight.', 'hindsight-as-prediction', 'hatch'),
+      'ap-biology': challenge('Which sampling plan best estimates a clutch allele frequency without phenotype bias?', ['Sample eggs randomly', 'Sample only dominant phenotypes', 'Sample only arena candidates'], 0, 'Random sampling reduces phenotype-based selection bias.', 'selection-bias', 'sample'),
+    },
+  },
+  {
+    id: 'dragon-arena', module: 12, title: 'Dragon Arena Combat', shortTitle: 'Arena evidence', skill: 'GEN-8',
+    goal: 'Plan a fair combat trial and separate inherited traits from tactics, physics, and chance.', visualKind: 'arena', accent: '#ef745f', sections: SECTIONS,
+    nodes: [
+      { id: 'genetics', label: 'Inherited profile', detail: 'Modeled alleles influence selected physical properties.', symbol: 'DNA' },
+      { id: 'strategy', label: 'Strategy program', detail: 'The same control rules make comparisons fairer.', symbol: '⌘' },
+      { id: 'combat', label: 'Arena trial', detail: 'Physics and contact events produce the outcome.', symbol: '⚔' },
+      { id: 'evidence', label: 'Outcome evidence', detail: 'The result is separated from the genetics claim.', symbol: '▤' },
+    ],
+    levelChallenges: {
+      'grade-7': challenge('A winged dragon wins. What can the trial prove by itself?', ['Wings caused the win', 'The dragon won this trial', 'Winged dragons always win'], 1, 'One trial records an outcome but does not isolate a single cause.', 'outcome-as-cause', 'evidence'),
+      'grade-8': challenge('Which comparison is fairest for testing a trait effect?', ['Same strategy and arena conditions', 'Different strategy for every dragon', 'Choose only previous winners'], 0, 'Holding strategy and conditions steady reduces confounding.', 'unfair-comparison', 'strategy'),
+      'high-school': challenge('Why should battle score remain separate from genetics mastery?', ['Performance has multiple modeled causes', 'Genotypes are not inherited', 'Physics has no variation'], 0, 'Strategy, contact physics, timing, and chance also influence performance.', 'battle-equals-mastery', 'combat'),
+      'ap-biology': challenge('Which design best estimates an inherited-profile effect on damage?', ['Replicated trials with controlled strategy and randomized sides', 'One champion trial', 'Rank dragons by appearance'], 0, 'Replication, controls, and randomization support a stronger causal inference.', 'single-trial-causation', 'genetics'),
+    },
+  },
+];
+
+export const DRAGON_SIMULATION_BY_ID = Object.fromEntries(
+  DRAGON_SIMULATIONS.map((simulation) => [simulation.id, simulation]),
+) as Record<DragonSimulationId, DragonSimulationDefinition>;
+
+export const DEFAULT_DRAGON_ASSIGNMENT: DragonAssignment = {
+  id: 'default',
+  ownerId: 'demo-teacher',
+  classId: 'default',
+  title: 'Dragon Genetics adaptive laboratory',
+  defaultLevel: 'grade-7',
+  simulationSettings: {},
+  studentOverrides: {},
+  assignmentVersion: 1,
+  updatedAtIso: new Date(0).toISOString(),
+};
+
+export function isDragonSimulationId(value: string | null): value is DragonSimulationId {
+  return !!value && Object.prototype.hasOwnProperty.call(DRAGON_SIMULATION_BY_ID, value);
+}

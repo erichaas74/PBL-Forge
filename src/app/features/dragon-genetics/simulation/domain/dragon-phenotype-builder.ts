@@ -1,6 +1,7 @@
 import {
   AssemblyBlueprint,
   AssemblyPart,
+  AssemblyPartRole,
   Vector3Data,
 } from '../../../../shared/assembly/domain/assembly.models';
 import {
@@ -188,11 +189,57 @@ function realignPartsToJoints(blueprint: AssemblyBlueprint): void {
   }
 }
 
+/**
+ * Which parts each locus visibly shapes, and along which axis.
+ *
+ * Single source of truth: {@link getFeatureScale} scales geometry from this
+ * table, and the specimen viewer highlights parts from the same table. Split
+ * into two lists they would drift, and a student would be told a gene shaped a
+ * part that it never touched.
+ *
+ * An empty `roles` list means the locus acts on the whole animal. Order
+ * matters — the first matching entry wins, so a part carrying several roles is
+ * scaled on one axis only.
+ */
+export interface DragonLocusVisual {
+  roles: readonly AssemblyPartRole[];
+  /** Axis stretched by this locus, when it stretches one. */
+  axis?: keyof Vector3Data;
+  /** Reads the locus' multiplier off an expressed phenotype. */
+  scaleOf?: (phenotype: DragonPhenotype) => number;
+}
+
+export const DRAGON_LOCUS_VISUALS: Readonly<Record<DragonGeneLocus, DragonLocusVisual>> = {
+  'wing-span': { roles: ['wing'], axis: 'z', scaleOf: phenotype => phenotype.wingSpanScale },
+  'jaw-strength': { roles: ['jaw'], axis: 'x', scaleOf: phenotype => phenotype.jawScale },
+  'tail-length': { roles: ['tail'], axis: 'y', scaleOf: phenotype => phenotype.tailScale },
+  // Whole-body loci: every part is scaled or repainted by these.
+  'body-size': { roles: [] },
+  'pigment-hue': { roles: [] },
+  // Expressed as durability rather than shape, on the parts that carry armour.
+  'armor-density': { roles: ['core', 'armor'] },
+  // Drives jaw and weapon damage in the combat profile.
+  temperament: { roles: ['jaw', 'weapon'] },
+};
+
+/** Shape-bearing loci in the order they are tested. */
+const SHAPE_LOCI: readonly DragonGeneLocus[] = ['wing-span', 'jaw-strength', 'tail-length'];
+
 function getFeatureScale(part: AssemblyPart, phenotype: DragonPhenotype): Vector3Data {
   const base = phenotype.bodyScale;
-  if (part.roles?.includes('wing')) return { x: base, y: base, z: base * phenotype.wingSpanScale };
-  if (part.roles?.includes('jaw')) return { x: base * phenotype.jawScale, y: base, z: base };
-  if (part.roles?.includes('tail')) return { x: base, y: base * phenotype.tailScale, z: base };
+  const roles = part.roles ?? [];
+
+  for (const locus of SHAPE_LOCI) {
+    const visual = DRAGON_LOCUS_VISUALS[locus];
+    const axis = visual.axis;
+    if (!axis || !visual.scaleOf) continue;
+    if (!roles.some(role => visual.roles.includes(role))) continue;
+
+    const scale = scalarVector(base);
+    scale[axis] = base * visual.scaleOf(phenotype);
+    return scale;
+  }
+
   return scalarVector(base);
 }
 

@@ -68,6 +68,20 @@ Use these common semantic targets where relevant: `sample-record`, `prediction-c
 | Official | No hints and equivalent randomized conditions | Locked until answer submission | Attempts, response, result, selected evidence |
 | Reteach | Isolates the diagnosed misconception | Stepwise comparison | Correction plus a new equivalent example |
 
+## Instructional levels and generated sections
+
+Mode describes support and assessment conditions; instructional level describes the scientific
+reasoning expected. They are independent. Every full-page simulation resolves `grade-7`, `grade-8`,
+`high-school`, or `ap-biology` from its assignment before generating a run. A higher level changes
+the evidence, number of reasoning steps, statistical expectations, and model limitations—not only
+the reading level.
+
+Generated runs must be deterministic from student, assignment, simulation, version, and attempt
+inputs. Store the seed and template IDs rather than duplicated prompt text. An in-progress run never
+changes when the teacher publishes a new assignment version. Runtime-generated official questions
+must use reviewed templates and pure evaluators; unreviewed generative-model output is not gradable
+content.
+
 ## Accessibility and motion
 
 - Give the simulation a concise accessible name and a live text summary of its current state.

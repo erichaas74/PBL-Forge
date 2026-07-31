@@ -131,6 +131,10 @@ main {
   min-height: calc(100vh - 10rem);
 }
 
+main.immersive {
+  min-height: 100dvh;
+}
+
 footer {
   display: flex;
   justify-content: space-between;

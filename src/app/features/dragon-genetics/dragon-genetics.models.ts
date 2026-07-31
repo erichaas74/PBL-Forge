@@ -84,7 +84,7 @@ export interface DragonLabEvent {
 }
 
 export interface DragonGeneticsSnapshot {
-  schemaVersion: 3;
+  schemaVersion: 4;
   activeModule: DragonModuleNumber;
   activeMode: DragonLabMode;
   completedModules: DragonModuleNumber[];

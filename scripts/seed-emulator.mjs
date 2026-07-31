@@ -179,6 +179,18 @@ try {
         displayName: 'Demo Teacher',
         role: 'teacher',
         lastSeenAt: new Date()
+      }),
+      setDoc(doc(db, 'dragonGeneticsAssignments/default'), {
+        id: 'default',
+        ownerId: demoTeacherUid,
+        classId: 'default',
+        title: 'Dragon Genetics adaptive laboratory',
+        defaultLevel: 'grade-7',
+        simulationSettings: {},
+        studentOverrides: {},
+        assignmentVersion: 1,
+        updatedAtIso: new Date().toISOString(),
+        updatedAt: new Date()
       })
     ];
 

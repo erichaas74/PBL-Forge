@@ -23,7 +23,7 @@ import {
 
 export function createDefaultDragonSnapshot(): DragonGeneticsSnapshot {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     activeModule: 1,
     activeMode: 'learn',
     completedModules: [],

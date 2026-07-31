@@ -1,5 +1,6 @@
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
+@if (!immersive()) {
 <header class="site-header">
   <a class="brand" routerLink="/catalog" aria-label="PBL Forge home">
     <span class="brand-mark" aria-hidden="true">PF</span>
@@ -25,12 +26,15 @@
     }
   </div>
 </header>
+}
 
-<main id="main-content">
+<main id="main-content" [class.immersive]="immersive()">
   <router-outlet />
 </main>
 
+@if (!immersive()) {
 <footer>
   <span>PBL Forge</span>
   <span>Learning experiences designed for student agency.</span>
 </footer>
+}

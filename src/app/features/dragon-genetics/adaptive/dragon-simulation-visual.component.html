@@ -1,0 +1,107 @@
+<section
+  class="visual-lab"
+  [class]="'visual-lab visual-' + definition().visualKind"
+  [style.--simulation-accent]="definition().accent"
+  [class.revealed]="revealed()"
+  [attr.aria-label]="definition().title + ' interactive model'"
+>
+  <div class="scan-line" aria-hidden="true"></div>
+  <div class="lab-grid" aria-hidden="true"></div>
+
+  @switch (definition().visualKind) {
+    @case ('punnett') {
+      <div class="punnett-model" aria-hidden="true">
+        <span class="parent parent-a">W</span><span class="parent parent-b">w</span>
+        <span>WW</span><span>Ww</span><span>Ww</span><span>ww</span>
+      </div>
+    }
+    @case ('sampler') {
+      <div class="sample-model" aria-hidden="true">
+        <i style="--bar: 50%"><b>Expected</b></i>
+        <i style="--bar: 38%"><b>8 eggs</b></i>
+        <i style="--bar: 53%"><b>100 eggs</b></i>
+      </div>
+    }
+    @case ('comparison') {
+      <div class="comparison-model" aria-hidden="true">
+        <div><b>1 parent</b><span>AA</span><span>AA</span><span>AA</span></div>
+        <div><b>2 parents</b><span>AA</span><span>Aa</span><span>aa</span></div>
+      </div>
+    }
+    @case ('pedigree') {
+      <div class="pedigree-model" aria-hidden="true">
+        <b>A</b><b>B</b><i></i><span>Ww</span><span>ww</span>
+      </div>
+    }
+    @case ('population') {
+      <div class="population-model" aria-hidden="true">
+        @for (item of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; track item) {
+          <i [class.rare]="item === 4 || item === 11"></i>
+        }
+      </div>
+    }
+    @case ('timeline') {
+      <div class="timeline-model" aria-hidden="true">
+        @for (node of definition().nodes; track node.id; let last = $last) {
+          <span>{{ node.symbol }}</span>@if (!last) { <i></i> }
+        }
+      </div>
+    }
+    @case ('hatchery') {
+      <div class="hatchery-model" aria-hidden="true">
+        @for (egg of [1, 2, 3, 4, 5, 6]; track egg) {
+          <span [class.sampled]="egg === 2 || egg === 5"><i>{{ egg === 2 || egg === 5 ? 'DNA' : '?' }}</i></span>
+        }
+      </div>
+    }
+    @case ('arena') {
+      <div class="arena-model" aria-hidden="true">
+        <span class="fighter fighter-a">◆<i></i></span><b>VS</b><span class="fighter fighter-b">◆<i></i></span>
+      </div>
+    }
+    @case ('microscope') {
+      <div class="microscope-model" aria-hidden="true">
+        <span class="lens lens-one"></span><span class="lens lens-two"></span>
+        <span class="lens lens-three"></span><b>DNA</b>
+      </div>
+    }
+    @case ('chromosome') {
+      <div class="chromosome-model" aria-hidden="true">
+        <i><b>W</b></i><i><b>w</b></i><span>expression</span>
+      </div>
+    }
+    @case ('scanner') {
+      <div class="scanner-model" aria-hidden="true">
+        <span>W</span><span>w</span><i></i><b>Ww</b>
+      </div>
+    }
+    @default {
+      <div class="evidence-model" aria-hidden="true">
+        <span class="specimen">◆</span><i></i><b>record scan</b>
+      </div>
+    }
+  }
+
+  <div class="node-field">
+    @for (node of definition().nodes; track node.id; let index = $index) {
+      <button
+        type="button"
+        class="visual-node"
+        [class.active]="activeNodeId() === node.id"
+        [style.--node-index]="index"
+        [attr.aria-pressed]="activeNodeId() === node.id"
+        (click)="selectNode(node.id)"
+      >
+        <span aria-hidden="true">{{ node.symbol }}</span>
+        <strong>{{ node.label }}</strong>
+        <small>{{ node.detail }}</small>
+      </button>
+    }
+  </div>
+
+  <footer class="instrument-readout" aria-live="polite">
+    <span>ACTIVE RECORD</span>
+    <strong>{{ activeNode()?.label ?? 'Select a model target' }}</strong>
+    <p>{{ activeNode()?.detail ?? definition().goal }}</p>
+  </footer>
+</section>

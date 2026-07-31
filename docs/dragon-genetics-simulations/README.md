@@ -8,6 +8,12 @@ dragon remains a separate arena concern.
 Start with [Simulation build standard](SIMULATION_BUILD_STANDARD.md), then use the station guide
 for the display being implemented.
 
+The current student runtime is the routed, adaptive full-page platform described in
+[Adaptive full-page simulation architecture](ADAPTIVE_FULL_PAGE_ARCHITECTURE.md). It provides a
+dedicated route, visual instrument, embedded checkpoints, deterministic per-student generation, and
+Grade 7 through AP Biology assignment levels for all ten core simulations, the shared Hatchery, and
+the Arena evidence experience.
+
 | Module | Student-facing display | Scene contract kind | Build guide |
 | --- | --- | --- | --- |
 | 1 | Trait Evidence Analyzer | `trait-inspector` | [01 - Trait Evidence Analyzer](01-TRAIT-EVIDENCE-ANALYZER.md) |
@@ -27,8 +33,10 @@ One further instrument belongs to no single module:
 | --- | --- | --- | --- |
 | Shared | Dragon Hatchery | `dragon-hatchery` | [11 - Dragon Hatchery](11-DRAGON-HATCHERY.md) |
 
-Stations 1 through 4 and the shared hatchery are implemented and running inside their modules.
-Their guides double as the reference for how a built station is wired, themed, and tested.
+Stations 1 through 4 and the shared hatchery retain their specialized renderer implementations.
+All ten core stations also run through the adaptive full-page visual shell; the specialized guides
+remain the reference when a station graduates from the shared adaptive visual grammar to a bespoke
+instrument renderer.
 Stations that show alleles or genotypes share one chromosome drawing, defined in
 [`displays/shared/chromosome-diagram.ts`](../../src/app/shared/dragon-visuals/displays/shared/chromosome-diagram.ts)
 from [`docs/allelle-diagram.html`](../allelle-diagram.html).

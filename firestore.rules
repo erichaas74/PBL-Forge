@@ -102,19 +102,53 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /dragonGeneticsAssignments/{assignmentId} {
+      allow read: if signedIn();
+      allow create: if isTeacher()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isTeacher()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isTeacher()
+        && resource.data.ownerId == request.auth.uid;
+    }
+
     match /dragonLabProgress/{studentId} {
       allow create: if signedIn()
         && request.auth.uid == studentId
         && request.resource.data.studentId == request.auth.uid
         && request.resource.data.projectId == 'dragon-genetics-lab';
       allow read: if signedIn()
-        && (request.auth.uid == studentId || isTeacher());
+        && (request.auth.uid == studentId
+          || isAdmin()
+          || (isTeacher() && resource.data.teacherId == request.auth.uid));
       allow update: if signedIn()
         && request.auth.uid == studentId
         && resource.data.studentId == request.auth.uid
         && request.resource.data.studentId == resource.data.studentId
-        && request.resource.data.projectId == resource.data.projectId;
+        && request.resource.data.projectId == resource.data.projectId
+        && (!('teacherId' in resource.data)
+          || request.resource.data.teacherId == resource.data.teacherId);
       allow delete: if isAdmin();
+
+      match /simulationRuns/{simulationId} {
+        allow create: if signedIn()
+          && request.auth.uid == studentId
+          && request.resource.data.studentId == request.auth.uid
+          && request.resource.data.simulationId == simulationId;
+        allow read: if signedIn()
+          && (request.auth.uid == studentId
+            || isAdmin()
+            || (isTeacher()
+              && get(/databases/$(database)/documents/dragonLabProgress/$(studentId)).data.teacherId
+                == request.auth.uid));
+        allow update: if signedIn()
+          && request.auth.uid == studentId
+          && resource.data.studentId == request.auth.uid
+          && request.resource.data.studentId == resource.data.studentId
+          && request.resource.data.simulationId == resource.data.simulationId;
+        allow delete: if isAdmin();
+      }
     }
 
     match /{document=**} {

@@ -25,6 +25,12 @@ export const routes: Routes = [
       import('./features/dragon-genetics/dragon-genetics.page').then((m) => m.DragonGeneticsPage)
   },
   {
+    path: 'dragon-genetics/:simulationId',
+    loadComponent: () =>
+      import('./features/dragon-genetics/adaptive/dragon-simulation-experience.page')
+        .then((m) => m.DragonSimulationExperiencePage)
+  },
+  {
     path: 'dragon-duel',
     loadComponent: () =>
       import('./features/dragon-genetics/dragon-duel.page').then((m) => m.DragonDuelPage)

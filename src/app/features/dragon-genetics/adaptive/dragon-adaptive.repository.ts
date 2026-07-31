@@ -1,0 +1,118 @@
+import { inject, Injectable } from '@angular/core';
+import {
+  collection,
+  doc,
+  Firestore,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
+} from '@angular/fire/firestore';
+import { SessionService } from '../../../core/firebase/session.service';
+import {
+  DragonAssignment,
+  DragonSimulationId,
+  DragonSimulationRun,
+} from './dragon-simulation.models';
+import { DEFAULT_DRAGON_ASSIGNMENT } from './dragon-simulation.registry';
+
+export const DEFAULT_DRAGON_ASSIGNMENT_ID = 'default';
+
+@Injectable({ providedIn: 'root' })
+export class DragonAdaptiveRepository {
+  private readonly firestore = inject(Firestore);
+  private readonly session = inject(SessionService);
+
+  async loadAssignment(assignmentId = DEFAULT_DRAGON_ASSIGNMENT_ID): Promise<DragonAssignment> {
+    await this.session.ensureUser();
+    const snapshot = await getDoc(doc(this.firestore, `dragonGeneticsAssignments/${assignmentId}`));
+    if (!snapshot.exists()) return { ...DEFAULT_DRAGON_ASSIGNMENT, id: assignmentId };
+    return normalizeAssignment(snapshot.id, snapshot.data());
+  }
+
+  async saveAssignment(assignment: DragonAssignment): Promise<void> {
+    const user = await this.session.ensureUser();
+    if (!user) throw new Error('A teacher session is required to save an assignment.');
+    await setDoc(doc(this.firestore, `dragonGeneticsAssignments/${assignment.id}`), {
+      ...assignment,
+      ownerId: user.uid,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }
+
+  async loadRuns(): Promise<DragonSimulationRun[]> {
+    const user = await this.session.ensureUser();
+    if (!user) return [];
+    const snapshots = await getDocs(collection(
+      this.firestore,
+      `dragonLabProgress/${user.uid}/simulationRuns`,
+    ));
+    return snapshots.docs
+      .map((snapshot) => normalizeRun(snapshot.data()))
+      .filter((run): run is DragonSimulationRun => !!run);
+  }
+
+  async loadRun(simulationId: DragonSimulationId): Promise<DragonSimulationRun | null> {
+    const user = await this.session.ensureUser();
+    if (!user) return null;
+    const snapshot = await getDoc(doc(
+      this.firestore,
+      `dragonLabProgress/${user.uid}/simulationRuns/${simulationId}`,
+    ));
+    return snapshot.exists() ? normalizeRun(snapshot.data()) : null;
+  }
+
+  async saveRun(run: DragonSimulationRun, teacherId: string): Promise<void> {
+    const user = await this.session.ensureUser();
+    if (!user) return;
+    await setDoc(doc(
+      this.firestore,
+      `dragonLabProgress/${user.uid}/simulationRuns/${run.simulationId}`,
+    ), {
+      ...run,
+      studentId: user.uid,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    const runs = await this.loadRuns();
+    const completedSimulationIds = runs
+      .filter((candidate) => candidate.complete)
+      .map((candidate) => candidate.simulationId);
+    const simulationLevels = Object.fromEntries(
+      runs.map((candidate) => [candidate.simulationId, candidate.level]),
+    );
+    const simulationScores = Object.fromEntries(
+      runs.map((candidate) => [candidate.simulationId, candidate.score]),
+    );
+    await setDoc(doc(this.firestore, `dragonLabProgress/${user.uid}`), {
+      studentId: user.uid,
+      projectId: 'dragon-genetics-lab',
+      experienceSchemaVersion: 4,
+      assignmentId: run.assignmentId,
+      teacherId,
+      activeSimulationId: run.complete ? null : run.simulationId,
+      completedSimulationIds,
+      simulationLevels,
+      simulationScores,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }
+}
+
+function normalizeAssignment(id: string, value: Record<string, unknown>): DragonAssignment {
+  return {
+    ...DEFAULT_DRAGON_ASSIGNMENT,
+    ...value,
+    id,
+    simulationSettings: (value['simulationSettings'] ?? {}) as DragonAssignment['simulationSettings'],
+    studentOverrides: (value['studentOverrides'] ?? {}) as DragonAssignment['studentOverrides'],
+    updatedAtIso: typeof value['updatedAtIso'] === 'string'
+      ? value['updatedAtIso']
+      : new Date(0).toISOString(),
+  } as DragonAssignment;
+}
+
+function normalizeRun(value: Record<string, unknown>): DragonSimulationRun | null {
+  if (value['schemaVersion'] !== 1 || typeof value['simulationId'] !== 'string') return null;
+  return value as unknown as DragonSimulationRun;
+}

@@ -21,6 +21,7 @@ describe('DragonGeneticsStore', () => {
   let store: DragonGeneticsStore;
 
   beforeEach(() => {
+    localStorage.removeItem('pbl-forge.dragon-genetics.v4');
     localStorage.removeItem('pbl-forge.dragon-genetics.v3');
     localStorage.removeItem('pbl-forge.dragon-genetics.v2');
     TestBed.configureTestingModule({
@@ -38,7 +39,7 @@ describe('DragonGeneticsStore', () => {
     store = TestBed.inject(DragonGeneticsStore);
   });
 
-  it('preserves v2 responses but revalidates completion through the new v3 gates', () => {
+  it('preserves v2 responses but revalidates completion through the current gates', () => {
     const legacy = {
       ...createDefaultDragonSnapshot(),
       schemaVersion: 2,
@@ -47,10 +48,25 @@ describe('DragonGeneticsStore', () => {
       sortAnswers: { scar: 'learned-environmental' },
     };
     const migrated = migrateDragonSnapshot(legacy);
-    expect(migrated?.schemaVersion).toBe(3);
+    expect(migrated?.schemaVersion).toBe(4);
     expect(migrated?.activeModule).toBe(1);
     expect(migrated?.completedModules).toEqual([]);
     expect(migrated?.sortAnswers['scar']).toBe('learned-environmental');
+  });
+
+  it('migrates a v3 snapshot to v4 without discarding completed evidence', () => {
+    const legacy = {
+      ...createDefaultDragonSnapshot(),
+      schemaVersion: 3,
+      activeModule: 4,
+      completedModules: [1, 2, 3],
+      correctedMisconception: 'Saved student evidence remains intact during the schema migration.',
+    };
+    const migrated = migrateDragonSnapshot(legacy);
+    expect(migrated?.schemaVersion).toBe(4);
+    expect(migrated?.activeModule).toBe(4);
+    expect(migrated?.completedModules).toEqual([1, 2, 3]);
+    expect(migrated?.correctedMisconception).toContain('remains intact');
   });
 
   it('keeps Week 1 locked when the mission diagnostic or prediction evidence is missing', () => {

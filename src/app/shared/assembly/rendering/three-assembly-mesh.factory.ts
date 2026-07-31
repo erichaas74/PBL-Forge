@@ -21,7 +21,20 @@ export interface AssemblyMaterialOptions {
  * applied inside. Appearance (team tint, damage) is managed per material via
  * {@link applyAssemblyTeamTint} and {@link applyAssemblyDamageAppearance}.
  */
-export function createAssemblyObject(part: AssemblyPart): THREE.Group {
+export interface AssemblyObjectOptions {
+  /**
+   * Skip the authored-GLB fetch and keep the procedural build. Small previews
+   * and thumbnail grids set this: a clutch of eight specimens would otherwise
+   * issue one network request per part per specimen for artwork nobody can see
+   * at that size.
+   */
+  proceduralOnly?: boolean;
+}
+
+export function createAssemblyObject(
+  part: AssemblyPart,
+  options: AssemblyObjectOptions = {},
+): THREE.Group {
   const root = new THREE.Group();
   root.userData['partId'] = part.id;
 
@@ -30,7 +43,7 @@ export function createAssemblyObject(part: AssemblyPart): THREE.Group {
   prepareAssemblyAppearance(root);
 
   const profile = part.visualProfile;
-  if (profile?.meshType === 'asset' && profile.assetId) {
+  if (!options.proceduralOnly && profile?.meshType === 'asset' && profile.assetId) {
     void loadAssemblyAssetTemplate(profile.assetId).then(template => {
       if (!template || !root.parent) return;
       const authored = instantiateAssemblyAsset(template);
@@ -100,6 +113,7 @@ interface DamageState {
 
 const DAMAGE_COLOR = new THREE.Color('#7f1d1d');
 const DESTROYED_COLOR = new THREE.Color('#1f2937');
+const TRAIT_MUTED_COLOR = new THREE.Color('#8b93a1');
 
 export function prepareAssemblyAppearance(root: THREE.Object3D): void {
   forEachStandardMaterial(root, material => {
@@ -184,12 +198,47 @@ export function applyAssemblyHitFlash(root: THREE.Object3D, active: boolean): vo
   });
 }
 
+/**
+ * Trait focus for teaching views: `true` leaves a part at full colour, `false`
+ * mutes it toward neutral grey, `null` clears focus mode entirely.
+ *
+ * This is how a student sees *which parts a gene shaped* — select "wing span"
+ * and only the wings stay coloured. It reads and writes the same
+ * `appearanceBase` snapshot as damage and team tint, so the three never fight
+ * over a material, and it is restored after an async GLB swap.
+ */
+export function applyAssemblyTraitFocus(root: THREE.Object3D, focused: boolean | null): void {
+  root.userData['traitFocus'] = focused;
+
+  forEachStandardMaterial(root, material => {
+    const base = material.userData['appearanceBase'] as MaterialAppearanceBase | undefined;
+    if (!base) return;
+
+    if (focused === null || focused) {
+      material.color.setHex(base.color);
+      material.opacity = base.opacity;
+      material.transparent = base.transparent;
+      return;
+    }
+
+    if (material.userData['preserveAppearance']) return;
+    material.color.setHex(base.color).lerp(TRAIT_MUTED_COLOR, 0.78);
+    // Slight transparency pushes muted parts behind the focused ones without
+    // hiding the silhouette a student needs for context.
+    material.opacity = base.opacity * 0.55;
+    material.transparent = true;
+  });
+}
+
 function reapplyStoredAppearance(root: THREE.Object3D): void {
   const tint = root.userData['teamTint'] as TeamTintState | undefined;
   if (tint) applyAssemblyTeamTint(root, tint.emissive, tint.intensity);
 
   const damage = root.userData['damageState'] as DamageState | null | undefined;
   if (damage !== undefined) applyAssemblyDamageAppearance(root, damage);
+
+  const traitFocus = root.userData['traitFocus'] as boolean | null | undefined;
+  if (traitFocus !== undefined) applyAssemblyTraitFocus(root, traitFocus);
 }
 
 function forEachStandardMaterial(

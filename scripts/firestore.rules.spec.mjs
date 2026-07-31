@@ -31,6 +31,7 @@ try {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
     await setDoc(doc(db, 'users/teacher-1'), { role: 'teacher' });
+    await setDoc(doc(db, 'users/teacher-2'), { role: 'teacher' });
     await setDoc(doc(db, 'users/student-1'), { role: 'student' });
     await setDoc(doc(db, 'users/student-2'), { role: 'student' });
     await setDoc(doc(db, 'projects/published-project'), {
@@ -107,7 +108,8 @@ try {
   const dragonProgress = {
     studentId: 'student-1',
     projectId: 'dragon-genetics-lab',
-    snapshot: { schemaVersion: 3, activeModule: 1 },
+    snapshot: { schemaVersion: 4, activeModule: 1 },
+    teacherId: 'teacher-1',
     activeModule: 1,
     completedModules: [],
     mastery: {},
@@ -134,12 +136,73 @@ try {
     await assertSucceeds(getDoc(doc(db, 'dragonLabProgress/student-1')));
   });
 
+  await test('an unrelated teacher cannot read a Dragon Genetics record', async () => {
+    const db = testEnv.authenticatedContext('teacher-2').firestore();
+    await assertFails(getDoc(doc(db, 'dragonLabProgress/student-1')));
+  });
+
   await test('a student cannot write a Dragon Genetics record for another student', async () => {
     const db = testEnv.authenticatedContext('student-2').firestore();
     await assertFails(setDoc(doc(db, 'dragonLabProgress/student-1-copy'), {
       ...dragonProgress,
       studentId: 'student-1'
     }));
+  });
+
+  const assignment = {
+    ownerId: 'teacher-1',
+    classId: 'class-1',
+    title: 'Adaptive genetics',
+    defaultLevel: 'grade-7',
+    simulationSettings: {},
+    studentOverrides: {},
+    assignmentVersion: 1
+  };
+
+  await test('a teacher can create an adaptive assignment they own', async () => {
+    const db = testEnv.authenticatedContext('teacher-1').firestore();
+    await assertSucceeds(setDoc(doc(db, 'dragonGeneticsAssignments/default'), assignment));
+  });
+
+  await test('a student can read the assigned adaptive configuration', async () => {
+    const db = testEnv.authenticatedContext('student-1').firestore();
+    await assertSucceeds(getDoc(doc(db, 'dragonGeneticsAssignments/default')));
+  });
+
+  await test('a student cannot rewrite an adaptive assignment', async () => {
+    const db = testEnv.authenticatedContext('student-1').firestore();
+    await assertFails(updateDoc(doc(db, 'dragonGeneticsAssignments/default'), {
+      defaultLevel: 'ap-biology'
+    }));
+  });
+
+  await test('a student can create their own deterministic simulation run', async () => {
+    const db = testEnv.authenticatedContext('student-1').firestore();
+    await assertSucceeds(setDoc(
+      doc(db, 'dragonLabProgress/student-1/simulationRuns/trait-evidence'),
+      {
+        schemaVersion: 1,
+        studentId: 'student-1',
+        simulationId: 'trait-evidence',
+        assignmentId: 'default',
+        seed: 'fixed-seed',
+        responses: []
+      }
+    ));
+  });
+
+  await test('an unrelated student cannot read a simulation run', async () => {
+    const db = testEnv.authenticatedContext('student-2').firestore();
+    await assertFails(getDoc(
+      doc(db, 'dragonLabProgress/student-1/simulationRuns/trait-evidence')
+    ));
+  });
+
+  await test('the assigned teacher can read a simulation run', async () => {
+    const db = testEnv.authenticatedContext('teacher-1').firestore();
+    await assertSucceeds(getDoc(
+      doc(db, 'dragonLabProgress/student-1/simulationRuns/trait-evidence')
+    ));
   });
 
   console.log(`\n${passed} Firestore security-rule tests passed.`);

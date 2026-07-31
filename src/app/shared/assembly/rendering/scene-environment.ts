@@ -65,6 +65,27 @@ export const STUDIO_STAGE_THEME: StageTheme = {
   environmentIntensity: 0.85,
 };
 
+/**
+ * Specimen bench: brighter and flatter than the studio, with a cool rim so a
+ * small silhouette still separates from the panel behind it. Tuned for
+ * inspection at 300px and thumbnails at 120px, where arena contrast reads as
+ * mud and the studio's warm key hides pigment differences.
+ */
+export const SPECIMEN_STAGE_THEME: StageTheme = {
+  skyTop: '#eef3fa',
+  skyBottom: '#ffffff',
+  fogColor: '#eef3fa',
+  hemisphereSky: '#e8f0fb',
+  hemisphereGround: '#c2b8a6',
+  keyColor: '#fffaf2',
+  keyIntensity: 2.35,
+  fillColor: '#d3e4f8',
+  fillIntensity: 0.85,
+  rimColor: '#dceeff',
+  rimIntensity: 1.45,
+  environmentIntensity: 1,
+};
+
 export function configureStageRenderer(renderer: THREE.WebGLRenderer, quality: RenderQuality): void {
   renderer.setPixelRatio(pixelRatioForQuality(quality));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;

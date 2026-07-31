@@ -61,8 +61,8 @@ import {
 } from './dragon-genetics.models';
 import { DragonGeneticsRepository } from './dragon-genetics.repository';
 
-const STORAGE_KEY = 'pbl-forge.dragon-genetics.v3';
-const LEGACY_STORAGE_KEY = 'pbl-forge.dragon-genetics.v2';
+const STORAGE_KEY = 'pbl-forge.dragon-genetics.v4';
+const LEGACY_STORAGE_KEYS = ['pbl-forge.dragon-genetics.v3', 'pbl-forge.dragon-genetics.v2'];
 const MAX_EVENTS = 120;
 const MAX_TRAIT_EVIDENCE_RECORDS = 40;
 const MAX_GENOME_MICROSCOPE_RECORDS = 30;
@@ -874,7 +874,8 @@ export class DragonGeneticsStore {
 function loadLocalSnapshot(): DragonGeneticsSnapshot {
   if (typeof localStorage === 'undefined') return createDefaultDragonSnapshot();
   try {
-    const serialized = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
+    const serialized = localStorage.getItem(STORAGE_KEY)
+      ?? LEGACY_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find((value) => value !== null);
     return migrateDragonSnapshot(JSON.parse(serialized ?? 'null')) ?? createDefaultDragonSnapshot();
   } catch {
     return createDefaultDragonSnapshot();
@@ -891,11 +892,11 @@ export function migrateDragonSnapshot(value: unknown): DragonGeneticsSnapshot | 
   if (!value || typeof value !== 'object') return null;
   const candidate = value as Record<string, unknown>;
   const version = candidate['schemaVersion'];
-  if (version !== 2 && version !== 3) return null;
+  if (version !== 2 && version !== 3 && version !== 4) return null;
   const migrated = {
     ...createDefaultDragonSnapshot(),
     ...candidate,
-    schemaVersion: 3,
+    schemaVersion: 4,
   } as DragonGeneticsSnapshot;
   if (version === 2) {
     return {

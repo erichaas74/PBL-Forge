@@ -1,29 +1,26 @@
 import { AsyncPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { collection, collectionData, Firestore } from '@angular/fire/firestore';
+import { collection, collectionData, Firestore, query, where } from '@angular/fire/firestore';
 import { RouterLink } from '@angular/router';
 import { catchError, map, of, switchMap } from 'rxjs';
 import { SessionService } from '../../core/firebase/session.service';
-import { GeneticsSkill, MasteryRecord } from './dragon-genetics.models';
+import { DragonAdaptiveStore } from './adaptive/dragon-adaptive.store';
+import {
+  DragonAssignment,
+  DragonSimulationId,
+  InstructionLevel,
+  INSTRUCTION_LEVEL_LABELS,
+  INSTRUCTION_LEVELS,
+} from './adaptive/dragon-simulation.models';
+import { DRAGON_SIMULATIONS } from './adaptive/dragon-simulation.registry';
 
 interface ProgressDocument {
   id: string;
   studentId: string;
-  activeModule: number;
-  completedModules: number[];
-  mastery: Partial<Record<GeneticsSkill, MasteryRecord>>;
-  misconceptionFlags: string[];
-  teamRole: string;
-  week1Score: number | null;
-  week1Passed: boolean;
-  week2Score: number | null;
-  week2Passed: boolean;
-  licensePassed: boolean;
-  officialAttemptsUsed: number;
-  championId: string | null;
-  battleResult: { won: boolean } | null;
-  finalSubmitted: boolean;
+  completedSimulationIds?: DragonSimulationId[];
+  simulationLevels?: Partial<Record<DragonSimulationId, InstructionLevel>>;
+  simulationScores?: Partial<Record<DragonSimulationId, number>>;
 }
 
 @Component({
@@ -36,17 +33,24 @@ interface ProgressDocument {
 export class DragonTeacherPage {
   private readonly firestore = inject(Firestore);
   readonly session = inject(SessionService);
+  readonly adaptiveStore = inject(DragonAdaptiveStore);
   readonly error = signal<string | null>(null);
-  readonly skills: GeneticsSkill[] = ['GEN-1', 'GEN-2', 'GEN-3', 'GEN-4', 'GEN-5', 'GEN-6', 'GEN-7', 'GEN-8'];
+  readonly assignmentMessage = signal<string | null>(null);
+  readonly simulations = DRAGON_SIMULATIONS;
+  readonly instructionLevels = INSTRUCTION_LEVELS;
+  readonly instructionLevelLabels = INSTRUCTION_LEVEL_LABELS;
   readonly progress$ = toObservable(this.session.user).pipe(
-    switchMap(() => {
+    switchMap((user) => {
       this.error.set(null);
-      return collectionData(collection(this.firestore, 'dragonLabProgress'), { idField: 'id' }).pipe(
-        map(documents => (documents as ProgressDocument[]).sort((a, b) =>
-          b.completedModules.length - a.completedModules.length || a.studentId.localeCompare(b.studentId))),
+      const records = collection(this.firestore, 'dragonLabProgress');
+      const source = query(records, where('teacherId', '==', user?.uid ?? '__none__'));
+      return collectionData(source, { idField: 'id' }).pipe(
+        map((documents) => (documents as ProgressDocument[]).sort((a, b) =>
+          (b.completedSimulationIds?.length ?? 0) - (a.completedSimulationIds?.length ?? 0)
+          || a.studentId.localeCompare(b.studentId))),
         catchError((error: unknown) => {
           console.error('Dragon Genetics teacher dashboard could not load.', error);
-          this.error.set('Sign in with a teacher account to view student records.');
+          this.error.set('Sign in with the assigned teacher account to view student records.');
           return of([] as ProgressDocument[]);
         }),
       );
@@ -65,32 +69,116 @@ export class DragonTeacherPage {
     return `Student ${studentId.slice(0, 7)}`;
   }
 
-  masteryLevel(student: ProgressDocument, skill: GeneticsSkill): number {
-    return student.mastery?.[skill]?.level ?? 0;
+  averageScore(students: ProgressDocument[]): number {
+    const scores = students.flatMap((student) => Object.values(student.simulationScores ?? {}));
+    return scores.length ? Math.round(scores.reduce((sum, score) => sum + (score ?? 0), 0) / scores.length) : 0;
   }
 
-  averageLevel(students: ProgressDocument[], skill: GeneticsSkill): string {
-    if (!students.length) return '—';
-    const sum = students.reduce((total, student) => total + this.masteryLevel(student, skill), 0);
-    return (sum / students.length).toFixed(1);
+  completionCount(students: ProgressDocument[]): number {
+    return students.reduce((sum, student) => sum + (student.completedSimulationIds?.length ?? 0), 0);
   }
 
-  countLicensed(students: ProgressDocument[]): number {
-    return students.filter(student => student.licensePassed).length;
+  studentSimulationLevel(studentId: string, simulationId: DragonSimulationId): InstructionLevel {
+    return this.adaptiveStore.assignment().studentOverrides[studentId]
+      ?.simulationLevels?.[simulationId]
+      ?? this.adaptiveStore.settingsFor(simulationId, studentId).level;
   }
 
-  countWeekPassed(students: ProgressDocument[], week: 1 | 2): number {
-    return students.filter(student => week === 1 ? student.week1Passed : student.week2Passed).length;
+  studentOverrideValue(studentId: string, simulationId: DragonSimulationId): InstructionLevel | 'inherit' {
+    return this.adaptiveStore.assignment().studentOverrides[studentId]
+      ?.simulationLevels?.[simulationId]
+      ?? 'inherit';
   }
 
-  misconceptionCounts(students: ProgressDocument[]): { flag: string; count: number }[] {
-    const counts = new Map<string, number>();
-    for (const flag of students.flatMap(student => student.misconceptionFlags ?? [])) {
-      counts.set(flag, (counts.get(flag) ?? 0) + 1);
+  async setDefaultLevel(event: Event): Promise<void> {
+    const level = this.eventLevel(event);
+    if (level) await this.changeAssignment((assignment) => ({ ...assignment, defaultLevel: level }));
+  }
+
+  async setSimulationLevel(simulationId: DragonSimulationId, event: Event): Promise<void> {
+    const level = this.eventLevel(event);
+    if (!level) return;
+    await this.changeAssignment((assignment) => ({
+      ...assignment,
+      simulationSettings: {
+        ...assignment.simulationSettings,
+        [simulationId]: {
+          ...assignment.simulationSettings[simulationId],
+          enabled: assignment.simulationSettings[simulationId]?.enabled ?? true,
+          level,
+        },
+      },
+    }));
+  }
+
+  async setQuestionCount(simulationId: DragonSimulationId, event: Event): Promise<void> {
+    const questionCount = Number((event.target as HTMLInputElement).value);
+    if (!Number.isInteger(questionCount) || questionCount < 1 || questionCount > 6) return;
+    await this.changeAssignment((assignment) => ({
+      ...assignment,
+      simulationSettings: {
+        ...assignment.simulationSettings,
+        [simulationId]: {
+          ...assignment.simulationSettings[simulationId],
+          enabled: assignment.simulationSettings[simulationId]?.enabled ?? true,
+          questionCount,
+        },
+      },
+    }));
+  }
+
+  async toggleSimulation(simulationId: DragonSimulationId): Promise<void> {
+    await this.changeAssignment((assignment) => {
+      const current = assignment.simulationSettings[simulationId];
+      return {
+        ...assignment,
+        simulationSettings: {
+          ...assignment.simulationSettings,
+          [simulationId]: { ...current, enabled: !(current?.enabled ?? true) },
+        },
+      };
+    });
+  }
+
+  async setStudentSimulationLevel(
+    studentId: string,
+    simulationId: DragonSimulationId,
+    event: Event,
+  ): Promise<void> {
+    const raw = (event.target as HTMLSelectElement).value;
+    await this.changeAssignment((assignment) => {
+      const student = assignment.studentOverrides[studentId] ?? {};
+      const simulationLevels = { ...(student.simulationLevels ?? {}) };
+      if (raw === 'inherit') delete simulationLevels[simulationId];
+      else if (INSTRUCTION_LEVELS.includes(raw as InstructionLevel)) {
+        simulationLevels[simulationId] = raw as InstructionLevel;
+      }
+      return {
+        ...assignment,
+        studentOverrides: {
+          ...assignment.studentOverrides,
+          [studentId]: { ...student, simulationLevels },
+        },
+      };
+    });
+  }
+
+  private eventLevel(event: Event): InstructionLevel | null {
+    const value = (event.target as HTMLSelectElement).value;
+    return INSTRUCTION_LEVELS.includes(value as InstructionLevel) ? value as InstructionLevel : null;
+  }
+
+  private async changeAssignment(
+    change: (assignment: DragonAssignment) => DragonAssignment,
+  ): Promise<void> {
+    const assignment = this.adaptiveStore.assignment();
+    const next = change({ ...assignment, assignmentVersion: assignment.assignmentVersion + 1 });
+    this.assignmentMessage.set('Saving assignment…');
+    try {
+      await this.adaptiveStore.saveAssignment(next);
+      this.assignmentMessage.set(`Assignment v${next.assignmentVersion} saved.`);
+    } catch {
+      this.assignmentMessage.set('Assignment could not be saved. Check teacher permissions.');
     }
-    return [...counts.entries()]
-      .map(([flag, count]) => ({ flag, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
   }
 }

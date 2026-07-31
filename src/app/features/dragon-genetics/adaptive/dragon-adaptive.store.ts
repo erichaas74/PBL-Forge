@@ -1,0 +1,314 @@
+import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { SessionService } from '../../../core/firebase/session.service';
+import {
+  DragonAssignment,
+  DragonSimulationDefinition,
+  DragonSimulationId,
+  DragonSimulationRun,
+  GeneratedSimulationQuestion,
+  InstructionLevel,
+  ResolvedSimulationSettings,
+  SimulationResponseRecord,
+} from './dragon-simulation.models';
+import {
+  DEFAULT_DRAGON_ASSIGNMENT,
+  DRAGON_SIMULATION_CONTENT_VERSION,
+} from './dragon-simulation.registry';
+import {
+  evaluateSimulationAnswer,
+  generateSimulationQuestions,
+} from './dragon-question.generator';
+import { DragonAdaptiveRepository } from './dragon-adaptive.repository';
+import { resolveSimulationSettings } from './dragon-assignment.resolver';
+
+const LOCAL_ASSIGNMENT_KEY = 'pbl-forge.dragon-genetics.assignment.v1';
+const LOCAL_RUNS_KEY_PREFIX = 'pbl-forge.dragon-genetics.runs.v1';
+
+@Injectable({ providedIn: 'root' })
+export class DragonAdaptiveStore {
+  private readonly repository = inject(DragonAdaptiveRepository);
+  private readonly session = inject(SessionService);
+  private readonly assignmentSignal = signal<DragonAssignment>(loadLocalAssignment());
+  private readonly runsSignal = signal<Partial<Record<DragonSimulationId, DragonSimulationRun>>>({});
+  private readonly teacherPreviewLevelSignal = signal<InstructionLevel | null>(null);
+  private hydratedUserId: string | null = null;
+  private hydrationRequest = 0;
+  private hydrationPromise: Promise<void> | null = null;
+
+  readonly assignment = this.assignmentSignal.asReadonly();
+  readonly runs = this.runsSignal.asReadonly();
+  readonly teacherPreviewLevel = this.teacherPreviewLevelSignal.asReadonly();
+  readonly persistenceState = signal<'loading' | 'saved' | 'saving' | 'error'>('loading');
+  readonly ready = signal(false);
+  readonly completedCount = computed(() =>
+    Object.values(this.runsSignal()).filter((run) => run?.complete).length,
+  );
+
+  constructor() {
+    this.hydrationPromise = this.hydrate();
+    effect(() => {
+      const userId = this.session.user()?.uid ?? null;
+      if (!userId || userId === this.hydratedUserId) return;
+      this.hydrationPromise = this.hydrate();
+    });
+  }
+
+  settingsFor(simulationId: DragonSimulationId, studentId = this.session.user()?.uid ?? 'local-student'):
+    ResolvedSimulationSettings {
+    return resolveSimulationSettings(
+      this.assignmentSignal(),
+      simulationId,
+      studentId,
+      this.teacherPreviewLevelSignal(),
+    );
+  }
+
+  setTeacherPreviewLevel(level: InstructionLevel | null): void {
+    this.teacherPreviewLevelSignal.set(level);
+  }
+
+  async prepareRun(
+    definition: DragonSimulationDefinition,
+    forceNew = false,
+  ): Promise<DragonSimulationRun> {
+    await this.awaitCurrentHydration();
+    const user = await this.session.ensureUser();
+    const studentId = user?.uid ?? 'local-student';
+    const settings = this.settingsFor(definition.id, studentId);
+    const local = this.runsSignal()[definition.id];
+    let remote: DragonSimulationRun | null = null;
+    try {
+      remote = await this.repository.loadRun(definition.id);
+    } catch {
+      // Offline/local work continues from the device copy.
+    }
+    const existing = newerRun(local, remote);
+    const canResume = !forceNew && existing
+      && existing.contentVersion === DRAGON_SIMULATION_CONTENT_VERSION
+      && (!existing.complete || (
+        existing.assignmentVersion === settings.assignmentVersion
+        && existing.level === settings.level
+      ));
+    if (canResume) {
+      this.putRun(existing);
+      return existing;
+    }
+
+    const attemptNumber = (existing?.attemptNumber ?? 0) + 1;
+    const seed = `${studentId}:${settings.assignmentId}:${definition.id}:${settings.assignmentVersion}:${attemptNumber}`;
+    const questions = generateSimulationQuestions(definition, settings, seed);
+    const now = new Date().toISOString();
+    const run: DragonSimulationRun = {
+      schemaVersion: 1,
+      simulationId: definition.id,
+      studentId,
+      assignmentId: settings.assignmentId,
+      assignmentVersion: settings.assignmentVersion,
+      contentVersion: DRAGON_SIMULATION_CONTENT_VERSION,
+      level: settings.level,
+      hintsAllowed: settings.hintsAllowed,
+      seed,
+      attemptNumber,
+      currentQuestionIndex: 0,
+      questionIds: questions.map((question) => question.id),
+      responses: [],
+      complete: false,
+      score: 0,
+      startedAtIso: now,
+      updatedAtIso: now,
+    };
+    this.putRun(run);
+    await this.persist(run);
+    return run;
+  }
+
+  questionsFor(definition: DragonSimulationDefinition, run: DragonSimulationRun): GeneratedSimulationQuestion[] {
+    const settings: ResolvedSimulationSettings = {
+      assignmentId: run.assignmentId,
+      assignmentVersion: run.assignmentVersion,
+      ownerId: this.assignmentSignal().ownerId,
+      level: run.level,
+      enabled: true,
+      questionCount: run.questionIds.length,
+      hintsAllowed: run.hintsAllowed,
+    };
+    const generated = generateSimulationQuestions(definition, settings, run.seed);
+    const byId = new Map(generated.map((question) => [question.id, question]));
+    return run.questionIds.map((id) => byId.get(id)).filter(
+      (question): question is GeneratedSimulationQuestion => !!question,
+    );
+  }
+
+  answer(
+    definition: DragonSimulationDefinition,
+    question: GeneratedSimulationQuestion,
+    selectedOptionId: string,
+  ): DragonSimulationRun | null {
+    const run = this.runsSignal()[definition.id];
+    if (!run || run.complete || run.responses.some((response) => response.questionId === question.id)) {
+      return run ?? null;
+    }
+    const evaluation = evaluateSimulationAnswer(question, selectedOptionId);
+    const response: SimulationResponseRecord = {
+      questionId: question.id,
+      templateId: question.templateId,
+      sectionId: question.sectionId,
+      selectedOptionId,
+      correct: evaluation.correct,
+      misconceptionFlag: evaluation.misconceptionFlag,
+      answeredAtIso: new Date().toISOString(),
+    };
+    const responses = [...run.responses, response];
+    const next = {
+      ...run,
+      responses,
+      score: Math.round(100 * responses.filter((item) => item.correct).length / run.questionIds.length),
+      updatedAtIso: new Date().toISOString(),
+    };
+    this.putRun(next);
+    void this.persist(next);
+    return next;
+  }
+
+  advance(simulationId: DragonSimulationId): DragonSimulationRun | null {
+    const run = this.runsSignal()[simulationId];
+    if (!run) return null;
+    const answered = run.responses.some((response) =>
+      response.questionId === run.questionIds[run.currentQuestionIndex]);
+    if (!answered) return run;
+    const last = run.currentQuestionIndex >= run.questionIds.length - 1;
+    const next = {
+      ...run,
+      currentQuestionIndex: last ? run.currentQuestionIndex : run.currentQuestionIndex + 1,
+      complete: last,
+      updatedAtIso: new Date().toISOString(),
+    };
+    this.putRun(next);
+    void this.persist(next);
+    return next;
+  }
+
+  async restart(definition: DragonSimulationDefinition): Promise<DragonSimulationRun> {
+    return this.prepareRun(definition, true);
+  }
+
+  async saveAssignment(assignment: DragonAssignment): Promise<void> {
+    this.persistenceState.set('saving');
+    const user = await this.session.ensureUser();
+    const next = {
+      ...assignment,
+      ownerId: user?.uid ?? assignment.ownerId,
+      updatedAtIso: new Date().toISOString(),
+    };
+    try {
+      await this.repository.saveAssignment(next);
+      this.assignmentSignal.set(next);
+      saveLocalAssignment(next);
+      this.persistenceState.set('saved');
+    } catch (error) {
+      console.error('Dragon Genetics assignment could not be saved.', error);
+      this.persistenceState.set('error');
+      throw error;
+    }
+  }
+
+  private async hydrate(): Promise<void> {
+    const request = ++this.hydrationRequest;
+    try {
+      const user = await this.session.ensureUser();
+      const userId = user?.uid ?? 'local-student';
+      this.hydratedUserId = user?.uid ?? null;
+      const [assignment, remoteRuns] = await Promise.all([
+        this.repository.loadAssignment(),
+        this.repository.loadRuns(),
+      ]);
+      if (request !== this.hydrationRequest || this.session.user()?.uid !== user?.uid) return;
+      this.assignmentSignal.set(assignment);
+      saveLocalAssignment(assignment);
+      const merged = { ...loadLocalRuns(userId) };
+      for (const remote of remoteRuns) {
+        merged[remote.simulationId] = newerRun(merged[remote.simulationId], remote) ?? remote;
+      }
+      this.runsSignal.set(merged);
+      saveLocalRuns(merged, userId);
+      this.persistenceState.set('saved');
+    } catch (error) {
+      if (request !== this.hydrationRequest) return;
+      console.error('Adaptive Dragon Genetics data could not be loaded.', error);
+      this.persistenceState.set('error');
+    } finally {
+      this.ready.set(true);
+    }
+  }
+
+  private putRun(run: DragonSimulationRun): void {
+    this.runsSignal.update((runs) => {
+      const next = { ...runs, [run.simulationId]: run };
+      saveLocalRuns(next, this.session.user()?.uid ?? 'local-student');
+      return next;
+    });
+  }
+
+  private async persist(run: DragonSimulationRun): Promise<void> {
+    this.persistenceState.set('saving');
+    try {
+      await this.repository.saveRun(run, this.assignmentSignal().ownerId);
+      this.persistenceState.set('saved');
+    } catch (error) {
+      console.error('Dragon Genetics simulation run could not be saved.', error);
+      this.persistenceState.set('error');
+    }
+  }
+
+  private async awaitCurrentHydration(): Promise<void> {
+    let pending = this.hydrationPromise;
+    while (pending) {
+      await pending;
+      if (pending === this.hydrationPromise) return;
+      pending = this.hydrationPromise;
+    }
+  }
+}
+
+function newerRun(
+  first: DragonSimulationRun | null | undefined,
+  second: DragonSimulationRun | null | undefined,
+): DragonSimulationRun | null {
+  if (!first) return second ?? null;
+  if (!second) return first;
+  return first.updatedAtIso >= second.updatedAtIso ? first : second;
+}
+
+function loadLocalAssignment(): DragonAssignment {
+  if (typeof localStorage === 'undefined') return DEFAULT_DRAGON_ASSIGNMENT;
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_ASSIGNMENT_KEY) ?? 'null')
+      ?? DEFAULT_DRAGON_ASSIGNMENT;
+  } catch {
+    return DEFAULT_DRAGON_ASSIGNMENT;
+  }
+}
+
+function saveLocalAssignment(assignment: DragonAssignment): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(LOCAL_ASSIGNMENT_KEY, JSON.stringify(assignment));
+  }
+}
+
+function loadLocalRuns(studentId: string): Partial<Record<DragonSimulationId, DragonSimulationRun>> {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem(`${LOCAL_RUNS_KEY_PREFIX}.${studentId}`) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalRuns(
+  runs: Partial<Record<DragonSimulationId, DragonSimulationRun>>,
+  studentId: string,
+): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(`${LOCAL_RUNS_KEY_PREFIX}.${studentId}`, JSON.stringify(runs));
+  }
+}

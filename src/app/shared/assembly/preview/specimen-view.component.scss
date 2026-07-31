@@ -1,0 +1,150 @@
+:host {
+  display: block;
+  container-type: inline-size;
+}
+
+.specimen-view {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+}
+
+/* Side-by-side only when there is room; stations embed this in narrow columns. */
+@container (min-width: 34rem) {
+  .specimen-view--with-panel {
+    grid-template-columns: minmax(0, 1.35fr) minmax(11rem, 1fr);
+    align-items: start;
+  }
+}
+
+.specimen-view__stage-wrap {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.specimen-view__stage {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 9rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: var(--specimen-stage-bg, #f2f6fc);
+  border: 1px solid var(--specimen-stage-edge, #d5dfec);
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.specimen-view__fallback {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--specimen-muted-ink, #4a566b);
+}
+
+.specimen-view__fallback--error {
+  color: var(--specimen-warn-ink, #8a4b12);
+}
+
+.specimen-view__focus-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--specimen-muted-ink, #4a566b);
+}
+
+.specimen-view__clear {
+  margin-left: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--specimen-accent, #1c5fd0);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.specimen-view__traits {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.specimen-view__trait {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--specimen-stage-edge, #d5dfec);
+  border-radius: 0.6rem;
+  background: var(--specimen-panel, #ffffff);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--specimen-accent, #1c5fd0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--specimen-accent, #1c5fd0);
+    outline-offset: 2px;
+  }
+}
+
+.specimen-view__trait--active {
+  border-color: var(--specimen-accent, #1c5fd0);
+  box-shadow: inset 0 0 0 1px var(--specimen-accent, #1c5fd0);
+}
+
+.specimen-view__trait-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.specimen-view__trait-label {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.specimen-view__trait-value {
+  font-size: 0.82rem;
+  color: var(--specimen-muted-ink, #4a566b);
+  font-variant-numeric: tabular-nums;
+}
+
+.specimen-view__meter {
+  display: block;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--specimen-meter-track, #e3eaf4);
+  overflow: hidden;
+}
+
+.specimen-view__meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--specimen-accent, #1c5fd0);
+}
+
+.specimen-view__trait-detail {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--specimen-muted-ink, #4a566b);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .specimen-view__meter-fill {
+    transition: none;
+  }
+}

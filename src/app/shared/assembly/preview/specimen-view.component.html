@@ -1,0 +1,56 @@
+<div class="specimen-view" [class.specimen-view--with-panel]="showTraitPanel() && traitList().length">
+  <div class="specimen-view__stage-wrap">
+    <div
+      #stage
+      class="specimen-view__stage"
+      role="img"
+      [attr.aria-label]="descriptor() ? descriptor()!.label + ' — ' + stageLabel() : stageLabel()"
+    ></div>
+
+    @if (!renderingAvailable) {
+      <p class="specimen-view__fallback">
+        This browser cannot draw the 3D specimen. The trait readings below describe it in full.
+      </p>
+    } @else if (errorMessage()) {
+      <p class="specimen-view__fallback specimen-view__fallback--error">{{ errorMessage() }}</p>
+    }
+
+    @if (activeTrait(); as trait) {
+      <p class="specimen-view__focus-note">
+        Highlighting the parts shaped by <strong>{{ trait.label }}</strong>.
+        <button type="button" class="specimen-view__clear" (click)="clearFocus()">Show all</button>
+      </p>
+    }
+  </div>
+
+  @if (showTraitPanel() && traitList().length) {
+    <ul class="specimen-view__traits">
+      @for (trait of traitList(); track trait.id) {
+        <li>
+          <button
+            type="button"
+            class="specimen-view__trait"
+            [class.specimen-view__trait--active]="activeTraitId() === trait.id"
+            [attr.aria-pressed]="activeTraitId() === trait.id"
+            (click)="onTraitSelected(trait.id)"
+          >
+            <span class="specimen-view__trait-head">
+              <span class="specimen-view__trait-label">{{ trait.label }}</span>
+              <span class="specimen-view__trait-value">{{ trait.valueLabel }}</span>
+            </span>
+
+            @if (trait.normalized !== undefined) {
+              <span class="specimen-view__meter" aria-hidden="true">
+                <span class="specimen-view__meter-fill" [style.width]="meterWidth(trait)"></span>
+              </span>
+            }
+
+            @if (trait.detail) {
+              <span class="specimen-view__trait-detail">{{ trait.detail }}</span>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

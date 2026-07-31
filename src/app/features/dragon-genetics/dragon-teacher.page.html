@@ -1,5 +1,5 @@
 <header class="dashboard-header">
-  <div><a routerLink="/teacher">← Teacher studio</a><p>Dragon Genetics · Teacher dashboard</p><h1>Mastery before<br><em>battle rank.</em></h1></div>
+  <div><a routerLink="/teacher">← Teacher studio</a><p>Dragon Genetics · Adaptive dashboard</p><h1>Program the challenge.<br><em>Preserve the evidence.</em></h1></div>
   <div class="header-actions">
     @if (session.isLocal && !isLocalTeacher()) { <button type="button" (click)="signInDemoTeacher()">Use demo teacher</button> }
     <a class="preview" routerLink="/dragon-genetics">Open student experience ↗</a>
@@ -8,34 +8,70 @@
 
 @if (error()) { <div class="notice" role="alert">{{ error() }}</div> }
 
-@if (progress$ | async; as students) {
-  <main>
-    <section class="summary-grid">
-      <article><span>Student records</span><strong>{{ students.length }}</strong></article>
-      <article><span>Week 1 mastery</span><strong>{{ countWeekPassed(students, 1) }}</strong><small>10-question check + prediction gate</small></article>
-      <article><span>Week 2 mastery</span><strong>{{ countWeekPassed(students, 2) }}</strong><small>12-question check + evidence gate</small></article>
-      <article><span>Licenses earned</span><strong>{{ countLicensed(students) }}</strong><small>Individual GEN-1–GEN-8 check</small></article>
-    </section>
-
-    <section class="panel">
-      <div class="panel-heading"><div><p>GEN-1 through GEN-8</p><h2>Skill mastery matrix</h2></div><span>1 Not Yet · 2 Approaching · 3 Meets · 4 Exceeds</span></div>
-      @if (students.length) {
-        <div class="matrix">
-          <header><strong>Student</strong>@for (skill of skills; track skill) { <span>{{ skill }}</span> }<span>Module</span></header>
-          @for (student of students; track student.id) { <div><strong>{{ studentLabel(student.studentId) }}</strong>@for (skill of skills; track skill) { <span [class]="'level level-' + masteryLevel(student, skill)">{{ masteryLevel(student, skill) || '—' }}</span> }<span>{{ student.activeModule }}/10</span></div> }
-          <footer><strong>Class average</strong>@for (skill of skills; track skill) { <span>{{ averageLevel(students, skill) }}</span> }<span>—</span></footer>
-        </div>
-      } @else if (!error()) { <div class="empty"><strong>No student records yet</strong><p>Records appear after students open the Dragon Genetics project and begin Module 1.</p></div> }
-    </section>
-
-    <div class="dashboard-grid">
-      <section class="panel"><div class="panel-heading"><div><p>Targeted reteach</p><h2>Repeated misconceptions</h2></div></div>
-        @if (misconceptionCounts(students).length) { <ol class="misconceptions">@for (item of misconceptionCounts(students); track item.flag) { <li><span>{{ item.flag }}</span><strong>{{ item.count }}</strong></li> }</ol> } @else { <div class="empty"><p>No repeated flags recorded yet.</p></div> }
-      </section>
-      <section class="panel"><div class="panel-heading"><div><p>Readiness and outcomes</p><h2>Official challenge</h2></div></div>
-        <div class="student-list">@for (student of students; track student.id) { <article><div><strong>{{ studentLabel(student.studentId) }}</strong><small>{{ student.completedModules.length }}/10 modules · W1 {{ student.week1Score ?? '—' }}/10 · W2 {{ student.week2Score ?? '—' }}/12 · {{ student.officialAttemptsUsed }}/3 official crosses</small></div><span [class.ready]="student.licensePassed">{{ student.licensePassed ? 'Licensed' : 'Not ready' }}</span><b>{{ student.finalSubmitted ? 'Final submitted' : student.battleResult ? (student.battleResult.won ? 'Arena win' : 'Arena loss') : 'No battle' }}</b></article> }</div>
-        <p class="guardrail"><strong>Assessment guardrail:</strong> battle outcome is displayed for motivation only. Use the mastery matrix, prediction history, and individual evidence defense for academic decisions.</p>
-      </section>
+<main>
+  <section class="panel assignment-builder">
+    <div class="panel-heading">
+      <div><p>Adaptive assignment</p><h2>Program each simulation</h2></div>
+      <label>Class default
+        <select [value]="adaptiveStore.assignment().defaultLevel" (change)="setDefaultLevel($event)">
+          @for (level of instructionLevels; track level) { <option [value]="level">{{ instructionLevelLabels[level] }}</option> }
+        </select>
+      </label>
     </div>
-  </main>
-}
+    <p class="assignment-note">Student override → simulation setting → class default. A saved change creates a new assignment version without changing an in-progress run.</p>
+    <div class="simulation-settings">
+      @for (simulation of simulations; track simulation.id) {
+        @let setting = adaptiveStore.assignment().simulationSettings[simulation.id];
+        <article [class.off]="setting?.enabled === false">
+          <span>{{ simulation.module }}</span><strong>{{ simulation.shortTitle }}</strong>
+          <label>Level<select [value]="setting?.level ?? adaptiveStore.assignment().defaultLevel" (change)="setSimulationLevel(simulation.id, $event)">
+            @for (level of instructionLevels; track level) { <option [value]="level">{{ instructionLevelLabels[level] }}</option> }
+          </select></label>
+          <label>Questions<input type="number" min="1" max="6" [value]="setting?.questionCount ?? 3" (change)="setQuestionCount(simulation.id, $event)" /></label>
+          <button type="button" (click)="toggleSimulation(simulation.id)">{{ setting?.enabled === false ? 'Enable' : 'Assigned' }}</button>
+        </article>
+      }
+    </div>
+    @if (assignmentMessage()) { <p class="assignment-status" role="status">{{ assignmentMessage() }}</p> }
+  </section>
+
+  @if (progress$ | async; as students) {
+    <section class="summary-grid">
+      <article><span>Student records</span><strong>{{ students.length }}</strong><small>Only students assigned to this teacher</small></article>
+      <article><span>Completed runs</span><strong>{{ completionCount(students) }}</strong><small>Across all assigned experiences</small></article>
+      <article><span>Average evidence score</span><strong>{{ averageScore(students) }}%</strong><small>Generated checkpoints</small></article>
+      <article><span>Assignment version</span><strong>v{{ adaptiveStore.assignment().assignmentVersion }}</strong><small>{{ instructionLevelLabels[adaptiveStore.assignment().defaultLevel] }} default</small></article>
+    </section>
+
+    <section class="panel student-levels">
+      <div class="panel-heading"><div><p>Individualization</p><h2>Per-student simulation levels</h2></div><span>Choose Inherit to return to the simulation or class default</span></div>
+      @if (students.length) {
+        <div class="student-level-table">
+          <header><strong>Student</strong>@for (simulation of simulations; track simulation.id) { <span title="{{ simulation.title }}">{{ simulation.module }}</span> }</header>
+          @for (student of students; track student.id) {
+            <div><strong>{{ studentLabel(student.studentId) }}<small>{{ student.completedSimulationIds?.length ?? 0 }}/{{ simulations.length }} complete</small></strong>
+              @for (simulation of simulations; track simulation.id) {
+                <select [attr.aria-label]="studentLabel(student.studentId) + ' ' + simulation.title + ' level; currently ' + instructionLevelLabels[studentSimulationLevel(student.studentId, simulation.id)]" [value]="studentOverrideValue(student.studentId, simulation.id)" (change)="setStudentSimulationLevel(student.studentId, simulation.id, $event)">
+                  <option value="inherit">Inherit</option>
+                  @for (level of instructionLevels; track level) { <option [value]="level">{{ instructionLevelLabels[level] }}</option> }
+                </select>
+              }
+            </div>
+          }
+        </div>
+      } @else { <div class="empty"><strong>No assigned student runs yet</strong><p>Students appear after opening a simulation under this assignment.</p></div> }
+    </section>
+
+    <section class="panel evidence-matrix">
+      <div class="panel-heading"><div><p>Generated evidence</p><h2>Simulation score matrix</h2></div><span>Percent correct · — not started</span></div>
+      @if (students.length) {
+        <div class="score-table">
+          <header><strong>Student</strong>@for (simulation of simulations; track simulation.id) { <span>{{ simulation.module }}</span> }</header>
+          @for (student of students; track student.id) {
+            <div><strong>{{ studentLabel(student.studentId) }}</strong>@for (simulation of simulations; track simulation.id) { <span>{{ student.simulationScores?.[simulation.id] ?? '—' }}{{ student.simulationScores?.[simulation.id] !== undefined ? '%' : '' }}</span> }</div>
+          }
+        </div>
+      } @else { <div class="empty"><p>Score evidence will appear here.</p></div> }
+    </section>
+  }
+</main>
