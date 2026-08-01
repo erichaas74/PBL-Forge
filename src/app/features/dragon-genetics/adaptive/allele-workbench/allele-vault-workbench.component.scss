@@ -1,0 +1,1500 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 37rem;
+}
+
+.allele-instrument {
+  --vault-cyan: #73e7ee;
+  --vault-cyan-soft: rgb(115 231 238 / 14%);
+  --vault-violet: #b58cff;
+  --vault-gold: #f2c66b;
+  --vault-ink: #06131c;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 0.65rem;
+  height: 100%;
+  min-height: 37rem;
+  padding: 0.75rem;
+  overflow: hidden;
+  border: 1px solid rgb(115 231 238 / 18%);
+  border-radius: 1.35rem;
+  background:
+    radial-gradient(circle at 82% 15%, rgb(181 140 255 / 11%), transparent 30%),
+    radial-gradient(circle at 16% 86%, rgb(115 231 238 / 9%), transparent 34%),
+    linear-gradient(150deg, #091d28, #06131c 58%, #0a1823);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 3%),
+    0 28px 70px rgb(0 0 0 / 30%);
+  color: #eafcff;
+  isolation: isolate;
+}
+
+.ambient-grid {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgb(115 231 238 / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(115 231 238 / 5%) 1px, transparent 1px);
+  background-size: 2.3rem 2.3rem;
+  mask-image: linear-gradient(to bottom, transparent, black 20%, black 75%, transparent);
+}
+
+.scan-beam {
+  position: absolute;
+  z-index: -1;
+  inset: -25% -12% auto;
+  height: 35%;
+  background: linear-gradient(to bottom, transparent, rgb(115 231 238 / 5%), transparent);
+  transform: rotate(-7deg);
+  animation: scan-field 9s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+button {
+  font: inherit;
+}
+
+.gene-selector {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(4, minmax(3rem, 1fr)) auto;
+  gap: 0.4rem;
+  min-height: 0;
+  padding: 0.45rem;
+  border: 1px solid rgb(115 231 238 / 14%);
+  border-radius: 0.85rem;
+  background: linear-gradient(165deg, rgb(12 38 50 / 82%), rgb(4 15 23 / 88%));
+}
+
+.gene-selector > button {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.48rem 0.6rem;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 0.62rem;
+  background: rgb(5 18 27 / 74%);
+  color: #7894a0;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.gene-selector > button:hover:not(:disabled) {
+  border-color: rgb(115 231 238 / 48%);
+  color: #dffcff;
+  transform: translateX(2px);
+}
+
+.gene-selector > button.active {
+  border-color: var(--vault-cyan);
+  background: linear-gradient(110deg, rgb(115 231 238 / 16%), rgb(115 231 238 / 4%));
+  color: #efffff;
+  box-shadow:
+    inset 3px 0 var(--vault-cyan),
+    0 0 18px rgb(115 231 238 / 8%);
+}
+
+.gene-selector button i {
+  display: grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 5%);
+  color: var(--vault-cyan);
+  font-size: 0.68rem;
+  font-style: normal;
+}
+
+.gene-selector button span {
+  overflow: hidden;
+  font-size: 0.6rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gene-selector button b {
+  font-size: 0.72rem;
+}
+
+.locus-readout {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  padding: 0.55rem 0.2rem 0.1rem;
+  border-top: 1px solid rgb(255 255 255 / 11%);
+}
+
+.locus-readout small {
+  color: #65818d;
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+}
+.locus-readout b {
+  color: var(--vault-cyan);
+  font-size: 0.65rem;
+  letter-spacing: 0.09em;
+}
+
+.instrument-body {
+  display: grid;
+  grid-template-columns: minmax(8.7rem, 10.5rem) minmax(0, 1fr);
+  gap: 0.65rem;
+  min-height: 0;
+}
+
+.allele-vault {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 0;
+  padding: 0.65rem;
+  border: 1px solid rgb(115 231 238 / 16%);
+  border-radius: 0.85rem;
+  background: linear-gradient(165deg, rgb(12 38 50 / 92%), rgb(4 15 23 / 94%));
+  box-shadow: inset 0 0 30px rgb(115 231 238 / 3%);
+  transition:
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.allele-vault::before,
+.allele-vault::after {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--vault-cyan), transparent);
+  content: '';
+  opacity: 0.35;
+}
+
+.allele-vault::before {
+  top: 0;
+}
+.allele-vault::after {
+  bottom: 0;
+}
+
+.allele-vault > header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 7.5rem;
+  padding-right: 0.65rem;
+  border-right: 1px solid rgb(255 255 255 / 7%);
+}
+
+.vault-mark {
+  position: relative;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--vault-cyan);
+  border-radius: 50%;
+}
+
+.vault-mark::before,
+.vault-mark::after {
+  position: absolute;
+  inset: 6px 2px;
+  border-top: 1px solid var(--vault-cyan);
+  border-bottom: 1px solid var(--vault-cyan);
+  border-radius: 50%;
+  content: '';
+  transform: rotate(42deg);
+}
+
+.vault-mark::after {
+  transform: rotate(-42deg);
+}
+.allele-vault header div {
+  display: grid;
+}
+.allele-vault header small {
+  color: #65848f;
+  font-size: 0.42rem;
+  letter-spacing: 0.17em;
+}
+.allele-vault header b {
+  color: #dffcff;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+}
+.allele-vault header > i {
+  color: var(--vault-cyan);
+  font-size: 0.6rem;
+  font-style: normal;
+}
+
+.vault-rack {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  align-content: center;
+  min-height: 0;
+}
+
+.vault-gene {
+  display: grid;
+  grid-template-columns: 1.35rem repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+  align-items: center;
+  opacity: 0.42;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.vault-gene.active {
+  opacity: 1;
+  transform: translateY(-0.1rem);
+}
+.vault-gene > span {
+  color: #5c7783;
+  font-size: 0.48rem;
+  font-weight: 850;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.allele-token {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.15rem 1fr;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 3.15rem;
+  place-items: center;
+  padding: 0.3rem 0.35rem;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 11%);
+  border-radius: 0.55rem;
+  background: linear-gradient(145deg, #112b37, #081821 72%);
+  color: #b5c7ce;
+  cursor: grab;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.allele-token:hover:not(:disabled) {
+  transform: scale(1.06);
+  border-color: rgb(181 140 255 / 60%);
+}
+.allele-token:active:not(:disabled) {
+  cursor: grabbing;
+}
+
+.allele-token::before {
+  position: absolute;
+  inset: auto 8% 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(181 140 255 / 40%), transparent);
+  content: '';
+}
+
+.allele-token > b {
+  z-index: 1;
+  justify-self: start;
+  font-family: var(--font-display);
+  font-size: clamp(0.9rem, 1.6vw, 1.3rem);
+}
+
+.allele-token > small {
+  position: absolute;
+  right: 0.3rem;
+  bottom: 0.18rem;
+  color: #69828e;
+  font-size: 0.35rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.allele-token.selected {
+  border-color: var(--vault-violet);
+  color: #fff;
+  box-shadow:
+    0 0 0 3px rgb(181 140 255 / 12%),
+    0 0 22px rgb(181 140 255 / 24%);
+  animation: token-lock 0.38s ease-out;
+}
+.allele-token.locked {
+  cursor: not-allowed;
+  filter: grayscale(1);
+  opacity: 0.25;
+}
+
+.vault-chromosome,
+.socket-chromosome {
+  --locus-color: var(--vault-cyan);
+  --locus-y: 18%;
+  position: relative;
+  display: block;
+  width: 0.62rem;
+  height: 2.35rem;
+  border: 1px solid rgb(115 231 238 / 58%);
+  border-radius: 0.38rem;
+  background: #dffcff;
+  box-shadow: 0 0 10px rgb(115 231 238 / 15%);
+}
+
+.vault-chromosome .band,
+.socket-chromosome .band {
+  position: absolute;
+  right: 1px;
+  left: 1px;
+  height: 10%;
+  background: #78dce7;
+  opacity: 0.7;
+}
+
+.vault-chromosome .band-one,
+.socket-chromosome .band-one {
+  top: 9%;
+}
+.vault-chromosome .band-two,
+.socket-chromosome .band-two {
+  top: 35%;
+  height: 14%;
+}
+.vault-chromosome .band-three,
+.socket-chromosome .band-three {
+  top: 60%;
+}
+.vault-chromosome .band-four,
+.socket-chromosome .band-four {
+  top: 82%;
+  height: 12%;
+}
+.vault-chromosome .allele-band,
+.socket-chromosome .allele-band {
+  position: absolute;
+  z-index: 2;
+  top: var(--locus-y);
+  right: -2px;
+  left: -2px;
+  height: 3px;
+  background: var(--locus-color);
+  box-shadow: 0 0 7px var(--locus-color);
+  transform: translateY(-50%);
+}
+
+.locus-wings {
+  --locus-color: #ff6d68;
+  --locus-y: 18%;
+}
+.locus-fire {
+  --locus-color: #67d790;
+  --locus-y: 38%;
+}
+.locus-horns {
+  --locus-color: #64a8ff;
+  --locus-y: 67%;
+}
+.locus-scales {
+  --locus-color: #b98bff;
+  --locus-y: 85%;
+}
+
+.allele-vault > footer {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  min-width: 5.5rem;
+  padding-left: 0.65rem;
+  border-left: 1px solid rgb(255 255 255 / 7%);
+}
+
+.vault-light {
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: var(--vault-cyan);
+  box-shadow: 0 0 10px var(--vault-cyan);
+}
+
+.allele-vault footer b {
+  font-size: 0.72rem;
+}
+.allele-vault footer small {
+  overflow: hidden;
+  color: #71909b;
+  font-size: 0.48rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comparison-deck {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  padding: 0.65rem;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 0.85rem;
+  background: rgb(3 14 21 / 66%);
+  transition:
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.comparison-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.05rem 0.15rem 0.5rem;
+}
+
+.comparison-header div {
+  display: grid;
+}
+.comparison-header small {
+  color: #5f7a86;
+  font-size: 0.43rem;
+  letter-spacing: 0.14em;
+}
+.comparison-header b {
+  font-size: 0.58rem;
+  letter-spacing: 0.09em;
+}
+.comparison-header output {
+  color: #718d98;
+  font-size: 0.5rem;
+}
+.comparison-header output b {
+  color: var(--vault-gold);
+  font-size: 0.72rem;
+}
+
+.split-screen {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.5rem minmax(0, 1fr);
+  min-height: 0;
+}
+
+.genome-pane {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(10.5rem, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.55rem;
+  overflow: hidden;
+  border: 1px solid rgb(115 231 238 / 12%);
+  background:
+    radial-gradient(circle at 50% 45%, rgb(115 231 238 / 7%), transparent 55%),
+    linear-gradient(170deg, rgb(11 34 45 / 72%), rgb(5 18 27 / 82%));
+}
+
+.reference-pane {
+  border-radius: 0.65rem 0 0 0.65rem;
+}
+.variant-pane {
+  border-radius: 0 0.65rem 0.65rem 0;
+}
+.variant-pane::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(181 140 255 / 12%);
+  content: '';
+  pointer-events: none;
+}
+
+.genome-pane > header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0.05rem 0.45rem;
+}
+
+.genome-pane header span {
+  color: #63828d;
+  font-size: 0.46rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+.genome-pane header b {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  color: var(--vault-cyan);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+}
+.variant-pane header b {
+  color: var(--vault-violet);
+}
+.genome-pane header small {
+  color: #9fb4bc;
+  font-size: 0.52rem;
+}
+
+.pane-visuals {
+  display: grid;
+  grid-template-columns: minmax(4.8rem, 0.72fr) minmax(8rem, 1fr);
+  align-items: stretch;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.variant-pane .pane-visuals {
+  grid-template-columns: minmax(8rem, 1fr) minmax(4.8rem, 0.72fr);
+}
+
+.phenotype-preview {
+  display: grid;
+  grid-template-rows: minmax(4.5rem, 1fr) auto;
+  align-self: start;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding-top: 0.35rem;
+}
+
+.reference-phenotype {
+  justify-items: start;
+  text-align: left;
+}
+
+.variant-phenotype {
+  justify-items: end;
+  text-align: right;
+}
+
+.dragon-part-slot {
+  position: relative;
+  display: grid;
+  width: min(100%, 6.5rem);
+  min-width: 3.6rem;
+  min-height: 4.5rem;
+  place-items: center;
+  color: var(--vault-cyan);
+  isolation: isolate;
+}
+
+.variant-phenotype .dragon-part-slot {
+  color: var(--vault-violet);
+}
+
+.dragon-part-slot::before {
+  position: absolute;
+  z-index: -1;
+  inset: 12% 5% 8%;
+  border: 1px dashed currentColor;
+  border-radius: 58% 35% 62% 28%;
+  content: '';
+  opacity: 0.28;
+  transform: rotate(-8deg);
+}
+
+.variant-phenotype .dragon-part-slot::before {
+  transform: rotate(8deg) scaleX(-1);
+}
+
+.dragon-part-slot > span {
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2.3vw, 2rem);
+  text-shadow: 0 0 18px currentColor;
+}
+
+.dragon-part-slot > i {
+  position: absolute;
+  right: 10%;
+  bottom: 12%;
+  left: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.5;
+}
+
+.phenotype-preview figcaption {
+  display: grid;
+  max-width: 7rem;
+}
+
+.phenotype-preview figcaption small {
+  color: #5d7883;
+  font-size: 0.4rem;
+  letter-spacing: 0.1em;
+}
+
+.phenotype-preview figcaption b {
+  overflow: hidden;
+  color: #d8e8ed;
+  font-size: 0.56rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chromosome-view {
+  position: relative;
+  display: grid;
+  min-height: 5rem;
+  place-items: center;
+}
+
+.chromosome {
+  position: absolute;
+  width: 0.68rem;
+  height: 76%;
+  border: 1px solid rgb(115 231 238 / 36%);
+  border-radius: 80% 20% 75% 25%;
+  background: linear-gradient(to bottom, rgb(115 231 238 / 18%), rgb(115 231 238 / 4%));
+  box-shadow: 0 0 18px rgb(115 231 238 / 9%);
+  transform: rotate(28deg);
+}
+
+.chromosome-b {
+  transform: rotate(-28deg);
+}
+.chromosome i {
+  position: absolute;
+  top: 49%;
+  left: -20%;
+  width: 140%;
+  height: 2px;
+  background: var(--vault-cyan);
+  box-shadow: 0 0 9px var(--vault-cyan);
+}
+.variant-pane .chromosome {
+  border-color: rgb(181 140 255 / 40%);
+  background: linear-gradient(to bottom, rgb(181 140 255 / 18%), rgb(181 140 255 / 4%));
+}
+.variant-pane .chromosome i {
+  background: var(--vault-violet);
+  box-shadow: 0 0 9px var(--vault-violet);
+}
+
+.locus-pulse {
+  position: absolute;
+  width: 4.4rem;
+  height: 1.15rem;
+  border: 1px solid var(--vault-cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 16px rgb(115 231 238 / 17%);
+  animation: locus-breathe 2.8s ease-in-out infinite;
+}
+
+.variant-pane .locus-pulse {
+  border-color: var(--vault-violet);
+  box-shadow: 0 0 16px rgb(181 140 255 / 17%);
+}
+.chromosome-view > b {
+  position: absolute;
+  bottom: 0.25rem;
+  color: #627e89;
+  font-size: 0.42rem;
+  letter-spacing: 0.12em;
+}
+
+.chromosome-map {
+  position: relative;
+  width: min(100%, 13.5rem);
+  height: 11.3rem;
+}
+
+.chromosome-cap {
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.45rem;
+  left: 50%;
+  width: 1.15rem;
+  overflow: hidden;
+  border: 1px solid rgb(115 231 238 / 72%);
+  border-radius: 0.62rem;
+  background: #dffcff;
+  box-shadow: 0 0 22px rgb(115 231 238 / 18%);
+  transform: translateX(-50%);
+}
+
+.variant-map .chromosome-cap {
+  border-color: rgb(181 140 255 / 75%);
+  background: #f0e9ff;
+  box-shadow: 0 0 22px rgb(181 140 255 / 17%);
+}
+
+.chromosome-band {
+  position: absolute;
+  right: 1px;
+  left: 1px;
+  height: 7%;
+  background: #6fdbe7;
+  opacity: 0.72;
+}
+
+.variant-map .chromosome-band {
+  background: #ac8fe7;
+}
+.chromosome-band.band-one {
+  top: 6%;
+}
+.chromosome-band.band-two {
+  top: 25%;
+  height: 11%;
+}
+.chromosome-band.band-three {
+  top: 45%;
+  height: 8%;
+}
+.chromosome-band.band-four {
+  top: 64%;
+  height: 12%;
+}
+.chromosome-band.band-five {
+  top: 88%;
+}
+
+.centromere {
+  position: absolute;
+  top: 50%;
+  right: -1px;
+  left: -1px;
+  height: 3px;
+  border-top: 1px solid #226f8e;
+  border-bottom: 1px solid #226f8e;
+  background: #081923;
+  transform: translateY(-50%);
+}
+
+.variant-map .centromere {
+  border-color: #7253a8;
+}
+
+.chromosome-locus {
+  --locus-color: var(--vault-cyan);
+  --locus-y: 18%;
+  position: absolute;
+  top: var(--locus-y);
+  right: 0;
+  left: 0;
+  height: 1.2rem;
+  color: #647e89;
+  transform: translateY(-50%);
+  transition:
+    color 0.2s ease,
+    filter 0.2s ease;
+}
+
+.chromosome-locus > i {
+  position: absolute;
+  top: 50%;
+  height: 1px;
+  width: 2.3rem;
+  background: var(--locus-color);
+  opacity: 0.45;
+}
+
+.chromosome-locus > i::after {
+  position: absolute;
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--locus-color);
+  content: '';
+}
+
+.chromosome-locus > b,
+.chromosome-locus > small {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.chromosome-locus > b {
+  color: #cadbe1;
+  font-family: var(--font-display);
+  font-size: 0.73rem;
+}
+
+.chromosome-locus > small {
+  color: #647e89;
+  font-size: 0.44rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reference-map .chromosome-locus > i {
+  right: 50%;
+}
+.reference-map .chromosome-locus > i::after {
+  left: 0;
+}
+.reference-map .chromosome-locus > b {
+  right: calc(50% + 2.6rem);
+}
+.reference-map .chromosome-locus > small {
+  right: calc(50% + 3.75rem);
+}
+.variant-map .chromosome-locus > i {
+  left: 50%;
+}
+.variant-map .chromosome-locus > i::after {
+  right: 0;
+}
+.variant-map .chromosome-locus > b {
+  left: calc(50% + 2.6rem);
+}
+.variant-map .chromosome-locus > small {
+  left: calc(50% + 3.75rem);
+}
+
+.chromosome-locus.active {
+  color: var(--locus-color);
+  filter: drop-shadow(0 0 5px var(--locus-color));
+}
+
+.chromosome-locus.active > i {
+  height: 4px;
+  opacity: 1;
+}
+.chromosome-locus.active > b {
+  color: #fff;
+  font-size: 1rem;
+}
+.chromosome-locus.active > small {
+  color: #d6e6eb;
+}
+
+.chromosome-id {
+  position: absolute;
+  bottom: -0.05rem;
+  left: 50%;
+  color: #5d7883;
+  font-size: 0.4rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.locus-wings {
+  --locus-color: #ff6d68;
+  --locus-y: 18%;
+}
+.locus-fire {
+  --locus-color: #67d790;
+  --locus-y: 38%;
+}
+.locus-horns {
+  --locus-color: #64a8ff;
+  --locus-y: 67%;
+}
+.locus-scales {
+  --locus-color: #b98bff;
+  --locus-y: 85%;
+}
+
+.dna-helix {
+  width: 100%;
+  max-height: 4.1rem;
+  overflow: visible;
+  color: var(--vault-cyan);
+}
+
+.variant-pane .dna-helix {
+  color: var(--vault-violet);
+}
+.dna-helix .strand {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.dna-helix .strand-b {
+  opacity: 0.55;
+}
+.dna-helix .rungs path {
+  stroke: currentColor;
+  stroke-width: 1;
+  opacity: 0.38;
+  vector-effect: non-scaling-stroke;
+}
+
+.sequence-strip {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: 0.35rem;
+}
+
+.sequence-strip span {
+  display: grid;
+  min-width: 0;
+  min-height: 1.1rem;
+  place-items: center;
+  border-bottom: 1px solid rgb(115 231 238 / 24%);
+  background: rgb(115 231 238 / 4%);
+  color: #708994;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: clamp(0.38rem, 0.7vw, 0.56rem);
+}
+
+.variant-pane .sequence-strip span {
+  border-color: rgb(181 140 255 / 24%);
+}
+.variant-pane .sequence-strip span.changed {
+  border-color: var(--vault-gold);
+  background: rgb(242 198 107 / 14%);
+  color: #ffe5a5;
+  box-shadow: inset 0 -2px var(--vault-gold);
+  animation: base-change 0.42s ease-out;
+}
+
+.swap-comparison {
+  z-index: 2;
+  display: grid;
+  align-self: center;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  justify-self: center;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 50%;
+  background: #0d2733;
+  color: #c6d8de;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.28s ease;
+}
+
+.swap-comparison:hover:not(:disabled) {
+  border-color: var(--vault-cyan);
+  color: var(--vault-cyan);
+  transform: rotate(180deg);
+}
+
+.expression-rig {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1.15fr) minmax(2rem, 0.55fr) auto minmax(2rem, 0.55fr) minmax(
+      8rem,
+      1fr
+    );
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 6.35rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 0.85rem;
+  background: linear-gradient(90deg, rgb(8 26 36 / 88%), rgb(11 24 34 / 88%));
+  transition:
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.pair-builder {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem 0.65rem;
+  align-items: center;
+}
+.pair-builder header {
+  display: grid;
+  gap: 0.14rem;
+}
+.pair-builder header small {
+  color: #63808b;
+  font-size: 0.44rem;
+  letter-spacing: 0.13em;
+}
+.pair-builder header span {
+  color: var(--vault-gold);
+  font-size: 0.48rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+.pair-builder header span.complete {
+  color: #74d9a5;
+}
+.allele-sockets {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.allele-socket {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem;
+  width: 3.75rem;
+  height: 4.2rem;
+  place-items: center;
+  padding: 0.3rem;
+  border: 1px dashed rgb(181 140 255 / 45%);
+  border-radius: 0.55rem;
+  background: linear-gradient(145deg, rgb(181 140 255 / 12%), rgb(5 18 27 / 80%) 70%);
+  color: #e8dcff;
+  cursor: pointer;
+}
+
+.allele-socket::before {
+  position: absolute;
+  inset: -0.26rem;
+  border: 1px solid rgb(181 140 255 / 15%);
+  border-radius: 0.7rem;
+  content: '';
+}
+
+.allele-socket.dominant {
+  border-color: rgb(115 231 238 / 62%);
+  background: radial-gradient(circle, rgb(115 231 238 / 12%), rgb(5 18 27 / 80%) 65%);
+  color: #dfffff;
+}
+.allele-socket > b {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+.allele-socket > small {
+  position: absolute;
+  bottom: 0.2rem;
+  color: #607a85;
+  font-size: 0.38rem;
+}
+.allele-socket.charged {
+  animation: socket-charge 0.55s ease-out;
+}
+
+.socket-chromosome {
+  height: 2.8rem;
+}
+
+.expression-conduit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.18rem;
+}
+.expression-conduit::before,
+.expression-conduit::after {
+  flex: 1;
+  height: 1px;
+  background: rgb(115 231 238 / 16%);
+  content: '';
+}
+.expression-conduit i {
+  width: 0.28rem;
+  height: 0.28rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #294651;
+}
+
+.express-trigger {
+  position: relative;
+  display: grid;
+  width: 5rem;
+  height: 5rem;
+  place-items: center;
+  border: 1px solid var(--vault-cyan);
+  border-radius: 50%;
+  background: radial-gradient(circle, #153845 12%, #081b25 64%);
+  color: #ecfeff;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 0.35rem rgb(115 231 238 / 5%),
+    inset 0 0 20px rgb(115 231 238 / 8%);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.express-trigger:hover:not(:disabled) {
+  transform: scale(1.04);
+  box-shadow:
+    0 0 0 0.35rem rgb(115 231 238 / 9%),
+    0 0 25px rgb(115 231 238 / 16%);
+}
+.express-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.express-trigger > span {
+  position: absolute;
+  inset: 0.38rem;
+  border: 1px dashed rgb(115 231 238 / 32%);
+  border-radius: 50%;
+}
+.express-trigger b {
+  margin-top: 0.2rem;
+  font-size: 0.52rem;
+  letter-spacing: 0.09em;
+}
+.express-trigger small {
+  margin-top: -1rem;
+  color: var(--vault-cyan);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+}
+
+.phenotype-result {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.phenotype-result > span {
+  display: grid;
+  width: 3.3rem;
+  height: 3.3rem;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 3%);
+  color: #5e7984;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.phenotype-result div {
+  display: grid;
+  min-width: 0;
+}
+.phenotype-result small {
+  color: #607c87;
+  font-size: 0.43rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.phenotype-result b {
+  overflow: hidden;
+  color: #849ba5;
+  font-family: var(--font-display);
+  font-size: clamp(0.72rem, 1.3vw, 1rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.interaction-hint {
+  margin: -0.25rem 0 0;
+  color: #56717d;
+  font-size: 0.43rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.allele-instrument.is-running .express-trigger > span {
+  animation: spin-ring 0.7s linear infinite;
+}
+.allele-instrument.is-running .expression-conduit i {
+  animation: conduit-flow 0.7s ease-in-out infinite;
+}
+.allele-instrument.is-running .expression-conduit i:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.allele-instrument.is-running .expression-conduit i:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.allele-instrument.is-running .expression-conduit i:nth-child(4) {
+  animation-delay: 0.3s;
+}
+.allele-instrument.is-running .expression-conduit i:nth-child(5) {
+  animation-delay: 0.4s;
+}
+.allele-instrument.is-revealed .phenotype-result > span {
+  border-color: var(--vault-gold);
+  color: var(--vault-gold);
+  box-shadow: 0 0 24px rgb(242 198 107 / 18%);
+  animation: result-reveal 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.allele-instrument.is-revealed .phenotype-result b {
+  color: #fff1c5;
+}
+.allele-instrument.focus-vault .allele-vault,
+.allele-instrument.focus-comparison .comparison-deck,
+.allele-instrument.focus-pair .expression-rig,
+.allele-instrument.focus-expression .expression-rig {
+  border-color: rgb(242 198 107 / 64%);
+  box-shadow:
+    0 0 0 2px rgb(242 198 107 / 7%),
+    0 0 28px rgb(242 198 107 / 8%);
+}
+.allele-instrument.focus-expression .express-trigger {
+  border-color: var(--vault-gold);
+  box-shadow:
+    0 0 0 0.35rem rgb(242 198 107 / 8%),
+    0 0 26px rgb(242 198 107 / 13%);
+}
+
+@keyframes scan-field {
+  from {
+    transform: translateY(-30%) rotate(-7deg);
+  }
+  to {
+    transform: translateY(270%) rotate(-7deg);
+  }
+}
+@keyframes locus-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+@keyframes token-lock {
+  from {
+    transform: scale(0.82);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes base-change {
+  from {
+    transform: translateY(-0.35rem);
+    opacity: 0.3;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes socket-charge {
+  0% {
+    transform: scale(0.75);
+    box-shadow: 0 0 0 0 rgb(181 140 255 / 45%);
+  }
+  70% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 0.65rem rgb(181 140 255 / 0%);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes spin-ring {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes conduit-flow {
+  0%,
+  100% {
+    background: #294651;
+    box-shadow: none;
+  }
+  50% {
+    background: var(--vault-cyan);
+    box-shadow: 0 0 10px var(--vault-cyan);
+  }
+}
+@keyframes result-reveal {
+  from {
+    transform: scale(0.62) rotate(-12deg);
+    opacity: 0.25;
+  }
+  to {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 1050px) {
+  .gene-selector {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, minmax(3rem, 1fr));
+  }
+  .locus-readout {
+    display: none;
+  }
+  .gene-selector button span {
+    display: none;
+  }
+  .gene-selector > button {
+    grid-template-columns: auto 1fr;
+  }
+  .pair-builder {
+    grid-template-columns: auto 1fr;
+  }
+  .pair-builder header span {
+    display: none;
+  }
+  .expression-rig {
+    grid-template-columns: minmax(8rem, 1fr) minmax(1rem, 0.35fr) auto minmax(1rem, 0.35fr) minmax(
+        7rem,
+        0.8fr
+      );
+  }
+}
+
+@media (max-width: 780px) {
+  :host,
+  .allele-instrument {
+    height: auto;
+    min-height: 48rem;
+  }
+  .allele-instrument {
+    grid-template-rows: auto auto auto auto;
+  }
+  .instrument-body {
+    grid-template-columns: minmax(4.75rem, 5.5rem) minmax(0, 1fr);
+  }
+  .allele-vault {
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto;
+    align-items: center;
+  }
+  .allele-vault > header {
+    min-width: 7rem;
+    padding: 0 0.45rem 0 0;
+    border: 0;
+    border-right: 1px solid rgb(255 255 255 / 7%);
+  }
+  .vault-rack {
+    grid-template-columns: repeat(4, minmax(4rem, 1fr));
+    padding: 0 0.35rem;
+  }
+  .vault-gene {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .vault-gene > span {
+    display: none;
+  }
+  .allele-token {
+    aspect-ratio: auto;
+    min-height: 2.65rem;
+  }
+  .allele-vault > footer {
+    display: none;
+  }
+  .comparison-deck {
+    min-height: 22rem;
+  }
+  .expression-rig {
+    grid-template-columns: minmax(7.5rem, 1fr) 1.2rem auto 1.2rem minmax(6.5rem, 1fr);
+  }
+  .phenotype-result > span {
+    display: none;
+  }
+}
+
+@media (max-width: 540px) {
+  :host,
+  .allele-instrument {
+    min-height: 57rem;
+  }
+  .gene-selector {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, minmax(3rem, 1fr));
+  }
+  .gene-selector > button {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 0.4rem;
+  }
+  .gene-selector button i {
+    display: none;
+  }
+  .instrument-body {
+    grid-template-columns: 3.2rem minmax(0, 1fr);
+  }
+  .allele-vault {
+    grid-template-columns: 1fr;
+  }
+  .allele-vault > header {
+    min-width: 0;
+    padding: 0 0 0.4rem;
+    border: 0;
+    border-bottom: 1px solid rgb(255 255 255 / 7%);
+  }
+  .vault-rack {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .vault-gene {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, minmax(2.65rem, 1fr));
+  }
+  .split-screen {
+    grid-template-columns: minmax(0, 1fr) 1.7rem minmax(0, 1fr);
+  }
+  .genome-pane {
+    padding: 0.4rem;
+  }
+  .pane-visuals {
+    grid-template-columns: minmax(2.8rem, 0.55fr) minmax(5.5rem, 1fr);
+    gap: 0.1rem;
+  }
+  .variant-pane .pane-visuals {
+    grid-template-columns: minmax(5.5rem, 1fr) minmax(2.8rem, 0.55fr);
+  }
+  .phenotype-preview {
+    grid-template-rows: minmax(3.2rem, 1fr) auto;
+  }
+  .dragon-part-slot {
+    min-width: 2.7rem;
+    min-height: 3.2rem;
+  }
+  .phenotype-preview figcaption small {
+    display: none;
+  }
+  .phenotype-preview figcaption b {
+    max-width: 3.5rem;
+    font-size: 0.42rem;
+  }
+  .dna-helix {
+    max-height: 3rem;
+  }
+  .sequence-strip {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .expression-rig {
+    grid-template-columns: 1fr auto 1fr;
+  }
+  .expression-conduit {
+    display: none;
+  }
+  .pair-builder {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .pair-builder header {
+    text-align: center;
+  }
+  .phenotype-result {
+    justify-items: center;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,15 +1,6 @@
-import {
-  evaluateSimulationAnswer,
-  generateSimulationQuestions,
-} from './dragon-question.generator';
-import {
-  InstructionLevel,
-  ResolvedSimulationSettings,
-} from './dragon-simulation.models';
-import {
-  DRAGON_SIMULATIONS,
-  LEVEL_PROFILES,
-} from './dragon-simulation.registry';
+import { evaluateSimulationAnswer, generateSimulationQuestions } from './dragon-question.generator';
+import { InstructionLevel, ResolvedSimulationSettings } from './dragon-simulation.models';
+import { DRAGON_SIMULATIONS, LEVEL_PROFILES } from './dragon-simulation.registry';
 
 describe('adaptive Dragon Genetics question generation', () => {
   function settings(level: InstructionLevel): ResolvedSimulationSettings {
@@ -24,10 +15,25 @@ describe('adaptive Dragon Genetics question generation', () => {
     };
   }
 
+  it('excludes retired stations from the active simulation registry', () => {
+    const activeIds = DRAGON_SIMULATIONS.map((definition) => definition.id as string);
+    expect(activeIds).not.toContain('sibling-tracer');
+    expect(activeIds).not.toContain('evidence-replay');
+    expect(activeIds).toContain('dna-process-lab');
+  });
+
   it('reconstructs exactly the same question set from a fixed seed', () => {
     const definition = DRAGON_SIMULATIONS[4];
-    const first = generateSimulationQuestions(definition, settings('high-school'), 'student-7:fixed');
-    const second = generateSimulationQuestions(definition, settings('high-school'), 'student-7:fixed');
+    const first = generateSimulationQuestions(
+      definition,
+      settings('high-school'),
+      'student-7:fixed',
+    );
+    const second = generateSimulationQuestions(
+      definition,
+      settings('high-school'),
+      'student-7:fixed',
+    );
     expect(second).toEqual(first);
   });
 
@@ -35,11 +41,17 @@ describe('adaptive Dragon Genetics question generation', () => {
     for (const definition of DRAGON_SIMULATIONS) {
       for (const level of Object.keys(LEVEL_PROFILES) as InstructionLevel[]) {
         const profile = LEVEL_PROFILES[level];
-        const questions = generateSimulationQuestions(definition, settings(level), `${definition.id}:${level}`);
+        const questions = generateSimulationQuestions(
+          definition,
+          settings(level),
+          `${definition.id}:${level}`,
+        );
         expect(questions.length).toBe(profile.questionCount);
         expect(questions.some((question) => question.level === level)).toBeTrue();
         for (const question of questions) {
-          expect(question.options.some((option) => option.id === question.correctOptionId)).toBeTrue();
+          expect(
+            question.options.some((option) => option.id === question.correctOptionId),
+          ).toBeTrue();
           expect(question.prompt.length).toBeGreaterThan(10);
         }
       }
@@ -60,7 +72,9 @@ describe('adaptive Dragon Genetics question generation', () => {
       'evaluation',
     )[0];
     const correct = evaluateSimulationAnswer(question, question.correctOptionId);
-    const incorrectOption = question.options.find((option) => option.id !== question.correctOptionId);
+    const incorrectOption = question.options.find(
+      (option) => option.id !== question.correctOptionId,
+    );
     expect(correct).toEqual({ correct: true, misconceptionFlag: null });
     expect(evaluateSimulationAnswer(question, incorrectOption?.id ?? 'wrong').correct).toBeFalse();
   });

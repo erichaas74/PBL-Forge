@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
+import { Vector3Data } from '../domain/assembly.models';
 import { SpecimenDescriptor, specimenSignature } from './specimen.models';
-import { SpecimenFrame } from './specimen-pose';
+import { SpecimenFrame, SpecimenPoseOptions } from './specimen-pose';
 import {
   SpecimenRendererService,
   isSpecimenRenderingAvailable,
@@ -25,6 +26,10 @@ export interface SpecimenThumbnailOptions {
   frame?: SpecimenFrame | null;
   focusedTraitId?: string | null;
   transparent?: boolean;
+  /** Camera angle. Lets one context bake several views of the same specimen. */
+  viewDirection?: Vector3Data;
+  /** Overrides the resting pose — the parts lab shows parts undrooped. */
+  pose?: SpecimenPoseOptions;
 }
 
 const DEFAULT_SIZE = 160;
@@ -44,11 +49,14 @@ export class SpecimenThumbnailService implements OnDestroy {
    */
   bake(descriptor: SpecimenDescriptor, options: SpecimenThumbnailOptions = {}): string | null {
     const size = options.size ?? DEFAULT_SIZE;
+    const view = options.viewDirection;
     const key = [
       specimenSignature(descriptor),
       size,
       options.focusedTraitId ?? '',
       options.frame ? `${round(options.frame.radius)}@${round(options.frame.center.y)}` : '',
+      view ? `${round(view.x)},${round(view.y)},${round(view.z)}` : '',
+      options.pose ? `d${round(options.pose.droopRadians ?? 0)}` : '',
     ].join(':');
 
     const cached = this.cache.get(key);
@@ -62,9 +70,11 @@ export class SpecimenThumbnailService implements OnDestroy {
     const renderer = this.ensureRenderer(size);
     if (!renderer) return null;
 
+    renderer.setViewDirection(options.viewDirection);
     renderer.show(descriptor, {
       frame: options.frame ?? null,
       focusedTraitId: options.focusedTraitId ?? null,
+      pose: options.pose,
     });
     const dataUrl = renderer.toDataUrl();
     if (!dataUrl) return null;

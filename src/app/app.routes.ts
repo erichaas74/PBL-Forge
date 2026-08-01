@@ -31,6 +31,16 @@ export const routes: Routes = [
         .then((m) => m.DragonSimulationExperiencePage)
   },
   {
+    path: 'parts-lab',
+    loadComponent: () =>
+      import('./features/parts-lab/parts-lab.page').then((m) => m.PartsLabPage)
+  },
+  {
+    path: 'dragon-test-bench',
+    loadComponent: () =>
+      import('./features/dragon-genetics/dragon-test-bench.page').then((m) => m.DragonTestBenchPage)
+  },
+  {
     path: 'dragon-duel',
     loadComponent: () =>
       import('./features/dragon-genetics/dragon-duel.page').then((m) => m.DragonDuelPage)

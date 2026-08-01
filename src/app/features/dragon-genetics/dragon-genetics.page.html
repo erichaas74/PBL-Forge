@@ -3,42 +3,86 @@
     <div>
       <a routerLink="/catalog">← Project library</a>
       <span class="eyebrow">Royal Dragon Hatchery · Adaptive genetics lab</span>
-      <h1>Twelve experiences.<br><em>One evidence trail.</em></h1>
-      <p>Open a full-screen instrument, make predictions on the model, and answer at the level assigned to you.</p>
+      <h1>{{ simulations.length }} experiences.<br /><em>One evidence trail.</em></h1>
+      <p>
+        Open a full-screen instrument, make predictions on the model, and answer at the level
+        assigned to you.
+      </p>
     </div>
     <aside>
       <span>{{ store.completedCount() }}/{{ simulations.length }}</span>
       <strong>Experiences secured</strong>
-      <div role="progressbar" aria-label="Dragon Genetics progress" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="progressPercent()"><i [style.width.%]="progressPercent()"></i></div>
+      <div
+        role="progressbar"
+        aria-label="Dragon Genetics progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-valuenow]="progressPercent()"
+      >
+        <i [style.width.%]="progressPercent()"></i>
+      </div>
       <small>{{ store.assignment().title }}</small>
     </aside>
   </header>
 
   <main>
     <div class="map-heading">
-      <div><span class="eyebrow">Your instrument deck</span><h2>Choose the next investigation</h2></div>
-      <p>Each run is generated from your student record and can be reconstructed from its saved seed.</p>
+      <div>
+        <span class="eyebrow">Your instrument deck</span>
+        <h2>Choose the next investigation</h2>
+      </div>
+      <p>
+        Each run is generated from your student record and can be reconstructed from its saved seed.
+      </p>
     </div>
     <section class="simulation-grid" aria-label="Dragon Genetics simulations">
       @for (simulation of simulations; track simulation.id) {
         @let settings = store.settingsFor(simulation.id);
         @let run = store.runs()[simulation.id];
-        <article [style.--simulation-accent]="simulation.accent" [class.complete]="run?.complete" [class.disabled]="!settings.enabled">
-          <header><span>{{ simulation.module.toString().padStart(2, '0') }}</span><b>{{ simulation.skill }}</b></header>
-          <div class="instrument-icon" [class]="'instrument-icon icon-' + simulation.visualKind" aria-hidden="true">
-            @for (node of simulation.nodes; track node.id) { <i>{{ node.symbol }}</i> }
+        <article
+          [style.--simulation-accent]="simulation.accent"
+          [class.complete]="run?.complete"
+          [class.disabled]="!settings.enabled"
+        >
+          <header>
+            <span>{{ simulation.module.toString().padStart(2, '0') }}</span
+            ><b>{{ simulation.skill }}</b>
+          </header>
+          <div
+            class="instrument-icon"
+            [class]="'instrument-icon icon-' + simulation.visualKind"
+            aria-hidden="true"
+          >
+            @for (node of simulation.nodes; track node.id) {
+              <i>{{ node.symbol }}</i>
+            }
           </div>
           <div class="card-copy">
-            <small>{{ levelLabels[settings.level] }} · {{ settings.questionCount }} checkpoints</small>
+            <small
+              >{{ levelLabels[settings.level] }} · {{ settings.questionCount }} checkpoints</small
+            >
             <h3>{{ simulation.title }}</h3>
             <p>{{ simulation.goal }}</p>
           </div>
           <footer>
-            @if (run?.complete) { <span>✓ {{ run?.score }}% secured</span> }
-            @else if (run) { <span>Resume {{ (run?.currentQuestionIndex ?? 0) + 1 }}/{{ run?.questionIds?.length }}</span> }
-            @else { <span>Not started</span> }
-            @if (settings.enabled) { <a [routerLink]="['/dragon-genetics', simulation.id]">{{ run ? 'Open' : 'Launch' }} →</a> }
-            @else { <b>Not assigned</b> }
+            @if (run?.complete) {
+              <span>✓ {{ run?.score }}% secured</span>
+            } @else if (run) {
+              <span
+                >Resume {{ (run?.currentQuestionIndex ?? 0) + 1 }}/{{
+                  run?.questionIds?.length
+                }}</span
+              >
+            } @else {
+              <span>Not started</span>
+            }
+            @if (settings.enabled) {
+              <a [routerLink]="['/dragon-genetics', simulation.id]"
+                >{{ run ? 'Open' : 'Launch' }} →</a
+              >
+            } @else {
+              <b>Not assigned</b>
+            }
           </footer>
         </article>
       }

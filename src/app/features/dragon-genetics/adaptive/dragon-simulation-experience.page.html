@@ -1,9 +1,16 @@
 @if (definition(); as simulation) {
   <div class="experience-shell" [style.--simulation-accent]="simulation.accent">
     <header class="experience-header">
-      <a class="exit" routerLink="/dragon-genetics" aria-label="Return to Dragon Genetics mission map">←</a>
+      <a
+        class="exit"
+        routerLink="/dragon-genetics"
+        aria-label="Return to Dragon Genetics mission map"
+        >←</a
+      >
       <div class="title-block">
-        <span>LAB {{ simulation.module.toString().padStart(2, '0') }} · {{ simulation.skill }}</span>
+        <span
+          >LAB {{ simulation.module.toString().padStart(2, '0') }} · {{ simulation.skill }}</span
+        >
         <h1>{{ simulation.title }}</h1>
       </div>
       @if (run(); as currentRun) {
@@ -15,10 +22,18 @@
       <div class="save-state" [class.error]="store.persistenceState() === 'error'">
         <i></i>
         @switch (store.persistenceState()) {
-          @case ('loading') { Loading }
-          @case ('saving') { Saving }
-          @case ('saved') { Saved }
-          @case ('error') { Saved on device }
+          @case ('loading') {
+            Loading
+          }
+          @case ('saving') {
+            Saving
+          }
+          @case ('saved') {
+            Saved
+          }
+          @case ('error') {
+            Saved on device
+          }
         }
       </div>
     </header>
@@ -26,9 +41,12 @@
     @if (session.isLocalTeacher() && run(); as previewRun) {
       <aside class="preview-toolbar">
         <strong>Teacher preview</strong>
-        <label>Instruction level
+        <label
+          >Instruction level
           <select [value]="previewRun.level" (change)="previewLevel($event)">
-            @for (level of levels; track level) { <option [value]="level">{{ levelLabels[level] }}</option> }
+            @for (level of levels; track level) {
+              <option [value]="level">{{ levelLabels[level] }}</option>
+            }
           </select>
         </label>
       </aside>
@@ -40,33 +58,62 @@
           <span
             [class.active]="index === currentRun.currentQuestionIndex"
             [class.complete]="index < currentRun.currentQuestionIndex || currentRun.complete"
-          ><i>{{ index < currentRun.currentQuestionIndex || currentRun.complete ? '✓' : index + 1 }}</i>{{ item.phase }}</span>
+            ><i>{{
+              index < currentRun.currentQuestionIndex || currentRun.complete ? '✓' : index + 1
+            }}</i
+            >{{ item.phase }}</span
+          >
         }
       </nav>
 
       @if (!currentRun.complete && question(); as currentQuestion) {
-        <main class="experience-workspace">
-          <section class="visual-stage">
-            <div class="stage-cue">
-              <span>{{ activeSection()?.phase }}</span>
-              <strong>{{ activeSection()?.title }}</strong>
-              <p>{{ activeSection()?.cue }}</p>
-            </div>
-            <app-dragon-simulation-visual
-              [definition]="simulation"
-              [activeNodeId]="selectedNodeId()"
-              [revealed]="!!response()"
-              (nodeSelected)="selectNode($event)"
-            />
+        <main
+          class="experience-workspace"
+          [class.dna-workspace]="simulation.id === 'dna-process-lab'"
+        >
+          <section
+            class="visual-stage"
+            [class.allele-stage]="simulation.id === 'allele-workbench'"
+            [class.dna-stage]="simulation.id === 'dna-process-lab'"
+          >
+            @if (simulation.id === 'allele-workbench') {
+              <app-allele-vault-workbench
+                [question]="alleleWorkbenchQuestion()"
+                [disabled]="!!response()"
+                (interaction)="handleAlleleWorkbenchInteraction($event)"
+              />
+            } @else if (simulation.id === 'dna-process-lab') {
+              <app-dragon-dna-repair-lab
+                [focusQuestionId]="dnaLabFocusQuestionId()"
+                (modelSelected)="selectNode($event)"
+              />
+            } @else {
+              <div class="stage-cue">
+                <span>{{ activeSection()?.phase }}</span>
+                <strong>{{ activeSection()?.title }}</strong>
+                <p>{{ activeSection()?.cue }}</p>
+              </div>
+              <app-dragon-simulation-visual
+                [definition]="simulation"
+                [activeNodeId]="selectedNodeId()"
+                [revealed]="!!response()"
+                (nodeSelected)="selectNode($event)"
+              />
+            }
           </section>
 
-          <aside class="question-dock" aria-label="Embedded simulation question">
+          @if (simulation.id !== 'dna-process-lab') {
+            <aside class="question-dock" aria-label="Embedded simulation question">
             <header>
               <span>{{ currentQuestion.skill }} · {{ levelLabels[currentRun.level] }}</span>
               <b>{{ currentRun.currentQuestionIndex + 1 }}/{{ currentRun.questionIds.length }}</b>
             </header>
             <div class="question-copy">
-              <small>{{ currentQuestion.interaction === 'visual-choice' ? 'Select on the model or below' : 'Choose the strongest evidence' }}</small>
+              <small>{{
+                currentQuestion.interaction === 'visual-choice'
+                  ? 'Select on the model or below'
+                  : 'Choose the strongest evidence'
+              }}</small>
               <h2>{{ currentQuestion.prompt }}</h2>
             </div>
             <div class="answer-grid">
@@ -75,17 +122,24 @@
                   type="button"
                   [class.selected]="response()?.selectedOptionId === option.id"
                   [class.correct]="response() && option.id === currentQuestion.correctOptionId"
-                  [class.incorrect]="response()?.selectedOptionId === option.id && !response()?.correct"
+                  [class.incorrect]="
+                    response()?.selectedOptionId === option.id && !response()?.correct
+                  "
                   [disabled]="!!response()"
                   (click)="answer(currentQuestion, option.id)"
-                ><i>{{ index + 1 }}</i><span>{{ option.label }}</span></button>
+                >
+                  <i>{{ index + 1 }}</i
+                  ><span>{{ option.label }}</span>
+                </button>
               }
             </div>
             @if (!response() && currentQuestion.hint) {
               <button class="hint-button" type="button" (click)="hintOpen.set(!hintOpen())">
                 {{ hintOpen() ? 'Hide hint' : 'Open visual hint' }}
               </button>
-              @if (hintOpen()) { <p class="hint" role="status">{{ currentQuestion.hint }}</p> }
+              @if (hintOpen()) {
+                <p class="hint" role="status">{{ currentQuestion.hint }}</p>
+              }
             }
             @if (response(); as answer) {
               <section class="feedback" [class.correct]="answer.correct" role="status">
@@ -93,17 +147,26 @@
                 <p>{{ currentQuestion.explanation }}</p>
               </section>
               <button class="continue" type="button" (click)="continue()">
-                {{ currentRun.currentQuestionIndex === currentRun.questionIds.length - 1 ? 'Complete simulation' : 'Continue to ' + questions()[currentRun.currentQuestionIndex + 1].phase }} →
+                {{
+                  currentRun.currentQuestionIndex === currentRun.questionIds.length - 1
+                    ? 'Complete simulation'
+                    : 'Continue to ' + questions()[currentRun.currentQuestionIndex + 1].phase
+                }}
+                →
               </button>
             }
-          </aside>
+            </aside>
+          }
         </main>
       } @else {
         <main class="completion-screen">
           <div class="completion-orbit" aria-hidden="true"><span>✓</span><i></i><i></i></div>
           <span class="eyebrow">Evidence run complete</span>
           <h2>{{ simulation.title }} secured.</h2>
-          <p>You supported {{ currentRun.responses.length }} checkpoints at the {{ levelLabels[currentRun.level] }} level.</p>
+          <p>
+            You supported {{ currentRun.responses.length }} checkpoints at the
+            {{ levelLabels[currentRun.level] }} level.
+          </p>
           <strong>{{ currentRun.score }}%</strong>
           <div class="completion-actions">
             <button type="button" (click)="restart()">Run a new equivalent set</button>
@@ -118,7 +181,9 @@
         </main>
       }
     } @else {
-      <div class="loading-state" aria-live="polite"><i></i><span>Preparing your deterministic simulation…</span></div>
+      <div class="loading-state" aria-live="polite">
+        <i></i><span>Preparing your deterministic simulation…</span>
+      </div>
     }
   </div>
 }

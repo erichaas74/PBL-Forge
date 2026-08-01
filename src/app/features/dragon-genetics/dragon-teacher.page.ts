@@ -1,9 +1,16 @@
 import { AsyncPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EnvironmentInjector,
+  inject,
+  signal,
+} from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { collection, collectionData, Firestore, query, where } from '@angular/fire/firestore';
 import { RouterLink } from '@angular/router';
 import { catchError, map, of, switchMap } from 'rxjs';
+import { runInFirebaseContext } from '../../core/firebase/firebase-context';
 import { SessionService } from '../../core/firebase/session.service';
 import { DragonAdaptiveStore } from './adaptive/dragon-adaptive.store';
 import {
@@ -32,6 +39,7 @@ interface ProgressDocument {
 })
 export class DragonTeacherPage {
   private readonly firestore = inject(Firestore);
+  private readonly injector = inject(EnvironmentInjector);
   readonly session = inject(SessionService);
   readonly adaptiveStore = inject(DragonAdaptiveStore);
   readonly error = signal<string | null>(null);
@@ -42,18 +50,20 @@ export class DragonTeacherPage {
   readonly progress$ = toObservable(this.session.user).pipe(
     switchMap((user) => {
       this.error.set(null);
-      const records = collection(this.firestore, 'dragonLabProgress');
-      const source = query(records, where('teacherId', '==', user?.uid ?? '__none__'));
-      return collectionData(source, { idField: 'id' }).pipe(
-        map((documents) => (documents as ProgressDocument[]).sort((a, b) =>
-          (b.completedSimulationIds?.length ?? 0) - (a.completedSimulationIds?.length ?? 0)
-          || a.studentId.localeCompare(b.studentId))),
-        catchError((error: unknown) => {
-          console.error('Dragon Genetics teacher dashboard could not load.', error);
-          this.error.set('Sign in with the assigned teacher account to view student records.');
-          return of([] as ProgressDocument[]);
-        }),
-      );
+      return runInFirebaseContext(this.injector, () => {
+        const records = collection(this.firestore, 'dragonLabProgress');
+        const source = query(records, where('teacherId', '==', user?.uid ?? '__none__'));
+        return collectionData(source, { idField: 'id' }).pipe(
+          map((documents) => (documents as ProgressDocument[]).sort((a, b) =>
+            (b.completedSimulationIds?.length ?? 0) - (a.completedSimulationIds?.length ?? 0)
+            || a.studentId.localeCompare(b.studentId))),
+          catchError((error: unknown) => {
+            console.error('Dragon Genetics teacher dashboard could not load.', error);
+            this.error.set('Sign in with the assigned teacher account to view student records.');
+            return of([] as ProgressDocument[]);
+          }),
+        );
+      });
     }),
   );
 

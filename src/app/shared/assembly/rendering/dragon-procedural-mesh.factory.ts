@@ -400,6 +400,58 @@ function buildTalon(radius: number, length: number, palette: DragonPalette): THR
 // Wings: membrane with scalloped trailing edge, arm bone, and finger struts.
 // ---------------------------------------------------------------------------
 
+/**
+ * How the membrane hangs between its bones. All values are fractions of chord
+ * or span, so a wing keeps its character at every genome scale.
+ */
+export interface WingMembraneShape {
+  /** Peak downward bow across the chord. Zero is a flat sheet. */
+  camber: number;
+  /** Extra droop midway between finger struts, on top of the camber. */
+  fingerSag: number;
+  /** Upward arc from root to tip, as a fraction of span. */
+  dihedral: number;
+  /** How far the trailing edge scallops inward between fingers. */
+  scallop: number;
+}
+
+export const WING_SHAPES = {
+  /** Nearly flat — close to the original sheet, with just enough bow to catch light. */
+  taut: { camber: 0.05, fingerSag: 0.03, dihedral: 0.02, scallop: 0.1 },
+  /** A single clean airfoil bow. Reads well at thumbnail size. */
+  cambered: { camber: 0.12, fingerSag: 0.06, dihedral: 0.04, scallop: 0.13 },
+  /** Deep scalloped sag between the fingers, like a bat at rest. */
+  bat: { camber: 0.1, fingerSag: 0.17, dihedral: 0.05, scallop: 0.19 },
+  /** Strong upward sweep, as if catching air. */
+  soaring: { camber: 0.15, fingerSag: 0.08, dihedral: 0.17, scallop: 0.13 },
+} as const satisfies Record<string, WingMembraneShape>;
+
+/** Shipped default. Change this line to adopt a tuned shape permanently. */
+export const DEFAULT_WING_SHAPE: WingMembraneShape = WING_SHAPES.cambered;
+
+/**
+ * Live tuning hook for the parts lab.
+ *
+ * Module-level and mutable on purpose: the lab needs to reshape the membrane
+ * while a student — or you — drags a slider, and threading a parameter through
+ * every caller of `createDragonProceduralObject` would put a tuning concern in
+ * the genetics, arena, and thumbnail paths that none of them care about.
+ * Null in production, so the shipped default is what everyone else renders.
+ */
+let wingShapeOverride: WingMembraneShape | null = null;
+
+export function setWingShapeOverride(shape: WingMembraneShape | null): void {
+  wingShapeOverride = shape;
+}
+
+export function getActiveWingShape(): WingMembraneShape {
+  return wingShapeOverride ?? DEFAULT_WING_SHAPE;
+}
+
+/** Spanwise/chordwise tessellation of the membrane grid. */
+const WING_SPAN_SEGMENTS = 26;
+const WING_CHORD_SEGMENTS = 8;
+
 function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
   const dims = part.dimensions;
@@ -407,54 +459,70 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const thickness = dims.y;
   const chord = dims.x * 2.6;
   const rootSign = wingRootSign(part);
+  const form = getActiveWingShape();
 
   // Chordwise coordinates: +x is the dragon's forward, membrane trails backward.
   const leadingAt = (s: number): number => dims.x * 0.5 - chord * 0.12 * Math.pow(s, 1.5);
-  const trailingAt = (s: number): number => leadingAt(s) - chord * (1 - 0.62 * Math.pow(s, 1.8));
-  const scallopDepth = chord * 0.13;
+  const flatTrailingAt = (s: number): number =>
+    leadingAt(s) - chord * (1 - 0.62 * Math.pow(s, 1.8));
   const fingerStops = [0.42, 0.74];
+  // Root, the two finger tips, and the wingtip: the membrane is pinned at each
+  // and free to sag between them.
+  const anchors = [0, ...fingerStops, 1];
 
-  // Membrane shape in (chord x, span y) space, root at y=0.
-  const shape = new THREE.Shape();
-  shape.moveTo(trailingAt(0), 0);
-  shape.lineTo(leadingAt(0), 0);
-  shape.quadraticCurveTo(leadingAt(0.5) + chord * 0.04, span * 0.5, leadingAt(1), span);
-  shape.lineTo(trailingAt(1), span * 0.99);
-  const scallopStops = [...fingerStops].reverse();
-  let previous: [number, number] = [trailingAt(1), span * 0.99];
-  for (const stop of [...scallopStops, 0.02]) {
-    const next: [number, number] = [trailingAt(stop), stop * span];
-    shape.quadraticCurveTo(
-      (previous[0] + next[0]) / 2 + scallopDepth,
-      (previous[1] + next[1]) / 2,
-      next[0],
-      next[1],
-    );
-    previous = next;
-  }
-  shape.closePath();
+  /** 0 where the membrane is pinned to a bone, 1 midway between two of them. */
+  const betweenFingers = (s: number): number => {
+    for (let index = 1; index < anchors.length; index += 1) {
+      const from = anchors[index - 1];
+      const to = anchors[index];
+      if (s > to) continue;
+      return Math.sin(((s - from) / Math.max(to - from, 1e-6)) * Math.PI);
+    }
+    return 0;
+  };
 
-  const membrane = new THREE.ShapeGeometry(shape, 10);
-  // Shape XY -> world XZ with the root at +z (left-wing orientation).
-  membrane.rotateX(-Math.PI / 2);
-  membrane.translate(0, 0, span / 2);
-  group.add(mesh(membrane, membraneMaterial(palette)));
+  // Trailing edge scallops inward between the fingers, pulling toward the
+  // leading edge (larger x) where nothing holds the membrane out.
+  const trailingAt = (s: number): number =>
+    flatTrailingAt(s) + chord * form.scallop * betweenFingers(s);
 
-  const bone = hornMaterial(palette, THREE.DoubleSide);
   const zOf = (s: number): number => span / 2 - s * span;
 
+  /**
+   * Height of the membrane at span fraction `s`, chord fraction `c` (0 at the
+   * leading edge, 1 at the trailing edge). Bones read from this too, so they
+   * stay attached to the surface rather than floating.
+   */
+  const membraneY = (s: number, c: number): number => {
+    const sag = (form.camber + form.fingerSag * betweenFingers(s)) * chord;
+    // sin() pins the sheet at both edges and bows it in between.
+    return form.dihedral * span * s * s - sag * Math.sin(Math.max(0, Math.min(1, c)) * Math.PI);
+  };
+
+  group.add(mesh(
+    buildWingMembraneGeometry(leadingAt, trailingAt, zOf, membraneY),
+    membraneMaterial(palette),
+  ));
+
+  const bone = hornMaterial(palette, THREE.DoubleSide);
+
   const armCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(leadingAt(0) - 0.01, thickness * 0.1, zOf(0.02)),
-    new THREE.Vector3(leadingAt(0.45) + 0.01, thickness * 0.5, zOf(0.45)),
-    new THREE.Vector3(leadingAt(1) - 0.02, thickness * 0.2, zOf(0.98)),
+    new THREE.Vector3(leadingAt(0) - 0.01, thickness * 0.1 + membraneY(0.02, 0), zOf(0.02)),
+    new THREE.Vector3(leadingAt(0.45) + 0.01, thickness * 0.5 + membraneY(0.45, 0), zOf(0.45)),
+    new THREE.Vector3(leadingAt(1) - 0.02, thickness * 0.2 + membraneY(0.98, 0), zOf(0.98)),
   ]);
   group.add(mesh(new THREE.TubeGeometry(armCurve, 14, thickness * 0.5, 6), bone));
 
-  const elbow = new THREE.Vector3(leadingAt(0.45), thickness * 0.3, zOf(0.45));
-  const fingerTargets = [
-    ...fingerStops.map(stop => new THREE.Vector3(trailingAt(stop) + scallopDepth * 0.35, 0, zOf(stop))),
-    new THREE.Vector3(trailingAt(1) + scallopDepth * 0.3, 0, zOf(0.99)),
-  ];
+  const elbow = new THREE.Vector3(
+    leadingAt(0.45),
+    thickness * 0.3 + membraneY(0.45, 0),
+    zOf(0.45),
+  );
+  const fingerTargets = [...fingerStops, 0.99].map(stop => new THREE.Vector3(
+    trailingAt(stop),
+    membraneY(stop, 1),
+    zOf(stop),
+  ));
   for (const target of fingerTargets) {
     const strut = new THREE.LineCurve3(elbow, target);
     group.add(mesh(new THREE.TubeGeometry(strut, 1, thickness * 0.26, 5), bone));
@@ -467,6 +535,53 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   }
 
   return group;
+}
+
+/**
+ * The membrane as a tessellated grid rather than a flat `ShapeGeometry`.
+ *
+ * ShapeGeometry only emits vertices along the outline, so there is nothing in
+ * the interior to displace — which is why the membrane used to render as a
+ * perfectly flat sheet no matter what the bones did. A parametric grid gives
+ * every interior point a height.
+ */
+function buildWingMembraneGeometry(
+  leadingAt: (s: number) => number,
+  trailingAt: (s: number) => number,
+  zOf: (s: number) => number,
+  membraneY: (s: number, c: number) => number,
+): THREE.BufferGeometry {
+  const positions: number[] = [];
+  const indices: number[] = [];
+  const columns = WING_CHORD_SEGMENTS + 1;
+
+  for (let row = 0; row <= WING_SPAN_SEGMENTS; row += 1) {
+    const s = row / WING_SPAN_SEGMENTS;
+    const leading = leadingAt(s);
+    const trailing = trailingAt(s);
+    const z = zOf(s);
+
+    for (let column = 0; column <= WING_CHORD_SEGMENTS; column += 1) {
+      const c = column / WING_CHORD_SEGMENTS;
+      positions.push(leading + (trailing - leading) * c, membraneY(s, c), z);
+    }
+  }
+
+  for (let row = 0; row < WING_SPAN_SEGMENTS; row += 1) {
+    for (let column = 0; column < WING_CHORD_SEGMENTS; column += 1) {
+      const a = row * columns + column;
+      const b = a + 1;
+      const c = a + columns;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 /** +1 when the wing root socket sits at +z (left wing), -1 for the right wing. */

@@ -33,18 +33,39 @@ export interface SpecimenPose {
   parts: readonly SpecimenPosePart[];
 }
 
+/**
+ * One articulated bend: every joint whose child carries `role` rotates that
+ * child and everything downstream of it around the joint's world pivot.
+ *
+ * Chains accumulate — a three-link tail bends into an arc rather than shearing
+ * apart — which is what makes the same primitive serve both a resting droop and
+ * a swinging attack.
+ */
+export interface SpecimenBend {
+  role: string;
+  radians: number;
+  /** World axis to rotate around. */
+  axis: Vector3Data;
+  /**
+   * Flip the rotation for parts on the -z side of the body, so paired limbs
+   * sweep symmetrically instead of both swinging the same way.
+   */
+  mirrorAcrossZ?: boolean;
+}
+
 export interface SpecimenPoseOptions {
   /**
-   * Per-link downward bend applied along chains of parts with this role, in
-   * radians. Authored blueprints hold hanging chains (dragon tails) straight
-   * out, because in the arena gravity does the work. A viewer has no gravity,
-   * so a straight tail reads as broken. 0 disables it.
+   * Resting droop for hanging chains, in radians per link. Authored blueprints
+   * hold tails straight out because in the arena gravity does the work; a
+   * viewer has no gravity, so a straight tail reads as broken. 0 disables it.
    */
   droopRadians?: number;
   /** Role whose chains droop. Defaults to `tail`. */
   droopRole?: string;
   /** World axis the droop rotates around. Defaults to +Z (sagittal bend). */
   droopAxis?: Vector3Data;
+  /** Extra bends layered on top of the droop — used to animate attacks. */
+  bends?: readonly SpecimenBend[];
 }
 
 const DEFAULT_DROOP_ROLE = 'tail';
@@ -64,26 +85,28 @@ export function buildSpecimenPose(
   );
 
   const droop = options.droopRadians ?? 0;
+  const bends: SpecimenBend[] = [];
   if (droop !== 0) {
-    applyChainDroop(blueprint, parts, droop, options);
+    bends.push({
+      role: options.droopRole ?? DEFAULT_DROOP_ROLE,
+      radians: droop,
+      axis: options.droopAxis ?? DEFAULT_DROOP_AXIS,
+    });
+  }
+  bends.push(...(options.bends ?? []));
+
+  for (const bend of bends) {
+    if (bend.radians !== 0) applyBend(blueprint, parts, bend);
   }
 
   return { parts: blueprint.parts.map(part => parts.get(part.id)!) };
 }
 
-/**
- * Bends chains of `droopRole` parts. Each joint in the chain rotates its child
- * and everything downstream of it around that joint's world pivot, so the bend
- * accumulates into an arc instead of shearing links apart.
- */
-function applyChainDroop(
+function applyBend(
   blueprint: AssemblyBlueprint,
   parts: Map<string, SpecimenPosePart>,
-  droop: number,
-  options: SpecimenPoseOptions,
+  bend: SpecimenBend,
 ): void {
-  const role = options.droopRole ?? DEFAULT_DROOP_ROLE;
-  const rotation = quaternionFromAxisAngle(options.droopAxis ?? DEFAULT_DROOP_AXIS, droop);
   const partsById = new Map(blueprint.parts.map(part => [part.id, part]));
   const childIds = new Map<string, string[]>();
   for (const joint of blueprint.joints) {
@@ -91,7 +114,7 @@ function applyChainDroop(
   }
 
   for (const joint of orderJointsParentFirst(blueprint)) {
-    if (!hasRole(partsById.get(joint.childPartId), role)) continue;
+    if (!hasRole(partsById.get(joint.childPartId), bend.role)) continue;
 
     const parentPose = parts.get(joint.parentPartId);
     const childPose = parts.get(joint.childPartId);
@@ -101,6 +124,11 @@ function applyChainDroop(
       parentPose.position,
       rotateVectorByQuaternion(joint.pivotOnParent, parentPose.rotation),
     );
+
+    // Mirrored limbs rotate opposite ways: a wing on -z must sweep toward the
+    // body just as its partner on +z does.
+    const sign = bend.mirrorAcrossZ && childPose.position.z < 0 ? -1 : 1;
+    const rotation = quaternionFromAxisAngle(bend.axis, bend.radians * sign);
 
     for (const affectedId of collectSubtree(joint.childPartId, childIds)) {
       const pose = parts.get(affectedId);
@@ -158,10 +186,21 @@ function hasRole(part: AssemblyPart | undefined, role: string): boolean {
 // Framing
 // ---------------------------------------------------------------------------
 
-/** A camera framing volume: everything worth seeing sits inside this sphere. */
+/**
+ * A camera framing volume: an upright cylinder, not a sphere.
+ *
+ * Creatures are rarely round. A dragon measures roughly 6 x 2 x 4 — long and
+ * wide but flat — and fitting its enclosing sphere leaves it occupying under a
+ * quarter of the viewport. Splitting the horizontal radius from the vertical
+ * half-height frames it tightly while staying safe under turntable rotation,
+ * because the horizontal radius is taken across the XZ diagonal.
+ */
 export interface SpecimenFrame {
   center: Vector3Data;
+  /** Half the XZ diagonal — the widest the specimen can appear when spun. */
   radius: number;
+  /** Half the vertical extent. */
+  halfHeight: number;
 }
 
 /**
@@ -171,8 +210,11 @@ export interface SpecimenFrame {
  * cropped at the tips.
  */
 const PROFILE_INFLATION: Readonly<Record<string, Vector3Data>> = {
-  'dragon-wing': { x: 2.8, y: 1, z: 1.1 },
-  'dragon-secondary-wing': { x: 2.8, y: 1, z: 1.1 },
+  // The y figure is not the physics thickness: the membrane bows below the
+  // bones and arcs above them, so a wing occupies far more height than the
+  // 0.08-thick box it hugs.
+  'dragon-wing': { x: 2.8, y: 2.6, z: 1.1 },
+  'dragon-secondary-wing': { x: 2.8, y: 2.6, z: 1.1 },
   'dragon-tail-club': { x: 1.8, y: 1.2, z: 1.8 },
   'dragon-head-horned': { x: 1.4, y: 2.2, z: 1.4 },
 };
@@ -204,15 +246,14 @@ export function estimateSpecimenFrame(
   }
 
   if (!Number.isFinite(minX)) {
-    return { center: { x: 0, y: 0, z: 0 }, radius: 1 };
+    return { center: { x: 0, y: 0, z: 0 }, radius: 1, halfHeight: 1 };
   }
 
-  const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 };
-  const radius = Math.max(
-    0.5 * Math.hypot(maxX - minX, maxY - minY, maxZ - minZ),
-    0.001,
-  );
-  return { center, radius };
+  return {
+    center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 },
+    radius: Math.max(0.5 * Math.hypot(maxX - minX, maxZ - minZ), 0.001),
+    halfHeight: Math.max(0.5 * (maxY - minY), 0.001),
+  };
 }
 
 /**
@@ -223,23 +264,40 @@ export function estimateSpecimenFrame(
  * difference a student is being asked to observe.
  */
 export function mergeSpecimenFrames(frames: readonly SpecimenFrame[]): SpecimenFrame {
-  if (frames.length === 0) return { center: { x: 0, y: 0, z: 0 }, radius: 1 };
+  if (frames.length === 0) return { center: { x: 0, y: 0, z: 0 }, radius: 1, halfHeight: 1 };
 
   let minX = Infinity, minY = Infinity, minZ = Infinity;
   let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
 
   for (const frame of frames) {
     minX = Math.min(minX, frame.center.x - frame.radius);
-    minY = Math.min(minY, frame.center.y - frame.radius);
     minZ = Math.min(minZ, frame.center.z - frame.radius);
     maxX = Math.max(maxX, frame.center.x + frame.radius);
-    maxY = Math.max(maxY, frame.center.y + frame.radius);
     maxZ = Math.max(maxZ, frame.center.z + frame.radius);
+    minY = Math.min(minY, frame.center.y - frame.halfHeight);
+    maxY = Math.max(maxY, frame.center.y + frame.halfHeight);
+  }
+
+  const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 };
+
+  // Grow each member's own radius by how far its centre sits from the shared
+  // one. Re-deriving a diagonal from the merged box instead would inflate a
+  // single disc of radius 4 to 5.66 and push every compared specimen 41%
+  // further away than it needs to be.
+  let radius = 0;
+  let halfHeight = 0;
+  for (const frame of frames) {
+    radius = Math.max(
+      radius,
+      Math.hypot(frame.center.x - center.x, frame.center.z - center.z) + frame.radius,
+    );
+    halfHeight = Math.max(halfHeight, Math.abs(frame.center.y - center.y) + frame.halfHeight);
   }
 
   return {
-    center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 },
-    radius: Math.max(0.5 * Math.hypot(maxX - minX, maxY - minY, maxZ - minZ), 0.001),
+    center,
+    radius: Math.max(radius, 0.001),
+    halfHeight: Math.max(halfHeight, 0.001),
   };
 }
 

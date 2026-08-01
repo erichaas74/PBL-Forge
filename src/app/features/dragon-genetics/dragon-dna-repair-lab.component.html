@@ -14,19 +14,48 @@
     </p>
   </header>
 
-  <nav class="mode-tabs" role="tablist" aria-label="DNA and RNA process models">
-    @for (question of questions; track question.id) {
-      <button
-        type="button"
-        role="tab"
-        [class.active]="activeQuestionId() === question.id"
-        [attr.aria-selected]="activeQuestionId() === question.id"
-        (click)="selectQuestion(question.id)"
-      >
-        {{ question.tabLabel }}
-      </button>
-    }
+  <nav class="phase-switch" aria-label="Lab phase">
+    <button
+      type="button"
+      [class.active]="labPhase() === 'learn'"
+      [attr.aria-pressed]="labPhase() === 'learn'"
+      (click)="selectPhase('learn')"
+    >
+      Learn the processes
+    </button>
+    <button
+      type="button"
+      [class.active]="labPhase() === 'analyze'"
+      [attr.aria-pressed]="labPhase() === 'analyze'"
+      (click)="selectPhase('analyze')"
+    >
+      Analyze unknown DNA
+    </button>
   </nav>
 
-  <app-dna-process-question [question]="activeQuestion()" />
+  @if (labPhase() === 'learn') {
+    <nav class="mode-tabs" role="tablist" aria-label="DNA and RNA process models">
+      @for (question of questions; track question.id) {
+        <button
+          type="button"
+          role="tab"
+          [class.active]="activeQuestionId() === question.id"
+          [attr.aria-selected]="activeQuestionId() === question.id"
+          (click)="selectQuestion(question.id)"
+        >
+          {{ question.tabLabel }}
+        </button>
+      }
+    </nav>
+
+    <app-dna-process-question
+      [question]="activeQuestion()"
+      (answerChanged)="handleAnswer($event)"
+    />
+  } @else {
+    <app-dna-sequence-analysis
+      [analysisCase]="testAnalysisCase"
+      (analysisCompleted)="handleAnalysis($event)"
+    />
+  }
 </section>

@@ -13,6 +13,11 @@ import {
 } from '../../assembly/domain/vector-data';
 import { createAssemblyBody } from '../../assembly/physics/cannon-assembly.factory';
 import {
+  ASSEMBLY_CONTACT_ABILITIES,
+  AssemblyContactAbility,
+  FIRE_BREATH_TUNING,
+} from '../../assembly/combat/assembly-abilities';
+import {
   ArenaControlFrame,
   ArenaSetupConfig,
   ArenaSetupStyleId,
@@ -54,11 +59,11 @@ const EMPTY_CONTROL_FRAME: ArenaControlFrame = {
 };
 
 /** Fire breath: cone AoE gated by genotype at the control layer. */
-const FIRE_BREATH_RANGE = 3.4;
-const FIRE_BREATH_CONE_DOT = 0.72;
-const FIRE_BREATH_TICK_SECONDS = 0.45;
-const FIRE_BREATH_TICK_DAMAGE = 3;
-const FIRE_BREATH_MAX_TARGETS = 3;
+const FIRE_BREATH_RANGE = FIRE_BREATH_TUNING.range;
+const FIRE_BREATH_CONE_DOT = FIRE_BREATH_TUNING.coneDot;
+const FIRE_BREATH_TICK_SECONDS = FIRE_BREATH_TUNING.tickSeconds;
+const FIRE_BREATH_TICK_DAMAGE = FIRE_BREATH_TUNING.tickDamage;
+const FIRE_BREATH_MAX_TARGETS = FIRE_BREATH_TUNING.maxTargets;
 
 /** No damage or joint breakage while the freshly spawned assemblies settle. */
 const SPAWN_GRACE_SECONDS = 1.5;
@@ -69,26 +74,11 @@ const SPAWN_GRACE_SECONDS = 1.5;
 const DAMAGE_COOLDOWN_SECONDS = 0.45;
 
 /**
- * Contact-window abilities: while an attack control is held, the attacking body
- * part landing on an opponent deals ability damage regardless of impact speed —
- * a bite that connects is a bite, not a shove. Each ability has its own cooldown
- * so hits read as discrete strikes.
+ * Contact-window abilities, defined in `shared/assembly/combat` so the test
+ * bench can quote the same damage and cooldowns without spinning up physics.
  */
-interface AbilityDefinition {
-  ability: 'bite' | 'wing-buffet' | 'tail-sweep';
-  role: AssemblyPartRole;
-  baseDamage: number;
-  cooldownSeconds: number;
-  /** Bite scales with the attacker's jaw multiplier (temperament genes). */
-  usesAttackerMultiplier: boolean;
-  knockback: boolean;
-}
-
-const ABILITY_DEFINITIONS: readonly AbilityDefinition[] = [
-  { ability: 'bite', role: 'jaw', baseDamage: 9, cooldownSeconds: 0.9, usesAttackerMultiplier: true, knockback: false },
-  { ability: 'wing-buffet', role: 'wing', baseDamage: 6, cooldownSeconds: 1.2, usesAttackerMultiplier: false, knockback: true },
-  { ability: 'tail-sweep', role: 'tail', baseDamage: 7, cooldownSeconds: 1.1, usesAttackerMultiplier: false, knockback: false },
-];
+type AbilityDefinition = AssemblyContactAbility;
+const ABILITY_DEFINITIONS = ASSEMBLY_CONTACT_ABILITIES;
 
 @Injectable()
 export class AssemblyArenaPhysicsService {

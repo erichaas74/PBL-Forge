@@ -29,4 +29,22 @@ describe('DragonDnaRepairLabComponent', () => {
     lab.selectQuestion('copying-error-repair');
     expect(lab.activeQuestion().mode).toBe('repair');
   });
+
+  it('accepts an adaptive focus and emits the selected model node', () => {
+    const selected: string[] = [];
+    lab.modelSelected.subscribe((nodeId) => selected.push(nodeId));
+    fixture.componentRef.setInput('focusQuestionId', 'copying-error-repair');
+    fixture.detectChanges();
+    expect(lab.activeQuestion().mode).toBe('repair');
+
+    lab.selectQuestion('mutation-deletion');
+    expect(selected).toEqual(['mutation']);
+  });
+
+  it('switches from the teaching models to the DNA analysis phase', () => {
+    expect(lab.labPhase()).toBe('learn');
+    lab.selectPhase('analyze');
+    expect(lab.labPhase()).toBe('analyze');
+    expect(lab.testAnalysisCase.id).toBe('test-wing-pigment-01');
+  });
 });

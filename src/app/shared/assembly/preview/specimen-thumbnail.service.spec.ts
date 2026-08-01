@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { AssemblyBlueprint } from '../domain/assembly.models';
 import { describeSpecimen } from './specimen.models';
 import { estimateSpecimenFrame, mergeSpecimenFrames } from './specimen-pose';
-import { isSpecimenRenderingAvailable } from './specimen-renderer.service';
+import { SpecimenRendererService, isSpecimenRenderingAvailable } from './specimen-renderer.service';
 import { SpecimenThumbnailService } from './specimen-thumbnail.service';
 
 /**
@@ -47,8 +47,15 @@ function specimen(id: string, size = 1) {
   });
 }
 
-/** Fraction of pixels that are neither transparent nor uniform background. */
-function opaquePixelRatio(dataUrl: string): Promise<number> {
+interface PixelStats {
+  /** Fraction of the tile covered by the specimen. */
+  ratio: number;
+  /** Centroid of drawn pixels, normalised to 0..1 across the tile. */
+  centerX: number;
+  centerY: number;
+}
+
+function measure(dataUrl: string): Promise<PixelStats> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => {
@@ -62,15 +69,30 @@ function opaquePixelRatio(dataUrl: string): Promise<number> {
       }
       context.drawImage(image, 0, 0);
       const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+
       let opaque = 0;
-      for (let index = 3; index < data.length; index += 4) {
-        if (data[index] > 8) opaque += 1;
+      let sumX = 0;
+      let sumY = 0;
+      for (let pixel = 0; pixel < canvas.width * canvas.height; pixel += 1) {
+        if (data[pixel * 4 + 3] <= 8) continue;
+        opaque += 1;
+        sumX += pixel % canvas.width;
+        sumY += Math.floor(pixel / canvas.width);
       }
-      resolve(opaque / (canvas.width * canvas.height));
+
+      resolve({
+        ratio: opaque / (canvas.width * canvas.height),
+        centerX: opaque ? sumX / opaque / canvas.width : 0.5,
+        centerY: opaque ? sumY / opaque / canvas.height : 0.5,
+      });
     };
     image.onerror = () => reject(new Error('thumbnail did not decode'));
     image.src = dataUrl;
   });
+}
+
+async function opaquePixelRatio(dataUrl: string): Promise<number> {
+  return (await measure(dataUrl)).ratio;
 }
 
 describe('SpecimenThumbnailService', () => {
@@ -121,6 +143,30 @@ describe('SpecimenThumbnailService', () => {
     expect(render).toHaveBeenCalledTimes(1);
   });
 
+  /**
+   * The renderer nests the posed parts inside a pivot at the framing centre so
+   * the turntable spins in place. If those two offsets stop cancelling, a
+   * specimen built away from the world origin drifts off its tile — which the
+   * usual origin-centred fixtures would never reveal.
+   */
+  it('centres a specimen that was built far from the world origin', async () => {
+    const distant = describeSpecimen('distant', {
+      parts: dragonish(1).parts.map(part => ({
+        ...part,
+        position: { x: part.position.x + 50, y: part.position.y, z: part.position.z - 30 },
+      })),
+      joints: [],
+    });
+
+    const stats = await measure(service.bake(distant, { size: 128 })!);
+
+    expect(stats.ratio).toBeGreaterThan(0.02);
+    expect(stats.centerX).toBeGreaterThan(0.3);
+    expect(stats.centerX).toBeLessThan(0.7);
+    expect(stats.centerY).toBeGreaterThan(0.3);
+    expect(stats.centerY).toBeLessThan(0.7);
+  });
+
   it('renders separately for each distinct specimen', () => {
     const render = spyOn(SpecimenRendererService.prototype, 'toDataUrl').and.callThrough();
 
@@ -154,10 +200,15 @@ describe('SpecimenThumbnailService', () => {
     expect(largeRatio).toBeGreaterThan(smallRatio);
   });
 
-  it('clears its cache on request', () => {
-    const first = service.bake(specimen('ember'));
-    service.clearCache();
+  it('re-renders after the cache is cleared', () => {
+    const render = spyOn(SpecimenRendererService.prototype, 'toDataUrl').and.callThrough();
 
-    expect(service.bake(specimen('ember'))).not.toBe(first);
+    const before = service.bake(specimen('ember'));
+    service.clearCache();
+    const after = service.bake(specimen('ember'));
+
+    expect(render).toHaveBeenCalledTimes(2);
+    // Deterministic rendering: the fresh bake matches the discarded one.
+    expect(after).toEqual(before);
   });
 });

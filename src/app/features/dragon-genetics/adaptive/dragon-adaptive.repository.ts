@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { EnvironmentInjector, inject, Injectable } from '@angular/core';
 import {
   collection,
   doc,
@@ -8,6 +8,7 @@ import {
   serverTimestamp,
   setDoc,
 } from '@angular/fire/firestore';
+import { runInFirebaseContext } from '../../../core/firebase/firebase-context';
 import { SessionService } from '../../../core/firebase/session.service';
 import {
   DragonAssignment,
@@ -22,10 +23,12 @@ export const DEFAULT_DRAGON_ASSIGNMENT_ID = 'default';
 export class DragonAdaptiveRepository {
   private readonly firestore = inject(Firestore);
   private readonly session = inject(SessionService);
+  private readonly injector = inject(EnvironmentInjector);
 
   async loadAssignment(assignmentId = DEFAULT_DRAGON_ASSIGNMENT_ID): Promise<DragonAssignment> {
     await this.session.ensureUser();
-    const snapshot = await getDoc(doc(this.firestore, `dragonGeneticsAssignments/${assignmentId}`));
+    const snapshot = await runInFirebaseContext(this.injector, () =>
+      getDoc(doc(this.firestore, `dragonGeneticsAssignments/${assignmentId}`)));
     if (!snapshot.exists()) return { ...DEFAULT_DRAGON_ASSIGNMENT, id: assignmentId };
     return normalizeAssignment(snapshot.id, snapshot.data());
   }
@@ -33,20 +36,22 @@ export class DragonAdaptiveRepository {
   async saveAssignment(assignment: DragonAssignment): Promise<void> {
     const user = await this.session.ensureUser();
     if (!user) throw new Error('A teacher session is required to save an assignment.');
-    await setDoc(doc(this.firestore, `dragonGeneticsAssignments/${assignment.id}`), {
-      ...assignment,
-      ownerId: user.uid,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    await runInFirebaseContext(this.injector, () =>
+      setDoc(doc(this.firestore, `dragonGeneticsAssignments/${assignment.id}`), {
+        ...assignment,
+        ownerId: user.uid,
+        updatedAt: serverTimestamp(),
+      }, { merge: true }));
   }
 
   async loadRuns(): Promise<DragonSimulationRun[]> {
     const user = await this.session.ensureUser();
     if (!user) return [];
-    const snapshots = await getDocs(collection(
-      this.firestore,
-      `dragonLabProgress/${user.uid}/simulationRuns`,
-    ));
+    const snapshots = await runInFirebaseContext(this.injector, () =>
+      getDocs(collection(
+        this.firestore,
+        `dragonLabProgress/${user.uid}/simulationRuns`,
+      )));
     return snapshots.docs
       .map((snapshot) => normalizeRun(snapshot.data()))
       .filter((run): run is DragonSimulationRun => !!run);
@@ -55,24 +60,26 @@ export class DragonAdaptiveRepository {
   async loadRun(simulationId: DragonSimulationId): Promise<DragonSimulationRun | null> {
     const user = await this.session.ensureUser();
     if (!user) return null;
-    const snapshot = await getDoc(doc(
-      this.firestore,
-      `dragonLabProgress/${user.uid}/simulationRuns/${simulationId}`,
-    ));
+    const snapshot = await runInFirebaseContext(this.injector, () =>
+      getDoc(doc(
+        this.firestore,
+        `dragonLabProgress/${user.uid}/simulationRuns/${simulationId}`,
+      )));
     return snapshot.exists() ? normalizeRun(snapshot.data()) : null;
   }
 
   async saveRun(run: DragonSimulationRun, teacherId: string): Promise<void> {
     const user = await this.session.ensureUser();
     if (!user) return;
-    await setDoc(doc(
-      this.firestore,
-      `dragonLabProgress/${user.uid}/simulationRuns/${run.simulationId}`,
-    ), {
-      ...run,
-      studentId: user.uid,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    await runInFirebaseContext(this.injector, () =>
+      setDoc(doc(
+        this.firestore,
+        `dragonLabProgress/${user.uid}/simulationRuns/${run.simulationId}`,
+      ), {
+        ...run,
+        studentId: user.uid,
+        updatedAt: serverTimestamp(),
+      }, { merge: true }));
 
     const runs = await this.loadRuns();
     const completedSimulationIds = runs
@@ -84,18 +91,19 @@ export class DragonAdaptiveRepository {
     const simulationScores = Object.fromEntries(
       runs.map((candidate) => [candidate.simulationId, candidate.score]),
     );
-    await setDoc(doc(this.firestore, `dragonLabProgress/${user.uid}`), {
-      studentId: user.uid,
-      projectId: 'dragon-genetics-lab',
-      experienceSchemaVersion: 4,
-      assignmentId: run.assignmentId,
-      teacherId,
-      activeSimulationId: run.complete ? null : run.simulationId,
-      completedSimulationIds,
-      simulationLevels,
-      simulationScores,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    await runInFirebaseContext(this.injector, () =>
+      setDoc(doc(this.firestore, `dragonLabProgress/${user.uid}`), {
+        studentId: user.uid,
+        projectId: 'dragon-genetics-lab',
+        experienceSchemaVersion: 4,
+        assignmentId: run.assignmentId,
+        teacherId,
+        activeSimulationId: run.complete ? null : run.simulationId,
+        completedSimulationIds,
+        simulationLevels,
+        simulationScores,
+        updatedAt: serverTimestamp(),
+      }, { merge: true }));
   }
 }
 

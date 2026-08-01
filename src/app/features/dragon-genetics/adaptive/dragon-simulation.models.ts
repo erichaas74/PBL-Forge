@@ -1,11 +1,6 @@
 import { GeneticsSkill } from '../dragon-genetics.models';
 
-export const INSTRUCTION_LEVELS = [
-  'grade-7',
-  'grade-8',
-  'high-school',
-  'ap-biology',
-] as const;
+export const INSTRUCTION_LEVELS = ['grade-7', 'grade-8', 'high-school', 'ap-biology'] as const;
 
 export type InstructionLevel = (typeof INSTRUCTION_LEVELS)[number];
 
@@ -24,9 +19,8 @@ export type DragonSimulationId =
   | 'punnett-composer'
   | 'incubator-sampler'
   | 'reproduction-comparison'
-  | 'sibling-tracer'
+  | 'dna-process-lab'
   | 'diversity-manager'
-  | 'evidence-replay'
   | 'dragon-hatchery'
   | 'dragon-arena';
 
@@ -80,6 +74,7 @@ export interface DragonSimulationDefinition {
     | 'punnett'
     | 'sampler'
     | 'comparison'
+    | 'dna-process'
     | 'pedigree'
     | 'population'
     | 'timeline'

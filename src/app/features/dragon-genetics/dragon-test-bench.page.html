@@ -1,0 +1,48 @@
+<div class="bench-page">
+  <header class="bench-page__head">
+    <span class="bench-page__eyebrow">Dragon test bench</span>
+    <h1>Build a dragon and test what it can do</h1>
+    <p class="bench-page__lede">
+      Set each gene, then try the attacks and read the measurements. Nothing here is a battle —
+      change one allele and the results update straight away.
+    </p>
+  </header>
+
+  <section class="bench-page__genome" aria-labelledby="genome-heading">
+    <h2 class="bench-page__section-title" id="genome-heading">Genotype</h2>
+
+    <div class="bench-page__genes">
+      @for (trait of traits; track trait.id) {
+        <fieldset class="gene">
+          <legend class="gene__name">{{ trait.name }}</legend>
+
+          <div class="gene__choices" role="group" [attr.aria-label]="trait.name + ' genotype'">
+            @for (choice of choicesFor(trait.id); track choice.label) {
+              <button
+                type="button"
+                class="gene__choice"
+                [class.gene__choice--active]="isSelected(trait.id, choice)"
+                [attr.aria-pressed]="isSelected(trait.id, choice)"
+                (click)="select(trait.id, choice)"
+              >
+                {{ choice.label }}
+              </button>
+            }
+          </div>
+
+          <p class="gene__phenotype">{{ phenotypeOf(trait.id) }}</p>
+        </fieldset>
+      }
+    </div>
+
+    <p class="bench-page__summary">{{ genotypeSummary() }}</p>
+  </section>
+
+  <app-specimen-test-bench
+    [source]="build().source"
+    [combatProfile]="build().combatProfile"
+    [fireBreathing]="build().fireBreathing"
+    [copy]="copy"
+    heading="What this dragon can do"
+  />
+</div>

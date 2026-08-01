@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { EnvironmentInjector, inject, Injectable, signal } from '@angular/core';
 import {
   collection,
   collectionData,
@@ -12,6 +12,7 @@ import {
 } from '@angular/fire/firestore';
 import { catchError, map, Observable, of, shareReplay } from 'rxjs';
 import { ActivityResponse, PblActivity, PblProject } from '../models/pbl.models';
+import { runInFirebaseContext } from './firebase-context';
 
 const BUILT_IN_PROJECTS: readonly PblProject[] = [{
   id: 'dragon-genetics-lab',
@@ -32,6 +33,7 @@ const BUILT_IN_PROJECTS: readonly PblProject[] = [{
 @Injectable({ providedIn: 'root' })
 export class ProjectRepository {
   private readonly firestore = inject(Firestore);
+  private readonly injector = inject(EnvironmentInjector);
 
   readonly error = signal<string | null>(null);
 
@@ -53,25 +55,28 @@ export class ProjectRepository {
   );
 
   project$(projectId: string): Observable<PblProject | undefined> {
-    return docData(doc(this.firestore, `projects/${projectId}`), { idField: 'id' }).pipe(
-      map((project) => project as PblProject | undefined)
-    );
+    return runInFirebaseContext(this.injector, () =>
+      docData(doc(this.firestore, `projects/${projectId}`), { idField: 'id' }).pipe(
+        map((project) => project as PblProject | undefined)
+      ));
   }
 
   activities$(projectId: string): Observable<PblActivity[]> {
-    return collectionData(collection(this.firestore, `projects/${projectId}/activities`), {
-      idField: 'id'
-    }).pipe(
-      map((activities) =>
-        (activities as PblActivity[]).sort((a, b) => a.order - b.order)
-      )
-    );
+    return runInFirebaseContext(this.injector, () =>
+      collectionData(collection(this.firestore, `projects/${projectId}/activities`), {
+        idField: 'id'
+      }).pipe(
+        map((activities) =>
+          (activities as PblActivity[]).sort((a, b) => a.order - b.order)
+        )
+      ));
   }
 
   activity$(projectId: string, activityId: string): Observable<PblActivity | undefined> {
-    return docData(doc(this.firestore, `projects/${projectId}/activities/${activityId}`), {
-      idField: 'id'
-    }).pipe(map((activity) => activity as PblActivity | undefined));
+    return runInFirebaseContext(this.injector, () =>
+      docData(doc(this.firestore, `projects/${projectId}/activities/${activityId}`), {
+        idField: 'id'
+      }).pipe(map((activity) => activity as PblActivity | undefined)));
   }
 
   async saveResponse(
@@ -81,17 +86,18 @@ export class ProjectRepository {
     response: ActivityResponse
   ): Promise<void> {
     const submissionId = `${studentId}_${projectId}_${activityId}`;
-    await setDoc(
-      doc(this.firestore, `submissions/${submissionId}`),
-      {
-        studentId,
-        projectId,
-        activityId,
-        response,
-        status: 'in-progress',
-        updatedAt: serverTimestamp()
-      },
-      { merge: true }
-    );
+    await runInFirebaseContext(this.injector, () =>
+      setDoc(
+        doc(this.firestore, `submissions/${submissionId}`),
+        {
+          studentId,
+          projectId,
+          activityId,
+          response,
+          status: 'in-progress',
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      ));
   }
 }

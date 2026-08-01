@@ -20,7 +20,7 @@ import {
   SpecimenTraitReadout,
 } from './specimen.models';
 import { SpecimenFrame } from './specimen-pose';
-import { SpecimenProfileRegistry } from './specimen-profile.registry';
+import { SPECIMEN_PROFILES, SpecimenProfileRegistry } from './specimen-profile.registry';
 import {
   SpecimenRendererService,
   isSpecimenRenderingAvailable,
@@ -102,6 +102,14 @@ export class SpecimenViewComponent implements AfterViewInit, OnDestroy {
   });
 
   constructor() {
+    // Profiles provided on this component or its lazy route are invisible to
+    // the root registry, which read the token when it was created. Adopting
+    // them here is what lets a lazily loaded simulation register its own
+    // profile without adding it to the global app config.
+    for (const profile of inject(SPECIMEN_PROFILES, { optional: true }) ?? []) {
+      this.registry.register(profile);
+    }
+
     effect(() => {
       const descriptor = this.descriptor();
       if (!this.mounted() || !descriptor) return;

@@ -1,8 +1,10 @@
 :host {
   display: block;
+  width: 100%;
 }
 .dna-lab {
   display: grid;
+  width: 100%;
   gap: 1rem;
   overflow: hidden;
 }
@@ -39,6 +41,29 @@
   background: #eef5fb;
   color: #425b75 !important;
 }
+.phase-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  padding: 0.3rem;
+  border-radius: 0.75rem;
+  background: #e8eeeb;
+}
+.phase-switch button {
+  padding: 0.7rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: #596762;
+  font-size: 0.67rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+.phase-switch button.active {
+  background: #1b3041;
+  color: white;
+  box-shadow: 0 4px 12px rgb(27 48 65 / 18%);
+}
 .mode-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -72,5 +97,8 @@
   }
   .mode-tabs button {
     flex: 0 0 auto;
+  }
+  .phase-switch {
+    grid-template-columns: 1fr;
   }
 }

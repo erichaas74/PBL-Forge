@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { AssemblyPartRole } from '../domain/assembly.models';
+import { AssemblyPartRole, Vector3Data } from '../domain/assembly.models';
 import {
   applyAssemblyTraitFocus,
   createAssemblyObject,
@@ -15,14 +15,22 @@ import {
   createStageLighting,
   installStageEnvironment,
 } from '../rendering/scene-environment';
+import {
+  AssemblyAbilityId,
+  FIRE_BREATH_TUNING,
+  FIRE_BREATH_VISUAL_RADIUS_RATIO,
+} from '../combat/assembly-abilities';
 import { SpecimenDescriptor, traitFocusRoles } from './specimen.models';
 import {
   SpecimenFrame,
+  SpecimenPose,
   SpecimenPoseOptions,
   buildSpecimenPose,
   estimateSpecimenFloor,
   estimateSpecimenFrame,
+  mergeSpecimenFrames,
 } from './specimen-pose';
+import { getAbilityDemo, poseSpecimenForAbility, resolveFireOrigin } from './specimen-ability-pose';
 
 /**
  * A specimen viewer: one assembly, posed statically, drawn on demand.
@@ -48,6 +56,8 @@ export interface SpecimenRendererOptions {
   pose?: SpecimenPoseOptions;
   /** Camera padding around the framing sphere. 1 is tight. */
   framePadding?: number;
+  /** Direction from the specimen to the camera. Defaults to a three-quarter view. */
+  viewDirection?: Vector3Data;
 }
 
 export interface ShowSpecimenOptions {
@@ -57,10 +67,17 @@ export interface ShowSpecimenOptions {
    */
   frame?: SpecimenFrame | null;
   focusedTraitId?: string | null;
+  /** Overrides the mount-time resting pose for this specimen only. */
+  pose?: SpecimenPoseOptions;
 }
 
-const VIEW_DIRECTION = new THREE.Vector3(0.86, 0.42, 1).normalize();
-const DEFAULT_FRAME_PADDING = 1.18;
+const DEFAULT_VIEW_DIRECTION = new THREE.Vector3(0.86, 0.42, 1).normalize();
+/**
+ * Slack around the fitted extents. The procedural meshes reach a little past
+ * the boxes they are estimated from (wing membranes especially), so a tight fit
+ * would clip wingtips.
+ */
+const DEFAULT_FRAME_PADDING = 1.12;
 
 @Injectable()
 export class SpecimenRendererService {
@@ -76,9 +93,16 @@ export class SpecimenRendererService {
   private options: SpecimenRendererOptions = {};
   private descriptor: SpecimenDescriptor | null = null;
   private activeFrame: SpecimenFrame | null = null;
+  /** Framing for the specimen alone, restored after a wider ability demo. */
+  private baseFrame: SpecimenFrame | null = null;
   private pendingFrameId: number | null = null;
   private turntableFrameId: number | null = null;
   private turntableAngle = 0;
+  private demoFrameId: number | null = null;
+  private fireCone: THREE.Mesh | null = null;
+  private viewDirection = DEFAULT_VIEW_DIRECTION.clone();
+  /** Resting pose for the current specimen; a show() override beats the mount default. */
+  private activePose: SpecimenPoseOptions | undefined;
   private readonly partObjects = new Map<string, THREE.Object3D>();
   private readonly partRoles = new Map<string, readonly AssemblyPartRole[]>();
 
@@ -86,6 +110,7 @@ export class SpecimenRendererService {
     this.dispose();
     this.host = host;
     this.options = options;
+    this.setViewDirectionVector(options.viewDirection);
 
     const theme = options.theme ?? SPECIMEN_STAGE_THEME;
     // Small viewports never earn the post chain, so the quality tier is a floor
@@ -138,9 +163,21 @@ export class SpecimenRendererService {
 
     this.clearSpecimen();
     this.descriptor = descriptor;
+    this.activePose = options.pose ?? this.options.pose;
 
-    const pose = buildSpecimenPose(descriptor.blueprint, this.options.pose);
-    const group = new THREE.Group();
+    const pose = buildSpecimenPose(descriptor.blueprint, this.activePose);
+    const frame = options.frame ?? estimateSpecimenFrame(descriptor.blueprint, pose);
+
+    // Two nested groups so the turntable spins around the framing centre rather
+    // than the world origin. Parts are posed in world coordinates and a
+    // specimen's centre is rarely at the origin — a dragon's tail drags it back
+    // along -x — so rotating the outer group directly would swing the specimen
+    // out of shot.
+    const pivot = new THREE.Group();
+    pivot.position.set(frame.center.x, frame.center.y, frame.center.z);
+    const content = new THREE.Group();
+    content.position.set(-frame.center.x, -frame.center.y, -frame.center.z);
+    pivot.add(content);
 
     for (const part of descriptor.blueprint.parts) {
       const posed = pose.parts.find(entry => entry.partId === part.id);
@@ -151,16 +188,17 @@ export class SpecimenRendererService {
       object.position.set(position.x, position.y, position.z);
       if (rotation) object.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
 
-      group.add(object);
+      content.add(object);
       this.partObjects.set(part.id, object);
       this.partRoles.set(part.id, part.roles ?? []);
     }
 
-    this.scene.add(group);
-    this.specimenGroup = group;
-    group.rotation.y = this.turntableAngle;
+    this.scene.add(pivot);
+    this.specimenGroup = pivot;
+    pivot.rotation.y = this.turntableAngle;
 
-    this.activeFrame = options.frame ?? estimateSpecimenFrame(descriptor.blueprint, pose);
+    this.activeFrame = frame;
+    this.baseFrame = frame;
     this.syncGroundShadow(estimateSpecimenFloor(descriptor.blueprint, pose));
     this.applyFrame();
     this.setTraitFocus(options.focusedTraitId ?? null);
@@ -184,6 +222,189 @@ export class SpecimenRendererService {
     }
 
     this.requestRender();
+  }
+
+  /**
+   * Plays one attack as a scripted pose sequence, resolving when it finishes.
+   *
+   * No physics and no opponent: this shows a student *that they have the move
+   * and what it looks like*, which is the question the bench answers. The
+   * damage numbers beside it come from the arena's real tuning.
+   *
+   * Under `prefers-reduced-motion` the demo jumps to the strike pose and holds
+   * it, so the information still arrives without the movement.
+   */
+  playAbility(ability: AssemblyAbilityId): Promise<void> {
+    const descriptor = this.descriptor;
+    if (!descriptor) return Promise.resolve();
+
+    this.stopAbility();
+    const demo = getAbilityDemo(ability);
+
+    // Fire reaches well past the body, so the camera pulls back for the demo.
+    // Seeing how far the breath actually carries relative to the dragon is the
+    // point of showing it here at all.
+    this.applyAbilityFraming(ability);
+
+    if (prefersReducedMotion()) {
+      this.applyAbilityPhase(ability, demo.strikeAt);
+      return Promise.resolve();
+    }
+
+    return new Promise<void>(resolve => {
+      const startedAt = performance.now();
+      const step = (): void => {
+        const elapsed = (performance.now() - startedAt) / 1000;
+        const phase = Math.min(elapsed / demo.durationSeconds, 1);
+        this.applyAbilityPhase(ability, phase);
+
+        if (phase >= 1) {
+          this.demoFrameId = null;
+          this.restPose();
+          resolve();
+          return;
+        }
+        this.demoFrameId = requestAnimationFrame(step);
+      };
+      this.demoFrameId = requestAnimationFrame(step);
+    });
+  }
+
+  /** Widens the frame for abilities that reach beyond the body. */
+  private applyAbilityFraming(ability: AssemblyAbilityId): void {
+    const descriptor = this.descriptor;
+    if (!descriptor || !this.baseFrame) return;
+
+    if (ability !== 'fire-breath') {
+      this.activeFrame = this.baseFrame;
+      this.applyFrame();
+      return;
+    }
+
+    const pose = buildSpecimenPose(descriptor.blueprint, this.activePose);
+    const aim = resolveFireOrigin(descriptor.blueprint, pose);
+    if (!aim) return;
+
+    const range = FIRE_BREATH_TUNING.range;
+    const coneRadius = range * FIRE_BREATH_VISUAL_RADIUS_RATIO;
+    this.activeFrame = mergeSpecimenFrames([
+      this.baseFrame,
+      {
+        center: {
+          x: aim.origin.x + aim.direction.x * range * 0.5,
+          y: aim.origin.y + aim.direction.y * range * 0.5,
+          z: aim.origin.z + aim.direction.z * range * 0.5,
+        },
+        radius: Math.max(range * 0.5, coneRadius),
+        halfHeight: coneRadius,
+      },
+    ]);
+    this.applyFrame();
+  }
+
+  /** Stops any running demonstration and returns to the resting pose. */
+  stopAbility(): void {
+    if (this.demoFrameId !== null) {
+      cancelAnimationFrame(this.demoFrameId);
+      this.demoFrameId = null;
+    }
+    this.restPose();
+  }
+
+  private applyAbilityPhase(ability: AssemblyAbilityId, phase: number): void {
+    const descriptor = this.descriptor;
+    if (!descriptor) return;
+
+    const demo = getAbilityDemo(ability);
+    const pose = poseSpecimenForAbility(
+      descriptor.blueprint,
+      ability,
+      phase,
+      this.activePose?.droopRadians ?? 0,
+    );
+
+    this.applyPose(pose);
+    this.syncFireCone(demo.fireConeAt?.(phase) ? pose : null);
+    this.renderNow();
+  }
+
+  private restPose(): void {
+    const descriptor = this.descriptor;
+    if (!descriptor) return;
+    this.applyPose(buildSpecimenPose(descriptor.blueprint, this.activePose));
+    this.syncFireCone(null);
+
+    if (this.baseFrame && this.activeFrame !== this.baseFrame) {
+      this.activeFrame = this.baseFrame;
+      this.applyFrame();
+    }
+
+    this.requestRender();
+  }
+
+  /** Moves the existing part objects; never rebuilds geometry. */
+  private applyPose(pose: SpecimenPose): void {
+    for (const posed of pose.parts) {
+      const object = this.partObjects.get(posed.partId);
+      if (!object) continue;
+      object.position.set(posed.position.x, posed.position.y, posed.position.z);
+      object.quaternion.set(
+        posed.rotation.x,
+        posed.rotation.y,
+        posed.rotation.z,
+        posed.rotation.w,
+      );
+    }
+  }
+
+  /**
+   * The fire cone, drawn from the mouth with the arena's real range and angle —
+   * so a student can see how far the breath actually reaches, which is the part
+   * that is invisible in a battle.
+   */
+  private syncFireCone(pose: SpecimenPose | null): void {
+    const descriptor = this.descriptor;
+    const content = this.specimenGroup?.children[0];
+
+    if (!pose || !descriptor || !content) {
+      if (this.fireCone) this.fireCone.visible = false;
+      return;
+    }
+
+    const aim = resolveFireOrigin(descriptor.blueprint, pose);
+    if (!aim) return;
+
+    if (!this.fireCone) {
+      const radius = FIRE_BREATH_TUNING.range * FIRE_BREATH_VISUAL_RADIUS_RATIO;
+      const mesh = new THREE.Mesh(
+        new THREE.ConeGeometry(radius, FIRE_BREATH_TUNING.range, 16, 1, true),
+        new THREE.MeshBasicMaterial({
+          color: 0xff6a1a,
+          transparent: true,
+          opacity: 0.55,
+          // Normal blending, unlike the arena's additive cone: this stage is
+          // near-white, and additive orange on white saturates to invisible.
+          blending: THREE.NormalBlending,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        }),
+      );
+      // Sits with the specimen so it follows the turntable.
+      content.add(mesh);
+      this.fireCone = mesh;
+    }
+
+    const direction = new THREE.Vector3(aim.direction.x, aim.direction.y, aim.direction.z).normalize();
+    // Cone tip (+y in local space) points back at the mouth; the base flares away.
+    this.fireCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().negate());
+    this.fireCone.position.set(
+      aim.origin.x + direction.x * FIRE_BREATH_TUNING.range * 0.5,
+      aim.origin.y + direction.y * FIRE_BREATH_TUNING.range * 0.5,
+      aim.origin.z + direction.z * FIRE_BREATH_TUNING.range * 0.5,
+    );
+    const flicker = 0.9 + Math.random() * 0.2;
+    this.fireCone.scale.set(flicker, 1, flicker);
+    this.fireCone.visible = true;
   }
 
   /**
@@ -217,7 +438,10 @@ export class SpecimenRendererService {
 
   /** Coalesces repeated calls in one task into a single frame. */
   requestRender(): void {
-    if (this.pendingFrameId !== null || this.turntableFrameId !== null) return;
+    // A running loop already renders every frame; scheduling another is waste.
+    if (this.pendingFrameId !== null || this.turntableFrameId !== null || this.demoFrameId !== null) {
+      return;
+    }
     this.pendingFrameId = requestAnimationFrame(() => {
       this.pendingFrameId = null;
       this.renderNow();
@@ -237,6 +461,27 @@ export class SpecimenRendererService {
     return this.renderer.domElement.toDataURL('image/png');
   }
 
+  /**
+   * Moves the camera to a new angle around the specimen. Used by the parts lab
+   * to show one part from several sides through a single WebGL context.
+   */
+  setViewDirection(direction: Vector3Data | undefined): void {
+    this.setViewDirectionVector(direction);
+    this.applyFrame();
+    this.requestRender();
+  }
+
+  private setViewDirectionVector(direction: Vector3Data | undefined): void {
+    if (!direction) {
+      this.viewDirection = DEFAULT_VIEW_DIRECTION.clone();
+      return;
+    }
+    const next = new THREE.Vector3(direction.x, direction.y, direction.z);
+    this.viewDirection = next.lengthSq() < 1e-8
+      ? DEFAULT_VIEW_DIRECTION.clone()
+      : next.normalize();
+  }
+
   /** Explicit size for offscreen use, where there is no layout to observe. */
   setSize(width: number, height: number): void {
     if (!this.renderer || !this.camera) return;
@@ -249,8 +494,10 @@ export class SpecimenRendererService {
   dispose(): void {
     if (this.pendingFrameId !== null) cancelAnimationFrame(this.pendingFrameId);
     if (this.turntableFrameId !== null) cancelAnimationFrame(this.turntableFrameId);
+    if (this.demoFrameId !== null) cancelAnimationFrame(this.demoFrameId);
     this.pendingFrameId = null;
     this.turntableFrameId = null;
+    this.demoFrameId = null;
 
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
@@ -283,48 +530,55 @@ export class SpecimenRendererService {
   }
 
   private clearSpecimen(): void {
+    if (this.demoFrameId !== null) {
+      cancelAnimationFrame(this.demoFrameId);
+      this.demoFrameId = null;
+    }
     if (this.specimenGroup) {
       this.scene?.remove(this.specimenGroup);
+      // The fire cone is parented to the specimen, so it is disposed with it.
       disposeAssemblyObject(this.specimenGroup);
       this.specimenGroup = null;
+      this.fireCone = null;
     }
     this.partObjects.clear();
     this.partRoles.clear();
   }
 
   /**
-   * Fits the camera to the framing sphere. Fitting is not cosmetic: body scale
-   * spans 0.78-1.33 and wing span 0.72-1.57 across genomes, so a fixed camera
-   * would crop large specimens and strand small ones in empty space.
+   * Fits the camera to the framing cylinder. Fitting is not cosmetic: body
+   * scale spans 0.78-1.33 and wing span 0.72-1.57 across genomes, so a fixed
+   * camera would crop large specimens and strand small ones in empty space.
    */
   private applyFrame(): void {
     const camera = this.camera;
     const frame = this.activeFrame;
     if (!camera || !frame) return;
 
-    const fov = (camera.fov * Math.PI) / 180;
-    const vertical = frame.radius / Math.sin(fov / 2);
-    const horizontalFov = 2 * Math.atan(Math.tan(fov / 2) * Math.max(camera.aspect, 0.0001));
-    const horizontal = frame.radius / Math.sin(horizontalFov / 2);
-    const distance = Math.max(vertical, horizontal)
+    const halfFovY = (camera.fov * Math.PI) / 360;
+    const tanY = Math.tan(halfFovY);
+    const tanX = tanY * Math.max(camera.aspect, 0.0001);
+
+    // Viewing from above tips part of the specimen's depth into its on-screen
+    // height, so the vertical requirement mixes both extents by the elevation.
+    const elevationSin = this.viewDirection.y;
+    const elevationCos = Math.sqrt(Math.max(1 - elevationSin * elevationSin, 0));
+    const projectedHalfHeight = frame.halfHeight * elevationCos + frame.radius * elevationSin;
+
+    const distance = Math.max(projectedHalfHeight / tanY, frame.radius / tanX)
       * (this.options.framePadding ?? DEFAULT_FRAME_PADDING);
 
     const target = new THREE.Vector3(frame.center.x, frame.center.y, frame.center.z);
-    camera.position.copy(target).addScaledVector(VIEW_DIRECTION, distance);
-    camera.near = Math.max(distance - frame.radius * 3, 0.05);
-    camera.far = distance + frame.radius * 6;
+    camera.position.copy(target).addScaledVector(this.viewDirection, distance);
+    const extent = Math.max(frame.radius, frame.halfHeight);
+    camera.near = Math.max(distance - extent * 3, 0.05);
+    camera.far = distance + extent * 6;
     camera.updateProjectionMatrix();
     camera.lookAt(target);
 
     if (this.controls) {
       this.controls.target.copy(target);
       this.controls.update();
-    }
-
-    // The turntable spins the specimen, so its pivot has to be the frame centre
-    // or the specimen would orbit out of shot.
-    if (this.specimenGroup) {
-      this.specimenGroup.position.set(0, 0, 0);
     }
   }
 

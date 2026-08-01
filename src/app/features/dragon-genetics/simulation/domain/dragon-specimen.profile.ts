@@ -1,5 +1,6 @@
 import { Provider } from '@angular/core';
 import { AssemblyPartRole } from '../../../../shared/assembly/domain/assembly.models';
+import { AssemblyCombatProfile } from '../../../../shared/assembly/combat/assembly-combat.models';
 import {
   SpecimenDescriptor,
   SpecimenExpressOptions,
@@ -96,6 +97,44 @@ export function dragonEngineGenomeSource(
 /** A parent the student picked in the lab. */
 export function dragonParentSource(parent: DragonParentProfile): SpecimenSource {
   return dragonLabGenomeSource(parent.id, parent.genome, { label: parent.name });
+}
+
+/**
+ * Everything the test bench needs for one dragon.
+ *
+ * The bench reports health and damage from the combat profile, and fire breath
+ * is a genotype call rather than a part, so all three travel together — built
+ * from the same `createEducationalAssembly` call the hatchery and arena use.
+ */
+export interface DragonBenchBuild {
+  source: SpecimenSource;
+  combatProfile: AssemblyCombatProfile;
+  fireBreathing: boolean;
+}
+
+export function createDragonBenchBuild(
+  id: string,
+  genome: DragonLabGenome,
+  options: { label?: string; generation?: number } = {},
+): DragonBenchBuild {
+  const generation = options.generation ?? 0;
+  const engineGenome = createVisualGenome(id, genome, generation);
+  const build = createEducationalAssembly(genome, engineGenome);
+
+  return {
+    source: {
+      kind: 'descriptor',
+      descriptor: describeSpecimen(id, build.assembly, {
+        label: options.label ?? id,
+        profileId: DRAGON_SPECIMEN_PROFILE_ID,
+        generation,
+        accentColor: expressDragonPhenotype(engineGenome).scaleColor,
+        traits: buildDragonTraitReadouts(expressDragonPhenotype(engineGenome), genome),
+      }),
+    },
+    combatProfile: build.combatProfile,
+    fireBreathing: showsDominantPhenotype(genome.fire, 'fire'),
+  };
 }
 
 /**
