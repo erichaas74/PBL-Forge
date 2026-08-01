@@ -107,11 +107,27 @@ describe('SpecimenThumbnailService', () => {
     expect(ratio).toBeLessThan(0.95);
   });
 
-  it('reuses one cached image for repeated bakes of the same specimen', () => {
-    const first = service.bake(specimen('ember'));
-    const second = service.bake(specimen('ember'));
+  /**
+   * Rendering is deterministic, so two bakes of the same specimen return equal
+   * strings whether or not a cache exists. Counting renders is the only way to
+   * observe the cache actually doing its job.
+   */
+  it('renders once and serves repeat requests from the cache', () => {
+    const render = spyOn(SpecimenRendererService.prototype, 'toDataUrl').and.callThrough();
 
-    expect(second).toBe(first);
+    service.bake(specimen('ember'));
+    service.bake(specimen('ember'));
+
+    expect(render).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders separately for each distinct specimen', () => {
+    const render = spyOn(SpecimenRendererService.prototype, 'toDataUrl').and.callThrough();
+
+    service.bake(specimen('ember'));
+    service.bake(specimen('tide'));
+
+    expect(render).toHaveBeenCalledTimes(2);
   });
 
   it('re-bakes when the focused trait changes', () => {
