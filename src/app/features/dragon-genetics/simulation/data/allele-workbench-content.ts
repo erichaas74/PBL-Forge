@@ -3,6 +3,7 @@ import { TRAIT_RULE_CHALLENGES } from '../../dragon-genetics.content';
 import {
   AlleleRuleEvidenceId,
   AlleleWorkbenchMode,
+  AlleleWorkbenchSampleVial,
   AlleleWorkbenchTask,
 } from '../domain/allele-workbench.models';
 
@@ -14,7 +15,7 @@ const STARTING_PAIRS: Record<string, readonly [string, string]> = {
 };
 
 const EVIDENCE: Record<string, AlleleRuleEvidenceId> = {
-  'wings-hetero': 'at-least-one-dominant',
+  'wings-hetero': 'recessive-remains-present',
   'fire-recessive': 'two-recessive-required',
   'horns-homo-dominant': 'at-least-one-dominant',
   'scales-hetero': 'recessive-remains-present',
@@ -27,21 +28,90 @@ const EXPLANATIONS: Record<string, string> = {
   'scales-hetero': 'Ss expresses spotted scales while the recessive s allele remains in the genotype.',
 };
 
-const TASKS: readonly AlleleWorkbenchTask[] = TRAIT_RULE_CHALLENGES.map(challenge => ({
-  id: challenge.id,
-  traitId: challenge.traitId,
-  prompt: challenge.prompt,
-  startingAlleles: STARTING_PAIRS[challenge.id],
-  requestedAlleles: challenge.genotype,
-  correctPrediction: challenge.correctAnswer,
-  evidenceId: EVIDENCE[challenge.id],
-  explanation: EXPLANATIONS[challenge.id],
-  misconception: challenge.correctAnswer === 'recessive'
-    ? 'one-recessive-is-enough'
-    : challenge.genotype[0] !== challenge.genotype[1]
-      ? 'heterozygous-loses-recessive'
-      : 'dominant-means-stronger',
+const TASK_LAB_DATA: Record<string, {
+  sampleCode: string;
+  sampleLabel: string;
+  sampleProfileId: string;
+  chromosomeNumber: number;
+  nearbyGeneIds: readonly string[];
+  targetGeneId: string;
+  dominantPhenotypeLabel: string;
+  recessivePhenotypeLabel: string;
+}> = {
+  'wings-hetero': {
+    sampleCode: 'EX-W-104',
+    sampleLabel: 'Ember wing-tissue extract',
+    sampleProfileId: 'ember',
+    chromosomeNumber: 5,
+    nearbyGeneIds: ['C', 'F', 'W', 'T'],
+    targetGeneId: 'W',
+    dominantPhenotypeLabel: 'Winged',
+    recessivePhenotypeLabel: 'Wingless',
+  },
+  'fire-recessive': {
+    sampleCode: 'EX-F-212',
+    sampleLabel: 'Moss fire-gland extract',
+    sampleProfileId: 'moss',
+    chromosomeNumber: 2,
+    nearbyGeneIds: ['A', 'F', 'M', 'R'],
+    targetGeneId: 'F',
+    dominantPhenotypeLabel: 'Breathes fire',
+    recessivePhenotypeLabel: 'Does not breathe fire',
+  },
+  'horns-homo-dominant': {
+    sampleCode: 'EX-H-406',
+    sampleLabel: 'Tide horn-matrix extract',
+    sampleProfileId: 'tide',
+    chromosomeNumber: 4,
+    nearbyGeneIds: ['B', 'H', 'N', 'Q'],
+    targetGeneId: 'H',
+    dominantPhenotypeLabel: 'Horned',
+    recessivePhenotypeLabel: 'Smooth-headed',
+  },
+  'scales-hetero': {
+    sampleCode: 'EX-S-330',
+    sampleLabel: 'Quartz scale-bed extract',
+    sampleProfileId: 'quartz',
+    chromosomeNumber: 3,
+    nearbyGeneIds: ['D', 'K', 'S', 'V'],
+    targetGeneId: 'S',
+    dominantPhenotypeLabel: 'Spotted scales',
+    recessivePhenotypeLabel: 'Solid scales',
+  },
+};
+
+const SAMPLE_VIALS: readonly AlleleWorkbenchSampleVial[] = Object.values(TASK_LAB_DATA).map(item => ({
+  code: item.sampleCode,
+  label: item.sampleLabel,
+  profileId: item.sampleProfileId,
 }));
+
+const TASKS: readonly AlleleWorkbenchTask[] = TRAIT_RULE_CHALLENGES.map(challenge => {
+  const lab = TASK_LAB_DATA[challenge.id];
+  const correctGenotypeClass = challenge.genotype[0] !== challenge.genotype[1]
+    ? 'heterozygous'
+    : challenge.genotype[0] === challenge.genotype[0].toUpperCase()
+      ? 'homozygous-dominant'
+      : 'homozygous-recessive';
+  return {
+    id: challenge.id,
+    traitId: challenge.traitId,
+    ...lab,
+    prompt: challenge.prompt,
+    startingAlleles: STARTING_PAIRS[challenge.id],
+    requestedAlleles: challenge.genotype,
+    correctPrediction: challenge.correctAnswer,
+    correctGenotypeClass,
+    correctEvidenceId: EVIDENCE[challenge.id],
+    evidenceId: EVIDENCE[challenge.id],
+    explanation: EXPLANATIONS[challenge.id],
+    misconception: challenge.correctAnswer === 'recessive'
+      ? 'one-recessive-is-enough'
+      : challenge.genotype[0] !== challenge.genotype[1]
+        ? 'heterozygous-loses-recessive'
+        : 'dominant-means-stronger',
+  };
+});
 
 export const ALLELE_WORKBENCH_EVIDENCE = [
   { id: 'at-least-one-dominant', labelId: 'evidence.at-least-one-dominant', anchorId: 'dominant-allele' },
@@ -64,11 +134,25 @@ export function alleleWorkbenchTasks(
   mode: AlleleWorkbenchMode,
   seed: string,
 ): readonly AlleleWorkbenchTask[] {
-  void mode;
   void seed;
+  if (mode === 'reteach') {
+    return TASKS.filter(task => task.misconception === 'heterozygous-loses-recessive').slice(0, 1);
+  }
   return TASKS;
 }
 
 export function alleleWorkbenchTask(id: string): AlleleWorkbenchTask {
   return TASKS.find(task => task.id === id) ?? TASKS[0];
+}
+
+/** Three deterministic rack choices. The first investigation uses the brief's exact vial set. */
+export function alleleWorkbenchVials(taskId: string): readonly AlleleWorkbenchSampleVial[] {
+  if (taskId === 'wings-hetero') {
+    return ['EX-W-104', 'EX-F-212', 'EX-S-330']
+      .map(code => SAMPLE_VIALS.find(vial => vial.code === code)!)
+      .filter(Boolean);
+  }
+  const task = alleleWorkbenchTask(taskId);
+  const assigned = SAMPLE_VIALS.find(vial => vial.code === task.sampleCode)!;
+  return [assigned, ...SAMPLE_VIALS.filter(vial => vial.code !== assigned.code).slice(0, 2)];
 }

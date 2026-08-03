@@ -4,6 +4,7 @@ import {
   Vector3Data,
 } from '../../assembly/domain/assembly.models';
 import { AssemblyCombatProfile } from '../../assembly/combat/assembly-combat.models';
+import { AssemblyAbilityId } from '../../assembly/combat/assembly-abilities';
 import { CreationAssemblyAsset } from '../../creation-library/models/creation-library.models';
 import {
   CreationPhysicsProfile,
@@ -85,10 +86,19 @@ export interface FireConeSnapshot {
   direction: Vector3Data;
 }
 
+/** Scripted visual pose for an attack; physics still owns the torso transform. */
+export interface BattleAttackPoseSnapshot {
+  combatantId: string;
+  ability: AssemblyAbilityId;
+  /** Normalized authored move timeline from 0 through 1. */
+  phase: number;
+}
+
 export interface BattlePhysicsFrame {
   snapshots: BattleBodySnapshot[];
   damageEvents: BattleDamageEvent[];
   fireCones?: FireConeSnapshot[];
+  attackPoses?: BattleAttackPoseSnapshot[];
 }
 
 export interface ArenaControlFrame {

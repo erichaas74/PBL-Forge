@@ -1,58 +1,89 @@
 <section class="station">
   <header class="station-head">
-    <div><span class="eyebrow">Station 4 · Expression rule lab · GEN-4</span><h3>Allele Workbench</h3><p>Change one allele, predict the phenotype, then trace expression. This scientific instrument shows genes, allele pairs, and rule evidence—not dragon body parts.</p></div>
+    <div>
+      <span class="eyebrow">Royal Hatchery Genetics Laboratory · Station GEN-4</span>
+      <h3>Allele Workbench</h3>
+      <p>Operate the sample chamber, locate a gene on homologous chromosomes, configure its allele pair, and preserve the evidence chain in a laboratory record.</p>
+    </div>
     <span class="mode-tag">{{ modeLabel() }}</span>
   </header>
 
-  <section class="sample-selector" aria-label="Choose a genome extract">
-    <div><span class="eyebrow">Sample console</span><strong>Choose a genome extract</strong></div>
-    @for (profile of profiles; track profile.id) {
-      <button type="button" [class.selected]="selectedSampleId() === profile.id" [disabled]="runPhaseLocked()" [attr.aria-pressed]="selectedSampleId() === profile.id" (click)="selectSample(profile.id)">
-        <span aria-hidden="true"></span><strong>{{ profile.name }}</strong><small>Sample {{ profile.id.toUpperCase() }}</small>
-      </button>
-    }
-  </section>
-
-  <section class="task-strip" aria-label="Current allele assignment">
-    <span class="gene-badge">Chromosome model {{ focusTrait().chromosomeModel }} · gene {{ focusTrait().geneSymbol }}</span>
-    <div><strong>{{ activeTask().prompt }}</strong><small>Starting pair {{ activeTask().startingAlleles.join('') }} → assigned pair {{ activeTask().requestedAlleles.join('') }}</small></div>
+  <section class="mission-card" aria-label="Current laboratory mission">
+    <div class="mission-index"><span>MISSION</span><strong>{{ activeTaskNumber().toString().padStart(2, '0') }}</strong></div>
+    <div class="mission-copy">
+      <span class="eyebrow">Specimen assignment · {{ activeTask().sampleCode }}</span>
+      <strong>{{ activeTask().prompt }}</strong>
+      <p>{{ activeTask().sampleLabel }} · chromosome {{ activeTask().chromosomeNumber }} · locate gene {{ activeTask().targetGeneId }} · configure {{ activeTask().requestedAlleles.join('') }}</p>
+    </div>
+    <div class="mission-pair"><span>START</span><b>{{ activeTask().startingAlleles.join('') }}</b><i aria-hidden="true">→</i><span>ASSIGNED</span><b>{{ activeTask().requestedAlleles.join('') }}</b></div>
   </section>
 
   <div class="station-grid">
     <app-allele-switchboard-display [copy]="copy" [feedback]="feedback()" (stageEvent)="onStageEvent($event)" />
 
-    <aside class="evidence-dock" aria-label="Allele evidence dock">
-      <h4>Expression notebook</h4>
-      <dl>
-        <div><dt>Sample</dt><dd>{{ selectedSample().name }}</dd></div>
-        <div><dt>Gene</dt><dd>{{ focusTrait().geneSymbol }} · {{ focusTrait().name }}</dd></div>
-        <div><dt>Pair</dt><dd>{{ currentPair() }}</dd></div>
-        <div><dt>Prediction</dt><dd>{{ currentPrediction() }}</dd></div>
-        <div><dt>Evidence</dt><dd>{{ currentEvidence() }}</dd></div>
-      </dl>
+    <aside class="evidence-dock" aria-label="Evidence dock and laboratory notebook">
+      <header>
+        <span class="eyebrow">Persistent evidence dock</span>
+        <h4>Laboratory notebook</h4>
+        <p>Live instrument data and saved records remain visible throughout the investigation.</p>
+      </header>
+
+      <section class="live-record">
+        <div class="section-label"><span>Current data</span><i aria-hidden="true"></i></div>
+        <dl>
+          <div><dt>Sample</dt><dd>{{ activeTask().sampleCode }}</dd></div>
+          <div><dt>Specimen</dt><dd>{{ selectedSample().name }}</dd></div>
+          <div><dt>Gene</dt><dd>{{ activeTask().targetGeneId }}</dd></div>
+          <div><dt>Chromosome</dt><dd>{{ activeTask().chromosomeNumber }}</dd></div>
+          <div><dt>Starting pair</dt><dd>{{ activeTask().startingAlleles.join('') }}</dd></div>
+          <div><dt>Working pair</dt><dd>{{ currentPair() }}</dd></div>
+          <div><dt>Prediction</dt><dd>{{ currentPrediction() }}</dd></div>
+          <div><dt>Evidence</dt><dd>{{ currentEvidence() }}</dd></div>
+        </dl>
+      </section>
+
+      <section class="evidence-state">
+        <div class="section-label"><span>Evidence chain</span><i aria-hidden="true"></i></div>
+        <ol>
+          <li [class.complete]="chamberLocked()"><i aria-hidden="true"></i><span>Sample identity</span><strong>{{ chamberLocked() ? 'VERIFIED' : 'PENDING' }}</strong></li>
+          <li [class.complete]="geneLocationLocked()"><i aria-hidden="true"></i><span>Gene location</span><strong>{{ geneLocationLocked() ? 'LOCKED' : 'PENDING' }}</strong></li>
+          <li [class.complete]="socketsSecured()[0] && socketsSecured()[1]"><i aria-hidden="true"></i><span>Allele copies</span><strong>{{ socketsSecured()[0] && socketsSecured()[1] ? 'SECURED' : 'PENDING' }}</strong></li>
+          <li [class.complete]="currentPrediction() !== 'Not locked'"><i aria-hidden="true"></i><span>Prediction</span><strong>{{ currentPrediction() === 'Not locked' ? 'PENDING' : 'RECORDED' }}</strong></li>
+          <li [class.complete]="currentEvidence() !== 'Not pinned'"><i aria-hidden="true"></i><span>Rule evidence</span><strong>{{ currentEvidence() === 'Not pinned' ? 'PENDING' : 'PINNED' }}</strong></li>
+        </ol>
+      </section>
 
       <section class="notebook">
-        <h5>Saved records <b>{{ records().length }}</b></h5>
+        <div class="section-label"><span>Saved records</span><b>{{ records().length }}</b></div>
         @if (!records().length) {
-          <p>Completed records will preserve the starting pair, working pair, prediction, result, carrier state, and rule evidence.</p>
+          <p class="empty-note">No record saved yet. A complete record will preserve the sample, gene, allele pair, predictions, observed expression, interpretation, and supporting rule.</p>
         } @else {
-          <ol>
+          <ol class="record-list">
             @for (record of records(); track record.taskId) {
-              <li [class.correct]="mode() !== 'official' && record.predictionCorrect && record.evidenceCorrect">
-                <span aria-hidden="true">{{ mode() === 'official' ? '•' : (record.predictionCorrect && record.evidenceCorrect ? '✓' : '!') }}</span>
-                <div><strong>{{ taskLabel(record.taskId) }}</strong><small>{{ record.workingAlleles.join('') }} · {{ record.genotypeClassId.replaceAll('-', ' ') }} · {{ record.actualPhenotypeId }}</small></div>
+              <li [class.supported]="mode() !== 'official' && record.constructionCorrect && record.predictionCorrect && record.evidenceCorrect && record.interpretationCorrect">
+                <div class="record-head"><span>{{ record.sampleCode ?? record.sampleId }}</span><strong>{{ record.focusGeneId }} · {{ record.workingAlleles.join('') }}</strong></div>
+                <dl>
+                  <div><dt>Starting pair</dt><dd>{{ record.startingAlleles.join('') }}</dd></div>
+                  <div><dt>Genotype class</dt><dd>{{ record.genotypeClassId.replaceAll('-', ' ') }}</dd></div>
+                  <div><dt>Predicted</dt><dd>{{ record.predictedPhenotypeId }}</dd></div>
+                  <div><dt>Observed</dt><dd>{{ record.actualPhenotypeId }}</dd></div>
+                  <div><dt>Recessive retained</dt><dd>{{ record.interpretedRecessiveRetained ? 'Yes' : 'No' }}</dd></div>
+                  <div><dt>Evidence</dt><dd>{{ record.evidenceId.replaceAll('-', ' ') }}</dd></div>
+                </dl>
+                <p><strong>Conclusion</strong>{{ taskLabel(record.taskId) }}</p>
               </li>
             }
           </ol>
         }
       </section>
 
-      <p class="boundary"><strong>Dominant ≠ stronger</strong>Dominant does not mean better, healthier, more common, or more useful in battle. It only describes expression in this classroom model.</p>
+      <p class="boundary"><span>MODEL BOUNDARY</span><strong>Dominant ≠ stronger</strong>Dominant describes which phenotype is expressed in this simplified model. It does not mean better, healthier, more common, or more useful.</p>
     </aside>
   </div>
 
-  <div class="action-rail">
-    <p>{{ stepHint() }}</p><span>Task {{ activeTaskNumber() }} of {{ taskCount() }} · {{ correctCount() }} records fully supported</span>
+  <footer class="action-rail">
+    <div><span class="eyebrow">Next laboratory action</span><p>{{ stepHint() }}</p></div>
+    <span>Mission {{ activeTaskNumber() }} of {{ taskCount() }} · {{ correctCount() }} fully supported records</span>
     <button type="button" [disabled]="primaryAction().disabled" (click)="runPrimaryAction()">{{ primaryAction().label }}</button>
-  </div>
+  </footer>
 </section>

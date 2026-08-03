@@ -2,6 +2,7 @@ import { DragonTraitId } from './dragon-lab.models';
 
 export type AlleleWorkbenchMode = 'learn' | 'practice' | 'official' | 'reteach';
 export type AllelePhenotypePrediction = 'dominant' | 'recessive';
+export type AlleleRecessivePresenceAnswer = 'yes' | 'no';
 export type AlleleGenotypeClass =
   | 'homozygous-dominant'
   | 'heterozygous'
@@ -18,13 +19,29 @@ export type AlleleWorkbenchMisconception =
 export interface AlleleWorkbenchTask {
   id: string;
   traitId: DragonTraitId;
+  sampleCode: string;
+  sampleLabel: string;
+  sampleProfileId: string;
+  chromosomeNumber: number;
+  nearbyGeneIds: readonly string[];
+  targetGeneId: string;
   prompt: string;
   startingAlleles: readonly [string, string];
   requestedAlleles: readonly [string, string];
+  dominantPhenotypeLabel: string;
+  recessivePhenotypeLabel: string;
   correctPrediction: AllelePhenotypePrediction;
+  correctGenotypeClass: AlleleGenotypeClass;
+  correctEvidenceId: AlleleRuleEvidenceId;
   evidenceId: AlleleRuleEvidenceId;
   explanation: string;
   misconception: AlleleWorkbenchMisconception;
+}
+
+export interface AlleleWorkbenchSampleVial {
+  code: string;
+  label: string;
+  profileId: string;
 }
 
 export interface AlleleWorkbenchRecord {
@@ -50,6 +67,15 @@ export interface AlleleWorkbenchRecord {
   moveCount: number;
   elapsedMs: number;
   createdAtIso: string;
+  sampleSelectionCorrect?: boolean;
+  geneLocationCorrect?: boolean;
+  machineActions?: readonly string[];
+  interpretationCorrect?: boolean;
+  sampleCode?: string;
+  chromosomeNumber?: number;
+  predictedRecessiveRetained?: boolean;
+  interpretedRecessiveRetained?: boolean;
+  interpretedGenotypeClassId?: AlleleGenotypeClass;
 }
 
 export interface AlleleWorkbenchSetResult {

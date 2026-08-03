@@ -56,6 +56,25 @@ export interface GenomeMicroscopeSceneInput {
 
 /** Lesson-owned state the Allele Workbench needs in order to draw a scene. */
 export interface AlleleSwitchboardSceneInput {
+  sampleCode?: string;
+  sampleLabel?: string;
+  sampleVials?: readonly {
+    code: string;
+    label: string;
+    selected: boolean;
+    loaded: boolean;
+  }[];
+  observeStep?: 'select-sample' | 'load-sample' | 'secure-chamber' | 'locate-gene';
+  chamberLocked?: boolean;
+  sampleMismatch?: boolean;
+  chromosomeNumber?: number;
+  nearbyGeneIds?: readonly string[];
+  centeredGeneId?: string | null;
+  geneLocationLocked?: boolean;
+  locatorHintVisible?: boolean;
+  bandingEnabled?: boolean;
+  fluorescenceEnabled?: boolean;
+  homologComparisonEnabled?: boolean;
   focusGeneId: string;
   taskId?: string;
   dominantAllele: string;
@@ -66,10 +85,19 @@ export interface AlleleSwitchboardSceneInput {
   dominantPhenotypeId: string;
   recessivePhenotypeId: string;
   predictedPhenotypeId?: string | null;
+  predictedRecessiveRetained?: boolean | null;
+  requiresRecessivePrediction?: boolean;
   actualPhenotypeId?: string | null;
+  dominantSignalPresent?: boolean;
+  recessiveSignalPresent?: boolean;
   genotypeClassId?: 'homozygous-dominant' | 'heterozygous' | 'homozygous-recessive' | null;
+  interpretationGenotypeClassId?: 'homozygous-dominant' | 'heterozygous' | 'homozygous-recessive' | null;
+  interpretedRecessiveRetained?: boolean | null;
+  interpretationLocked?: boolean;
   carrierState?: boolean;
+  socketsSecured?: readonly [boolean, boolean];
   expressionRevealed?: boolean;
+  machineStatus?: string;
   evidenceMarks?: readonly DragonEvidenceMark[];
   evidenceMarkId?: string | null;
   showHints?: boolean;
@@ -171,6 +199,20 @@ export function createAlleleSwitchboardScene(
     instrument: {
       kind: 'allele-switchboard',
       sampleId: profile.id,
+      sampleCode: input.sampleCode,
+      sampleLabel: input.sampleLabel,
+      sampleVials: input.sampleVials ?? [],
+      observeStep: input.observeStep ?? 'select-sample',
+      chamberLocked: input.chamberLocked ?? false,
+      sampleMismatch: input.sampleMismatch ?? false,
+      chromosomeNumber: input.chromosomeNumber,
+      nearbyGeneIds: input.nearbyGeneIds ?? [],
+      centeredGeneId: input.centeredGeneId ?? null,
+      geneLocationLocked: input.geneLocationLocked ?? false,
+      locatorHintVisible: input.locatorHintVisible ?? false,
+      bandingEnabled: input.bandingEnabled ?? false,
+      fluorescenceEnabled: input.fluorescenceEnabled ?? false,
+      homologComparisonEnabled: input.homologComparisonEnabled ?? true,
       focusGeneId: input.focusGeneId,
       taskId: input.taskId,
       dominantAllele: input.dominantAllele,
@@ -181,10 +223,19 @@ export function createAlleleSwitchboardScene(
       dominantPhenotypeId: input.dominantPhenotypeId,
       recessivePhenotypeId: input.recessivePhenotypeId,
       predictedPhenotypeId: input.predictedPhenotypeId ?? null,
+      predictedRecessiveRetained: input.predictedRecessiveRetained ?? null,
+      requiresRecessivePrediction: input.requiresRecessivePrediction ?? false,
       actualPhenotypeId: input.actualPhenotypeId ?? null,
+      dominantSignalPresent: input.dominantSignalPresent ?? false,
+      recessiveSignalPresent: input.recessiveSignalPresent ?? false,
       genotypeClassId: input.genotypeClassId ?? null,
+      interpretationGenotypeClassId: input.interpretationGenotypeClassId ?? null,
+      interpretedRecessiveRetained: input.interpretedRecessiveRetained ?? null,
+      interpretationLocked: input.interpretationLocked ?? false,
       carrierState: input.carrierState ?? false,
+      socketsSecured: input.socketsSecured ?? [false, false],
       expressionRevealed: input.expressionRevealed ?? false,
+      machineStatus: input.machineStatus,
       evidenceMarks: input.evidenceMarks ?? [],
       evidenceMarkId: input.evidenceMarkId ?? null,
       showHints: input.showHints ?? false,

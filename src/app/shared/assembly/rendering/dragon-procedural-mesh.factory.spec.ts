@@ -47,6 +47,92 @@ function verticalRelief(mesh: THREE.Mesh): number {
   return max - min;
 }
 
+function bodyPart(overrides: Partial<AssemblyPart> = {}): AssemblyPart {
+  return {
+    id: 'body',
+    label: 'Body',
+    roles: ['core'],
+    shape: 'box',
+    mass: 4,
+    dimensions: { x: 1.6, y: 0.72, z: 0.68 },
+    position: { x: 0, y: 0, z: 0 },
+    color: '#a855f7',
+    visualProfile: { profileId: 'dragon-body', meshType: 'procedural' },
+    ...overrides,
+  };
+}
+
+function jawPart(profileId: 'dragon-upper-jaw' | 'dragon-lower-jaw'): AssemblyPart {
+  return {
+    id: profileId,
+    label: profileId === 'dragon-upper-jaw' ? 'Upper Jaw' : 'Lower Jaw',
+    roles: ['weapon'],
+    shape: 'box',
+    mass: 0.28,
+    dimensions: { x: 0.52, y: 0.2, z: 0.3 },
+    position: { x: 0, y: 0, z: 0 },
+    color: '#fbbf24',
+    visualProfile: { profileId, meshType: 'procedural' },
+  };
+}
+
+function limbPart(profileId: 'dragon-leg' | 'dragon-claw', dimensions: AssemblyPart['dimensions']): AssemblyPart {
+  return {
+    id: profileId,
+    label: profileId,
+    roles: ['leg'],
+    shape: 'cylinder',
+    mass: 0.2,
+    dimensions,
+    position: { x: 0, y: 0, z: 0 },
+    color: '#a855f7',
+    visualProfile: { profileId, meshType: 'procedural' },
+  };
+}
+
+describe('dragon body mesh', () => {
+  it('adds a simple belly mesh that scales with the body', () => {
+    const body = createDragonProceduralObject(bodyPart())!;
+    const belly = body.getObjectByName('dragon-belly') as THREE.Mesh | undefined;
+
+    expect(belly).toBeTruthy();
+    expect(belly?.geometry).toBeInstanceOf(THREE.SphereGeometry);
+    expect(belly?.scale.x).toBeCloseTo(bodyPart().dimensions.x * 0.38);
+  });
+});
+
+describe('dragon upper jaw mesh', () => {
+  it('builds both nostrils directly into the upper jaw', () => {
+    const upperJaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
+
+    expect(upperJaw.getObjectByName('dragon-nostril-left')).toBeTruthy();
+    expect(upperJaw.getObjectByName('dragon-nostril-right')).toBeTruthy();
+  });
+
+  it('does not put nostrils on the lower jaw', () => {
+    const lowerJaw = createDragonProceduralObject(jawPart('dragon-lower-jaw'))!;
+
+    expect(lowerJaw.getObjectByName('dragon-nostril-left')).toBeFalsy();
+    expect(lowerJaw.getObjectByName('dragon-nostril-right')).toBeFalsy();
+  });
+});
+
+describe('dragon limb meshes', () => {
+  it('renders legs, feet, and claws at half their physics dimensions', () => {
+    const leg = createDragonProceduralObject(limbPart('dragon-leg', { x: 0.22, y: 0.72, z: 0.22 }))!;
+    const foot = createDragonProceduralObject({
+      ...limbPart('dragon-leg', { x: 0.34, y: 0.14, z: 0.28 }),
+      visualProfile: { profileId: 'dragon-foot', meshType: 'procedural' },
+    })!;
+    const claw = createDragonProceduralObject(limbPart('dragon-claw', { x: 0.08, y: 0.2, z: 0.08 }))!;
+
+    expect(leg.scale.toArray()).toEqual([0.5, 0.5, 0.5]);
+    expect(leg.position.y).toBeCloseTo(0.72 * 0.44);
+    expect(foot.scale.toArray()).toEqual([0.5, 0.5, 0.5]);
+    expect(claw.scale.toArray()).toEqual([0.5, 0.5, 0.5]);
+  });
+});
+
 describe('dragon wing membrane', () => {
   /**
    * The original membrane was a `ShapeGeometry`, which only emits vertices along

@@ -1,0 +1,356 @@
+import { createDefaultCombatProfile } from '../../assembly/combat/assembly-combat.models';
+import { rotateVectorByQuaternion } from '../../assembly/domain/vector-data';
+import { CLASSIC_DRAGON_TEST_PRESET } from '../../assembly-garage/data/presets/classic-dragon-test';
+import {
+  createFounderDragonGenome,
+  generateDragonAssembly,
+} from '../../../features/dragon-genetics/simulation/domain/dragon-phenotype-builder';
+import { getArenaSetup } from '../data/arena-setups';
+import { BattleArenaState } from '../models/arena.models';
+import { createCombatant, createPartStatuses } from '../utils/battle-assembly';
+import { AssemblyArenaPhysicsService } from './assembly-arena-physics.service';
+
+describe('AssemblyArenaPhysicsService', () => {
+  it('keeps battling dragons assembled when a duel begins', () => {
+    const genome = createFounderDragonGenome('physics-test-dragon', {
+      'body-size': 0.8,
+      'wing-span': 0.78,
+      'jaw-strength': 0.76,
+      'tail-length': 0.7,
+      'armor-density': 0.72,
+      'pigment-hue': 0.7,
+      temperament: 0.8,
+    });
+    const blueprint = generateDragonAssembly(CLASSIC_DRAGON_TEST_PRESET.state, genome).blueprint;
+    const asset = {
+      id: 'physics-test-dragon',
+      kind: 'assembly' as const,
+      name: 'Physics test dragon',
+      description: 'Dragon used by the arena physics regression test.',
+      tags: ['dragon'],
+      scope: 'built-in' as const,
+      schemaVersion: 1 as const,
+      assetVersion: 1,
+      createdAtIso: '2026-01-01T00:00:00.000Z',
+      updatedAtIso: '2026-01-01T00:00:00.000Z',
+      compatibleGameIds: ['assembly-arena'],
+      authoringTool: 'assembly-garage' as const,
+      assembly: blueprint,
+      combatProfile: createDefaultCombatProfile(blueprint),
+    };
+    const setup = getArenaSetup('duel-arena');
+    const combatant = createCombatant(
+      'red-1',
+      asset,
+      'red',
+      setup.redSpawn,
+      'player',
+      'dragon-attack',
+      setup.redInitialRotation,
+    );
+    const opponent = createCombatant(
+      'blue-1',
+      asset,
+      'blue',
+      setup.blueSpawn,
+      'ai',
+      'dragon-attack',
+      setup.blueInitialRotation,
+    );
+    const state: BattleArenaState = {
+      combatants: [combatant, opponent],
+      partStatuses: createPartStatuses([combatant, opponent]),
+      isRunning: true,
+      winnerId: null,
+      elapsedSeconds: 0,
+      playMode: 'real-time',
+      activeTeam: 'red',
+      turnNumber: 1,
+      events: [],
+      matchId: 1,
+      setupStyleId: setup.id,
+      setup,
+      setupName: setup.name,
+      setupDescription: setup.description,
+    };
+    const service = new AssemblyArenaPhysicsService();
+    const brokenPartIds: string[] = [];
+
+    service.rebuild(state);
+    for (let frame = 0; frame < 60 * 8; frame += 1) {
+      state.elapsedSeconds = frame / 60;
+      const result = service.step(state, 1 / 60, {
+        'red-1': {
+          throttle: 0,
+          steer: 0,
+          strafe: 0,
+          boost: false,
+          biteAttack: false,
+          wingAttack: false,
+          tailAttack: false,
+          fireAttack: false,
+        },
+        'blue-1': {
+          throttle: 1,
+          steer: 0,
+          strafe: 0,
+          boost: true,
+          biteAttack: true,
+          wingAttack: true,
+          tailAttack: true,
+          fireAttack: false,
+        },
+      });
+      brokenPartIds.push(...result.damageEvents
+        .filter(event => event.reason === 'joint break')
+        .map(event => event.bodyKey));
+    }
+
+    expect(brokenPartIds).withContext(brokenPartIds.join(', ')).toEqual([]);
+    for (const dragon of state.combatants) {
+      const core = service.getSnapshots().find(snapshot =>
+        snapshot.bodyKey === `${dragon.id}:${dragon.corePartId}`,
+      );
+      expect(core).toBeDefined();
+      const up = rotateVectorByQuaternion({ x: 0, y: 1, z: 0 }, core!.quaternion);
+      expect(up.y).withContext(`${dragon.id} ended the opening exchange overturned`).toBeGreaterThan(0.5);
+    }
+  });
+
+  it('self-rights a dragon that has been knocked upside down', () => {
+    const asset = createScaledDragonAsset();
+    const setup = getArenaSetup('duel-arena');
+    const combatant = createCombatant(
+      'red-1',
+      asset,
+      'red',
+      { x: setup.redSpawn.x, y: 4, z: setup.redSpawn.z },
+      'player',
+      'dragon-attack',
+      { x: Math.PI, y: 0, z: 0 },
+    );
+    const state: BattleArenaState = {
+      combatants: [combatant],
+      partStatuses: createPartStatuses([combatant]),
+      isRunning: true,
+      winnerId: null,
+      elapsedSeconds: 0,
+      playMode: 'real-time',
+      activeTeam: 'red',
+      turnNumber: 1,
+      events: [],
+      matchId: 2,
+      setupStyleId: setup.id,
+      setup,
+      setupName: setup.name,
+      setupDescription: setup.description,
+    };
+    const service = new AssemblyArenaPhysicsService();
+
+    service.rebuild(state);
+    for (let frame = 0; frame < 60 * 6; frame += 1) {
+      state.elapsedSeconds = frame / 60;
+      service.step(state, 1 / 60, {
+        'red-1': {
+          throttle: 0,
+          steer: 0,
+          strafe: 0,
+          boost: false,
+        },
+      });
+    }
+
+    const core = service.getSnapshots().find(snapshot =>
+      snapshot.bodyKey === `red-1:${combatant.corePartId}`,
+    );
+    expect(core).toBeDefined();
+    const up = rotateVectorByQuaternion({ x: 0, y: 1, z: 0 }, core!.quaternion);
+    expect(up.y).toBeGreaterThan(0.75);
+    const authoredHeight = asset.assembly.parts
+      .find(part => part.id === combatant.corePartId)!.position.y;
+    expect(core!.position.y).toBeGreaterThan(authoredHeight * 0.75);
+  });
+
+  it('moves the torso forward without using leg contact for locomotion', () => {
+    const asset = createScaledDragonAsset();
+    const setup = getArenaSetup('duel-arena');
+    const combatant = createCombatant(
+      'red-1', asset, 'red', setup.redSpawn, 'player', 'dragon-attack', setup.redInitialRotation,
+    );
+    const state = createTestState(setup, [combatant], 3);
+    const service = new AssemblyArenaPhysicsService();
+    service.rebuild(state);
+    const start = coreSnapshot(service, combatant).position;
+
+    for (let frame = 0; frame < 60 * 2; frame += 1) {
+      state.elapsedSeconds = frame / 60;
+      service.step(state, 1 / 60, {
+        'red-1': { throttle: 1, steer: 0, strafe: 0, boost: false },
+      });
+    }
+
+    const finish = coreSnapshot(service, combatant);
+    const horizontalTravel = Math.hypot(
+      finish.position.x - start.x,
+      finish.position.z - start.z,
+    );
+    expect(horizontalTravel)
+      .withContext(`start=${JSON.stringify(start)} finish=${JSON.stringify(finish.position)}`)
+      .toBeGreaterThan(2);
+    const up = rotateVectorByQuaternion({ x: 0, y: 1, z: 0 }, finish.quaternion);
+    expect(up.y).toBeGreaterThan(0.5);
+    const authoredHeight = asset.assembly.parts
+      .find(part => part.id === combatant.corePartId)!.position.y;
+    expect(finish.position.y).toBeGreaterThan(authoredHeight * 0.75);
+  });
+
+  it('runs a timed bite pose and hit without requiring limb contact', () => {
+    const dragonAsset = createScaledDragonAsset();
+    const targetAsset = createTargetAsset();
+    const setup = getArenaSetup('duel-arena');
+    const dragon = createCombatant(
+      'red-1', dragonAsset, 'red', { x: 0, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const target = createCombatant(
+      'blue-1', targetAsset, 'blue', { x: 1.7, y: 1.32, z: 0 }, 'static', 'static-target', { x: 0, y: 0, z: 0 },
+    );
+    const state = createTestState(setup, [dragon, target], 4);
+    const service = new AssemblyArenaPhysicsService();
+    const posePhases: number[] = [];
+    const damageReasons: string[] = [];
+    const biteTargets: string[] = [];
+    let strongestTargetReaction = 0;
+    service.rebuild(state);
+
+    // Attack anatomy is render/hit-volume only. With no limb bodies in the
+    // world, legs, head, jaws, and claws cannot contact the arena surface.
+    const dragonPhysicsBodies = service.getSnapshots()
+      .filter(snapshot => snapshot.combatantId === dragon.id);
+    expect(dragonPhysicsBodies.map(snapshot => snapshot.sourcePartId)).toEqual([dragon.corePartId]);
+
+    for (let frame = 0; frame < 60; frame += 1) {
+      state.elapsedSeconds = 2 + frame / 60;
+      const result = service.step(state, 1 / 60, {
+        'red-1': {
+          throttle: 0,
+          steer: 0,
+          strafe: 0,
+          boost: false,
+          biteAttack: frame === 0,
+        },
+      });
+      posePhases.push(...(result.attackPoses ?? [])
+        .filter(pose => pose.combatantId === 'red-1' && pose.ability === 'bite')
+        .map(pose => pose.phase));
+      damageReasons.push(...result.damageEvents.map(event => event.reason));
+      biteTargets.push(...result.damageEvents
+        .filter(event => event.reason === 'bite')
+        .map(event => event.bodyKey));
+      const targetSnapshot = service.getSnapshots()
+        .find(snapshot => snapshot.combatantId === target.id)!;
+      strongestTargetReaction = Math.max(
+        strongestTargetReaction,
+        Math.hypot(targetSnapshot.velocity.x, targetSnapshot.velocity.z),
+      );
+    }
+
+    expect(posePhases.length).toBeGreaterThan(20);
+    expect(Math.max(...posePhases)).toBeGreaterThan(0.75);
+    expect(damageReasons).toContain('bite');
+    expect(biteTargets).toEqual([`${target.id}:${target.corePartId}`]);
+    expect(strongestTargetReaction).toBeGreaterThan(0.1);
+  });
+});
+
+function createTestState(
+  setup: ReturnType<typeof getArenaSetup>,
+  combatants: ReturnType<typeof createCombatant>[],
+  matchId: number,
+): BattleArenaState {
+  return {
+    combatants,
+    partStatuses: createPartStatuses(combatants),
+    isRunning: true,
+    winnerId: null,
+    elapsedSeconds: 0,
+    playMode: 'real-time',
+    activeTeam: 'red',
+    turnNumber: 1,
+    events: [],
+    matchId,
+    setupStyleId: setup.id,
+    setup,
+    setupName: setup.name,
+    setupDescription: setup.description,
+  };
+}
+
+function coreSnapshot(
+  service: AssemblyArenaPhysicsService,
+  combatant: ReturnType<typeof createCombatant>,
+) {
+  return service.getSnapshots().find(snapshot =>
+    snapshot.bodyKey === `${combatant.id}:${combatant.corePartId}`,
+  )!;
+}
+
+function createScaledDragonAsset() {
+  const genome = createFounderDragonGenome('self-righting-test-dragon', {
+    'body-size': 0.8,
+    'wing-span': 0.78,
+    'jaw-strength': 0.76,
+    'tail-length': 0.7,
+    'armor-density': 0.72,
+    'pigment-hue': 0.7,
+    temperament: 0.8,
+  });
+  const blueprint = generateDragonAssembly(CLASSIC_DRAGON_TEST_PRESET.state, genome).blueprint;
+  return {
+    id: 'self-righting-test-dragon',
+    kind: 'assembly' as const,
+    name: 'Self-righting test dragon',
+    description: 'Dragon used by the arena physics regression test.',
+    tags: ['dragon'],
+    scope: 'built-in' as const,
+    schemaVersion: 1 as const,
+    assetVersion: 1,
+    createdAtIso: '2026-01-01T00:00:00.000Z',
+    updatedAtIso: '2026-01-01T00:00:00.000Z',
+    compatibleGameIds: ['assembly-arena'],
+    authoringTool: 'assembly-garage' as const,
+    assembly: blueprint,
+    combatProfile: createDefaultCombatProfile(blueprint),
+  };
+}
+
+function createTargetAsset() {
+  const blueprint = {
+    parts: [{
+      id: 'target-core',
+      label: 'Target core',
+      roles: ['core' as const],
+      shape: 'box' as const,
+      dimensions: { x: 0.2, y: 0.2, z: 0.2 },
+      mass: 1,
+      position: { x: 0, y: 0, z: 0 },
+      color: '#64748b',
+    }],
+    joints: [],
+  };
+  return {
+    id: 'scripted-hit-target',
+    kind: 'assembly' as const,
+    name: 'Scripted hit target',
+    description: 'Small target that does not physically touch the attacking limbs.',
+    tags: ['target'],
+    scope: 'built-in' as const,
+    schemaVersion: 1 as const,
+    assetVersion: 1,
+    createdAtIso: '2026-01-01T00:00:00.000Z',
+    updatedAtIso: '2026-01-01T00:00:00.000Z',
+    compatibleGameIds: ['assembly-arena'],
+    authoringTool: 'assembly-garage' as const,
+    assembly: blueprint,
+    combatProfile: createDefaultCombatProfile(blueprint),
+  };
+}

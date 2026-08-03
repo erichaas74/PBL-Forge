@@ -13,6 +13,27 @@ import { AssemblyCombatProfile } from './assembly-combat.models';
 export type AssemblyContactAbilityId = 'bite' | 'wing-buffet' | 'tail-sweep';
 export type AssemblyAbilityId = AssemblyContactAbilityId | 'fire-breath';
 
+export interface ScriptedAssemblyAttackTiming {
+  durationSeconds: number;
+  strikeAt: number;
+  activeWindow: number;
+  range: number;
+  /** Minimum forward alignment. Null makes the move radial, as with a tail sweep. */
+  coneDot: number | null;
+}
+
+/**
+ * Authored combat timing shared by input, hit detection, and animation. The
+ * arena treats these as moves with anticipation and recovery instead of forces
+ * applied to independently simulated limbs.
+ */
+export const SCRIPTED_ASSEMBLY_ATTACKS: Readonly<Record<AssemblyAbilityId, ScriptedAssemblyAttackTiming>> = {
+  bite: { durationSeconds: 1.1, strikeAt: 0.6, activeWindow: 0.16, range: 2.05, coneDot: 0.52 },
+  'wing-buffet': { durationSeconds: 1.2, strikeAt: 0.75, activeWindow: 0.2, range: 2.45, coneDot: 0.15 },
+  'tail-sweep': { durationSeconds: 1.2, strikeAt: 0.75, activeWindow: 0.22, range: 2.35, coneDot: null },
+  'fire-breath': { durationSeconds: 1.6, strikeAt: 0.4, activeWindow: 0.6, range: 3.4, coneDot: 0.72 },
+};
+
 /**
  * Contact-window abilities: while the attack is held, the attacking part
  * landing on an opponent deals its damage regardless of impact speed — a bite
@@ -29,7 +50,10 @@ export interface AssemblyContactAbility {
 }
 
 export const ASSEMBLY_CONTACT_ABILITIES: readonly AssemblyContactAbility[] = [
-  { ability: 'bite', role: 'jaw', baseDamage: 9, cooldownSeconds: 0.9, usesAttackerMultiplier: true, knockback: false },
+  // Bite includes the authored head lunge and foreclaw rake. Its opponent-only
+  // hit volume produces a small reaction without giving those parts floor or
+  // wall colliders that could trip their owner.
+  { ability: 'bite', role: 'jaw', baseDamage: 9, cooldownSeconds: 0.9, usesAttackerMultiplier: true, knockback: true },
   { ability: 'wing-buffet', role: 'wing', baseDamage: 6, cooldownSeconds: 1.2, usesAttackerMultiplier: false, knockback: true },
   { ability: 'tail-sweep', role: 'tail', baseDamage: 7, cooldownSeconds: 1.1, usesAttackerMultiplier: false, knockback: false },
 ];

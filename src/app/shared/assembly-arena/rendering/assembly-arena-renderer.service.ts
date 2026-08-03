@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
+  AssemblyBlueprint,
   AssemblyPart,
   Vector3Data,
 } from '../../assembly/domain/assembly.models';
@@ -33,6 +34,7 @@ import {
 import {
   ArenaSetupStyleId,
   ArenaSetupConfig,
+  BattleAttackPoseSnapshot,
   BattleArenaState,
   BattleBodySnapshot,
   BattlePartStatus,
@@ -40,11 +42,17 @@ import {
   FireConeSnapshot,
 } from '../models/arena.models';
 import { getBodyKey } from '../utils/battle-assembly';
+import { buildDragonArenaPose } from './dragon-arena-pose';
 
 const TEAM_TINTS: Record<BattleTeam, { emissive: number; intensity: number }> = {
   red: { emissive: 0x4a0d12, intensity: 0.22 },
   blue: { emissive: 0x0c1f4a, intensity: 0.22 },
 };
+
+interface DragonRenderRig {
+  blueprint: AssemblyBlueprint;
+  corePartId: string;
+}
 
 @Injectable()
 export class AssemblyArenaRendererService {
@@ -64,6 +72,7 @@ export class AssemblyArenaRendererService {
   private readonly lastHealthByBodyKey = new Map<string, number>();
   private readonly flashUntilByBodyKey = new Map<string, number>();
   private readonly fireConeMeshes = new Map<string, THREE.Mesh>();
+  private readonly dragonRigs = new Map<string, DragonRenderRig>();
 
   mount(host: HTMLElement): void {
     this.dispose();
@@ -111,8 +120,15 @@ export class AssemblyArenaRendererService {
 
     this.syncArenaEnvironment(state.setup);
     const nextBodyKeys = new Set<string>();
+    this.dragonRigs.clear();
 
     for (const combatant of state.combatants) {
+      if (combatant.controlMode === 'dragon-attack') {
+        this.dragonRigs.set(combatant.id, {
+          blueprint: combatant.assembly,
+          corePartId: combatant.corePartId,
+        });
+      }
       // Mirror the physics spawn exactly: part offsets rotate rigidly around the
       // spawn point along with their orientations.
       const spawnQuaternion = quaternionFromEuler(combatant.initialRotation);
@@ -154,26 +170,30 @@ export class AssemblyArenaRendererService {
     snapshots: BattleBodySnapshot[],
     statuses: Record<string, BattlePartStatus>,
     fireCones: FireConeSnapshot[] = [],
+    attackPoses: BattleAttackPoseSnapshot[] = [],
   ): void {
     this.syncFireCones(fireCones);
+    const snapshotsByBodyKey = new Map(snapshots.map(snapshot => [snapshot.bodyKey, snapshot]));
+    const attacksByCombatant = new Map(attackPoses.map(attack => [attack.combatantId, attack]));
+    const scriptedBodyKeys = new Set<string>();
+
+    for (const [combatantId, rig] of this.dragonRigs) {
+      const core = snapshotsByBodyKey.get(getBodyKey(combatantId, rig.corePartId));
+      if (!core) continue;
+      for (const snapshot of buildDragonArenaPose(
+        combatantId,
+        rig.blueprint,
+        rig.corePartId,
+        core,
+        attacksByCombatant.get(combatantId),
+      )) {
+        scriptedBodyKeys.add(snapshot.bodyKey);
+        this.applyBodySnapshot(snapshot, statuses);
+      }
+    }
 
     for (const snapshot of snapshots) {
-      const object = this.partObjects.get(snapshot.bodyKey);
-
-      if (!object) {
-        continue;
-      }
-
-      object.position.set(snapshot.position.x, snapshot.position.y, snapshot.position.z);
-      object.quaternion.set(
-        snapshot.quaternion.x,
-        snapshot.quaternion.y,
-        snapshot.quaternion.z,
-        snapshot.quaternion.w,
-      );
-
-      this.updateDamageAppearance(object, statuses[snapshot.bodyKey]);
-      this.updateHitFlash(object, snapshot.bodyKey, statuses[snapshot.bodyKey]);
+      if (!scriptedBodyKeys.has(snapshot.bodyKey)) this.applyBodySnapshot(snapshot, statuses);
     }
 
     this.render();
@@ -202,6 +222,7 @@ export class AssemblyArenaRendererService {
     }
 
     this.partObjects.clear();
+    this.dragonRigs.clear();
     this.lastHealthByBodyKey.clear();
     this.flashUntilByBodyKey.clear();
     this.syncFireCones([]);
@@ -249,6 +270,23 @@ export class AssemblyArenaRendererService {
     object.userData['signature'] = signature;
     this.partObjects.set(bodyKey, object);
     this.scene.add(object);
+  }
+
+  private applyBodySnapshot(
+    snapshot: BattleBodySnapshot,
+    statuses: Record<string, BattlePartStatus>,
+  ): void {
+    const object = this.partObjects.get(snapshot.bodyKey);
+    if (!object) return;
+    object.position.set(snapshot.position.x, snapshot.position.y, snapshot.position.z);
+    object.quaternion.set(
+      snapshot.quaternion.x,
+      snapshot.quaternion.y,
+      snapshot.quaternion.z,
+      snapshot.quaternion.w,
+    );
+    this.updateDamageAppearance(object, statuses[snapshot.bodyKey]);
+    this.updateHitFlash(object, snapshot.bodyKey, statuses[snapshot.bodyKey]);
   }
 
   private updateDamageAppearance(object: THREE.Object3D, status: BattlePartStatus | undefined): void {

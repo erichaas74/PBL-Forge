@@ -39,9 +39,23 @@ export const ALLELE_SWITCHBOARD_THEME: AlleleSwitchboardTheme = {
 };
 
 export const ALLELE_SWITCHBOARD_TARGETS = {
+  sampleVial: 'sample-vial',
+  sampleChamber: 'sample-chamber',
+  sampleLock: 'sample-lock',
+  geneLocator: 'gene-locator',
+  chromosomeStage: 'chromosome-stage',
+  targetReticle: 'target-reticle',
+  fluorescentMarker: 'fluorescent-marker',
+  bandingOverlay: 'banding-overlay',
+  homologCompare: 'homolog-compare',
   alleleToken: 'allele-token',
   alleleSlotA: 'allele-slot-a',
   alleleSlotB: 'allele-slot-b',
+  socketLockA: 'socket-lock-a',
+  socketLockB: 'socket-lock-b',
+  recessivePrediction: 'recessive-prediction',
+  genotypeInterpretation: 'genotype-interpretation',
+  recessiveInterpretation: 'recessive-interpretation',
   dominantAllele: 'dominant-allele',
   recessiveAllele: 'recessive-allele',
   expressionPath: 'expression-path',

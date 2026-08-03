@@ -14,13 +14,16 @@ import {
 import { createAssemblyBody } from '../../assembly/physics/cannon-assembly.factory';
 import {
   ASSEMBLY_CONTACT_ABILITIES,
+  AssemblyAbilityId,
   AssemblyContactAbility,
   FIRE_BREATH_TUNING,
+  SCRIPTED_ASSEMBLY_ATTACKS,
 } from '../../assembly/combat/assembly-abilities';
 import {
   ArenaControlFrame,
   ArenaSetupConfig,
   ArenaSetupStyleId,
+  BattleAttackPoseSnapshot,
   BattleArenaState,
   BattleBodySnapshot,
   BattleCombatant,
@@ -42,9 +45,16 @@ interface BodyMeta {
 interface TrackedArenaJoint {
   constraint: CANNON.Constraint;
   behavior: AssemblyJointBehavior | undefined;
+  combatantId: string;
   childBodyKey: string;
   hinge?: CANNON.HingeConstraint;
   broken: boolean;
+}
+
+interface ActiveScriptedAttack {
+  ability: AssemblyAbilityId;
+  startedAtSeconds: number;
+  hitResolved: boolean;
 }
 
 const EMPTY_CONTROL_FRAME: ArenaControlFrame = {
@@ -89,6 +99,8 @@ export class AssemblyArenaPhysicsService {
   private readonly trackedJoints: TrackedArenaJoint[] = [];
   private readonly lastDamageAt = new Map<string, number>();
   private readonly lastAbilityHitAt = new Map<string, number>();
+  private readonly activeAttacks = new Map<string, ActiveScriptedAttack>();
+  private readonly attackReactions = new Map<string, CANNON.Vec3>();
   private readonly fixedTimeStep = 1 / 60;
   private readonly maxSubSteps = 6;
   private currentSetupStyleId: ArenaSetupStyleId = 'duel-arena';
@@ -104,6 +116,7 @@ export class AssemblyArenaPhysicsService {
   }
 
   step(state: BattleArenaState, deltaSeconds: number, controlFrames: ControlFrameByCombatant): BattlePhysicsFrame {
+    this.updateScriptedAttacks(state, controlFrames);
     this.applyControllers(state, controlFrames);
     this.updateJointBehaviors(state.elapsedSeconds);
 
@@ -119,7 +132,8 @@ export class AssemblyArenaPhysicsService {
       return {
         snapshots: this.getSnapshots(),
         damageEvents: [],
-        fireCones: this.getFireCones(state, controlFrames),
+        fireCones: this.getFireCones(state),
+        attackPoses: this.getAttackPoses(state.elapsedSeconds),
       };
     }
 
@@ -140,12 +154,13 @@ export class AssemblyArenaPhysicsService {
     return {
       snapshots: this.getSnapshots(),
       damageEvents: [
-        ...this.getBrokenJointDamageEvents(state.elapsedSeconds),
-        ...this.getAbilityDamageEvents(state, controlFrames),
-        ...this.getFireBreathDamageEvents(state, controlFrames),
+        ...this.getBrokenJointDamageEvents(state),
+        ...this.getAbilityDamageEvents(state),
+        ...this.getFireBreathDamageEvents(state),
         ...rateLimited,
       ],
-      fireCones: this.getFireCones(state, controlFrames),
+      fireCones: this.getFireCones(state),
+      attackPoses: this.getAttackPoses(state.elapsedSeconds),
     };
   }
 
@@ -164,10 +179,19 @@ export class AssemblyArenaPhysicsService {
     this.trackedJoints.length = 0;
     this.lastDamageAt.clear();
     this.lastAbilityHitAt.clear();
+    this.activeAttacks.clear();
+    this.attackReactions.clear();
   }
 
   private addCombatant(combatant: BattleCombatant): void {
     for (const part of combatant.assembly.parts) {
+      // Dragon combat uses a single physical root. Every visible limb is posed
+      // from the authored rig around this root, so leg placement cannot pin,
+      // drag, steer, or topple the torso through the constraint solver.
+      if (combatant.controlMode === 'dragon-attack' && part.id !== combatant.corePartId) {
+        continue;
+      }
+
       const bodyKey = getBodyKey(combatant.id, part.id);
       const body = this.createBody(part, combatant.spawnPosition, combatant.initialRotation);
 
@@ -219,6 +243,7 @@ export class AssemblyArenaPhysicsService {
         this.addTrackedConstraint(
           withoutConnectedCollision(new CANNON.LockConstraint(parent, child, { maxForce })),
           behavior,
+          combatantId,
           childBodyKey,
         );
         return;
@@ -233,6 +258,7 @@ export class AssemblyArenaPhysicsService {
             collideConnected: false,
           }),
           behavior,
+          combatantId,
           childBodyKey,
         );
         this.addSuspensionSpring(parent, child, pivotA, pivotB, behavior, 0);
@@ -250,6 +276,7 @@ export class AssemblyArenaPhysicsService {
         this.addTrackedConstraint(
           withoutConnectedCollision(new CANNON.PointToPointConstraint(parent, pivotA, child, pivotB, maxForce)),
           behavior,
+          combatantId,
           childBodyKey,
         );
         return;
@@ -257,6 +284,7 @@ export class AssemblyArenaPhysicsService {
         this.addTrackedConstraint(
           withoutConnectedCollision(new CANNON.PointToPointConstraint(parent, pivotA, child, pivotB, maxForce)),
           behavior,
+          combatantId,
           childBodyKey,
         );
         return;
@@ -266,6 +294,7 @@ export class AssemblyArenaPhysicsService {
   private addTrackedHinge(
     hinge: CANNON.HingeConstraint,
     behavior: AssemblyJointBehavior | undefined,
+    combatantId: string,
     childBodyKey: string,
   ): void {
     this.configureHingeBehavior(hinge, behavior, 0);
@@ -274,6 +303,7 @@ export class AssemblyArenaPhysicsService {
       constraint: hinge,
       hinge,
       behavior,
+      combatantId,
       childBodyKey,
       broken: false,
     });
@@ -282,12 +312,14 @@ export class AssemblyArenaPhysicsService {
   private addTrackedConstraint(
     constraint: CANNON.Constraint,
     behavior: AssemblyJointBehavior | undefined,
+    combatantId: string,
     childBodyKey: string,
   ): void {
     this.world.addConstraint(constraint);
     this.trackedJoints.push({
       constraint,
       behavior,
+      combatantId,
       childBodyKey,
       broken: false,
     });
@@ -401,7 +433,6 @@ export class AssemblyArenaPhysicsService {
         core,
         controlFrames[combatant.id] ?? EMPTY_CONTROL_FRAME,
         combatant.controlMode,
-        state.elapsedSeconds,
       );
     }
   }
@@ -411,7 +442,6 @@ export class AssemblyArenaPhysicsService {
     core: CANNON.Body,
     controls: ArenaControlFrame,
     mode: BattleCombatant['controlMode'],
-    elapsedSeconds: number,
   ): void {
     core.wakeUp();
 
@@ -447,19 +477,27 @@ export class AssemblyArenaPhysicsService {
     }
 
     if (mode === 'dragon-attack') {
-      // Body-relative drive: forward means where the dragon faces, steer yaws it.
-      const forceScale = controls.boost ? 132 : 82;
+      // Root-motion drive: the torso owns horizontal travel. Legs are visual
+      // attack limbs, not traction points, so their contact or pose cannot
+      // change the player's requested direction.
       const forward = getHorizontalAxis(core, new CANNON.Vec3(1, 0, 0));
       const right = getHorizontalAxis(core, new CANNON.Vec3(0, 0, 1));
-      core.applyForce(new CANNON.Vec3(
-        (forward.x * controls.throttle + right.x * controls.strafe * 0.6) * forceScale,
-        0,
-        (forward.z * controls.throttle + right.z * controls.strafe * 0.6) * forceScale,
-      ));
+      const speed = controls.boost ? 5.2 : 3.4;
+      const desiredX = (forward.x * controls.throttle + right.x * controls.strafe * 0.65) * speed;
+      const desiredZ = (forward.z * controls.throttle + right.z * controls.strafe * 0.65) * speed;
+      const reaction = this.attackReactions.get(combatant.id);
+      // Input directly owns horizontal root velocity. Physics still controls
+      // height, impacts, knockback, rotation, and recovery, but floor/leg state
+      // cannot swallow or redirect a requested move.
+      core.velocity.x = desiredX + (reaction?.x ?? 0);
+      core.velocity.z = desiredZ + (reaction?.z ?? 0);
+      if (reaction) {
+        reaction.scale(0.84, reaction);
+        if (reaction.lengthSquared() < 0.01) this.attackReactions.delete(combatant.id);
+      }
       core.applyTorque(new CANNON.Vec3(0, -controls.steer * 34, 0));
-      this.applyWingLift(combatant.id, core, controls);
-      this.applyDragonStance(combatant.id, core, controls);
-      this.applyDragonAttackMoves(combatant.id, core, controls, elapsedSeconds);
+      this.applyWingLift(combatant, core, controls);
+      this.applyDragonStance(combatant, core, controls);
       return;
     }
 
@@ -478,12 +516,12 @@ export class AssemblyArenaPhysicsService {
    * Winged genotypes get lift while boosting: WW/Ww dragons leap and glide,
    * ww dragons stay planted — inherited wings visibly change how they move.
    */
-  private applyWingLift(combatantId: string, core: CANNON.Body, controls: ArenaControlFrame): void {
+  private applyWingLift(combatant: BattleCombatant, core: CANNON.Body, controls: ArenaControlFrame): void {
     if (!controls.boost || core.velocity.y > 2.2) {
       return;
     }
 
-    const wingCount = this.getPartBodiesByRole(combatantId, 'wing').length;
+    const wingCount = combatant.assembly.parts.filter(part => part.roles?.includes('wing')).length;
     if (!wingCount) {
       return;
     }
@@ -496,20 +534,56 @@ export class AssemblyArenaPhysicsService {
    * real animal, instead of slumping into a passive ragdoll between inputs.
    */
   private applyDragonStance(
-    combatantId: string,
+    combatant: BattleCombatant,
     core: CANNON.Body,
     controls: ArenaControlFrame,
   ): void {
+    this.applyDragonRideHeight(combatant, core);
+
     // Upright assist: torque that rotates body-up toward world-up, damped so the
-    // dragon settles instead of wobbling.
+    // dragon settles instead of wobbling. A cross product alone has no preferred
+    // direction when the dragon is exactly upside down, so choose its forward
+    // axis as the recovery axis in that singular case.
     const up = core.quaternion.vmult(new CANNON.Vec3(0, 1, 0));
-    const uprightStrength = 18 * core.mass;
-    const spinDamping = 4 * core.mass;
+    let correctionX = -up.z;
+    let correctionZ = up.x;
+    let correctionLength = Math.hypot(correctionX, correctionZ);
+
+    if (up.y < 0) {
+      if (correctionLength < 0.1) {
+        const forward = core.quaternion.vmult(new CANNON.Vec3(1, 0, 0));
+        correctionX = forward.x;
+        correctionZ = forward.z;
+        correctionLength = Math.hypot(correctionX, correctionZ);
+      }
+
+      // Do not let the restoring torque fade while the body is in the inverted
+      // hemisphere; it must keep turning until world-up is reachable again.
+      if (correctionLength > 0.001) {
+        correctionX /= correctionLength;
+        correctionZ /= correctionLength;
+      }
+    }
+
+    const uprightStrength = 45 * core.mass;
+    const spinDamping = 8 * core.mass;
     core.applyTorque(new CANNON.Vec3(
-      -up.z * uprightStrength - core.angularVelocity.x * spinDamping,
+      correctionX * uprightStrength - core.angularVelocity.x * spinDamping,
       0,
-      up.x * uprightStrength - core.angularVelocity.z * spinDamping,
+      correctionZ * uprightStrength - core.angularVelocity.z * spinDamping,
     ));
+
+    // Unload the legs and wings while badly overturned so the restoring torque
+    // can roll the body instead of grinding it against the floor indefinitely.
+    // The force fades before the dragon is upright, so this is recovery rather
+    // than hovering.
+    if (up.y < 0.25 && core.velocity.y < 2.4) {
+      core.applyForce(new CANNON.Vec3(
+        0,
+        core.mass * 26 * (0.25 - up.y),
+        0,
+      ));
+    }
 
     // Soft auto-face: when the player is not steering, gently yaw toward the
     // opponent so bites aim somewhere sensible. Steering always overrides it.
@@ -517,7 +591,7 @@ export class AssemblyArenaPhysicsService {
       return;
     }
 
-    const opponentCore = this.getOpponentCoreBody(combatantId);
+    const opponentCore = this.getOpponentCoreBody(combatant.id);
     if (!opponentCore) {
       return;
     }
@@ -534,6 +608,31 @@ export class AssemblyArenaPhysicsService {
     core.applyTorque(new CANNON.Vec3(0, -Math.max(-1, Math.min(1, bearing)) * faceStrength, 0));
   }
 
+  /**
+   * Root suspension holds the torso at the blueprint's authored standing
+   * height. This replaces support from foot contacts without making the dragon
+   * kinematic: gravity, jumps, falls, knockdowns, and recovery still operate on
+   * the physical core.
+   */
+  private applyDragonRideHeight(combatant: BattleCombatant, core: CANNON.Body): void {
+    const corePart = combatant.assembly.parts.find(part => part.id === combatant.corePartId);
+    if (!corePart) return;
+
+    const shapeHalfHeight = corePart.shape === 'sphere'
+      ? corePart.dimensions.x
+      : corePart.dimensions.y / 2;
+    const targetHeight = Math.max(corePart.position.y, shapeHalfHeight + 0.3);
+    const heightError = targetHeight - core.position.y;
+
+    // Gravity compensation plus a damped spring. Never apply a downward drive:
+    // a dragon launched above its stance height should fall naturally.
+    const supportAcceleration = Math.max(0, Math.min(
+      48,
+      9.82 + heightError * 30 - core.velocity.y * 9,
+    ));
+    core.applyForce(new CANNON.Vec3(0, core.mass * supportAcceleration, 0));
+  }
+
   private getOpponentCoreBody(combatantId: string): CANNON.Body | null {
     for (const body of this.bodies.values()) {
       const meta = this.bodyMetaById.get(body.id);
@@ -542,65 +641,6 @@ export class AssemblyArenaPhysicsService {
       }
     }
     return null;
-  }
-
-  private applyDragonAttackMoves(
-    combatantId: string,
-    core: CANNON.Body,
-    controls: ArenaControlFrame,
-    elapsedSeconds: number,
-  ): void {
-    const attackDirection = getAttackDirection(core, controls);
-
-    if (controls.biteAttack) {
-      const head = this.getPartBodyByRole(combatantId, 'head') ?? core;
-      head.wakeUp();
-      head.applyForce(new CANNON.Vec3(
-        attackDirection.x * 36,
-        8,
-        attackDirection.z * 36,
-      ));
-      core.applyForce(new CANNON.Vec3(
-        attackDirection.x * 96,
-        0,
-        attackDirection.z * 96,
-      ));
-    }
-
-    if (controls.wingAttack) {
-      const wingBodies = this.getPartBodiesByRole(combatantId, 'wing');
-
-      for (const body of wingBodies) {
-        const meta = this.bodyMetaById.get(body.id);
-        const side = meta?.sourcePartId.includes('left') ? -1 : 1;
-        body.wakeUp();
-        body.applyForce(new CANNON.Vec3(
-          attackDirection.x * 8,
-          12,
-          side * 18,
-        ));
-      }
-
-      if (wingBodies.length) {
-        core.applyForce(new CANNON.Vec3(attackDirection.x * 36, 18, attackDirection.z * 36));
-        core.applyTorque(new CANNON.Vec3(0, -controls.steer * 12, 24));
-      }
-    }
-
-    if (controls.tailAttack) {
-      const sweepSide = Math.sin(elapsedSeconds * 14) >= 0 ? 1 : -1;
-
-      for (const body of this.getPartBodiesByRole(combatantId, 'tail')) {
-        body.wakeUp();
-        body.applyForce(new CANNON.Vec3(
-          -attackDirection.x * 8,
-          4,
-          sweepSide * 24,
-        ));
-      }
-
-      core.applyTorque(new CANNON.Vec3(0, sweepSide * 34, -sweepSide * 12));
-    }
   }
 
   private getCoreBody(combatantId: string): CANNON.Body | null {
@@ -615,46 +655,53 @@ export class AssemblyArenaPhysicsService {
     return null;
   }
 
-  private getPartBodyByRole(combatantId: string, role: AssemblyPartRole): CANNON.Body | null {
-    return this.getPartBodiesByRole(combatantId, role)[0] ?? null;
-  }
-
-  private getPartBodiesByRole(combatantId: string, role: AssemblyPartRole): CANNON.Body[] {
-    const bodies: CANNON.Body[] = [];
-
-    for (const body of this.bodies.values()) {
-      const meta = this.bodyMetaById.get(body.id);
-
+  private updateScriptedAttacks(
+    state: BattleArenaState,
+    controlFrames: ControlFrameByCombatant,
+  ): void {
+    const combatantIds = new Set(state.combatants.map(combatant => combatant.id));
+    for (const [combatantId, attack] of this.activeAttacks) {
+      const timing = SCRIPTED_ASSEMBLY_ATTACKS[attack.ability];
       if (
-        meta?.combatantId === combatantId &&
-        meta.roles.includes(role)
+        !combatantIds.has(combatantId)
+        || state.elapsedSeconds - attack.startedAtSeconds >= timing.durationSeconds
       ) {
-        bodies.push(body);
+        this.activeAttacks.delete(combatantId);
       }
     }
 
-    return bodies;
+    for (const combatant of state.combatants) {
+      if (combatant.controlMode !== 'dragon-attack' || this.activeAttacks.has(combatant.id)) {
+        continue;
+      }
+
+      const ability = requestedAttack(controlFrames[combatant.id]);
+      if (!ability) continue;
+      this.activeAttacks.set(combatant.id, {
+        ability,
+        startedAtSeconds: state.elapsedSeconds,
+        hitResolved: false,
+      });
+    }
   }
 
-  private getAbilityDamageEvents(
-    state: BattleArenaState,
-    controlFrames: ControlFrameByCombatant,
-  ): BattleDamageEvent[] {
+  private getAttackPoses(elapsedSeconds: number): BattleAttackPoseSnapshot[] {
+    return Array.from(this.activeAttacks.entries()).map(([combatantId, attack]) => ({
+      combatantId,
+      ability: attack.ability,
+      phase: getAttackPhase(attack, elapsedSeconds),
+    }));
+  }
+
+  private getAbilityDamageEvents(state: BattleArenaState): BattleDamageEvent[] {
     const events: BattleDamageEvent[] = [];
 
     for (const combatant of state.combatants) {
-      const controls = controlFrames[combatant.id];
-      if (!controls) continue;
-
-      for (const definition of ABILITY_DEFINITIONS) {
-        const active = definition.ability === 'bite'
-          ? controls.biteAttack
-          : definition.ability === 'wing-buffet'
-            ? controls.wingAttack
-            : controls.tailAttack;
-        if (!active) continue;
-        this.collectAbilityHit(events, combatant, definition, state.elapsedSeconds);
-      }
+      const attack = this.activeAttacks.get(combatant.id);
+      if (!attack || attack.ability === 'fire-breath' || attack.hitResolved) continue;
+      const definition = ABILITY_DEFINITIONS.find(item => item.ability === attack.ability);
+      if (!definition) continue;
+      this.collectAbilityHit(events, combatant, attack, definition, state.elapsedSeconds);
     }
 
     return events;
@@ -663,51 +710,75 @@ export class AssemblyArenaPhysicsService {
   private collectAbilityHit(
     events: BattleDamageEvent[],
     combatant: BattleCombatant,
+    attack: ActiveScriptedAttack,
     definition: AbilityDefinition,
     elapsedSeconds: number,
   ): void {
-    const cooldownKey = `${combatant.id}:${definition.ability}`;
-    const lastHit = this.lastAbilityHitAt.get(cooldownKey);
-    if (lastHit !== undefined && elapsedSeconds - lastHit < definition.cooldownSeconds) {
+    const timing = SCRIPTED_ASSEMBLY_ATTACKS[attack.ability];
+    const phase = getAttackPhase(attack, elapsedSeconds);
+    const activeFrom = timing.strikeAt - timing.activeWindow / 2;
+    const activeUntil = timing.strikeAt + timing.activeWindow / 2;
+    if (phase < activeFrom) {
       return;
     }
 
-    for (const contact of this.world.contacts) {
-      const a = this.bodyMetaById.get(contact.bi.id);
-      const b = this.bodyMetaById.get(contact.bj.id);
-      if (!a || !b || a.combatantId === b.combatantId) continue;
-
-      const attacker = a.combatantId === combatant.id ? a : b.combatantId === combatant.id ? b : null;
-      if (!attacker || !attacker.roles.includes(definition.role)) continue;
-      const target = attacker === a ? b : a;
-
+    const target = this.findScriptedAttackTarget(combatant.id, timing.range, timing.coneDot);
+    if (target) {
       const attackerMultiplier = definition.usesAttackerMultiplier
-        ? combatant.combatProfile.parts[attacker.sourcePartId]?.damageMultiplier ?? 1
+        ? getBestRoleDamageMultiplier(combatant, definition.role)
         : 1;
       events.push({
         bodyKey: target.bodyKey,
         amount: definition.baseDamage * attackerMultiplier,
         reason: definition.ability,
       });
-      this.lastAbilityHitAt.set(cooldownKey, elapsedSeconds);
-
       if (definition.knockback) {
         this.applyAbilityKnockback(combatant.id, target.combatantId);
       }
-      return;
     }
+
+    // One authored strike per move. Leave the window open for a few frames so a
+    // moving opponent can enter it, then resolve the miss deterministically.
+    if (target || phase >= activeUntil) attack.hitResolved = true;
   }
 
-  /** Cone AoE damage ticks while fire breath is held. */
-  private getFireBreathDamageEvents(
-    state: BattleArenaState,
-    controlFrames: ControlFrameByCombatant,
-  ): BattleDamageEvent[] {
+  private findScriptedAttackTarget(
+    attackerId: string,
+    range: number,
+    coneDot: number | null,
+  ): BodyMeta | null {
+    const attacker = this.getCoreBody(attackerId);
+    if (!attacker) return null;
+    const forward = getHorizontalAxis(attacker, new CANNON.Vec3(1, 0, 0));
+    let nearest: { meta: BodyMeta; distance: number } | null = null;
+
+    for (const body of this.bodies.values()) {
+      const meta = this.bodyMetaById.get(body.id);
+      if (!meta?.isCore || meta.combatantId === attackerId) continue;
+      const dx = body.position.x - attacker.position.x;
+      const dz = body.position.z - attacker.position.z;
+      const distance = Math.hypot(dx, dz);
+      if (distance > range || distance < 0.001 || Math.abs(body.position.y - attacker.position.y) > 2) {
+        continue;
+      }
+      if (coneDot !== null && (dx * forward.x + dz * forward.z) / distance < coneDot) {
+        continue;
+      }
+      if (!nearest || distance < nearest.distance) nearest = { meta, distance };
+    }
+
+    return nearest?.meta ?? null;
+  }
+
+  /** Cone AoE damage ticks during the active portion of the scripted fire move. */
+  private getFireBreathDamageEvents(state: BattleArenaState): BattleDamageEvent[] {
     const events: BattleDamageEvent[] = [];
 
     for (const combatant of state.combatants) {
-      const controls = controlFrames[combatant.id];
-      if (!controls?.fireAttack) continue;
+      const attack = this.activeAttacks.get(combatant.id);
+      if (!attack || attack.ability !== 'fire-breath' || !isFireAttackActive(attack, state.elapsedSeconds)) {
+        continue;
+      }
 
       const cooldownKey = `${combatant.id}:fire-breath`;
       const lastTick = this.lastAbilityHitAt.get(cooldownKey);
@@ -715,7 +786,7 @@ export class AssemblyArenaPhysicsService {
         continue;
       }
 
-      const cone = this.getFireCone(combatant.id, controls);
+      const cone = this.getFireCone(combatant.id);
       if (!cone) continue;
 
       const scorched: { bodyKey: string; distance: number }[] = [];
@@ -745,30 +816,30 @@ export class AssemblyArenaPhysicsService {
     return events;
   }
 
-  private getFireCones(
-    state: BattleArenaState,
-    controlFrames: ControlFrameByCombatant,
-  ): FireConeSnapshot[] {
+  private getFireCones(state: BattleArenaState): FireConeSnapshot[] {
     const cones: FireConeSnapshot[] = [];
     for (const combatant of state.combatants) {
-      const controls = controlFrames[combatant.id];
-      if (!controls?.fireAttack) continue;
-      const cone = this.getFireCone(combatant.id, controls);
+      const attack = this.activeAttacks.get(combatant.id);
+      if (!attack || attack.ability !== 'fire-breath' || !isFireAttackActive(attack, state.elapsedSeconds)) {
+        continue;
+      }
+      const cone = this.getFireCone(combatant.id);
       if (cone) cones.push(cone);
     }
     return cones;
   }
 
-  private getFireCone(combatantId: string, controls: ArenaControlFrame): FireConeSnapshot | null {
-    const mouth = this.getPartBodyByRole(combatantId, 'head')
-      ?? this.getPartBodyByRole(combatantId, 'jaw')
-      ?? this.getCoreBody(combatantId);
-    if (!mouth) return null;
-
-    const direction = getAttackDirection(mouth, controls);
+  private getFireCone(combatantId: string): FireConeSnapshot | null {
+    const core = this.getCoreBody(combatantId);
+    if (!core) return null;
+    const direction = getHorizontalAxis(core, new CANNON.Vec3(1, 0, 0));
     return {
       combatantId,
-      origin: { x: mouth.position.x, y: mouth.position.y, z: mouth.position.z },
+      origin: {
+        x: core.position.x + direction.x * 1.15,
+        y: core.position.y + 0.35,
+        z: core.position.z + direction.z * 1.15,
+      },
       direction: { x: direction.x, y: direction.y, z: direction.z },
     };
   }
@@ -784,6 +855,7 @@ export class AssemblyArenaPhysicsService {
     direction.normalize();
 
     targetCore.wakeUp();
+    this.attackReactions.set(targetId, new CANNON.Vec3(direction.x * 2.4, 0, direction.z * 2.4));
     targetCore.applyImpulse(new CANNON.Vec3(
       direction.x * (6 + targetCore.mass * 1.5),
       2.5 + targetCore.mass * 0.4,
@@ -842,7 +914,7 @@ export class AssemblyArenaPhysicsService {
     return Array.from(damageByBody.values());
   }
 
-  private getBrokenJointDamageEvents(elapsedSeconds: number): BattleDamageEvent[] {
+  private getBrokenJointDamageEvents(state: BattleArenaState): BattleDamageEvent[] {
     const events: BattleDamageEvent[] = [];
     const isDragonPractice = this.currentSetupStyleId === 'dragon-wing-test';
     const isRacePractice = this.currentSetupStyleId === 'pinewood-derby-test';
@@ -851,7 +923,7 @@ export class AssemblyArenaPhysicsService {
       return events;
     }
 
-    if (elapsedSeconds < SPAWN_GRACE_SECONDS) {
+    if (state.elapsedSeconds < SPAWN_GRACE_SECONDS) {
       return events;
     }
 
@@ -864,6 +936,15 @@ export class AssemblyArenaPhysicsService {
       const breakForce = trackedJoint.behavior?.breakForce;
 
       if (trackedJoint.broken || !breakForce) {
+        continue;
+      }
+
+      // Genotype scaling changes dragon mass and motor load without changing
+      // the catalog break-force metadata. Treating solver load as impact stress
+      // therefore tears healthy wings and feet off as soon as a duel starts.
+      // Dragon battles are decided by part health; keep their joints intact.
+      const combatant = state.combatants.find(item => item.id === trackedJoint.combatantId);
+      if (combatant?.controlMode === 'dragon-attack') {
         continue;
       }
 
@@ -1010,24 +1091,34 @@ function withoutConnectedCollision<T extends CANNON.Constraint>(constraint: T): 
   return constraint;
 }
 
-/** Attacks strike where the dragon faces, tilted slightly by any strafe input. */
-function getAttackDirection(core: CANNON.Body, controls: ArenaControlFrame): CANNON.Vec3 {
-  const forward = getHorizontalAxis(core, new CANNON.Vec3(1, 0, 0));
+function requestedAttack(controls: ArenaControlFrame | undefined): AssemblyAbilityId | null {
+  if (controls?.biteAttack) return 'bite';
+  if (controls?.wingAttack) return 'wing-buffet';
+  if (controls?.tailAttack) return 'tail-sweep';
+  if (controls?.fireAttack) return 'fire-breath';
+  return null;
+}
 
-  if (Math.abs(controls.strafe) > 0.01) {
-    const right = getHorizontalAxis(core, new CANNON.Vec3(0, 0, 1));
-    const blended = new CANNON.Vec3(
-      forward.x + right.x * controls.strafe * 0.35,
-      0,
-      forward.z + right.z * controls.strafe * 0.35,
-    );
-    if (blended.lengthSquared() > 0.001) {
-      blended.normalize();
-      return blended;
-    }
+function getAttackPhase(attack: ActiveScriptedAttack, elapsedSeconds: number): number {
+  const duration = SCRIPTED_ASSEMBLY_ATTACKS[attack.ability].durationSeconds;
+  return Math.max(0, Math.min(1, (elapsedSeconds - attack.startedAtSeconds) / duration));
+}
+
+function isFireAttackActive(attack: ActiveScriptedAttack, elapsedSeconds: number): boolean {
+  const phase = getAttackPhase(attack, elapsedSeconds);
+  return phase >= 0.32 && phase <= 0.92;
+}
+
+function getBestRoleDamageMultiplier(
+  combatant: BattleCombatant,
+  role: AssemblyPartRole,
+): number {
+  let best = 1;
+  for (const part of combatant.assembly.parts) {
+    if (!part.roles?.includes(role)) continue;
+    best = Math.max(best, combatant.combatProfile.parts[part.id]?.damageMultiplier ?? 1);
   }
-
-  return forward;
+  return best;
 }
 
 /** A body-local axis projected onto the ground plane and normalized. */

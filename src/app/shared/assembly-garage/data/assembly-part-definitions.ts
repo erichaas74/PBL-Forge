@@ -299,18 +299,18 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
   dragonBody(
     'dragon-classic-body',
     'Classic Dragon Body',
-    { x: 2.05, y: 0.66, z: 0.95 },
+    { x: 1.95, y: 1.85, z: 2 },
     4.4,
     '#dc2626',
     [
-      socket('dragon-head-socket', 'Head socket', { x: 1.12, y: 0.14, z: 0 }, 'dragon-neck'),
-      socket('dragon-tail-socket', 'Tail socket', { x: -1.08, y: 0, z: 0 }, 'dragon-tail-root'),
-      socket('dragon-front-left-leg-socket', 'Front left leg', { x: 0.55, y: -0.3, z: -0.49 }, 'dragon-leg-hip'),
-      socket('dragon-front-right-leg-socket', 'Front right leg', { x: 0.55, y: -0.3, z: 0.49 }, 'dragon-leg-hip'),
-      socket('dragon-rear-left-leg-socket', 'Rear left leg', { x: -0.6, y: -0.3, z: -0.49 }, 'dragon-leg-hip'),
-      socket('dragon-rear-right-leg-socket', 'Rear right leg', { x: -0.6, y: -0.3, z: 0.49 }, 'dragon-leg-hip'),
-      socket('dragon-left-wing-socket', 'Left wing socket', { x: -0.05, y: 0.3, z: -0.5 }, 'dragon-wing-root'),
-      socket('dragon-right-wing-socket', 'Right wing socket', { x: -0.05, y: 0.3, z: 0.5 }, 'dragon-wing-root'),
+      socket('dragon-head-socket', 'Head socket', { x: 1.07, y: 0.39, z: 0 }, 'dragon-neck'),
+      socket('dragon-tail-socket', 'Tail socket', { x: -1.03, y: 0, z: 0 }, 'dragon-tail-root'),
+      socket('dragon-front-left-leg-socket', 'Front left leg', { x: 0.52, y: -0.9, z: -0.58 }, 'dragon-leg-hip'),
+      socket('dragon-front-right-leg-socket', 'Front right leg', { x: 0.52, y: -0.9, z: 0.58 }, 'dragon-leg-hip'),
+      socket('dragon-rear-left-leg-socket', 'Rear left leg', { x: -0.57, y: -0.9, z: -0.58 }, 'dragon-leg-hip'),
+      socket('dragon-rear-right-leg-socket', 'Rear right leg', { x: -0.57, y: -0.9, z: 0.58 }, 'dragon-leg-hip'),
+      socket('dragon-left-wing-socket', 'Left wing socket', { x: -0.05, y: 0.84, z: -1.05 }, 'dragon-wing-root'),
+      socket('dragon-right-wing-socket', 'Right wing socket', { x: -0.05, y: 0.84, z: 1.05 }, 'dragon-wing-root'),
     ],
   ),
   dragonBody(
@@ -340,7 +340,7 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     childSnapPosition: { x: -0.36, y: 0, z: 0 },
     behavior: BREAKABLE_MEDIUM,
     extraSnapPoints: [
-      socket('dragon-snout-socket', 'Snout socket', { x: 0.36, y: -0.02, z: 0 }, 'dragon-snout-root'),
+      socket('dragon-upper-jaw-head-socket', 'Upper jaw mount', { x: 0.34, y: -0.08, z: 0 }, 'dragon-upper-jaw-root'),
     ],
   }),
   dragonPart('dragon-snout-head', 'Long Snout Head', 'box', { x: 0.68, y: 0.38, z: 0.34 }, 0.82, '#fb923c', {
@@ -351,7 +351,7 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     childSnapPosition: { x: -0.34, y: 0, z: 0 },
     behavior: BREAKABLE_MEDIUM,
     extraSnapPoints: [
-      socket('dragon-snout-socket', 'Snout socket', { x: 0.42, y: -0.02, z: 0 }, 'dragon-snout-root'),
+      socket('dragon-upper-jaw-head-socket', 'Upper jaw mount', { x: 0.4, y: -0.08, z: 0 }, 'dragon-upper-jaw-root'),
     ],
   }),
   dragonPart('dragon-armored-head', 'Armored Head', 'box', { x: 0.54, y: 0.48, z: 0.44 }, 0.95, '#64748b', {
@@ -362,79 +362,95 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     childSnapPosition: { x: -0.28, y: 0, z: 0 },
     behavior: BREAKABLE_MEDIUM,
     extraSnapPoints: [
-      socket('dragon-snout-socket', 'Snout socket', { x: 0.34, y: -0.02, z: 0 }, 'dragon-snout-root'),
+      socket('dragon-upper-jaw-head-socket', 'Upper jaw mount', { x: 0.32, y: -0.08, z: 0 }, 'dragon-upper-jaw-root'),
     ],
   }),
-  dragonPart('dragon-snap-snout', 'Snap Snout', 'box', { x: 0.46, y: 0.24, z: 0.28 }, 0.32, '#fb923c', {
-    parentSnapId: 'dragon-snout-socket',
-    childSnapId: 'dragon-snout-root',
-    jointType: 'fixed',
-    axis: { x: 0, y: 1, z: 0 },
-    childSnapPosition: { x: -0.22, y: 0, z: 0 },
-    behavior: BREAKABLE_LIGHT,
-    extraSnapPoints: [
-      socket('dragon-upper-jaw-socket', 'Upper jaw socket', { x: 0.2, y: 0.06, z: 0 }, 'dragon-upper-jaw-root'),
-      socket('dragon-lower-jaw-socket', 'Lower jaw hinge', { x: 0.14, y: -0.12, z: 0 }, 'dragon-lower-jaw-root'),
-    ],
-  }),
-  dragonPart('dragon-upper-jaw', 'Upper Jaw', 'box', { x: 0.36, y: 0.08, z: 0.22 }, 0.14, '#fbbf24', {
-    parentSnapId: 'dragon-upper-jaw-socket',
+  dragonPart('dragon-upper-jaw', 'Upper Jaw', 'box', { x: 0.52, y: 0.2, z: 0.3 }, 0.28, '#fbbf24', {
+    parentSnapId: 'dragon-upper-jaw-head-socket',
     childSnapId: 'dragon-upper-jaw-root',
     jointType: 'fixed',
     axis: { x: 0, y: 1, z: 0 },
-    childSnapPosition: { x: -0.15, y: 0, z: 0 },
+    childSnapPosition: { x: -0.2, y: 0, z: 0 },
     behavior: BREAKABLE_LIGHT,
+    extraSnapPoints: [
+      socket('dragon-lower-jaw-socket', 'Lower jaw hinge', { x: -0.01, y: -0.11, z: 0 }, 'dragon-lower-jaw-root'),
+    ],
   }),
-  dragonPart('dragon-lower-jaw', 'Lower Jaw', 'box', { x: 0.34, y: 0.08, z: 0.2 }, 0.14, '#f59e0b', {
+  dragonPart('dragon-lower-jaw', 'Lower Jaw', 'box', { x: 0.4, y: 0.09, z: 0.24 }, 0.15, '#f59e0b', {
     parentSnapId: 'dragon-lower-jaw-socket',
     childSnapId: 'dragon-lower-jaw-root',
     jointType: 'hinge',
     axis: { x: 0, y: 0, z: 1 },
-    childSnapPosition: { x: -0.14, y: 0, z: 0 },
+    childSnapPosition: { x: -0.08, y: 0.04, z: 0 },
     behavior: JAW_OPEN_CLOSE_MOTOR,
   }),
-  dragonPart('dragon-front-left-leg', 'Front Left Leg', 'cylinder', { x: 0.18, y: 0.9, z: 0.18 }, 0.7, '#166534', {
+  dragonPart('dragon-front-left-leg', 'Front Left Upper Leg', 'cylinder', { x: 0.2, y: 0.5, z: 0.2 }, 0.4, '#166534', {
     parentSnapId: 'dragon-front-left-leg-socket',
     childSnapId: 'dragon-leg-hip',
     jointType: 'hinge',
-    axis: { x: 1, y: 0, z: 0 },
-    childSnapPosition: { x: 0, y: 0.45, z: 0 },
+    axis: { x: 0, y: 0, z: 1 },
+    // Keep the visible thigh below the hip socket so it does not intersect the torso.
+    childSnapPosition: { x: 0, y: 0.34, z: 0 },
     behavior: LEG_SPRING_HINGE,
     extraSnapPoints: [
-      socket('dragon-foot-socket', 'Foot socket', { x: 0, y: -0.45, z: 0 }, 'dragon-foot-root'),
+      socket('dragon-front-knee-socket', 'Front knee socket', { x: 0, y: -0.25, z: 0 }, 'dragon-knee-root'),
     ],
   }),
-  dragonPart('dragon-front-right-leg', 'Front Right Leg', 'cylinder', { x: 0.18, y: 0.9, z: 0.18 }, 0.7, '#166534', {
+  dragonPart('dragon-front-right-leg', 'Front Right Upper Leg', 'cylinder', { x: 0.2, y: 0.5, z: 0.2 }, 0.4, '#166534', {
     parentSnapId: 'dragon-front-right-leg-socket',
     childSnapId: 'dragon-leg-hip',
     jointType: 'hinge',
-    axis: { x: 1, y: 0, z: 0 },
-    childSnapPosition: { x: 0, y: 0.45, z: 0 },
+    axis: { x: 0, y: 0, z: 1 },
+    childSnapPosition: { x: 0, y: 0.34, z: 0 },
     behavior: LEG_SPRING_HINGE,
     extraSnapPoints: [
-      socket('dragon-foot-socket', 'Foot socket', { x: 0, y: -0.45, z: 0 }, 'dragon-foot-root'),
+      socket('dragon-front-knee-socket', 'Front knee socket', { x: 0, y: -0.25, z: 0 }, 'dragon-knee-root'),
     ],
   }),
-  dragonPart('dragon-rear-left-leg', 'Rear Left Leg', 'cylinder', { x: 0.22, y: 1, z: 0.22 }, 0.85, '#14532d', {
+  dragonPart('dragon-rear-left-leg', 'Rear Left Upper Leg', 'cylinder', { x: 0.24, y: 0.55, z: 0.24 }, 0.48, '#14532d', {
     parentSnapId: 'dragon-rear-left-leg-socket',
     childSnapId: 'dragon-leg-hip',
     jointType: 'hinge',
-    axis: { x: 1, y: 0, z: 0 },
-    childSnapPosition: { x: 0, y: 0.5, z: 0 },
+    axis: { x: 0, y: 0, z: 1 },
+    childSnapPosition: { x: 0, y: 0.38, z: 0 },
     behavior: LEG_SPRING_HINGE,
     extraSnapPoints: [
-      socket('dragon-foot-socket', 'Foot socket', { x: 0, y: -0.5, z: 0 }, 'dragon-foot-root'),
+      socket('dragon-rear-knee-socket', 'Rear knee socket', { x: 0, y: -0.275, z: 0 }, 'dragon-knee-root'),
     ],
   }),
-  dragonPart('dragon-rear-right-leg', 'Rear Right Leg', 'cylinder', { x: 0.22, y: 1, z: 0.22 }, 0.85, '#14532d', {
+  dragonPart('dragon-rear-right-leg', 'Rear Right Upper Leg', 'cylinder', { x: 0.24, y: 0.55, z: 0.24 }, 0.48, '#14532d', {
     parentSnapId: 'dragon-rear-right-leg-socket',
     childSnapId: 'dragon-leg-hip',
     jointType: 'hinge',
-    axis: { x: 1, y: 0, z: 0 },
-    childSnapPosition: { x: 0, y: 0.5, z: 0 },
+    axis: { x: 0, y: 0, z: 1 },
+    childSnapPosition: { x: 0, y: 0.38, z: 0 },
     behavior: LEG_SPRING_HINGE,
     extraSnapPoints: [
-      socket('dragon-foot-socket', 'Foot socket', { x: 0, y: -0.5, z: 0 }, 'dragon-foot-root'),
+      socket('dragon-rear-knee-socket', 'Rear knee socket', { x: 0, y: -0.275, z: 0 }, 'dragon-knee-root'),
+    ],
+  }),
+  dragonPart('dragon-front-lower-leg', 'Front Lower Leg', 'cylinder', { x: 0.16, y: 0.48, z: 0.16 }, 0.3, '#15803d', {
+    parentSnapId: 'dragon-front-knee-socket',
+    childSnapId: 'dragon-knee-root',
+    jointType: 'hinge',
+    axis: { x: 0, y: 0, z: 1 },
+    childSnapPosition: { x: 0, y: 0.24, z: 0 },
+    childRotation: quaternionFromAxisAngle({ x: 0, y: 0, z: 1 }, 0.38),
+    behavior: LEG_SPRING_HINGE,
+    extraSnapPoints: [
+      socket('dragon-foot-socket', 'Foot socket', { x: 0, y: -0.24, z: 0 }, 'dragon-foot-root'),
+    ],
+  }),
+  dragonPart('dragon-rear-lower-leg', 'Rear Lower Leg', 'cylinder', { x: 0.19, y: 0.5, z: 0.19 }, 0.38, '#166534', {
+    parentSnapId: 'dragon-rear-knee-socket',
+    childSnapId: 'dragon-knee-root',
+    jointType: 'hinge',
+    axis: { x: 0, y: 0, z: 1 },
+    childSnapPosition: { x: 0, y: 0.25, z: 0 },
+    childRotation: quaternionFromAxisAngle({ x: 0, y: 0, z: 1 }, -0.48),
+    behavior: LEG_SPRING_HINGE,
+    extraSnapPoints: [
+      socket('dragon-foot-socket', 'Foot socket', { x: 0, y: -0.25, z: 0 }, 'dragon-foot-root'),
     ],
   }),
   dragonPart('dragon-clawed-foot', 'Clawed Foot', 'box', { x: 0.34, y: 0.14, z: 0.28 }, 0.22, '#365314', {
@@ -795,10 +811,6 @@ function getDefaultVisualProfile(
 
   if (id.includes('lower-jaw')) {
     return visualProfile('dragon-lower-jaw', 'dragon-horn');
-  }
-
-  if (id.includes('snap-snout')) {
-    return visualProfile('dragon-snout', 'dragon-scale-orange');
   }
 
   if (id.includes('snout-head')) {

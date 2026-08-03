@@ -181,6 +181,25 @@ export interface GenotypeScannerInstrument {
 export interface AlleleSwitchboardInstrument {
   kind: 'allele-switchboard';
   sampleId: string;
+  sampleCode?: string;
+  sampleLabel?: string;
+  sampleVials?: readonly {
+    code: string;
+    label: string;
+    selected: boolean;
+    loaded: boolean;
+  }[];
+  observeStep?: 'select-sample' | 'load-sample' | 'secure-chamber' | 'locate-gene';
+  chamberLocked?: boolean;
+  sampleMismatch?: boolean;
+  chromosomeNumber?: number;
+  nearbyGeneIds?: readonly string[];
+  centeredGeneId?: string | null;
+  geneLocationLocked?: boolean;
+  locatorHintVisible?: boolean;
+  bandingEnabled?: boolean;
+  fluorescenceEnabled?: boolean;
+  homologComparisonEnabled?: boolean;
   focusGeneId: string;
   taskId?: string;
   dominantAllele: string;
@@ -191,10 +210,19 @@ export interface AlleleSwitchboardInstrument {
   dominantPhenotypeId: string;
   recessivePhenotypeId: string;
   predictedPhenotypeId?: string | null;
+  predictedRecessiveRetained?: boolean | null;
+  requiresRecessivePrediction?: boolean;
   actualPhenotypeId?: string | null;
+  dominantSignalPresent?: boolean;
+  recessiveSignalPresent?: boolean;
   genotypeClassId?: 'homozygous-dominant' | 'heterozygous' | 'homozygous-recessive' | null;
+  interpretationGenotypeClassId?: 'homozygous-dominant' | 'heterozygous' | 'homozygous-recessive' | null;
+  interpretedRecessiveRetained?: boolean | null;
+  interpretationLocked?: boolean;
   carrierState?: boolean;
+  socketsSecured?: readonly [boolean, boolean];
   expressionRevealed?: boolean;
+  machineStatus?: string;
   evidenceMarks?: readonly DragonEvidenceMark[];
   evidenceMarkId?: string | null;
   showHints?: boolean;

@@ -1,4 +1,7 @@
-import { AssemblyAbilityId } from '../combat/assembly-abilities';
+import {
+  AssemblyAbilityId,
+  SCRIPTED_ASSEMBLY_ATTACKS,
+} from '../combat/assembly-abilities';
 import { AssemblyBlueprint, Vector3Data } from '../domain/assembly.models';
 import { SpecimenBend, SpecimenPose, buildSpecimenPose } from './specimen-pose';
 
@@ -70,21 +73,29 @@ function gapeCurve(phase: number): number {
 const ABILITY_DEMOS: Readonly<Record<AssemblyAbilityId, AbilityDemo>> = {
   bite: {
     ability: 'bite',
-    durationSeconds: 1.1,
-    strikeAt: 0.6,
+    durationSeconds: SCRIPTED_ASSEMBLY_ATTACKS.bite.durationSeconds,
+    strikeAt: SCRIPTED_ASSEMBLY_ATTACKS.bite.strikeAt,
     bendsAt: phase => {
       const open = biteCurve(phase);
       return [
         // Jaws hinge apart around the head joint, then close through it.
         { role: 'jaw', radians: open * 0.5, axis: AXIS_Z },
+        // The legs rake forward as part of the pounce. They communicate attack
+        // intent visually; arena locomotion remains rooted in the torso.
+        {
+          role: 'leg',
+          radians: windAndStrikeCurve(phase, 0.4) * 0.28,
+          axis: AXIS_Z,
+          mirrorAcrossZ: true,
+        },
       ];
     },
   },
   'wing-buffet': {
     ability: 'wing-buffet',
-    durationSeconds: 1.2,
+    durationSeconds: SCRIPTED_ASSEMBLY_ATTACKS['wing-buffet'].durationSeconds,
     // The slam lands on the second half of the swing.
-    strikeAt: 0.75,
+    strikeAt: SCRIPTED_ASSEMBLY_ATTACKS['wing-buffet'].strikeAt,
     bendsAt: phase => [
       {
         role: 'wing',
@@ -97,8 +108,8 @@ const ABILITY_DEMOS: Readonly<Record<AssemblyAbilityId, AbilityDemo>> = {
   },
   'tail-sweep': {
     ability: 'tail-sweep',
-    durationSeconds: 1.2,
-    strikeAt: 0.75,
+    durationSeconds: SCRIPTED_ASSEMBLY_ATTACKS['tail-sweep'].durationSeconds,
+    strikeAt: SCRIPTED_ASSEMBLY_ATTACKS['tail-sweep'].strikeAt,
     bendsAt: phase => [
       // Horizontal whip: each link adds to the arc, so the tip travels furthest.
       { role: 'tail', radians: windAndStrikeCurve(phase, 0.5) * 0.45, axis: AXIS_Y },
@@ -106,8 +117,8 @@ const ABILITY_DEMOS: Readonly<Record<AssemblyAbilityId, AbilityDemo>> = {
   },
   'fire-breath': {
     ability: 'fire-breath',
-    durationSeconds: 1.6,
-    strikeAt: 0.4,
+    durationSeconds: SCRIPTED_ASSEMBLY_ATTACKS['fire-breath'].durationSeconds,
+    strikeAt: SCRIPTED_ASSEMBLY_ATTACKS['fire-breath'].strikeAt,
     bendsAt: phase => [
       // Head rears back to inhale, then levels as the cone opens.
       { role: 'head', radians: -0.3 * inhaleCurve(phase), axis: AXIS_Z },

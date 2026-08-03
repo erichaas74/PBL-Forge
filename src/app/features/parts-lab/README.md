@@ -55,6 +55,69 @@ a module-level hook that is `null` in production so `DEFAULT_DRAGON_STYLE` is wh
 renders. It applies app-wide while you are on this page — open `/dragon-test-bench` in another tab
 to see the tuned features on a whole dragon — and is cleared when you navigate away.
 
+## Building and adding meshes
+
+Dragon art is assembled procedurally by
+[`dragon-procedural-mesh.factory.ts`](../../shared/assembly/rendering/dragon-procedural-mesh.factory.ts).
+Each `AssemblyPart` has a `visualProfile.profileId`, and
+`createDragonProceduralObject` routes that ID to the corresponding builder. The shared renderer
+uses that factory automatically for procedural dragon parts.
+
+### 1. Choose the owning part
+
+Add geometry to the part that owns the feature. For example, a belly plate belongs in `buildBody`,
+teeth belong in `buildJaw`, and wing veins belong in `buildWing`. Do not add visual-only features
+to the physics blueprint: `AssemblyPart.shape` and `AssemblyPart.dimensions` define collision,
+mass, and joints, while the procedural mesh is only what the player sees.
+
+### 2. Build the simplest geometry first
+
+Use Three.js primitives through the local `mesh` helper, which enables shadows consistently:
+
+```ts
+const belly = mesh(
+  new THREE.SphereGeometry(1, 12, 8),
+  new THREE.MeshStandardMaterial({ color: palette.scaleDeep, roughness: 0.66 }),
+);
+belly.name = 'dragon-belly';
+belly.scale.set(dims.x * 0.38, dims.y * 0.3, dims.z * 0.34);
+belly.position.set(dims.x * 0.04, -dims.y * 0.22, 0);
+group.add(belly);
+```
+
+Start with a low-segment `SphereGeometry`, `BoxGeometry`, `ConeGeometry`, `CylinderGeometry`, or
+`TubeGeometry`. Add custom vertices only when a primitive cannot make the intended silhouette.
+Name meaningful child meshes so tests and debugging tools can find them without depending on child
+order.
+
+### 3. Keep the mesh genome-scaled
+
+Every size and position should be a fraction of `part.dimensions`, usually named `dims` in the
+builder. Never use fixed world-space measurements for anatomy. The genetics pipeline changes those
+dimensions per dragon, so this keeps the new feature in proportion for every phenotype.
+
+Use `createDragonPalette(part.color)` materials rather than hard-coded dragon colors. The pigment
+locus updates `part.color`, and palette-derived materials preserve that genetic connection.
+
+### 4. Add a focused test
+
+Extend
+[`dragon-procedural-mesh.factory.spec.ts`](../../shared/assembly/rendering/dragon-procedural-mesh.factory.spec.ts)
+with a minimal `AssemblyPart` fixture for the profile being changed. Assert that the named child
+exists, has the intended geometry, and uses a dimension-derived scale or position. Run only that
+spec while iterating:
+
+```bash
+npx ng test --watch=false --browsers=ChromeHeadless --include="src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.spec.ts"
+```
+
+### 5. Inspect it in the app
+
+With the dev server running, open `/parts-lab`, select the relevant dragon part, and rotate the
+live stage through several angles. Test the dimension sliders too: the mesh should remain attached,
+read clearly at thumbnail scale, and avoid clipping adjacent parts. Use `/dragon-test-bench` to
+check the same part on a complete, physics-backed dragon.
+
 ### Two things that bit here
 
 Both are worth knowing before adding more controls:

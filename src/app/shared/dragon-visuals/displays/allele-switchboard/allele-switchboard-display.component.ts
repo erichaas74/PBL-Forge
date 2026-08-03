@@ -1,4 +1,3 @@
-import { NgClass } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -25,11 +24,12 @@ import {
 import { buildAlleleSwitchboardViewModel } from './allele-switchboard.view-model';
 
 const PHASE_RAIL: readonly { id: DragonVisualPhase; label: string }[] = [
-  { id: 'observe', label: 'Observe' },
-  { id: 'manipulate', label: 'Build' },
+  { id: 'observe', label: 'Intake' },
+  { id: 'manipulate', label: 'Configure' },
   { id: 'predict', label: 'Predict' },
-  { id: 'reveal', label: 'Trace' },
-  { id: 'explain', label: 'Explain' },
+  { id: 'reveal', label: 'Analyze' },
+  { id: 'explain', label: 'Interpret' },
+  { id: 'review', label: 'Record' },
 ];
 
 export interface AlleleSwitchboardFeedback {
@@ -40,7 +40,6 @@ export interface AlleleSwitchboardFeedback {
 
 @Component({
   selector: 'app-allele-switchboard-display',
-  imports: [NgClass],
   templateUrl: './allele-switchboard-display.component.html',
   styleUrl: './allele-switchboard-display.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -120,6 +119,44 @@ export class AlleleSwitchboardDisplayComponent {
     return this.activeCueTargets().has(targetId);
   }
 
+  selectVial(code: string): void {
+    if (this.model()?.phase !== 'observe' || this.model()?.chamberLocked) return;
+    this.emit('specimen-selected', code, 'select');
+  }
+
+  operateChamber(action: 'load' | 'eject'): void {
+    if (this.model()?.phase !== 'observe') return;
+    this.emit('hotspot-selected', this.model()?.targets.sampleChamber ?? 'sample-chamber', action);
+  }
+
+  lockChamber(): void {
+    if (this.model()?.phase !== 'observe') return;
+    this.emit('hotspot-selected', this.model()?.targets.sampleLock ?? 'sample-lock', 'lock');
+  }
+
+  moveStage(direction: 'previous' | 'next'): void {
+    if (this.model()?.observeStep !== 'locate-gene' || this.model()?.geneLocationLocked) return;
+    this.emit('hotspot-selected', this.model()?.targets.chromosomeStage ?? 'chromosome-stage', direction);
+  }
+
+  lockGene(): void {
+    if (this.model()?.observeStep !== 'locate-gene' || this.model()?.geneLocationLocked) return;
+    this.emit('hotspot-selected', this.model()?.targets.geneLocator ?? 'gene-locator', 'lock');
+  }
+
+  showLocatorHint(): void {
+    if (!this.model()?.showHints || this.model()?.geneLocationLocked) return;
+    this.emit('hotspot-selected', this.model()?.targets.geneLocator ?? 'gene-locator', 'hint');
+  }
+
+  toggleView(
+    target: 'banding-overlay' | 'fluorescent-marker' | 'homolog-compare',
+    value: boolean,
+  ): void {
+    if (this.model()?.observeStep !== 'locate-gene') return;
+    this.emit('hotspot-selected', target, value);
+  }
+
   selectAllele(symbol: string): void {
     if (!this.model()?.tokenEnabled) return;
     this.selectedAlleleState.set(symbol);
@@ -133,14 +170,36 @@ export class AlleleSwitchboardDisplayComponent {
     this.selectedAlleleState.set(null);
   }
 
+  secureSocket(slot: 'socket-lock-a' | 'socket-lock-b'): void {
+    if (!this.model()?.slotEnabled) return;
+    this.emit('hotspot-selected', slot, 'secure');
+  }
+
   lockPrediction(value: 'dominant' | 'recessive'): void {
     if (!this.model()?.predictionEnabled) return;
     this.emit('prediction-locked', 'phenotype-readout', value);
   }
 
+  predictRecessivePresence(value: 'yes' | 'no'): void {
+    if (!this.model()?.predictionEnabled) return;
+    this.emit('prediction-locked', 'recessive-prediction', value);
+  }
+
   reveal(): void {
     if (!this.model()?.revealEnabled) return;
     this.emit('reveal-requested', 'expression-path', true);
+  }
+
+  interpretGenotype(
+    value: 'homozygous-dominant' | 'heterozygous' | 'homozygous-recessive',
+  ): void {
+    if (!this.model()?.interpretationEnabled) return;
+    this.emit('hotspot-selected', 'genotype-interpretation', value);
+  }
+
+  interpretRecessivePresence(value: 'yes' | 'no'): void {
+    if (!this.model()?.interpretationEnabled) return;
+    this.emit('hotspot-selected', 'recessive-interpretation', value);
   }
 
   pinEvidence(id: string): void {

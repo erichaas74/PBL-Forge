@@ -25,8 +25,6 @@ export function createDragonProceduralObject(part: AssemblyPart): THREE.Object3D
       return buildSnoutHead(dims, palette);
     case 'dragon-head-armored':
       return buildArmoredHead(dims, palette);
-    case 'dragon-snout':
-      return buildSnout(dims, palette);
     case 'dragon-upper-jaw':
       return buildJaw(dims, palette, 'upper');
     case 'dragon-lower-jaw':
@@ -156,6 +154,15 @@ function buildBody(dims: { x: number; y: number; z: number }, palette: DragonPal
   lathe.rotateZ(-Math.PI / 2);
   lathe.scale(1, dims.y / 2, dims.z / 2);
   group.add(mesh(lathe, scaleMaterial(palette)));
+
+  const belly = mesh(
+    new THREE.SphereGeometry(1, 12, 8),
+    new THREE.MeshStandardMaterial({ color: palette.scaleDeep, roughness: 0.66, metalness: 0.04 }),
+  );
+  belly.name = 'dragon-belly';
+  belly.scale.set(length * 0.38, dims.y * 0.3, dims.z * 0.34);
+  belly.position.set(length * 0.04, -dims.y * 0.22, 0);
+  group.add(belly);
 
   const style = getActiveDragonStyle().body;
   const spikeMaterial = hornMaterial(palette);
@@ -291,23 +298,8 @@ function buildEye(radius: number, side: number): THREE.Mesh {
 }
 
 // ---------------------------------------------------------------------------
-// Snout and jaws.
+// Jaws.
 // ---------------------------------------------------------------------------
-
-function buildSnout(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
-  const group = new THREE.Group();
-
-  group.add(mesh(createTaperedBoxGeometry(dims.x, dims.y, dims.z, 0.68, 0.62), scaleMaterial(palette)));
-
-  const nostril = new THREE.MeshStandardMaterial({ color: palette.scaleDeep, roughness: 0.7 });
-  for (const side of [-1, 1]) {
-    const bump = mesh(new THREE.SphereGeometry(dims.y * 0.17, 8, 6), nostril);
-    bump.position.set(dims.x * 0.42, dims.y * 0.24, side * dims.z * 0.2);
-    group.add(bump);
-  }
-
-  return group;
-}
 
 function buildJaw(
   dims: { x: number; y: number; z: number },
@@ -318,6 +310,20 @@ function buildJaw(
   const pointDown = variant === 'upper';
 
   group.add(mesh(createTaperedBoxGeometry(dims.x, dims.y, dims.z, 0.55, 0.5), scaleMaterial(palette)));
+
+  if (variant === 'upper') {
+    const nostrilMaterial = new THREE.MeshStandardMaterial({ color: palette.scaleDeep, roughness: 0.7 });
+    for (const side of [-1, 1]) {
+      const nostril = mesh(
+        new THREE.SphereGeometry(Math.max(dims.y * 0.15, dims.z * 0.045), 10, 7),
+        nostrilMaterial,
+      );
+      nostril.name = `dragon-nostril-${side < 0 ? 'left' : 'right'}`;
+      nostril.scale.set(1.25, 0.45, 1);
+      nostril.position.set(dims.x * 0.38, dims.y * 0.48, side * dims.z * 0.25);
+      group.add(nostril);
+    }
+  }
 
   const style = getActiveDragonStyle().jaw;
   const enamel = toothMaterial(palette);
@@ -359,6 +365,9 @@ function buildLeg(dims: { x: number; y: number; z: number }, palette: DragonPale
     16,
   );
   group.add(mesh(lathe, scaleMaterial(palette)));
+  group.scale.setScalar(0.5);
+  // The physics hip sits above the part origin; keep the smaller visual thigh attached to it.
+  group.position.y = dims.y * 0.44;
   return group;
 }
 
@@ -381,6 +390,7 @@ function buildFoot(dims: { x: number; y: number; z: number }, palette: DragonPal
     group.add(talon);
   }
 
+  group.scale.setScalar(0.5);
   return group;
 }
 
@@ -401,6 +411,7 @@ function buildTalon(radius: number, length: number, palette: DragonPalette): THR
   tipPivot.add(tip);
   group.add(tipPivot);
 
+  group.scale.setScalar(0.5);
   return group;
 }
 
@@ -504,7 +515,7 @@ export const DEFAULT_DRAGON_STYLE: DragonStyle = {
   wing: DEFAULT_WING_SHAPE,
   // Tuned in the parts lab against the drake body: taller, thicker, more swept
   // spikes over a longer ridge than the original five nubs.
-  body: { spikeCount: 7, spikeSpread: 0.73, spikeHeight: 0.135, spikeRadius: 0.051, spikeLean: 0.6 },
+  body: { spikeCount: 6, spikeSpread: 0.73, spikeHeight: 0.2, spikeRadius: 0.051, spikeLean: 0.56 },
   jaw: { toothCount: 4, toothHeight: 1.15, toothRadius: 0.1 },
   head: { hornLength: 1.35, hornRadius: 0.16, browLength: 0.45 },
   foot: { talonCount: 3, talonLength: 0.6, talonRadius: 0.42 },

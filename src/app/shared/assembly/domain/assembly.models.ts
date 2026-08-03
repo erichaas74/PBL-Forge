@@ -33,7 +33,6 @@ export type AssemblyVisualProfileId =
   | 'dragon-head-horned'
   | 'dragon-head-snout'
   | 'dragon-head-armored'
-  | 'dragon-snout'
   | 'dragon-upper-jaw'
   | 'dragon-lower-jaw'
   | 'dragon-leg'
