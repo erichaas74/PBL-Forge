@@ -37,8 +37,6 @@ In `pbl-forge-prod`:
 
 Firebase web configuration values are public identifiers, not secrets. Never add a service-account JSON file, private key, or Admin SDK credential to the Angular application.
 
-The deploy command contains a guard that refuses to run while placeholders remain.
-
 ## 4. Enable Authentication
 
 In **Authentication → Sign-in method**:

@@ -48,7 +48,7 @@ npm run verify
 | `npm run test:ci` | Run Angular tests in headless Chrome |
 | `npm run test:rules` | Run Firestore authorization tests |
 | `npm run firebase -- <command>` | Run the pinned Firebase CLI with credential-safe logging |
-| `npm run deploy` | Validate config, build, and deploy Hosting plus Firestore |
+| `npm run deploy` | Build and deploy the complete app to Hosting plus Firestore |
 
 ## Architecture
 

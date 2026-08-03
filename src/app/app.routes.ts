@@ -25,6 +25,18 @@ export const routes: Routes = [
       import('./features/dragon-genetics/dragon-genetics.page').then((m) => m.DragonGeneticsPage)
   },
   {
+    path: 'dragon-genetics/allele-workbench',
+    pathMatch: 'full',
+    redirectTo: 'dragon-genetics/allele-workbench-reference'
+  },
+  {
+    path: 'dragon-genetics/allele-workbench-reference',
+    title: 'Allele Workbench · Royal Hatchery Genetics Laboratory',
+    loadComponent: () =>
+      import('./features/dragon-genetics/allele-workbench-reference.page')
+        .then((m) => m.AlleleWorkbenchReferencePage)
+  },
+  {
     path: 'dragon-genetics/:simulationId',
     loadComponent: () =>
       import('./features/dragon-genetics/adaptive/dragon-simulation-experience.page')

@@ -26,12 +26,19 @@ export interface ScriptedAssemblyAttackTiming {
  * Authored combat timing shared by input, hit detection, and animation. The
  * arena treats these as moves with anticipation and recovery instead of forces
  * applied to independently simulated limbs.
+ *
+ * Every range is measured core centre to core centre, so it has to cover the
+ * attacker's own torso before it reaches anything. Each carries `TORSO_REACH`
+ * on top of the clearance it is actually tuned for — when the torso grew, the
+ * jaws ended up outside their own bite range and the move stopped connecting.
  */
+const TORSO_REACH = 1.91;
+
 export const SCRIPTED_ASSEMBLY_ATTACKS: Readonly<Record<AssemblyAbilityId, ScriptedAssemblyAttackTiming>> = {
-  bite: { durationSeconds: 1.1, strikeAt: 0.6, activeWindow: 0.16, range: 2.05, coneDot: 0.52 },
-  'wing-buffet': { durationSeconds: 1.2, strikeAt: 0.75, activeWindow: 0.2, range: 2.45, coneDot: 0.15 },
-  'tail-sweep': { durationSeconds: 1.2, strikeAt: 0.75, activeWindow: 0.22, range: 2.35, coneDot: null },
-  'fire-breath': { durationSeconds: 1.6, strikeAt: 0.4, activeWindow: 0.6, range: 3.4, coneDot: 0.72 },
+  bite: { durationSeconds: 1.1, strikeAt: 0.6, activeWindow: 0.16, range: TORSO_REACH + 0.79, coneDot: 0.52 },
+  'wing-buffet': { durationSeconds: 1.2, strikeAt: 0.75, activeWindow: 0.2, range: TORSO_REACH + 1.19, coneDot: 0.15 },
+  'tail-sweep': { durationSeconds: 1.2, strikeAt: 0.75, activeWindow: 0.22, range: TORSO_REACH + 1.09, coneDot: null },
+  'fire-breath': { durationSeconds: 1.6, strikeAt: 0.4, activeWindow: 0.6, range: TORSO_REACH + 2.14, coneDot: 0.72 },
 };
 
 /**

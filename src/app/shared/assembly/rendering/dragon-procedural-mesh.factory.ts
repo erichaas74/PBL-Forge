@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { AssemblyPart } from '../domain/assembly.models';
+import { DRAGON_BODY_PROFILE, sampleDragonBodyRadius } from './dragon-body-profile';
+import { DEFAULT_WING_SHAPE, WingMembraneShape, wingChord, wingLeadingEdge } from './dragon-wing-profile';
 
 /**
  * Procedural dragon anatomy built from each part's physics dimensions, so the
@@ -131,24 +133,12 @@ function mesh(geometry: THREE.BufferGeometry, material: THREE.Material): THREE.M
 // Body: tapered lathe along X with dorsal ridge spikes.
 // ---------------------------------------------------------------------------
 
-const BODY_PROFILE: readonly [number, number][] = [
-  [-0.5, 0.28],
-  [-0.4, 0.5],
-  [-0.24, 0.78],
-  [-0.05, 0.97],
-  [0.1, 1.0],
-  [0.24, 0.9],
-  [0.36, 0.72],
-  [0.46, 0.5],
-  [0.5, 0.42],
-];
-
 function buildBody(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
   const length = dims.x;
 
   const lathe = new THREE.LatheGeometry(
-    BODY_PROFILE.map(([t, radius]) => new THREE.Vector2(Math.max(radius, 0.02), t * length)),
+    DRAGON_BODY_PROFILE.map(([t, radius]) => new THREE.Vector2(Math.max(radius, 0.02), t * length)),
     20,
   );
   lathe.rotateZ(-Math.PI / 2);
@@ -171,24 +161,12 @@ function buildBody(dims: { x: number; y: number; z: number }, palette: DragonPal
       new THREE.ConeGeometry(length * style.spikeRadius, length * style.spikeHeight, 6),
       spikeMaterial,
     );
-    spike.position.set(t * length, sampleProfile(BODY_PROFILE, t) * (dims.y / 2) * 0.96, 0);
+    spike.position.set(t * length, sampleDragonBodyRadius(t) * (dims.y / 2) * 0.96, 0);
     spike.rotation.z = style.spikeLean;
     group.add(spike);
   }
 
   return group;
-}
-
-function sampleProfile(profile: readonly [number, number][], t: number): number {
-  for (let index = 1; index < profile.length; index += 1) {
-    const [t0, r0] = profile[index - 1];
-    const [t1, r1] = profile[index];
-    if (t <= t1) {
-      const blend = (t - t0) / Math.max(t1 - t0, 1e-6);
-      return r0 + (r1 - r0) * Math.max(0, Math.min(1, blend));
-    }
-  }
-  return profile[profile.length - 1][1];
 }
 
 // ---------------------------------------------------------------------------
@@ -349,6 +327,12 @@ function buildJaw(
 // Legs, feet, talons.
 // ---------------------------------------------------------------------------
 
+/**
+ * Limb meshes fill their physics volume, like every other part here. They used
+ * to render at half scale with a compensating lift, which left every socket on
+ * the chain — hip, knee, ankle — pointing at empty space: the joints were
+ * correct, the geometry attached to them was not.
+ */
 const LEG_PROFILE: readonly [number, number][] = [
   [-0.5, 0.55],
   [-0.35, 0.6],
@@ -365,9 +349,6 @@ function buildLeg(dims: { x: number; y: number; z: number }, palette: DragonPale
     16,
   );
   group.add(mesh(lathe, scaleMaterial(palette)));
-  group.scale.setScalar(0.5);
-  // The physics hip sits above the part origin; keep the smaller visual thigh attached to it.
-  group.position.y = dims.y * 0.44;
   return group;
 }
 
@@ -390,7 +371,6 @@ function buildFoot(dims: { x: number; y: number; z: number }, palette: DragonPal
     group.add(talon);
   }
 
-  group.scale.setScalar(0.5);
   return group;
 }
 
@@ -411,7 +391,6 @@ function buildTalon(radius: number, length: number, palette: DragonPalette): THR
   tipPivot.add(tip);
   group.add(tipPivot);
 
-  group.scale.setScalar(0.5);
   return group;
 }
 
@@ -421,32 +400,14 @@ function buildTalon(radius: number, length: number, palette: DragonPalette): THR
 
 /**
  * How the membrane hangs between its bones. All values are fractions of chord
- * or span, so a wing keeps its character at every genome scale.
+ * or span, so a wing keeps its character at every genome scale. Defined
+ * alongside the planform the sockets are derived from.
  */
-export interface WingMembraneShape {
-  /** Peak downward bow across the chord. Zero is a flat sheet. */
-  camber: number;
-  /** Extra droop midway between finger struts, on top of the camber. */
-  fingerSag: number;
-  /** Upward arc from root to tip, as a fraction of span. */
-  dihedral: number;
-  /** How far the trailing edge scallops inward between fingers. */
-  scallop: number;
-}
-
-export const WING_SHAPES = {
-  /** Nearly flat — close to the original sheet, with just enough bow to catch light. */
-  taut: { camber: 0.05, fingerSag: 0.03, dihedral: 0.02, scallop: 0.1 },
-  /** A single clean airfoil bow. Reads well at thumbnail size. */
-  cambered: { camber: 0.12, fingerSag: 0.06, dihedral: 0.04, scallop: 0.13 },
-  /** Deep scalloped sag between the fingers, like a bat at rest. */
-  bat: { camber: 0.1, fingerSag: 0.17, dihedral: 0.05, scallop: 0.19 },
-  /** Strong upward sweep, as if catching air. */
-  soaring: { camber: 0.15, fingerSag: 0.08, dihedral: 0.17, scallop: 0.13 },
-} as const satisfies Record<string, WingMembraneShape>;
-
-/** Shipped default. Change this line to adopt a tuned shape permanently. */
-export const DEFAULT_WING_SHAPE: WingMembraneShape = WING_SHAPES.cambered;
+export {
+  DEFAULT_WING_SHAPE,
+  WING_SHAPES,
+  type WingMembraneShape,
+} from './dragon-wing-profile';
 
 /**
  * Feature counts and proportions, kept out of the builders so they can be tuned
@@ -562,12 +523,12 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const dims = part.dimensions;
   const span = dims.z;
   const thickness = dims.y;
-  const chord = dims.x * 2.6;
+  const chord = wingChord(dims);
   const rootSign = wingRootSign(part);
   const form = getActiveWingShape();
 
   // Chordwise coordinates: +x is the dragon's forward, membrane trails backward.
-  const leadingAt = (s: number): number => dims.x * 0.5 - chord * 0.12 * Math.pow(s, 1.5);
+  const leadingAt = (s: number): number => wingLeadingEdge(dims, s);
   const flatTrailingAt = (s: number): number =>
     leadingAt(s) - chord * (1 - 0.62 * Math.pow(s, 1.8));
   const fingerStops = [0.42, 0.74];

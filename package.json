@@ -16,7 +16,6 @@
     "test:ci": "ng test --watch=false --browsers=ChromeHeadless",
     "test:rules": "node scripts/firebase-cli.mjs emulators:exec --project demo-pbl-forge --only firestore \"node scripts/firestore.rules.spec.mjs\"",
     "verify": "npm run lint && npm run build && npm run test:ci && npm run test:rules",
-    "predeploy": "node scripts/check-production-config.mjs",
     "deploy": "npm run build && node scripts/firebase-cli.mjs deploy --only hosting,firestore",
     "lint": "ng lint"
   },

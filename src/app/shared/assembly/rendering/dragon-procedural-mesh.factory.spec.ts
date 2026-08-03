@@ -118,7 +118,14 @@ describe('dragon upper jaw mesh', () => {
 });
 
 describe('dragon limb meshes', () => {
-  it('renders legs, feet, and claws at half their physics dimensions', () => {
+  /**
+   * These used to render at half scale with a compensating lift, which put the
+   * visible thigh nowhere near the hip, knee, and ankle sockets the joints are
+   * built from. Every socket on a limb sits on the face of its own physics
+   * volume, so the mesh has to fill that volume for the chain to read as
+   * connected.
+   */
+  it('fills the physics volume so limb sockets land on the mesh', () => {
     const leg = createDragonProceduralObject(limbPart('dragon-leg', { x: 0.22, y: 0.72, z: 0.22 }))!;
     const foot = createDragonProceduralObject({
       ...limbPart('dragon-leg', { x: 0.34, y: 0.14, z: 0.28 }),
@@ -126,10 +133,15 @@ describe('dragon limb meshes', () => {
     })!;
     const claw = createDragonProceduralObject(limbPart('dragon-claw', { x: 0.08, y: 0.2, z: 0.08 }))!;
 
-    expect(leg.scale.toArray()).toEqual([0.5, 0.5, 0.5]);
-    expect(leg.position.y).toBeCloseTo(0.72 * 0.44);
-    expect(foot.scale.toArray()).toEqual([0.5, 0.5, 0.5]);
-    expect(claw.scale.toArray()).toEqual([0.5, 0.5, 0.5]);
+    for (const limb of [leg, foot, claw]) {
+      expect(limb.scale.toArray()).toEqual([1, 1, 1]);
+      expect(limb.position.toArray()).toEqual([0, 0, 0]);
+    }
+
+    const legBounds = new THREE.Box3().setFromObject(leg);
+
+    expect(legBounds.min.y).toBeCloseTo(-0.72 / 2, 2);
+    expect(legBounds.max.y).toBeCloseTo(0.72 / 2, 2);
   });
 });
 

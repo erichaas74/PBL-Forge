@@ -1,3 +1,4 @@
+import { sampleDragonBodyRadius } from '../../../assembly/rendering/dragon-body-profile';
 import { CLASSIC_DRAGON_TEST_PRESET } from './classic-dragon-test';
 
 describe('CLASSIC_DRAGON_TEST_PRESET', () => {
@@ -85,7 +86,6 @@ describe('CLASSIC_DRAGON_TEST_PRESET', () => {
       .toBeLessThanOrEqual(upperJaw.position.y - upperJaw.dimensions.y / 2);
 
     const body = state.parts.find(part => part.id === 'classic-dragon-body')!;
-    const bodyBottom = body.position.y - body.dimensions.y / 2;
     const upperLegIds = [
       'classic-dragon-front-left-leg',
       'classic-dragon-front-right-leg',
@@ -96,10 +96,29 @@ describe('CLASSIC_DRAGON_TEST_PRESET', () => {
     for (const upperLegId of upperLegIds) {
       const upperLeg = state.parts.find(part => part.id === upperLegId)!;
       const upperLegTop = upperLeg.position.y + upperLeg.dimensions.y / 2;
-      const hipJoint = state.joints.find(joint => joint.childPartId === upperLegId);
+      const hipJoint = state.joints.find(joint => joint.childPartId === upperLegId)!;
+      const hip = hipJoint.pivotOnParent;
+      const radius = sampleDragonBodyRadius(hip.x / body.dimensions.x);
 
-      expect(hipJoint?.parentPartId).toBe(body.id);
-      expect(bodyBottom - upperLegTop).toBeGreaterThan(0.04);
+      expect(hipJoint.parentPartId).toBe(body.id);
+
+      // The hip rides the torso's own silhouette, not its bounding box: the two
+      // are only the same at the widest point of the lathe, and legs mounted off
+      // the box floated clear of the body everywhere else.
+      const onSurface = Math.hypot(
+        hip.y / (radius * body.dimensions.y / 2),
+        hip.z / (radius * body.dimensions.z / 2),
+      );
+
+      expect(onSurface).toBeCloseTo(1, 2);
+      expect(hip.y).toBeLessThan(0);
+
+      // Crown of the thigh sunk just inside that surface — enough to close the
+      // seam as the hinge swings, not enough to push the leg through the belly.
+      const sink = upperLegTop - (body.position.y + hip.y);
+
+      expect(sink).toBeGreaterThan(0);
+      expect(sink).toBeLessThan(0.12);
     }
   });
 });

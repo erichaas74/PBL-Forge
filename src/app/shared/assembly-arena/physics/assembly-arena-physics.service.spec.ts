@@ -211,8 +211,10 @@ describe('AssemblyArenaPhysicsService', () => {
     const dragon = createCombatant(
       'red-1', dragonAsset, 'red', { x: 0, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
     );
+    // Clear of the dragon's own torso, so the only damage it can take is the
+    // bite: parked inside the body it just gets shoved out, logging impacts.
     const target = createCombatant(
-      'blue-1', targetAsset, 'blue', { x: 1.7, y: 1.32, z: 0 }, 'static', 'static-target', { x: 0, y: 0, z: 0 },
+      'blue-1', targetAsset, 'blue', { x: 2.2, y: 1.32, z: 0 }, 'static', 'static-target', { x: 0, y: 0, z: 0 },
     );
     const state = createTestState(setup, [dragon, target], 4);
     const service = new AssemblyArenaPhysicsService();
