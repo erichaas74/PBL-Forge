@@ -273,6 +273,15 @@
   color: var(--lab-muted);
 }
 
+.lab__lost {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.45rem;
+  background: #fdf2e6;
+  color: #8a4b12;
+  font-size: 0.82rem;
+}
+
 .lab__record {
   margin-top: 0.2rem;
   padding: 0.4rem 0.6rem;

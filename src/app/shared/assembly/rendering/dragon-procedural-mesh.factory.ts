@@ -157,14 +157,15 @@ function buildBody(dims: { x: number; y: number; z: number }, palette: DragonPal
   lathe.scale(1, dims.y / 2, dims.z / 2);
   group.add(mesh(lathe, scaleMaterial(palette)));
 
+  const style = getActiveDragonStyle().body;
   const spikeMaterial = hornMaterial(palette);
-  for (const t of [-0.32, -0.16, 0, 0.16, 0.3]) {
+  for (const t of spreadPositions(style.spikeCount, style.spikeSpread, -0.01)) {
     const spike = mesh(
-      new THREE.ConeGeometry(length * 0.032, length * 0.085, 6),
+      new THREE.ConeGeometry(length * style.spikeRadius, length * style.spikeHeight, 6),
       spikeMaterial,
     );
     spike.position.set(t * length, sampleProfile(BODY_PROFILE, t) * (dims.y / 2) * 0.96, 0);
-    spike.rotation.z = 0.32;
+    spike.rotation.z = style.spikeLean;
     group.add(spike);
   }
 
@@ -194,14 +195,15 @@ function buildHornedHead(radius: number, palette: DragonPalette): THREE.Group {
   skull.scale.set(1.18, 0.92, 0.9);
   group.add(skull);
 
+  const style = getActiveDragonStyle().head;
   const horn = hornMaterial(palette);
   for (const side of [-1, 1]) {
-    const mainHorn = buildHorn(radius * 1.35, radius * 0.16, horn);
+    const mainHorn = buildHorn(radius * style.hornLength, radius * style.hornRadius, horn);
     mainHorn.position.set(-radius * 0.12, radius * 0.5, side * radius * 0.34);
     mainHorn.rotation.set(side * 0.5, 0, 0.55);
     group.add(mainHorn);
 
-    const browSpike = buildHorn(radius * 0.45, radius * 0.08, horn);
+    const browSpike = buildHorn(radius * style.browLength, radius * 0.08, horn);
     browSpike.position.set(radius * 0.34, radius * 0.55, side * radius * 0.3);
     browSpike.rotation.set(side * 0.3, 0, 0.75);
     group.add(browSpike);
@@ -317,11 +319,13 @@ function buildJaw(
 
   group.add(mesh(createTaperedBoxGeometry(dims.x, dims.y, dims.z, 0.55, 0.5), scaleMaterial(palette)));
 
+  const style = getActiveDragonStyle().jaw;
   const enamel = toothMaterial(palette);
-  const toothHeight = dims.y * 1.15;
-  for (const along of [0.38, 0.18, -0.02, -0.22]) {
+  const toothHeight = dims.y * style.toothHeight;
+  // Teeth march back from the snout tip; the range matches the jaw's taper.
+  for (const along of spreadPositions(style.toothCount, 0.6, 0.08).reverse()) {
     for (const side of [-1, 1]) {
-      const tooth = mesh(new THREE.ConeGeometry(dims.z * 0.1, toothHeight, 5), enamel);
+      const tooth = mesh(new THREE.ConeGeometry(dims.z * style.toothRadius, toothHeight, 5), enamel);
       tooth.position.set(
         along * dims.x,
         (pointDown ? -1 : 1) * dims.y * 0.42,
@@ -365,9 +369,13 @@ function buildFoot(dims: { x: number; y: number; z: number }, palette: DragonPal
   pad.position.x = -dims.x * 0.05;
   group.add(pad);
 
+  const style = getActiveDragonStyle().foot;
   const keratin = clawMaterial(palette);
-  for (const side of [-1, 0, 1]) {
-    const talon = mesh(new THREE.ConeGeometry(dims.y * 0.42, dims.x * 0.6, 6), keratin);
+  for (const side of spreadPositions(style.talonCount, 2)) {
+    const talon = mesh(
+      new THREE.ConeGeometry(dims.y * style.talonRadius, dims.x * style.talonLength, 6),
+      keratin,
+    );
     talon.position.set(dims.x * 0.46, -dims.y * 0.12, side * dims.z * 0.3);
     talon.rotation.z = -Math.PI / 2 - 0.22;
     group.add(talon);
@@ -430,22 +438,108 @@ export const WING_SHAPES = {
 export const DEFAULT_WING_SHAPE: WingMembraneShape = WING_SHAPES.cambered;
 
 /**
+ * Feature counts and proportions, kept out of the builders so they can be tuned
+ * by eye in the parts lab.
+ *
+ * Every length here is a *fraction* of the part it sits on, never a world unit.
+ * That is what lets the genetics pipeline scale a part without the spikes,
+ * teeth, and talons drifting out of proportion with the body carrying them.
+ */
+export interface DragonBodyStyle {
+  spikeCount: number;
+  /** Length of ridge the spikes cover, as a fraction of body length. */
+  spikeSpread: number;
+  /** Spike height, as a fraction of body length. */
+  spikeHeight: number;
+  /** Spike base radius, as a fraction of body length. */
+  spikeRadius: number;
+  /** Backward lean, in radians. */
+  spikeLean: number;
+}
+
+export interface DragonJawStyle {
+  /** Teeth per side. */
+  toothCount: number;
+  /** Tooth height, as a fraction of jaw height. */
+  toothHeight: number;
+  /** Tooth base radius, as a fraction of jaw depth. */
+  toothRadius: number;
+}
+
+export interface DragonHeadStyle {
+  /** Main horn length, as a fraction of head radius. */
+  hornLength: number;
+  /** Main horn base radius, as a fraction of head radius. */
+  hornRadius: number;
+  /** Brow spike length, as a fraction of head radius. */
+  browLength: number;
+}
+
+export interface DragonFootStyle {
+  talonCount: number;
+  /** Talon length, as a fraction of foot length. */
+  talonLength: number;
+  /** Talon base radius, as a fraction of foot height. */
+  talonRadius: number;
+}
+
+export interface DragonTailClubStyle {
+  spikeCount: number;
+  /** Spike length, as a fraction of club depth. */
+  spikeLength: number;
+  /** Spike base radius, as a fraction of club depth. */
+  spikeRadius: number;
+}
+
+export interface DragonStyle {
+  wing: WingMembraneShape;
+  body: DragonBodyStyle;
+  jaw: DragonJawStyle;
+  head: DragonHeadStyle;
+  foot: DragonFootStyle;
+  tailClub: DragonTailClubStyle;
+}
+
+export const DEFAULT_DRAGON_STYLE: DragonStyle = {
+  wing: DEFAULT_WING_SHAPE,
+  // Tuned in the parts lab against the drake body: taller, thicker, more swept
+  // spikes over a longer ridge than the original five nubs.
+  body: { spikeCount: 7, spikeSpread: 0.73, spikeHeight: 0.135, spikeRadius: 0.051, spikeLean: 0.6 },
+  jaw: { toothCount: 4, toothHeight: 1.15, toothRadius: 0.1 },
+  head: { hornLength: 1.35, hornRadius: 0.16, browLength: 0.45 },
+  foot: { talonCount: 3, talonLength: 0.6, talonRadius: 0.42 },
+  tailClub: { spikeCount: 5, spikeLength: 0.85, spikeRadius: 0.18 },
+};
+
+/**
  * Live tuning hook for the parts lab.
  *
- * Module-level and mutable on purpose: the lab needs to reshape the membrane
- * while a student — or you — drags a slider, and threading a parameter through
- * every caller of `createDragonProceduralObject` would put a tuning concern in
- * the genetics, arena, and thumbnail paths that none of them care about.
- * Null in production, so the shipped default is what everyone else renders.
+ * Module-level and mutable on purpose: the lab needs to reshape parts while a
+ * slider moves, and threading a style parameter through every caller of
+ * `createDragonProceduralObject` would put a tuning concern into the genetics,
+ * arena, and thumbnail paths that none of them care about. Null in production,
+ * so the shipped defaults are what everyone else renders.
  */
-let wingShapeOverride: WingMembraneShape | null = null;
+let styleOverride: DragonStyle | null = null;
 
-export function setWingShapeOverride(shape: WingMembraneShape | null): void {
-  wingShapeOverride = shape;
+export function setDragonStyleOverride(style: DragonStyle | null): void {
+  styleOverride = style;
+}
+
+export function getActiveDragonStyle(): DragonStyle {
+  return styleOverride ?? DEFAULT_DRAGON_STYLE;
+}
+
+/** Evenly spaced positions across a centred span. One item sits at the centre. */
+function spreadPositions(count: number, spread: number, center = 0): number[] {
+  const total = Math.max(1, Math.round(count));
+  if (total === 1) return [center];
+  const step = spread / (total - 1);
+  return Array.from({ length: total }, (_, index) => center - spread / 2 + index * step);
 }
 
 export function getActiveWingShape(): WingMembraneShape {
-  return wingShapeOverride ?? DEFAULT_WING_SHAPE;
+  return getActiveDragonStyle().wing;
 }
 
 /** Spanwise/chordwise tessellation of the membrane grid. */
@@ -627,10 +721,15 @@ function buildTailClub(dims: { x: number; y: number; z: number }, palette: Drago
   knob.position.y = -dims.y * 0.42;
   group.add(knob);
 
+  const style = getActiveDragonStyle().tailClub;
   const spikeMaterial = hornMaterial(palette);
-  for (let index = 0; index < 5; index += 1) {
-    const angle = (index / 5) * Math.PI * 2;
-    const spike = mesh(new THREE.ConeGeometry(dims.z * 0.18, dims.z * 0.85, 6), spikeMaterial);
+  const spikeCount = Math.max(1, Math.round(style.spikeCount));
+  for (let index = 0; index < spikeCount; index += 1) {
+    const angle = (index / spikeCount) * Math.PI * 2;
+    const spike = mesh(
+      new THREE.ConeGeometry(dims.z * style.spikeRadius, dims.z * style.spikeLength, 6),
+      spikeMaterial,
+    );
     spike.position.set(
       Math.cos(angle) * dims.z * 0.62,
       -dims.y * 0.42 - Math.sin(angle) * dims.z * 0.2,

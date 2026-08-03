@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { Vector3Data } from '../../shared/assembly/domain/assembly.models';
-import { WingMembraneShape } from '../../shared/assembly/rendering/dragon-procedural-mesh.factory';
+import { DragonStyle } from '../../shared/assembly/rendering/dragon-procedural-mesh.factory';
 
 /**
  * Values recorded while tuning a part, kept so they can be hardcoded later.
@@ -19,8 +19,10 @@ export interface PartTuningRecord {
   dimensions: Vector3Data;
   /** Multipliers used to reach them, for reference. */
   scale: Vector3Data;
-  /** Present only for wing parts. */
-  wingShape?: WingMembraneShape;
+  /** Which `DragonStyle` section the values below belong to. */
+  styleSection?: keyof DragonStyle;
+  /** Feature proportions as tuned, for parts that expose any. */
+  styleValues?: Record<string, number>;
   note?: string;
   recordedAt: string;
 }
@@ -51,11 +53,13 @@ export class PartTuningStore {
         + `z: ${round(record.dimensions.z)} },`,
       );
 
-      if (record.wingShape) {
+      if (record.styleSection && record.styleValues) {
+        const values = Object.entries(record.styleValues)
+          .map(([key, value]) => `${key}: ${round(value)}`)
+          .join(', ');
         lines.push(
-          '// dragon-procedural-mesh.factory.ts — WING_SHAPES entry',
-          `{ camber: ${round(record.wingShape.camber)}, fingerSag: ${round(record.wingShape.fingerSag)}, `
-          + `dihedral: ${round(record.wingShape.dihedral)}, scallop: ${round(record.wingShape.scallop)} },`,
+          `// dragon-procedural-mesh.factory.ts — DEFAULT_DRAGON_STYLE.${record.styleSection}`,
+          `${record.styleSection}: { ${values} },`,
         );
       }
 

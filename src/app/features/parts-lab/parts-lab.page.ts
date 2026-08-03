@@ -22,25 +22,22 @@ import {
   createPartFromDefinition,
 } from '../../shared/assembly-garage/data/assembly-part-definitions';
 import {
-  DEFAULT_WING_SHAPE,
+  DEFAULT_DRAGON_STYLE,
+  DragonStyle,
   WING_SHAPES,
-  WingMembraneShape,
-  setWingShapeOverride,
+  setDragonStyleOverride,
 } from '../../shared/assembly/rendering/dragon-procedural-mesh.factory';
 import { PartTuningStore } from './part-tuning.store';
 
 /**
  * A workbench for the part meshes themselves.
  *
- * The dragon's anatomy is generated code, not authored art, so improving how it
- * looks means editing `dragon-procedural-mesh.factory.ts` and looking at the
- * result. Doing that through the full app is slow: build, navigate, find a
- * dragon carrying the part, squint. This page renders one part at a time,
- * isolated, from several angles, and deep-links by part id so a screenshot
- * script can drive it headlessly.
- *
- * Every tile is baked through the shared thumbnail context, so the whole
- * contact sheet costs one WebGL context plus one live viewer.
+ * The dragon's anatomy is generated code, so improving how it looks means
+ * editing `dragon-procedural-mesh.factory.ts` and looking at the result. Doing
+ * that through the full app is slow. This page renders one part at a time,
+ * isolated, from several angles, with live controls for the feature counts and
+ * proportions that are otherwise hardcoded — and records the values you land on
+ * so they can go back into source.
  */
 
 interface PartTile {
@@ -54,7 +51,17 @@ interface AngleView {
   direction: Vector3Data;
 }
 
-/** Six views: the four a silhouette is judged from, plus top and front. */
+/** One tunable number, resolved from the selected part's style section. */
+export interface StyleControl {
+  section: keyof DragonStyle;
+  key: string;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+}
+
 const ANGLE_VIEWS: readonly AngleView[] = [
   { id: 'three-quarter', label: 'Three-quarter', direction: { x: 0.86, y: 0.42, z: 1 } },
   { id: 'side', label: 'Side', direction: { x: 0, y: 0.08, z: 1 } },
@@ -65,13 +72,65 @@ const ANGLE_VIEWS: readonly AngleView[] = [
 ];
 
 const FAMILIES: readonly AssemblyPartFamily[] = ['dragon', 'robot', 'car', 'primitive'];
+const NEUTRAL_COLOR = '#8d6a52';
 
 /**
- * One colour for every part by default. The authored definition colours are a
- * rainbow — useful in the garage, useless for judging form, because a bright
- * hue reads as detail that is not there.
+ * How long a slider must be still before the meshes rebuild.
+ *
+ * Rebuilding on every `input` event disposed and re-uploaded every geometry
+ * 60 times a second and re-baked six angle thumbnails alongside — enough GPU
+ * churn to make the browser drop the WebGL context outright, which showed up as
+ * the preview simply dying mid-drag. Labels still update instantly, so the
+ * controls feel live.
  */
-const NEUTRAL_COLOR = '#8d6a52';
+const COMMIT_DELAY_MS = 90;
+
+/** Which style section each part profile exposes, and the ranges worth dragging. */
+const STYLE_CONTROLS: Readonly<Record<string, readonly Omit<StyleControl, 'value'>[]>> = {
+  'dragon-body': [
+    { section: 'body', key: 'spikeCount', label: 'Spike count', min: 0, max: 16, step: 1 },
+    { section: 'body', key: 'spikeSpread', label: 'Ridge length', min: 0.1, max: 0.95, step: 0.01 },
+    { section: 'body', key: 'spikeHeight', label: 'Spike height', min: 0.01, max: 0.3, step: 0.005 },
+    { section: 'body', key: 'spikeRadius', label: 'Spike thickness', min: 0.005, max: 0.12, step: 0.002 },
+    { section: 'body', key: 'spikeLean', label: 'Spike lean', min: -1, max: 1, step: 0.02 },
+  ],
+  'dragon-upper-jaw': jawControls(),
+  'dragon-lower-jaw': jawControls(),
+  'dragon-head-horned': [
+    { section: 'head', key: 'hornLength', label: 'Horn length', min: 0.2, max: 3.5, step: 0.05 },
+    { section: 'head', key: 'hornRadius', label: 'Horn thickness', min: 0.04, max: 0.5, step: 0.01 },
+    { section: 'head', key: 'browLength', label: 'Brow spike', min: 0, max: 1.5, step: 0.05 },
+  ],
+  'dragon-foot': [
+    { section: 'foot', key: 'talonCount', label: 'Talon count', min: 1, max: 7, step: 1 },
+    { section: 'foot', key: 'talonLength', label: 'Talon length', min: 0.1, max: 1.6, step: 0.02 },
+    { section: 'foot', key: 'talonRadius', label: 'Talon thickness', min: 0.1, max: 1, step: 0.02 },
+  ],
+  'dragon-tail-club': [
+    { section: 'tailClub', key: 'spikeCount', label: 'Spike count', min: 1, max: 12, step: 1 },
+    { section: 'tailClub', key: 'spikeLength', label: 'Spike length', min: 0.1, max: 2, step: 0.05 },
+    { section: 'tailClub', key: 'spikeRadius', label: 'Spike thickness', min: 0.04, max: 0.5, step: 0.01 },
+  ],
+  'dragon-wing': wingControls(),
+  'dragon-secondary-wing': wingControls(),
+};
+
+function jawControls(): readonly Omit<StyleControl, 'value'>[] {
+  return [
+    { section: 'jaw', key: 'toothCount', label: 'Teeth per side', min: 0, max: 12, step: 1 },
+    { section: 'jaw', key: 'toothHeight', label: 'Tooth length', min: 0.2, max: 3, step: 0.05 },
+    { section: 'jaw', key: 'toothRadius', label: 'Tooth thickness', min: 0.02, max: 0.4, step: 0.01 },
+  ];
+}
+
+function wingControls(): readonly Omit<StyleControl, 'value'>[] {
+  return [
+    { section: 'wing', key: 'camber', label: 'Camber', min: 0, max: 0.35, step: 0.005 },
+    { section: 'wing', key: 'fingerSag', label: 'Finger sag', min: 0, max: 0.35, step: 0.005 },
+    { section: 'wing', key: 'dihedral', label: 'Dihedral', min: -0.1, max: 0.35, step: 0.005 },
+    { section: 'wing', key: 'scallop', label: 'Trailing scallop', min: 0, max: 0.4, step: 0.005 },
+  ];
+}
 
 @Component({
   selector: 'app-parts-lab-page',
@@ -99,16 +158,7 @@ export class PartsLabPage implements OnDestroy {
   readonly families = FAMILIES;
   readonly angleViews = ANGLE_VIEWS;
   readonly wingPresetIds = Object.keys(WING_SHAPES) as (keyof typeof WING_SHAPES)[];
-
-  /** Live wing membrane parameters, seeded from the shipped default. */
-  readonly wing = signal<WingMembraneShape>({ ...DEFAULT_WING_SHAPE });
-  /**
-   * Bumped on every wing edit and folded into descriptor ids, because the
-   * membrane shape is a module-level override that the thumbnail cache key
-   * cannot see on its own.
-   */
-  private readonly wingVersion = signal(0);
-  readonly copied = signal(false);
+  readonly contextLost = this.renderer.contextLost;
 
   readonly family = signal<AssemblyPartFamily>('dragon');
   readonly selectedId = signal<string | null>(null);
@@ -117,8 +167,16 @@ export class PartsLabPage implements OnDestroy {
   readonly scaleX = signal(1);
   readonly scaleY = signal(1);
   readonly scaleZ = signal(1);
-  /** Tile size for the contact sheet; raised when inspecting silhouettes. */
   readonly tileSize = signal(176);
+  readonly copied = signal(false);
+
+  /** Live feature proportions, seeded from the shipped defaults. */
+  readonly style = signal<DragonStyle>(cloneStyle(DEFAULT_DRAGON_STYLE));
+
+  /** What the meshes are actually built from — updated on a debounce. */
+  private readonly committedScale = signal<Vector3Data>({ x: 1, y: 1, z: 1 });
+  private readonly commitVersion = signal(0);
+  private commitTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly params = toSignal(this.route.queryParamMap, { initialValue: null });
 
@@ -136,53 +194,38 @@ export class PartsLabPage implements OnDestroy {
     return list.find(definition => definition.id === id) ?? list[0] ?? null;
   });
 
-  /** Contact sheet: every part in the family, one shared camera angle. */
-  readonly tiles = computed<PartTile[]>(() => {
-    const size = this.tileSize();
-    const color = this.color();
-    const useDefinition = this.useDefinitionColor();
-
-    return this.definitions().map(definition => ({
-      definition,
-      image: this.thumbnails.bake(
-        describeSpecimen(
-          this.cacheKeyFor(definition, useDefinition ? 'own' : color),
-          this.blueprintFor(definition, { x: 1, y: 1, z: 1 }, useDefinition ? null : color),
-          { label: definition.label },
-        ),
-        { size, transparent: true, pose: { droopRadians: 0 } },
-      ),
-    }));
-  });
-
-  /** The selected part from every angle, so silhouettes can be compared. */
-  readonly angleStrip = computed(() => {
-    const definition = this.selected();
-    if (!definition) return [];
-    const color = this.useDefinitionColor() ? null : this.color();
-    const blueprint = this.blueprintFor(definition, this.scaleVector(), color);
-
-    return ANGLE_VIEWS.map(view => ({
-      view,
-      image: this.thumbnails.bake(
-        describeSpecimen(
-          `${this.cacheKeyFor(definition, color ?? 'own')}:${this.scaleKey()}`,
-          blueprint,
-          { label: definition.label },
-        ),
-        { size: 190, transparent: true, viewDirection: view.direction, pose: { droopRadians: 0 } },
-      ),
-    }));
-  });
-
   readonly profileId = computed(() => this.selected()?.visualProfile?.profileId ?? '—');
   readonly meshType = computed(() => this.selected()?.visualProfile?.meshType ?? 'primitive');
 
-  /** Wing controls only make sense on a part the wing builder actually draws. */
+  /** Feature controls for the selected part, or none if it has no tunables. */
+  readonly styleControls = computed<StyleControl[]>(() => {
+    const profile = this.profileId();
+    const style = this.style();
+    const definitions = Object.prototype.hasOwnProperty.call(STYLE_CONTROLS, profile)
+      ? STYLE_CONTROLS[profile]
+      : [];
+
+    return definitions.map(control => ({
+      ...control,
+      value: readStyleValue(style, control.section, control.key),
+    }));
+  });
+
   readonly isWing = computed(() => {
-    const profile = this.selected()?.visualProfile?.profileId ?? '';
+    const profile = this.profileId();
     return profile === 'dragon-wing' || profile === 'dragon-secondary-wing';
   });
+
+  /**
+   * Populated by effects, not computeds.
+   *
+   * Baking a thumbnail renders to a GPU context and lazily mounts a renderer —
+   * side effects, which a computed must not perform. Doing it in a computed
+   * also meant every read could trigger 25 synchronous renders during template
+   * evaluation.
+   */
+  readonly tiles = signal<PartTile[]>([]);
+  readonly angleStrip = signal<{ view: AngleView; image: string | null }[]>([]);
 
   readonly scaledDimensions = computed(() => {
     const definition = this.selected();
@@ -196,8 +239,6 @@ export class PartsLabPage implements OnDestroy {
   });
 
   constructor() {
-    // Deep link: ?part=dragon-left-wing&family=dragon lets the bake script drive
-    // this page without any UI interaction.
     effect(() => {
       const params = this.params();
       if (!params) return;
@@ -227,85 +268,75 @@ export class PartsLabPage implements OnDestroy {
 
     effect(() => {
       const definition = this.selected();
-      // Read so the live view refreshes when a wing slider moves.
-      this.wingVersion();
+      // Read so the live view rebuilds when a committed value changes.
+      this.commitVersion();
+      const scale = this.committedScale();
       if (!this.mounted() || !definition) return;
       const color = this.useDefinitionColor() ? null : this.color();
 
       this.renderer.show(
         describeSpecimen(
           definition.id,
-          this.blueprintFor(definition, this.scaleVector(), color),
+          this.blueprintFor(definition, scale, color),
           { label: definition.label },
         ),
         { pose: { droopRadians: 0 } },
       );
     });
-  }
 
-  // -------------------------------------------------------------------------
-  // Wing membrane tuning
-  // -------------------------------------------------------------------------
+    // Contact sheet.
+    effect(() => {
+      const size = this.tileSize();
+      const color = this.color();
+      const useDefinition = this.useDefinitionColor();
+      const definitions = this.definitions();
+      this.commitVersion();
 
-  onWing(key: keyof WingMembraneShape, event: Event): void {
-    const value = Number((event.target as HTMLInputElement).value);
-    if (!Number.isFinite(value)) return;
-    this.applyWing({ ...this.wing(), [key]: value });
-  }
+      this.tiles.set(definitions.map(definition => ({
+        definition,
+        image: this.thumbnails.bake(
+          describeSpecimen(
+            this.cacheKeyFor(definition, useDefinition ? 'own' : color),
+            this.blueprintFor(definition, { x: 1, y: 1, z: 1 }, useDefinition ? null : color),
+            { label: definition.label },
+          ),
+          { size, transparent: true, pose: { droopRadians: 0 } },
+        ),
+      })));
+    });
 
-  applyWingPreset(id: keyof typeof WING_SHAPES): void {
-    this.applyWing({ ...WING_SHAPES[id] });
-  }
+    // Angle strip for the selected part.
+    effect(() => {
+      const definition = this.selected();
+      const scale = this.committedScale();
+      this.commitVersion();
 
-  resetWing(): void {
-    this.applyWing({ ...DEFAULT_WING_SHAPE });
-  }
+      if (!definition) {
+        this.angleStrip.set([]);
+        return;
+      }
 
-  /**
-   * Applies synchronously rather than through an effect: the computeds that
-   * bake thumbnails read the override the moment `wingVersion` changes, and
-   * effect ordering against template evaluation is not guaranteed.
-   */
-  private applyWing(shape: WingMembraneShape): void {
-    this.wing.set(shape);
-    setWingShapeOverride(shape);
-    this.wingVersion.update(version => version + 1);
-  }
+      const color = this.useDefinitionColor() ? null : this.color();
+      const blueprint = this.blueprintFor(definition, scale, color);
 
-  // -------------------------------------------------------------------------
-  // Recording values for hardcoding
-  // -------------------------------------------------------------------------
-
-  record(): void {
-    const definition = this.selected();
-    const dimensions = this.scaledDimensions();
-    if (!definition || !dimensions) return;
-
-    this.tuning.add({
-      partId: definition.id,
-      label: definition.label,
-      dimensions,
-      scale: this.scaleVector(),
-      wingShape: this.isWing() ? { ...this.wing() } : undefined,
+      this.angleStrip.set(ANGLE_VIEWS.map(view => ({
+        view,
+        image: this.thumbnails.bake(
+          describeSpecimen(
+            `${this.cacheKeyFor(definition, color ?? 'own')}:${scaleKey(scale)}`,
+            blueprint,
+            { label: definition.label },
+          ),
+          { size: 190, transparent: true, viewDirection: view.direction, pose: { droopRadians: 0 } },
+        ),
+      })));
     });
   }
 
-  async copySnippet(): Promise<void> {
-    const snippet = this.tuning.snippet();
-    if (!snippet) return;
-
-    try {
-      await navigator.clipboard.writeText(snippet);
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 1600);
-    } catch {
-      // Clipboard is blocked outside a secure context; the snippet stays
-      // on screen to select by hand.
-      this.copied.set(false);
-    }
-  }
-
   ngOnDestroy(): void {
+    if (this.commitTimer) clearTimeout(this.commitTimer);
+    // Leave the shipped defaults behind for the rest of the app.
+    setDragonStyleOverride(null);
     this.renderer.dispose();
   }
 
@@ -328,6 +359,7 @@ export class PartsLabPage implements OnDestroy {
     this.scaleX.set(1);
     this.scaleY.set(1);
     this.scaleZ.set(1);
+    this.scheduleCommit();
   }
 
   onScale(axis: 'x' | 'y' | 'z', event: Event): void {
@@ -336,6 +368,7 @@ export class PartsLabPage implements OnDestroy {
     if (axis === 'x') this.scaleX.set(value);
     else if (axis === 'y') this.scaleY.set(value);
     else this.scaleZ.set(value);
+    this.scheduleCommit();
   }
 
   onColor(event: Event): void {
@@ -346,23 +379,97 @@ export class PartsLabPage implements OnDestroy {
     this.useDefinitionColor.update(value => !value);
   }
 
+  // -------------------------------------------------------------------------
+  // Feature proportions
+  // -------------------------------------------------------------------------
+
+  onStyle(control: StyleControl, event: Event): void {
+    const value = Number((event.target as HTMLInputElement).value);
+    if (!Number.isFinite(value)) return;
+
+    this.style.update(current => writeStyleValue(current, control.section, control.key, value));
+    this.scheduleCommit();
+  }
+
+  applyWingPreset(id: keyof typeof WING_SHAPES): void {
+    this.style.update(current => ({ ...current, wing: { ...WING_SHAPES[id] } }));
+    this.scheduleCommit();
+  }
+
+  resetStyle(): void {
+    this.style.set(cloneStyle(DEFAULT_DRAGON_STYLE));
+    this.scheduleCommit();
+  }
+
+  retryPreview(): void {
+    this.renderer.recover();
+  }
+
+  /**
+   * Collapses a drag into one rebuild. The override is applied here rather than
+   * in an effect so the thumbnail computeds see it the moment the version bumps
+   * — effect ordering against template evaluation is not guaranteed.
+   */
+  private scheduleCommit(): void {
+    if (this.commitTimer) clearTimeout(this.commitTimer);
+    this.commitTimer = setTimeout(() => {
+      this.commitTimer = null;
+      setDragonStyleOverride(this.style());
+      this.committedScale.set(this.scaleVector());
+      this.commitVersion.update(version => version + 1);
+    }, COMMIT_DELAY_MS);
+  }
+
+  // -------------------------------------------------------------------------
+  // Recording values for hardcoding
+  // -------------------------------------------------------------------------
+
+  record(): void {
+    const definition = this.selected();
+    const dimensions = this.scaledDimensions();
+    if (!definition || !dimensions) return;
+
+    const controls = this.styleControls();
+    this.tuning.add({
+      partId: definition.id,
+      label: definition.label,
+      dimensions,
+      scale: this.scaleVector(),
+      styleSection: controls.length ? controls[0].section : undefined,
+      styleValues: controls.length
+        ? Object.fromEntries(controls.map(control => [control.key, control.value]))
+        : undefined,
+    });
+  }
+
+  async copySnippet(): Promise<void> {
+    const snippet = this.tuning.snippet();
+    if (!snippet) return;
+
+    try {
+      await navigator.clipboard.writeText(snippet);
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 1600);
+    } catch {
+      // Clipboard is blocked outside a secure context; the snippet stays on
+      // screen to select by hand.
+      this.copied.set(false);
+    }
+  }
+
   private scaleVector(): Vector3Data {
     return { x: this.scaleX(), y: this.scaleY(), z: this.scaleZ() };
   }
 
-  private scaleKey(): string {
-    return `${this.scaleX()}x${this.scaleY()}x${this.scaleZ()}`;
-  }
-
   /**
-   * Thumbnail cache key. The wing version is folded in only for wing profiles —
-   * the other 21 parts are unaffected by membrane tuning, so leaving their keys
-   * alone keeps them cached while a slider is being dragged.
+   * Thumbnail cache key. The commit version is folded in only for parts the
+   * style actually reaches, so the rest of the sheet stays cached while a
+   * slider is dragged.
    */
   private cacheKeyFor(definition: AssemblyPartDefinition, colorKey: string): string {
     const profile = definition.visualProfile?.profileId ?? '';
-    const wingged = profile === 'dragon-wing' || profile === 'dragon-secondary-wing';
-    return `${definition.id}:${colorKey}${wingged ? `:w${this.wingVersion()}` : ''}`;
+    const styled = Object.prototype.hasOwnProperty.call(STYLE_CONTROLS, profile);
+    return `${definition.id}:${colorKey}${styled ? `:s${this.commitVersion()}` : ''}`;
   }
 
   /** A single part, centred at the origin, as a one-part blueprint. */
@@ -380,6 +487,35 @@ export class PartsLabPage implements OnDestroy {
     if (color) part.color = color;
     return { parts: [part], joints: [] };
   }
+}
+
+function readStyleValue(style: DragonStyle, section: keyof DragonStyle, key: string): number {
+  const values = style[section] as unknown as Record<string, number>;
+  return values[key] ?? 0;
+}
+
+function writeStyleValue(
+  style: DragonStyle,
+  section: keyof DragonStyle,
+  key: string,
+  value: number,
+): DragonStyle {
+  return { ...style, [section]: { ...style[section], [key]: value } };
+}
+
+function cloneStyle(style: DragonStyle): DragonStyle {
+  return {
+    wing: { ...style.wing },
+    body: { ...style.body },
+    jaw: { ...style.jaw },
+    head: { ...style.head },
+    foot: { ...style.foot },
+    tailClub: { ...style.tailClub },
+  };
+}
+
+function scaleKey(scale: Vector3Data): string {
+  return `${scale.x}x${scale.y}x${scale.z}`;
 }
 
 function round(value: number): number {

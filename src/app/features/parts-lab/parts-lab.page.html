@@ -78,6 +78,14 @@
             [attr.aria-label]="definition.label + ' — drag to turn'"
           ></div>
 
+          @if (contextLost()) {
+            <p class="lab__lost" role="alert">
+              The browser dropped the 3D context. It usually restores itself —
+              <button type="button" class="lab__reset" (click)="retryPreview()">rebuild now</button>
+              if it does not.
+            </p>
+          }
+
           <dl class="lab__meta">
             <div><dt>Part id</dt><dd>{{ definition.id }}</dd></div>
             <div><dt>Visual profile</dt><dd>{{ profileId() }}</dd></div>
@@ -121,51 +129,46 @@
             </button>
           </div>
 
-          @if (isWing()) {
+          @if (styleControls().length) {
             <div class="lab__scale">
               <div class="lab__scale-head">
-                <h3 class="lab__section-title">Wing membrane</h3>
-                <button type="button" class="lab__reset" (click)="resetWing()">Reset</button>
+                <h3 class="lab__section-title">Features</h3>
+                <button type="button" class="lab__reset" (click)="resetStyle()">Reset</button>
               </div>
 
-              <div class="lab__control-group">
-                @for (preset of wingPresetIds; track preset) {
-                  <button type="button" class="lab__chip" (click)="applyWingPreset(preset)">
-                    {{ preset }}
-                  </button>
-                }
-              </div>
+              @if (isWing()) {
+                <div class="lab__control-group">
+                  @for (preset of wingPresetIds; track preset) {
+                    <button type="button" class="lab__chip" (click)="applyWingPreset(preset)">
+                      {{ preset }}
+                    </button>
+                  }
+                </div>
+              }
 
-              <label class="lab__slider">
-                <span>Camber {{ wing().camber }}</span>
-                <input type="range" min="0" max="0.35" step="0.005"
-                       [value]="wing().camber" (input)="onWing('camber', $event)" />
-              </label>
-              <label class="lab__slider">
-                <span>Finger sag {{ wing().fingerSag }}</span>
-                <input type="range" min="0" max="0.35" step="0.005"
-                       [value]="wing().fingerSag" (input)="onWing('fingerSag', $event)" />
-              </label>
-              <label class="lab__slider">
-                <span>Dihedral {{ wing().dihedral }}</span>
-                <input type="range" min="-0.1" max="0.35" step="0.005"
-                       [value]="wing().dihedral" (input)="onWing('dihedral', $event)" />
-              </label>
-              <label class="lab__slider">
-                <span>Scallop {{ wing().scallop }}</span>
-                <input type="range" min="0" max="0.4" step="0.005"
-                       [value]="wing().scallop" (input)="onWing('scallop', $event)" />
-              </label>
+              @for (control of styleControls(); track control.key) {
+                <label class="lab__slider">
+                  <span>{{ control.label }} {{ control.value }}</span>
+                  <input
+                    type="range"
+                    [min]="control.min"
+                    [max]="control.max"
+                    [step]="control.step"
+                    [value]="control.value"
+                    (input)="onStyle(control, $event)"
+                  />
+                </label>
+              }
 
               <p class="lab__hint">
-                All four are fractions of chord or span, so the wing keeps its character at every
-                genome scale. Record the values, then paste them into
-                <code>WING_SHAPES</code>.
+                Counts are absolute; every length is a fraction of the part it sits on, so features
+                stay in proportion when genetics rescales the dragon. Record the values, then paste
+                them into <code>DEFAULT_DRAGON_STYLE</code>.
               </p>
               <p class="lab__hint">
-                These apply everywhere until you reload — open the
-                <a routerLink="/dragon-test-bench">test bench</a> to see the tuned wing on a whole
-                dragon before you commit to the numbers.
+                These apply everywhere until you leave this page — open the
+                <a routerLink="/dragon-test-bench">test bench</a> in another tab to see them on a
+                whole dragon before you commit to the numbers.
               </p>
             </div>
           }
@@ -212,8 +215,8 @@
             <span class="lab__record-name">{{ entry.label }}</span>
             <span class="lab__record-values">
               {{ entry.dimensions.x }} × {{ entry.dimensions.y }} × {{ entry.dimensions.z }}
-              @if (entry.wingShape; as wingShape) {
-                · camber {{ wingShape.camber }} · sag {{ wingShape.fingerSag }}
+              @if (entry.styleSection) {
+                · {{ entry.styleSection }} features
               }
             </span>
             <button type="button" class="lab__reset" (click)="tuning.remove(entry.id)">Remove</button>

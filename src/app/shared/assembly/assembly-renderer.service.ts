@@ -420,7 +420,10 @@ export class AssemblyRendererService {
 
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height, false);
+    // `updateStyle` on: nothing else sizes this canvas. Suppressing it left the
+    // element laid out at devicePixelRatio times its container on HiDPI screens,
+    // so only the top-left quadrant was visible.
+    this.renderer.setSize(width, height);
     this.render();
   }
 

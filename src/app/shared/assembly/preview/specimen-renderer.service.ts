@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AssemblyPartRole, Vector3Data } from '../domain/assembly.models';
@@ -105,6 +105,16 @@ export class SpecimenRendererService {
   private activePose: SpecimenPoseOptions | undefined;
   private readonly partObjects = new Map<string, THREE.Object3D>();
   private readonly partRoles = new Map<string, readonly AssemblyPartRole[]>();
+  private lastShowOptions: ShowSpecimenOptions = {};
+
+  /**
+   * True while the GPU has taken the drawing context away.
+   *
+   * Browsers drop WebGL contexts under memory pressure, when too many live at
+   * once, or when one thrashes allocations — and without handling it the canvas
+   * is simply dead forever, which reads to a user as "the preview broke".
+   */
+  readonly contextLost = signal(false);
 
   mount(host: HTMLElement, options: SpecimenRendererOptions = {}): void {
     this.dispose();
@@ -136,6 +146,10 @@ export class SpecimenRendererService {
     host.appendChild(renderer.domElement);
     this.renderer = renderer;
 
+    renderer.domElement.addEventListener('webglcontextlost', this.handleContextLost);
+    renderer.domElement.addEventListener('webglcontextrestored', this.handleContextRestored);
+    this.contextLost.set(false);
+
     // Image-based lighting is what makes the scale/horn/membrane materials read
     // as materials rather than flat colour. It is a one-off bake, and the
     // single biggest quality-per-millisecond win at this size.
@@ -163,6 +177,7 @@ export class SpecimenRendererService {
 
     this.clearSpecimen();
     this.descriptor = descriptor;
+    this.lastShowOptions = options;
     this.activePose = options.pose ?? this.options.pose;
 
     const pose = buildSpecimenPose(descriptor.blueprint, this.activePose);
@@ -436,6 +451,45 @@ export class SpecimenRendererService {
     this.turntableFrameId = requestAnimationFrame(step);
   }
 
+  /**
+   * Rebuilds after a lost context. Called automatically on
+   * `webglcontextrestored`, and available as a manual retry for the case where
+   * the browser never fires it.
+   */
+  recover(): void {
+    const host = this.host;
+    if (!host) return;
+
+    const options = this.options;
+    const descriptor = this.descriptor;
+    const showOptions = this.lastShowOptions;
+    const view = { x: this.viewDirection.x, y: this.viewDirection.y, z: this.viewDirection.z };
+
+    this.dispose();
+    this.mount(host, { ...options, viewDirection: view });
+    if (descriptor) this.show(descriptor, showOptions);
+  }
+
+  private readonly handleContextLost = (event: Event): void => {
+    // Without preventDefault the browser will not attempt restoration at all.
+    event.preventDefault();
+    this.contextLost.set(true);
+
+    if (this.pendingFrameId !== null) cancelAnimationFrame(this.pendingFrameId);
+    if (this.turntableFrameId !== null) cancelAnimationFrame(this.turntableFrameId);
+    if (this.demoFrameId !== null) cancelAnimationFrame(this.demoFrameId);
+    this.pendingFrameId = null;
+    this.turntableFrameId = null;
+    this.demoFrameId = null;
+  };
+
+  private readonly handleContextRestored = (): void => {
+    this.contextLost.set(false);
+    // A restored context has no GPU-side resources left, so rebuilding from
+    // scratch is both simpler and more reliable than re-uploading in place.
+    this.recover();
+  };
+
   /** Coalesces repeated calls in one task into a single frame. */
   requestRender(): void {
     // A running loop already renders every frame; scheduling another is waste.
@@ -487,7 +541,12 @@ export class SpecimenRendererService {
     if (!this.renderer || !this.camera) return;
     this.camera.aspect = Math.max(width, 1) / Math.max(height, 1);
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(Math.max(width, 1), Math.max(height, 1), false);
+    // `updateStyle` left on so three.js writes the canvas CSS size itself.
+    // Passing false relies on a stylesheet rule sizing the canvas, and Angular
+    // scopes component CSS by `_ngcontent` attributes that a canvas created in
+    // JS never carries — so at devicePixelRatio 2 the element laid out at twice
+    // its container and only the top-left quadrant was visible.
+    this.renderer.setSize(Math.max(width, 1), Math.max(height, 1));
     this.applyFrame();
   }
 
@@ -517,6 +576,8 @@ export class SpecimenRendererService {
     this.controls = null;
 
     if (this.renderer) {
+      this.renderer.domElement.removeEventListener('webglcontextlost', this.handleContextLost);
+      this.renderer.domElement.removeEventListener('webglcontextrestored', this.handleContextRestored);
       this.renderer.domElement.remove();
       this.renderer.dispose();
       this.renderer = null;

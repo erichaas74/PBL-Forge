@@ -30,19 +30,44 @@ script can drive it headlessly. The loop drops from minutes to seconds.
 - **Uniform colour by default** — the authored definition colours are a rainbow, which is useful in
   the garage and useless for judging form. A bright hue reads as detail that is not there.
 
-## Tuning the wing membrane live
+## Tuning features live
 
-Select any wing and four extra sliders appear — `camber`, `fingerSag`, `dihedral`, `scallop`. They
-drive [`setWingShapeOverride`](../../shared/assembly/rendering/dragon-procedural-mesh.factory.ts),
-a module-level hook that is `null` in production so the shipped `DEFAULT_WING_SHAPE` is what
-everyone else renders.
+Selecting a part reveals sliders for the feature counts and proportions that used to be hardcoded
+inside its builder:
 
-Two consequences worth knowing:
+| Part | Controls |
+| --- | --- |
+| Body | spike count, ridge length, spike height/thickness/lean |
+| Jaw | teeth per side, tooth length, tooth thickness |
+| Horned head | horn length, horn thickness, brow spike |
+| Clawed foot | talon count, talon length, talon thickness |
+| Club tail | spike count, spike length, spike thickness |
+| Wing | camber, finger sag, dihedral, trailing scallop (+ four presets) |
 
-- The override applies **app-wide until you reload**, so you can tune here and then open
-  `/dragon-test-bench` to see the wing on a whole dragon before committing to the numbers.
-- Only the wing tiles rebuild while you drag. The other 21 parts keep their cached thumbnails
-  because membrane tuning cannot affect them.
+These are usually more useful than the overall X/Y/Z scale sliders, which only stretch the part.
+
+**Counts are absolute; every length is a fraction of the part it sits on.** That is deliberate —
+the genetics pipeline rescales parts per genome, and a spike measured in world units would drift
+out of proportion with the body carrying it.
+
+The values drive [`setDragonStyleOverride`](../../shared/assembly/rendering/dragon-procedural-mesh.factory.ts),
+a module-level hook that is `null` in production so `DEFAULT_DRAGON_STYLE` is what everyone else
+renders. It applies app-wide while you are on this page — open `/dragon-test-bench` in another tab
+to see the tuned features on a whole dragon — and is cleared when you navigate away.
+
+### Two things that bit here
+
+Both are worth knowing before adding more controls:
+
+- **Thumbnail baking must not happen inside a `computed`.** It renders to a GPU context and lazily
+  mounts a renderer; both are side effects. Doing it in a computed threw `NG0600` as soon as the
+  renderer gained a signal, and meant a single read could fire 25 synchronous renders. The tile and
+  angle lists are plain signals populated by effects.
+- **Slider input is debounced before rebuilding** (`COMMIT_DELAY_MS`). Rebuilding on every event
+  disposed and re-uploaded every geometry ~60 times a second and re-baked six angle thumbnails
+  alongside — enough GPU churn that the browser dropped the WebGL context outright and the preview
+  died mid-drag. Labels still update instantly, so it feels live. The renderer now also handles
+  `webglcontextlost`/`restored` and rebuilds itself, with a manual retry button as a backstop.
 
 ## Recording values for hardcoding
 
@@ -54,11 +79,11 @@ Records persist to localStorage, deliberately: tuning happens across reloads, an
 after a mesh edit would otherwise wipe the session's work.
 
 ```ts
-// Left Wing (dragon-left-wing) — recorded 2026-07-31 22:34
+// Classic Dragon Body (dragon-classic-body) — recorded 2026-07-31 22:34
 // assembly-part-definitions.ts
-dimensions: { x: 0.26, y: 0.08, z: 1.35 },
-// dragon-procedural-mesh.factory.ts — WING_SHAPES entry
-{ camber: 0.3, fingerSag: 0.06, dihedral: 0.04, scallop: 0.13 },
+dimensions: { x: 1.6, y: 0.72, z: 0.68 },
+// dragon-procedural-mesh.factory.ts — DEFAULT_DRAGON_STYLE.body
+body: { spikeCount: 12, spikeSpread: 0.62, spikeHeight: 0.085, spikeRadius: 0.032, spikeLean: 0.32 },
 ```
 
 ## Baking renders
