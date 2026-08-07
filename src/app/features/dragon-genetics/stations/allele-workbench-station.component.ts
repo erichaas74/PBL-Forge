@@ -1,37 +1,15 @@
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { DragonPortraitComponent } from '../dragon-portrait.component';
 import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  input,
-  linkedSignal,
-  output,
-  signal,
-} from '@angular/core';
-import {
-  ALLELE_EXPRESSION_SEQUENCE,
-  AlleleSwitchboardDisplayComponent,
-  AlleleSwitchboardFeedback,
-  DragonVisualBridge,
-  DragonVisualMode,
-  DragonVisualPhase,
-  DragonVisualScene,
-  DragonVisualStageEvent,
-} from '../../../shared/dragon-visuals';
-import {
-  ALLELE_WORKBENCH_COPY,
-  ALLELE_WORKBENCH_EVIDENCE,
   alleleWorkbenchTask,
   alleleWorkbenchTasks,
-  alleleWorkbenchVials,
 } from '../simulation/data/allele-workbench-content';
 import {
   AlleleGenotypeClass,
   AllelePhenotypePrediction,
-  AlleleRuleEvidenceId,
-  AlleleWorkbenchMisconception,
   AlleleWorkbenchMode,
+  AlleleWorkbenchNotebookRecord,
   AlleleWorkbenchRecord,
   AlleleWorkbenchSetResult,
   AlleleWorkbenchTask,
@@ -39,791 +17,498 @@ import {
 import {
   DRAGON_PARENTS,
   getTrait,
-  normalizeGenotype,
   showsDominantPhenotype,
 } from '../simulation/domain/dragon-inheritance';
-import { DragonTraitGenotype } from '../simulation/domain/dragon-lab.models';
-import { createAlleleSwitchboardScene } from '../visual-adapter/dragon-visual-scene.adapter';
+import { DragonParentProfile, DragonTraitGenotype } from '../simulation/domain/dragon-lab.models';
 
-export type AlleleWorkbenchObserveStep =
-  | 'select-sample'
-  | 'load-sample'
-  | 'secure-chamber'
-  | 'locate-gene';
+type InvestigationStep = 'reference' | 'samples' | 'analyze' | 'reveal' | 'notebook' | 'review';
+type ExpressionAnswer = 'dominant' | 'recessive';
+type ReferencePatternId = 'allele-pattern-a' | 'allele-pattern-b';
+type ComparisonAnswer = 'same' | 'different';
+type GenotypeTypeAnswer = 'homozygous' | 'heterozygous';
+type CombinationAnswer = 'two-dominant' | 'mixed' | 'two-recessive';
+type AttemptedSection = 'reference' | 'samples' | 'analyze' | null;
 
-interface RunState {
-  taskIds: readonly string[];
-  activeIndex: number;
-  phase: DragonVisualPhase;
-  observeStep: AlleleWorkbenchObserveStep;
-  selectedVialCode: string | null;
-  loadedVialCode: string | null;
-  chamberLocked: boolean;
-  sampleMismatch: boolean;
-  centeredGeneIndex: number;
-  geneLocationLocked: boolean;
-  locatorHintVisible: boolean;
-  bandingEnabled: boolean;
-  fluorescenceEnabled: boolean;
-  homologComparisonEnabled: boolean;
-  workingAlleles: readonly [string, string];
-  socketsSecured: readonly [boolean, boolean];
-  prediction: AllelePhenotypePrediction | null;
-  predictedRecessiveRetained: boolean | null;
-  expressionRevealed: boolean;
-  interpretationGenotypeClassId: AlleleGenotypeClass | null;
-  interpretedRecessiveRetained: boolean | null;
-  interpretationLocked: boolean;
-  evidenceId: AlleleRuleEvidenceId | null;
-  moveCount: number;
-  machineActions: readonly string[];
-  openedAtMs: number;
+interface ReferenceAnswers {
+  aExpression: ExpressionAnswer | null;
+  bExpression: ExpressionAnswer | null;
 }
 
-interface PrimaryAction {
-  label: string;
-  disabled: boolean;
-  kind:
-    | 'lock-pair'
-    | 'lock-prediction'
-    | 'interpret'
-    | 'lock-interpretation'
-    | 'save'
-    | 'retry'
-    | 'done'
-    | 'waiting';
+interface AnalysisAnswers {
+  comparison: ComparisonAnswer | null;
+  genotypeType: GenotypeTypeAnswer | null;
+  combination: CombinationAnswer | null;
+  phenotype: AllelePhenotypePrediction | null;
 }
+
+interface WorkbenchFeedback {
+  tone: 'neutral' | 'good' | 'warn';
+  headline: string;
+  detail: string;
+}
+
+const EMPTY_REFERENCE: ReferenceAnswers = {
+  aExpression: null,
+  bExpression: null,
+};
+
+const EMPTY_ANALYSIS: AnalysisAnswers = {
+  comparison: null,
+  genotypeType: null,
+  combination: null,
+  phenotype: null,
+};
+
+const STEP_LABELS: readonly { id: InvestigationStep; label: string }[] = [
+  { id: 'reference', label: 'Discover' },
+  { id: 'samples', label: 'Identify' },
+  { id: 'analyze', label: 'Compare' },
+  { id: 'reveal', label: 'Check' },
+  { id: 'notebook', label: 'Record' },
+];
 
 @Component({
   selector: 'app-allele-workbench-station',
-  imports: [AlleleSwitchboardDisplayComponent],
+  imports: [DatePipe, DragonPortraitComponent],
   templateUrl: './allele-workbench-station.component.html',
   styleUrl: './allele-workbench-station.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AlleleWorkbenchStationComponent {
-  private readonly bridge = inject(DragonVisualBridge);
-
   readonly mode = input<AlleleWorkbenchMode>('learn');
   readonly seed = input('module-4');
   readonly evidenceSaved = output<AlleleWorkbenchRecord>();
   readonly setCompleted = output<AlleleWorkbenchSetResult>();
 
-  readonly copy = ALLELE_WORKBENCH_COPY;
-  private readonly feedbackState = signal<AlleleSwitchboardFeedback | null>(null);
-  private readonly recordsState = signal<readonly AlleleWorkbenchRecord[]>([]);
-  private readonly tasks = computed(() => alleleWorkbenchTasks(this.mode(), this.seed()));
-  private readonly run = linkedSignal<RunState>(() => createRun(this.tasks()));
+  private readonly activeIndexState = signal(0);
+  private readonly stepState = signal<InvestigationStep>('reference');
+  private readonly referenceAnswersState = signal<ReferenceAnswers>({ ...EMPTY_REFERENCE });
+  private readonly referenceDropsState = signal<readonly [ReferencePatternId | null, ReferencePatternId | null]>([null, null]);
+  private readonly selectedReferencePatternState = signal<ReferencePatternId | null>(null);
+  private readonly expressionTestPairState = signal<readonly [ReferencePatternId | null, ReferencePatternId | null]>([null, null]);
+  private readonly expressionTestResultState = signal<ReferencePatternId | null>(null);
+  private readonly mixedPairTestedState = signal(false);
+  private readonly sampleAnswersState = signal<readonly [string | null, string | null]>([null, null]);
+  private readonly analysisAnswersState = signal<AnalysisAnswers>({ ...EMPTY_ANALYSIS });
+  private readonly attemptedState = signal<AttemptedSection>(null);
+  private readonly feedbackState = signal<WorkbenchFeedback | null>(null);
+  private readonly recordsState = signal<readonly AlleleWorkbenchNotebookRecord[]>([]);
+  private readonly teamNameState = signal('');
+  private readonly openedAtMsState = signal(now());
+  private readonly actionLogState = signal<readonly string[]>([]);
 
+  readonly stepLabels = STEP_LABELS;
+  readonly tasks = computed(() => alleleWorkbenchTasks(this.mode(), this.seed()));
+  readonly activeIndex = this.activeIndexState.asReadonly();
+  readonly step = this.stepState.asReadonly();
+  readonly referenceAnswers = this.referenceAnswersState.asReadonly();
+  readonly referenceDrops = this.referenceDropsState.asReadonly();
+  readonly selectedReferencePattern = this.selectedReferencePatternState.asReadonly();
+  readonly expressionTestPair = this.expressionTestPairState.asReadonly();
+  readonly expressionTestResult = this.expressionTestResultState.asReadonly();
+  readonly mixedPairTested = this.mixedPairTestedState.asReadonly();
+  readonly sampleAnswers = this.sampleAnswersState.asReadonly();
+  readonly analysisAnswers = this.analysisAnswersState.asReadonly();
+  readonly attempted = this.attemptedState.asReadonly();
   readonly feedback = this.feedbackState.asReadonly();
   readonly records = this.recordsState.asReadonly();
-  readonly activeTask = computed(() => this.tasks()[this.run().activeIndex] ?? this.tasks()[0]);
-  readonly selectedSample = computed(() => {
-    const task = this.activeTask();
-    return DRAGON_PARENTS.find(profile => profile.id === task.sampleProfileId) ?? DRAGON_PARENTS[0];
+  readonly teamName = this.teamNameState.asReadonly();
+
+  readonly activeTask = computed(() => this.tasks()[this.activeIndex()] ?? this.tasks()[0]);
+  readonly trait = computed(() => getTrait(this.activeTask().traitId));
+  readonly selectedSample = computed(() =>
+    DRAGON_PARENTS.find(profile => profile.id === this.activeTask().sampleProfileId) ?? DRAGON_PARENTS[0]);
+  readonly dominantReferenceDragon = computed(() =>
+    this.referenceDragon('Phenotype A', [this.trait().dominantAllele, this.trait().dominantAllele]));
+  readonly recessiveReferenceDragon = computed(() =>
+    this.referenceDragon('Phenotype B', [this.trait().recessiveAllele, this.trait().recessiveAllele]));
+  readonly observedDragon = computed(() =>
+    this.referenceDragon('Observed dragon', this.activeTask().requestedAlleles));
+  readonly expressionTestDragon = computed<DragonParentProfile | null>(() => {
+    const result = this.expressionTestResult();
+    if (!result) return null;
+    return result === 'allele-pattern-a'
+      ? this.dominantReferenceDragon()
+      : this.recessiveReferenceDragon();
   });
-  readonly vials = computed(() => alleleWorkbenchVials(this.activeTask().id));
-  readonly focusTrait = computed(() => getTrait(this.activeTask().traitId));
-  readonly finished = computed(() => this.run().phase === 'review');
-  readonly correctCount = computed(() => this.records().filter(record =>
-    record.constructionCorrect
-    && record.predictionCorrect
-    && record.evidenceCorrect
-    && record.interpretationCorrect !== false).length);
+  readonly expressionTestPhenotype = computed(() => {
+    const result = this.expressionTestResult();
+    if (!result) return null;
+    return result === 'allele-pattern-a'
+      ? this.trait().dominantPhenotype
+      : this.trait().recessivePhenotype;
+  });
   readonly actualPrediction = computed<AllelePhenotypePrediction>(() =>
-    showsDominantPhenotype(this.run().workingAlleles as DragonTraitGenotype, this.focusTrait().id)
-      ? 'dominant'
-      : 'recessive');
+    showsDominantPhenotype(
+      this.activeTask().requestedAlleles as DragonTraitGenotype,
+      this.activeTask().traitId,
+    ) ? 'dominant' : 'recessive');
   readonly genotypeClass = computed<AlleleGenotypeClass>(() =>
-    classifyPair(this.run().workingAlleles, this.focusTrait().dominantAllele));
-  readonly carrierState = computed(() => this.genotypeClass() === 'heterozygous');
+    classifyPair(this.activeTask().requestedAlleles, this.trait().dominantAllele));
   readonly recessiveAllelePresent = computed(() =>
-    this.run().workingAlleles.includes(this.focusTrait().recessiveAllele));
-  readonly requiresRecessivePrediction = computed(() =>
-    classifyPair(this.activeTask().requestedAlleles, this.focusTrait().dominantAllele) === 'heterozygous');
-
-  readonly scene = computed<DragonVisualScene>(() => {
-    const run = this.run();
-    const task = this.activeTask();
-    const trait = this.focusTrait();
-    return createAlleleSwitchboardScene(
-      this.selectedSample(),
-      this.sceneId(),
-      this.visualMode(),
-      run.phase,
-      {
-        sampleCode: task.sampleCode,
-        sampleLabel: task.sampleLabel,
-        sampleVials: this.vials().map(vial => ({
-          code: vial.code,
-          label: vial.label,
-          selected: run.selectedVialCode === vial.code,
-          loaded: run.loadedVialCode === vial.code,
-        })),
-        observeStep: run.observeStep,
-        chamberLocked: run.chamberLocked,
-        sampleMismatch: run.sampleMismatch,
-        chromosomeNumber: task.chromosomeNumber,
-        nearbyGeneIds: task.nearbyGeneIds,
-        centeredGeneId: task.nearbyGeneIds[run.centeredGeneIndex] ?? null,
-        geneLocationLocked: run.geneLocationLocked,
-        locatorHintVisible: run.locatorHintVisible,
-        bandingEnabled: run.bandingEnabled,
-        fluorescenceEnabled: run.fluorescenceEnabled,
-        homologComparisonEnabled: run.homologComparisonEnabled,
-        focusGeneId: task.targetGeneId,
-        taskId: task.id,
-        dominantAllele: trait.dominantAllele,
-        recessiveAllele: trait.recessiveAllele,
-        startingAlleles: task.startingAlleles,
-        requestedAlleles: task.requestedAlleles,
-        workingAlleles: run.workingAlleles,
-        socketsSecured: run.socketsSecured,
-        dominantPhenotypeId: task.dominantPhenotypeLabel,
-        recessivePhenotypeId: task.recessivePhenotypeLabel,
-        predictedPhenotypeId: run.prediction,
-        predictedRecessiveRetained: run.predictedRecessiveRetained,
-        requiresRecessivePrediction: this.requiresRecessivePrediction(),
-        actualPhenotypeId: run.expressionRevealed ? this.actualPrediction() : null,
-        dominantSignalPresent: run.expressionRevealed
-          && run.workingAlleles.includes(trait.dominantAllele),
-        recessiveSignalPresent: run.expressionRevealed
-          && this.recessiveAllelePresent(),
-        genotypeClassId: run.expressionRevealed ? this.genotypeClass() : null,
-        interpretationGenotypeClassId: run.interpretationGenotypeClassId,
-        interpretedRecessiveRetained: run.interpretedRecessiveRetained,
-        interpretationLocked: run.interpretationLocked,
-        carrierState: run.expressionRevealed && this.carrierState(),
-        expressionRevealed: run.expressionRevealed,
-        evidenceMarks: ALLELE_WORKBENCH_EVIDENCE,
-        evidenceMarkId: run.evidenceId,
-        machineStatus: this.feedback()?.headline,
-        showHints: this.mode() === 'learn' || this.mode() === 'reteach',
-        seed: `${this.seed()}:${this.mode()}:${task.id}:${task.sampleCode}`,
-      },
-    );
+    this.activeTask().requestedAlleles.includes(this.trait().recessiveAllele));
+  readonly sampleComparison = computed<ComparisonAnswer>(() =>
+    this.activeTask().requestedAlleles[0] === this.activeTask().requestedAlleles[1] ? 'same' : 'different');
+  readonly genotypeType = computed<GenotypeTypeAnswer>(() =>
+    this.genotypeClass() === 'heterozygous' ? 'heterozygous' : 'homozygous');
+  readonly alleleCombination = computed<CombinationAnswer>(() => {
+    const dominantCount = this.activeTask().requestedAlleles
+      .filter(allele => allele === this.trait().dominantAllele).length;
+    return dominantCount === 2 ? 'two-dominant' : dominantCount === 1 ? 'mixed' : 'two-recessive';
   });
-
-  readonly primaryAction = computed<PrimaryAction>(() => {
-    const run = this.run();
-    if (run.phase === 'review') {
-      return this.correctCount() === run.taskIds.length
-        ? { label: 'Station complete', disabled: true, kind: 'done' }
-        : { label: 'Retry unsupported records', disabled: false, kind: 'retry' };
-    }
-    if (run.phase === 'observe') {
-      const labels: Record<AlleleWorkbenchObserveStep, string> = {
-        'select-sample': 'Select the assigned vial in the sample rack',
-        'load-sample': run.sampleMismatch ? 'Eject the mismatched vial' : 'Load the selected vial',
-        'secure-chamber': 'Close and lock the sample chamber',
-        'locate-gene': `Center gene ${this.activeTask().targetGeneId} and lock the locus`,
-      };
-      return { label: labels[run.observeStep], disabled: true, kind: 'waiting' };
-    }
-    if (run.phase === 'manipulate') {
-      return { label: 'Lock allele pair and open prediction console', disabled: false, kind: 'lock-pair' };
-    }
-    if (run.phase === 'predict') {
-      const ready = !!run.prediction
-        && (!this.requiresRecessivePrediction() || run.predictedRecessiveRetained !== null);
-      return { label: 'Lock predictions and arm analyzer', disabled: !ready, kind: 'lock-prediction' };
-    }
-    if (run.phase === 'reveal') {
-      return run.expressionRevealed
-        ? { label: 'Interpret analyzer data', disabled: false, kind: 'interpret' }
-        : { label: 'Energize the analyzer in the instrument', disabled: true, kind: 'waiting' };
-    }
-    if (!run.interpretationLocked) {
-      const ready = !!run.interpretationGenotypeClassId && run.interpretedRecessiveRetained !== null;
-      return { label: 'Lock data interpretation', disabled: !ready, kind: 'lock-interpretation' };
-    }
-    return {
-      label: run.activeIndex === run.taskIds.length - 1
-        ? 'Save final laboratory record'
-        : 'Save record and load next sample',
-      disabled: !run.evidenceId,
-      kind: 'save',
-    };
-  });
-
-  readonly stepHint = computed(() => {
-    const run = this.run();
-    if (run.phase === 'observe') {
-      return ({
-        'select-sample': `Mission intake: find vial ${this.activeTask().sampleCode}.`,
-        'load-sample': 'Sample handling: insert the selected vial into the chamber.',
-        'secure-chamber': 'Containment: lock the correct sample before chromosome scanning.',
-        'locate-gene': `Gene discovery: scan chromosome ${this.activeTask().chromosomeNumber} for locus ${this.activeTask().targetGeneId}.`,
-      } as const)[run.observeStep];
-    }
-    if (run.phase === 'manipulate') return 'Cartridge bay: build the assigned pair and secure both chromosome-copy sockets.';
-    if (run.phase === 'predict') return 'Prediction console: commit your phenotype forecast before any expression data appears.';
-    if (run.phase === 'reveal') return 'Expression analyzer: trace the allele pair through the expression rule.';
-    if (run.phase === 'explain' && !run.interpretationLocked) return 'Data desk: classify the genotype and account for the recessive allele.';
-    if (run.phase === 'explain') return 'Evidence dock: pin the rule that most directly supports this result.';
-    return 'All laboratory records have been saved.';
-  });
-
+  readonly referenceReady = computed(() =>
+    this.referenceDrops().every(Boolean)
+    && this.mixedPairTested()
+    && Object.values(this.referenceAnswers()).every(Boolean));
+  readonly expressionTestReady = computed(() => this.expressionTestPair().every(Boolean));
+  readonly samplesReady = computed(() => this.sampleAnswers().every(Boolean));
+  readonly analysisReady = computed(() => Object.values(this.analysisAnswers()).every(Boolean));
+  readonly notebookReady = computed(() => this.teamName().trim().length > 0);
+  readonly taskNumber = computed(() => Math.min(this.activeIndex() + 1, this.tasks().length));
+  readonly isLastTask = computed(() => this.activeIndex() >= this.tasks().length - 1);
+  readonly activePhenotypeLabel = computed(() =>
+    this.actualPrediction() === 'dominant'
+      ? this.trait().dominantPhenotype
+      : this.trait().recessivePhenotype);
   readonly modeLabel = computed(() => ({
-    learn: 'Learn · guided investigation',
-    practice: 'Practice · independent evidence',
-    official: 'Official · sealed scoring',
-    reteach: 'Reteach · misconception contrast',
+    learn: 'Guided investigation',
+    practice: 'Independent investigation',
+    official: 'Team confirmation',
+    reteach: 'Guided review',
   })[this.mode()]);
 
-  constructor() {
-    effect(() => this.bridge.showScene(this.scene()));
-    effect(() => {
-      if (this.run().phase === 'reveal' && this.run().expressionRevealed) {
-        this.bridge.playSequence(ALLELE_EXPRESSION_SEQUENCE, 'station');
-      } else {
-        this.bridge.stopSequence();
-      }
-    });
+  selectReferenceExpression(model: 'a' | 'b', value: ExpressionAnswer): void {
+    if (this.step() !== 'reference' || !this.mixedPairTested()) return;
+    const key = `${model}Expression` as keyof ReferenceAnswers;
+    this.referenceAnswersState.update(answers => ({ ...answers, [key]: value }));
+    this.attemptedState.set(null);
   }
 
-  onStageEvent(event: DragonVisualStageEvent): void {
-    if (event.type === 'specimen-selected') {
-      this.selectVial(event.targetId);
+  selectReferencePattern(pattern: ReferencePatternId): void {
+    if (this.step() !== 'reference') return;
+    this.selectedReferencePatternState.set(pattern);
+  }
+
+  startReferenceDrag(event: DragEvent, pattern: ReferencePatternId): void {
+    if (this.step() !== 'reference' || !event.dataTransfer) return;
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData('text/plain', pattern);
+    this.selectedReferencePatternState.set(pattern);
+  }
+
+  allowReferenceDrop(event: DragEvent): void {
+    if (this.step() !== 'reference') return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  }
+
+  dropReference(event: DragEvent, panelIndex: 0 | 1): void {
+    event.preventDefault();
+    const pattern = event.dataTransfer?.getData('text/plain');
+    if (isReferencePattern(pattern)) this.placeReferencePattern(panelIndex, pattern);
+  }
+
+  dropExpressionTestAllele(event: DragEvent, slotIndex: 0 | 1): void {
+    event.preventDefault();
+    const pattern = event.dataTransfer?.getData('text/plain');
+    if (isReferencePattern(pattern)) this.placeExpressionTestAllele(slotIndex, pattern);
+  }
+
+  placeSelectedExpressionTestAllele(slotIndex: 0 | 1): void {
+    const selected = this.selectedReferencePattern();
+    if (selected) this.placeExpressionTestAllele(slotIndex, selected);
+  }
+
+  runExpressionTest(): void {
+    if (this.step() !== 'reference' || !this.expressionTestReady()) return;
+    const pair = this.expressionTestPair() as readonly [ReferencePatternId, ReferencePatternId];
+    const result: ReferencePatternId = pair.includes('allele-pattern-a')
+      ? 'allele-pattern-a'
+      : 'allele-pattern-b';
+    const mixed = pair[0] !== pair[1];
+    this.expressionTestResultState.set(result);
+    this.log(`reference-expression-tested:${pair.join('+')}`);
+    if (mixed) {
+      this.mixedPairTestedState.set(true);
+      this.accept(
+        `The mixed pair expresses ${result === 'allele-pattern-a' ? 'Phenotype A' : 'Phenotype B'}.`,
+        'This mixed-pair evidence now lets you determine which allele is dominant and which is recessive.',
+      );
       return;
     }
-    if (event.type === 'hotspot-selected') {
-      this.handleMachineAction(event.targetId, event.value);
-      return;
-    }
-    if (event.type === 'allele-moved' && typeof event.value === 'string') {
-      this.moveAllele(event.targetId, event.value);
-      return;
-    }
-    if (event.type === 'prediction-locked') {
-      this.selectPrediction(event.targetId, event.value);
-      return;
-    }
-    if (event.type === 'reveal-requested') {
-      this.revealExpression();
-      return;
-    }
-    if (event.type === 'evidence-pinned' && isEvidence(event.targetId)) {
-      this.pinEvidence(event.targetId);
-    }
-  }
-
-  runPrimaryAction(): void {
-    const action = this.primaryAction();
-    if (action.disabled) return;
-    if (action.kind === 'lock-pair') this.lockPair();
-    if (action.kind === 'lock-prediction') this.lockPredictions();
-    if (action.kind === 'interpret') this.openInterpretation();
-    if (action.kind === 'lock-interpretation') this.lockInterpretation();
-    if (action.kind === 'save') this.saveRecord();
-    if (action.kind === 'retry') {
-      this.run.set(createRun(this.tasks()));
-      this.recordsState.set([]);
-      this.feedbackState.set(null);
-    }
-  }
-
-  taskLabel(taskId: string): string {
-    return alleleWorkbenchTask(taskId).prompt;
-  }
-
-  activeTaskNumber(): number {
-    return Math.min(this.run().activeIndex + 1, this.run().taskIds.length);
-  }
-
-  taskCount(): number {
-    return this.run().taskIds.length;
-  }
-
-  currentPair(): string {
-    return this.run().workingAlleles.join('');
-  }
-
-  currentPrediction(): string {
-    return this.run().prediction ?? 'Not locked';
-  }
-
-  currentEvidence(): string {
-    return this.run().evidenceId?.replaceAll('-', ' ') ?? 'Not pinned';
-  }
-
-  currentObserveStep(): AlleleWorkbenchObserveStep {
-    return this.run().observeStep;
-  }
-
-  selectedVialCode(): string | null {
-    return this.run().selectedVialCode;
-  }
-
-  loadedVialCode(): string | null {
-    return this.run().loadedVialCode;
-  }
-
-  chamberLocked(): boolean {
-    return this.run().chamberLocked;
-  }
-
-  centeredGeneId(): string | null {
-    return this.activeTask().nearbyGeneIds[this.run().centeredGeneIndex] ?? null;
-  }
-
-  geneLocationLocked(): boolean {
-    return this.run().geneLocationLocked;
-  }
-
-  socketsSecured(): readonly [boolean, boolean] {
-    return this.run().socketsSecured;
-  }
-
-  private sceneId(): string {
-    return `module-4-allele-workbench-${this.mode()}-${this.activeTask()?.id ?? 'complete'}`;
-  }
-
-  private visualMode(): DragonVisualMode {
-    return this.mode() === 'official' ? 'official' : this.mode() === 'practice' ? 'practice' : 'learn';
-  }
-
-  private handleMachineAction(targetId: string, value: unknown): void {
-    if (targetId === 'sample-chamber' && value === 'load') this.loadSelectedVial();
-    if (targetId === 'sample-chamber' && value === 'eject') this.ejectVial();
-    if (targetId === 'sample-lock' && value === 'lock') this.lockChamber();
-    if (targetId === 'chromosome-stage' && (value === 'previous' || value === 'next')) {
-      this.moveChromosomeStage(value === 'next' ? 1 : -1);
-    }
-    if (targetId === 'gene-locator' && value === 'lock') this.lockGeneLocation();
-    if (targetId === 'gene-locator' && value === 'hint') this.showLocatorHint();
-    if (targetId === 'banding-overlay' && typeof value === 'boolean') {
-      this.toggleMachineView('bandingEnabled', value, `banding-${value ? 'on' : 'off'}`);
-    }
-    if (targetId === 'fluorescent-marker' && typeof value === 'boolean') {
-      this.toggleMachineView('fluorescenceEnabled', value, `fluorescence-${value ? 'on' : 'off'}`);
-    }
-    if (targetId === 'homolog-compare' && typeof value === 'boolean') {
-      this.toggleMachineView('homologComparisonEnabled', value, `homolog-compare-${value ? 'on' : 'off'}`);
-    }
-    if ((targetId === 'socket-lock-a' || targetId === 'socket-lock-b') && value === 'secure') {
-      this.secureSocket(targetId === 'socket-lock-a' ? 0 : 1);
-    }
-    if (targetId === 'genotype-interpretation' && isGenotypeClass(value)) {
-      this.selectGenotypeInterpretation(value);
-    }
-    if (targetId === 'recessive-interpretation' && isYesNo(value)) {
-      this.selectRecessiveInterpretation(value === 'yes');
-    }
-  }
-
-  private selectVial(code: string): void {
-    const run = this.run();
-    if (run.phase !== 'observe' || run.loadedVialCode || !this.vials().some(vial => vial.code === code)) return;
-    this.run.update(current => withAction({
-      ...current,
-      selectedVialCode: code,
-      observeStep: 'load-sample',
-    }, `sample-selected:${code}`));
     this.feedbackState.set({
       tone: 'neutral',
-      headline: `Vial ${code} selected.`,
-      detail: 'Insert the vial into the chamber to let the identifier reader verify it.',
+      headline: `The matching pair expresses ${result === 'allele-pattern-a' ? 'Phenotype A' : 'Phenotype B'}.`,
+      detail: 'Now test one of each allele option. A mixed pair is the evidence needed to determine dominance.',
     });
   }
 
-  private loadSelectedVial(): void {
-    const run = this.run();
-    if (run.phase !== 'observe' || !run.selectedVialCode || run.loadedVialCode) return;
-    const mismatch = run.selectedVialCode !== this.activeTask().sampleCode;
-    this.run.update(current => withAction({
-      ...current,
-      loadedVialCode: current.selectedVialCode,
-      sampleMismatch: mismatch,
-      observeStep: mismatch ? 'load-sample' : 'secure-chamber',
-    }, `sample-loaded:${run.selectedVialCode}`));
-    this.feedbackState.set(mismatch
-      ? {
-        tone: 'warn',
-        headline: 'Sample identifier mismatch.',
-        detail: `Loaded: ${run.selectedVialCode}. Required: ${this.activeTask().sampleCode}. Eject the vial and try again.`,
-      }
-      : {
-        tone: 'good',
-        headline: `Sample ${run.selectedVialCode} accepted.`,
-        detail: 'Close and lock the chamber before scanning the chromosome.',
-      });
+  placeSelectedReferencePattern(panelIndex: 0 | 1): void {
+    const selected = this.selectedReferencePattern();
+    if (selected) this.placeReferencePattern(panelIndex, selected);
   }
 
-  private ejectVial(): void {
-    const run = this.run();
-    if (run.phase !== 'observe' || !run.loadedVialCode || run.chamberLocked) return;
-    this.run.update(current => withAction({
-      ...current,
-      selectedVialCode: null,
-      loadedVialCode: null,
-      sampleMismatch: false,
-      observeStep: 'select-sample',
-    }, `sample-ejected:${run.loadedVialCode}`));
-    this.feedbackState.set({ tone: 'neutral', headline: 'Sample ejected.', detail: 'Select the assigned vial from the rack.' });
+  clearReferenceDrop(panelIndex: 0 | 1): void {
+    if (this.step() !== 'reference') return;
+    this.referenceDropsState.update(([first, second]) =>
+      panelIndex === 0 ? [null, second] : [first, null]);
+    this.attemptedState.set(null);
   }
 
-  private lockChamber(): void {
-    const run = this.run();
-    if (run.phase !== 'observe' || run.loadedVialCode !== this.activeTask().sampleCode || run.chamberLocked) return;
-    this.run.update(current => withAction({
-      ...current,
-      chamberLocked: true,
-      observeStep: 'locate-gene',
-      centeredGeneIndex: 0,
-    }, 'sample-chamber-locked'));
-    this.feedbackState.set({
-      tone: 'good',
-      headline: 'Sample chamber locked.',
-      detail: `Chromosome ${this.activeTask().chromosomeNumber} is ready. Move the stage to gene ${this.activeTask().targetGeneId}.`,
-    });
+  referenceOptionNumber(pattern: ReferencePatternId | null): string {
+    return pattern === 'allele-pattern-a' ? '1' : pattern === 'allele-pattern-b' ? '2' : '';
   }
 
-  private moveChromosomeStage(delta: number): void {
-    const run = this.run();
-    const genes = this.activeTask().nearbyGeneIds;
-    if (run.phase !== 'observe' || run.observeStep !== 'locate-gene' || !run.chamberLocked || run.geneLocationLocked) return;
-    const nextIndex = Math.max(0, Math.min(genes.length - 1, run.centeredGeneIndex + delta));
-    if (nextIndex === run.centeredGeneIndex) return;
-    this.run.update(current => withAction({ ...current, centeredGeneIndex: nextIndex }, `stage-centered:${genes[nextIndex]}`));
-    this.feedbackState.set({
-      tone: 'neutral',
-      headline: `Reticle centered on locus ${genes[nextIndex]}.`,
-      detail: 'Compare the locus label on both homologous chromosomes before locking.',
-    });
-  }
-
-  private lockGeneLocation(): void {
-    const run = this.run();
-    if (run.phase !== 'observe' || run.observeStep !== 'locate-gene' || !run.chamberLocked) return;
-    const centered = this.centeredGeneId();
-    if (centered !== this.activeTask().targetGeneId) {
-      this.run.update(current => withAction(current, `gene-lock-rejected:${centered ?? 'none'}`));
-      this.feedbackState.set({
-        tone: 'warn',
-        headline: `Locus ${centered ?? 'unresolved'} does not match the mission gene.`,
-        detail: `Continue scanning chromosome ${this.activeTask().chromosomeNumber} for gene ${this.activeTask().targetGeneId}.`,
-      });
+  checkReference(): void {
+    if (!this.referenceReady()) return;
+    this.attemptedState.set('reference');
+    const answers = this.referenceAnswers();
+    const correct = this.referenceDrops()[0] === 'allele-pattern-a'
+      && this.referenceDrops()[1] === 'allele-pattern-b'
+      && answers.aExpression === 'dominant'
+      && answers.bExpression === 'recessive';
+    if (!correct) {
+      this.reject(
+        'The reference key is not confirmed yet.',
+        'Compare each resistor-code fingerprint with the phenotype evidence, then reconsider how each allele is expressed.',
+      );
       return;
     }
-    this.run.update(current => withAction({
-      ...current,
-      geneLocationLocked: true,
-      phase: 'manipulate',
-    }, `gene-location-locked:${centered}`));
-    this.feedbackState.set({
-      tone: 'good',
-      headline: `Gene ${centered} location locked.`,
-      detail: 'The allele cartridge sockets are now available on both chromosome copies.',
-    });
+    this.log('reference-models-confirmed');
+    this.stepState.set('samples');
+    this.attemptedState.set(null);
+    this.accept(
+      `${this.trait().name} reference confirmed.`,
+      `${this.trait().dominantAllele} is dominant and ${this.trait().recessiveAllele} is recessive in this model.`,
+    );
   }
 
-  private showLocatorHint(): void {
-    if (!['learn', 'reteach'].includes(this.mode()) || this.run().observeStep !== 'locate-gene') return;
-    this.run.update(current => withAction({ ...current, locatorHintVisible: true }, 'gene-locator-hint'));
-    this.feedbackState.set({
-      tone: 'neutral',
-      headline: `Fluorescent hint marks gene ${this.activeTask().targetGeneId}.`,
-      detail: 'Move the reticle to the same labeled locus on both homologous chromosomes.',
-    });
+  selectSampleAllele(index: 0 | 1, allele: string): void {
+    if (this.step() !== 'samples') return;
+    this.sampleAnswersState.update(([first, second]) =>
+      index === 0 ? [allele, second] : [first, allele]);
+    this.attemptedState.set(null);
   }
 
-  private toggleMachineView(
-    key: 'bandingEnabled' | 'fluorescenceEnabled' | 'homologComparisonEnabled',
-    value: boolean,
-    action: string,
-  ): void {
-    if (this.run().phase !== 'observe' || this.run().observeStep !== 'locate-gene') return;
-    this.run.update(current => withAction({ ...current, [key]: value }, action));
-  }
-
-  private moveAllele(targetId: string, symbol: string): void {
-    const run = this.run();
-    const trait = this.focusTrait();
-    if (run.phase !== 'manipulate' || !run.geneLocationLocked
-      || ![trait.dominantAllele, trait.recessiveAllele].includes(symbol)) return;
-    if (targetId !== 'allele-slot-a' && targetId !== 'allele-slot-b') return;
-    const slotIndex = targetId === 'allele-slot-a' ? 0 : 1;
-    const pair: [string, string] = slotIndex === 0
-      ? [symbol, run.workingAlleles[1]]
-      : [run.workingAlleles[0], symbol];
-    const sockets: [boolean, boolean] = [...run.socketsSecured] as [boolean, boolean];
-    sockets[slotIndex] = false;
-    this.run.update(current => withAction({
-      ...current,
-      workingAlleles: pair,
-      socketsSecured: sockets,
-      moveCount: current.moveCount + 1,
-    }, `allele-cartridge:${targetId}:${symbol}`));
-    this.feedbackState.set({
-      tone: 'neutral',
-      headline: `Allele cartridge ${symbol} accepted.`,
-      detail: `Socket ${slotIndex === 0 ? 'A' : 'B'} remains open until you secure it.`,
-    });
-  }
-
-  private secureSocket(slotIndex: 0 | 1): void {
-    const run = this.run();
-    if (run.phase !== 'manipulate' || !run.geneLocationLocked) return;
-    const sockets: [boolean, boolean] = [...run.socketsSecured] as [boolean, boolean];
-    sockets[slotIndex] = true;
-    this.run.update(current => withAction({ ...current, socketsSecured: sockets }, `socket-${slotIndex === 0 ? 'a' : 'b'}-secured`));
-    this.feedbackState.set({
-      tone: 'good',
-      headline: `Socket ${slotIndex === 0 ? 'A' : 'B'} secured.`,
-      detail: sockets.every(Boolean) ? 'Both allele cartridges are physically locked.' : `Socket ${slotIndex === 0 ? 'B' : 'A'} remains open.`,
-    });
-  }
-
-  private lockPair(): void {
-    const run = this.run();
-    if (!run.socketsSecured.every(Boolean)) {
-      this.feedbackState.set({
-        tone: 'warn',
-        headline: 'Both allele sockets must be secured.',
-        detail: 'Lock socket A and socket B before opening the prediction console.',
-      });
+  checkSamples(): void {
+    if (!this.samplesReady()) return;
+    this.attemptedState.set('samples');
+    const correct = this.sampleAnswers().every(
+      (allele, index) => allele === this.activeTask().requestedAlleles[index],
+    );
+    if (!correct) {
+      this.reject(
+        'One sample identity needs another look.',
+        'Match each sample fingerprint to the fingerprint beside the confirmed reference models.',
+      );
       return;
     }
-    const pairMatches = pairsMatch(run.workingAlleles, this.activeTask().requestedAlleles);
-    this.run.update(current => withAction({ ...current, phase: 'predict' }, `allele-pair-locked:${this.currentPair()}`));
-    this.feedbackState.set(this.mode() === 'learn'
-      ? {
-        tone: pairMatches ? 'good' : 'warn',
-        headline: pairMatches ? `Assigned allele pair ${this.currentPair()} complete.` : `Pair ${this.currentPair()} is sealed for analysis.`,
-        detail: pairMatches ? 'Predict the phenotype and whether a recessive allele remains.' : 'Use the data trace to evaluate the pair you constructed.',
-      }
-      : {
-        tone: 'neutral',
-        headline: `Allele pair ${this.currentPair()} sealed.`,
-        detail: 'Record predictions before energizing the analyzer.',
-      });
+    this.log(`samples-identified:${this.activeTask().requestedAlleles.join('')}`);
+    this.stepState.set('analyze');
+    this.attemptedState.set(null);
+    this.accept(
+      `Samples form the pair ${this.activeTask().requestedAlleles.join('')}.`,
+      'Now compare the two alleles and predict the visible trait.',
+    );
   }
 
-  private selectPrediction(targetId: string, value: unknown): void {
-    if (this.run().phase !== 'predict') return;
-    if (targetId === 'phenotype-readout' && isPrediction(value)) {
-      this.run.update(current => withAction({ ...current, prediction: value }, `phenotype-predicted:${value}`));
+  selectAnalysis<K extends keyof AnalysisAnswers>(field: K, value: AnalysisAnswers[K]): void {
+    if (this.step() !== 'analyze') return;
+    this.analysisAnswersState.update(answers => ({ ...answers, [field]: value }));
+    this.attemptedState.set(null);
+  }
+
+  checkAnalysis(): void {
+    if (!this.analysisReady()) return;
+    this.attemptedState.set('analyze');
+    const answers = this.analysisAnswers();
+    const correct = answers.comparison === this.sampleComparison()
+      && answers.genotypeType === this.genotypeType()
+      && answers.combination === this.alleleCombination()
+      && answers.phenotype === this.actualPrediction();
+    if (!correct) {
+      this.reject(
+        this.mode() === 'official' ? 'Investigation not confirmed.' : 'One part of the pair analysis needs revision.',
+        this.mode() === 'official'
+          ? 'Review the reference evidence and submit the analysis again.'
+          : 'Use both allele symbols. Same/different determines genotype type; an uppercase allele determines expression.',
+      );
+      return;
     }
-    if (targetId === 'recessive-prediction' && isYesNo(value)) {
-      this.run.update(current => withAction({ ...current, predictedRecessiveRetained: value === 'yes' }, `recessive-predicted:${value}`));
-    }
+    this.log(`pair-analyzed:${this.activeTask().requestedAlleles.join('')}`);
+    this.stepState.set('reveal');
+    this.attemptedState.set(null);
+    this.accept('Prediction confirmed.', this.activeTask().explanation);
   }
 
-  private lockPredictions(): void {
-    const run = this.run();
-    if (!run.prediction || (this.requiresRecessivePrediction() && run.predictedRecessiveRetained === null)) return;
-    this.run.update(current => withAction({ ...current, phase: 'reveal' }, 'predictions-locked'));
-    this.feedbackState.set({
-      tone: 'neutral',
-      headline: 'Predictions locked.',
-      detail: 'Energize the analyzer. The allele pair will remain visible throughout the trace.',
-    });
+  openNotebook(): void {
+    if (this.step() !== 'reveal') return;
+    this.stepState.set('notebook');
+    this.log('notebook-record-opened');
+    this.feedbackState.set(null);
   }
 
-  private revealExpression(): void {
-    const run = this.run();
-    if (run.phase !== 'reveal' || run.expressionRevealed) return;
-    const correct = run.prediction === this.actualPrediction();
-    this.run.update(current => withAction({ ...current, expressionRevealed: true }, 'expression-analyzer-run'));
-    const immediateFeedback = this.mode() === 'learn' || this.mode() === 'reteach';
-    this.feedbackState.set(immediateFeedback
-      ? {
-        tone: correct ? 'good' : 'warn',
-        headline: correct ? 'Prediction supported by the analyzer.' : 'The analyzer resolved a different phenotype.',
-        detail: this.activeTask().explanation,
-      }
-      : {
-        tone: 'neutral',
-        headline: 'Expression analyzer cycle complete.',
-        detail: 'Interpret the genotype class and the status of the recessive allele.',
-      });
+  updateTeamName(event: Event): void {
+    this.teamNameState.set((event.target as HTMLInputElement).value);
   }
 
-  private openInterpretation(): void {
-    if (this.run().phase !== 'reveal' || !this.run().expressionRevealed) return;
-    this.run.update(current => withAction({ ...current, phase: 'explain' }, 'interpretation-opened'));
-    this.feedbackState.set({
-      tone: 'neutral',
-      headline: 'Machine data transferred to the interpretation desk.',
-      detail: 'Classify the pair and state whether any recessive allele remains present.',
-    });
-  }
-
-  private selectGenotypeInterpretation(value: AlleleGenotypeClass): void {
-    if (this.run().phase !== 'explain' || this.run().interpretationLocked) return;
-    this.run.update(current => withAction({ ...current, interpretationGenotypeClassId: value }, `genotype-interpreted:${value}`));
-  }
-
-  private selectRecessiveInterpretation(value: boolean): void {
-    if (this.run().phase !== 'explain' || this.run().interpretationLocked) return;
-    this.run.update(current => withAction({ ...current, interpretedRecessiveRetained: value }, `recessive-interpreted:${value ? 'yes' : 'no'}`));
-  }
-
-  private lockInterpretation(): void {
-    const run = this.run();
-    if (!run.interpretationGenotypeClassId || run.interpretedRecessiveRetained === null) return;
-    const correct = run.interpretationGenotypeClassId === this.genotypeClass()
-      && run.interpretedRecessiveRetained === this.recessiveAllelePresent();
-    this.run.update(current => withAction({ ...current, interpretationLocked: true }, 'interpretation-locked'));
-    const immediateFeedback = this.mode() === 'learn' || this.mode() === 'reteach';
-    this.feedbackState.set(immediateFeedback
-      ? {
-        tone: correct ? 'good' : 'warn',
-        headline: correct ? 'Interpretation matches the machine data.' : 'Interpretation recorded; inspect both allele symbols again.',
-        detail: correct ? this.activeTask().explanation : 'Genotype class depends on both allele copies, not phenotype alone.',
-      }
-      : {
-        tone: 'neutral',
-        headline: 'Interpretation locked.',
-        detail: 'Select the rule evidence that supports this laboratory result.',
-      });
-  }
-
-  private pinEvidence(evidenceId: AlleleRuleEvidenceId): void {
-    const run = this.run();
-    if (run.phase !== 'explain' || !run.interpretationLocked) return;
-    if (this.mode() === 'official' && run.evidenceId) return;
-    const correct = evidenceId === this.activeTask().evidenceId;
-    this.run.update(current => withAction({ ...current, evidenceId }, `evidence-pinned:${evidenceId}`));
-    const immediateFeedback = this.mode() === 'learn' || this.mode() === 'reteach';
-    this.feedbackState.set(immediateFeedback
-      ? {
-        tone: correct ? 'good' : 'warn',
-        headline: correct ? 'That rule directly supports this result.' : 'A different rule is stronger evidence for this pair.',
-        detail: correct ? this.activeTask().explanation : 'Compare the number and case of both allele symbols.',
-      }
-      : { tone: 'neutral', headline: 'Rule evidence recorded.', detail: 'Save the laboratory record when ready.' });
-  }
-
-  private saveRecord(): void {
-    const run = this.run();
+  saveRecord(): void {
+    if (this.step() !== 'notebook' || !this.notebookReady()) return;
     const task = this.activeTask();
-    if (!run.prediction || !run.evidenceId || !run.expressionRevealed || !run.interpretationLocked
-      || !run.interpretationGenotypeClassId || run.interpretedRecessiveRetained === null) return;
-    const constructionCorrect = pairsMatch(run.workingAlleles, task.requestedAlleles);
-    const predictionCorrect = run.prediction === this.actualPrediction();
-    const evidenceCorrect = run.evidenceId === task.evidenceId;
-    const interpretationCorrect = run.interpretationGenotypeClassId === this.genotypeClass()
-      && run.interpretedRecessiveRetained === this.recessiveAllelePresent();
-    const allCorrect = constructionCorrect && predictionCorrect && evidenceCorrect && interpretationCorrect;
-    const record: AlleleWorkbenchRecord = {
-      sceneId: this.sceneId(),
-      seed: `${this.seed()}:${this.mode()}:${task.id}:${task.sampleCode}`,
+    const createdAtIso = new Date().toISOString();
+    const record: AlleleWorkbenchNotebookRecord = {
+      sceneId: `allele-investigation-${task.id}`,
+      seed: `${this.seed()}:${this.mode()}:${task.id}`,
       sampleId: this.selectedSample().id,
       taskId: task.id,
       mode: this.mode(),
       traitId: task.traitId,
       focusGeneId: task.targetGeneId,
       startingAlleles: task.startingAlleles,
-      workingAlleles: run.workingAlleles,
+      workingAlleles: task.requestedAlleles,
       requestedAlleles: task.requestedAlleles,
-      constructionCorrect,
-      predictedPhenotypeId: run.prediction,
+      constructionCorrect: true,
+      predictedPhenotypeId: this.actualPrediction(),
       actualPhenotypeId: this.actualPrediction(),
-      predictionCorrect,
+      predictionCorrect: true,
       genotypeClassId: this.genotypeClass(),
-      carrierState: this.carrierState(),
-      evidenceId: run.evidenceId,
-      evidenceCorrect,
-      misconception: allCorrect ? null : task.misconception,
-      moveCount: run.moveCount,
-      elapsedMs: Math.max(0, now() - run.openedAtMs),
-      createdAtIso: new Date().toISOString(),
-      sampleSelectionCorrect: run.loadedVialCode === task.sampleCode,
-      geneLocationCorrect: run.geneLocationLocked,
-      machineActions: run.machineActions,
-      interpretationCorrect,
+      carrierState: this.genotypeClass() === 'heterozygous',
+      evidenceId: task.evidenceId,
+      evidenceCorrect: true,
+      misconception: null,
+      moveCount: 2,
+      elapsedMs: Math.max(0, now() - this.openedAtMsState()),
+      createdAtIso,
+      sampleSelectionCorrect: true,
+      geneLocationCorrect: true,
+      machineActions: [...this.actionLogState(), 'confirmed-gene-record-saved'],
+      interpretationCorrect: true,
       sampleCode: task.sampleCode,
       chromosomeNumber: task.chromosomeNumber,
-      predictedRecessiveRetained: run.predictedRecessiveRetained ?? undefined,
-      interpretedRecessiveRetained: run.interpretedRecessiveRetained,
-      interpretedGenotypeClassId: run.interpretationGenotypeClassId,
+      predictedRecessiveRetained: this.recessiveAllelePresent(),
+      interpretedRecessiveRetained: this.recessiveAllelePresent(),
+      interpretedGenotypeClassId: this.genotypeClass(),
+      geneName: this.trait().name,
+      traitControlled: this.trait().name,
+      dominantAlleleSymbol: this.trait().dominantAllele,
+      dominantPhenotype: this.trait().dominantPhenotype,
+      recessiveAlleleSymbol: this.trait().recessiveAllele,
+      recessivePhenotype: this.trait().recessivePhenotype,
+      genotypeOutcomes: {
+        homozygousDominant: this.trait().dominantPhenotype,
+        heterozygous: this.trait().dominantPhenotype,
+        homozygousRecessive: this.trait().recessivePhenotype,
+      },
+      investigationEvidence: [
+        'Reference phenotype models matched',
+        'Mixed allele pair tested for dominance',
+        'Both allele samples identified',
+        'Genotype and phenotype prediction confirmed',
+      ],
+      discoveredAtIso: createdAtIso,
+      confirmedBy: this.teamName().trim(),
+      confirmed: true,
     };
-    this.recordsState.update(records => [
-      ...records.filter(existing => existing.taskId !== record.taskId || existing.mode !== record.mode),
-      record,
-    ]);
+
+    this.recordsState.update(records => [...records, record]);
     this.evidenceSaved.emit(record);
 
-    const feedback = this.mode() === 'official'
-      ? { tone: 'neutral' as const, headline: 'Sealed laboratory record saved.', detail: 'Scoring remains hidden in official mode.' }
-      : {
-        tone: allCorrect ? 'good' as const : 'warn' as const,
-        headline: allCorrect ? 'Complete evidence chain saved.' : 'Record saved with an unsupported step.',
-        detail: allCorrect ? task.explanation : `Review the model evidence for ${task.targetGeneId}.`,
-      };
-
-    if (run.activeIndex >= run.taskIds.length - 1) {
-      this.run.update(current => ({ ...current, phase: 'review' }));
-      const records = this.records().filter(item => item.mode === this.mode() && run.taskIds.includes(item.taskId));
+    if (this.isLastTask()) {
+      this.stepState.set('review');
       this.setCompleted.emit({
         mode: this.mode(),
-        correct: records.filter(item => item.constructionCorrect
-          && item.predictionCorrect
-          && item.evidenceCorrect
-          && item.interpretationCorrect !== false).length,
-        total: records.length,
-        misconceptions: [...new Set(records
-          .map(item => item.misconception)
-          .filter((flag): flag is AlleleWorkbenchMisconception => !!flag))],
+        correct: this.records().length,
+        total: this.records().length,
+        misconceptions: [],
       });
-      this.feedbackState.set(feedback);
+      this.accept(
+        'Dragon Genetics Notebook complete.',
+        `${this.records().length} confirmed gene records are ready for future breeding decisions.`,
+      );
       return;
     }
 
-    const nextIndex = run.activeIndex + 1;
-    this.run.set(createTaskRun(run.taskIds, nextIndex, this.tasks()[nextIndex]));
-    this.feedbackState.set(feedback);
+    this.activeIndexState.update(index => index + 1);
+    this.resetInvestigation();
+    this.accept(
+      'Confirmed gene record saved.',
+      `The notebook now contains ${this.records().length} breeding reference ${this.records().length === 1 ? 'entry' : 'entries'}.`,
+    );
   }
-}
 
-function createRun(tasks: readonly AlleleWorkbenchTask[]): RunState {
-  return createTaskRun(tasks.map(task => task.id), 0, tasks[0]);
-}
+  stepDone(step: InvestigationStep): boolean {
+    const order = STEP_LABELS.map(item => item.id);
+    const current = this.step() === 'review' ? order.length : order.indexOf(this.step());
+    return order.indexOf(step) < current;
+  }
 
-function createTaskRun(
-  taskIds: readonly string[],
-  activeIndex: number,
-  task: AlleleWorkbenchTask | undefined,
-): RunState {
-  return {
-    taskIds,
-    activeIndex,
-    phase: 'observe',
-    observeStep: 'select-sample',
-    selectedVialCode: null,
-    loadedVialCode: null,
-    chamberLocked: false,
-    sampleMismatch: false,
-    centeredGeneIndex: 0,
-    geneLocationLocked: false,
-    locatorHintVisible: false,
-    bandingEnabled: false,
-    fluorescenceEnabled: false,
-    homologComparisonEnabled: true,
-    workingAlleles: task?.startingAlleles ?? ['W', 'w'],
-    socketsSecured: [false, false],
-    prediction: null,
-    predictedRecessiveRetained: null,
-    expressionRevealed: false,
-    interpretationGenotypeClassId: null,
-    interpretedRecessiveRetained: null,
-    interpretationLocked: false,
-    evidenceId: null,
-    moveCount: 0,
-    machineActions: [],
-    openedAtMs: now(),
-  };
-}
+  taskForRecord(record: AlleleWorkbenchRecord): AlleleWorkbenchTask {
+    return alleleWorkbenchTask(record.taskId);
+  }
 
-function withAction(run: RunState, action: string): RunState {
-  return { ...run, machineActions: [...run.machineActions, action] };
-}
+  fingerprintKind(allele: string): 'dominant' | 'recessive' {
+    return allele === this.trait().dominantAllele ? 'dominant' : 'recessive';
+  }
 
-function pairsMatch(left: readonly [string, string], right: readonly [string, string]): boolean {
-  return normalizeGenotype(left as DragonTraitGenotype).join('')
-    === normalizeGenotype(right as DragonTraitGenotype).join('');
+  private resetInvestigation(): void {
+    this.stepState.set('reference');
+    this.referenceAnswersState.set({ ...EMPTY_REFERENCE });
+    this.referenceDropsState.set([null, null]);
+    this.selectedReferencePatternState.set(null);
+    this.expressionTestPairState.set([null, null]);
+    this.expressionTestResultState.set(null);
+    this.mixedPairTestedState.set(false);
+    this.sampleAnswersState.set([null, null]);
+    this.analysisAnswersState.set({ ...EMPTY_ANALYSIS });
+    this.attemptedState.set(null);
+    this.openedAtMsState.set(now());
+    this.actionLogState.set([]);
+  }
+
+  private referenceDragon(name: string, alleles: readonly [string, string]): DragonParentProfile {
+    const profile = this.selectedSample();
+    return {
+      ...profile,
+      id: `${profile.id}-${this.activeTask().traitId}-${alleles.join('')}`,
+      name,
+      genome: { ...profile.genome, [this.activeTask().traitId]: alleles },
+    };
+  }
+
+  private log(action: string): void {
+    this.actionLogState.update(actions => [...actions, action]);
+  }
+
+  private placeReferencePattern(panelIndex: 0 | 1, pattern: ReferencePatternId): void {
+    if (this.step() !== 'reference') return;
+    this.referenceDropsState.update(([first, second]) => {
+      const withoutDuplicate: [ReferencePatternId | null, ReferencePatternId | null] = [
+        first === pattern ? null : first,
+        second === pattern ? null : second,
+      ];
+      withoutDuplicate[panelIndex] = pattern;
+      return withoutDuplicate;
+    });
+    this.selectedReferencePatternState.set(pattern);
+    this.attemptedState.set(null);
+  }
+
+  private placeExpressionTestAllele(slotIndex: 0 | 1, pattern: ReferencePatternId): void {
+    if (this.step() !== 'reference') return;
+    this.expressionTestPairState.update(([first, second]) =>
+      slotIndex === 0 ? [pattern, second] : [first, pattern]);
+    this.expressionTestResultState.set(null);
+    this.selectedReferencePatternState.set(pattern);
+    this.attemptedState.set(null);
+  }
+
+  private accept(headline: string, detail: string): void {
+    this.feedbackState.set({ tone: 'good', headline, detail });
+  }
+
+  private reject(headline: string, detail: string): void {
+    this.feedbackState.set({ tone: 'warn', headline, detail });
+  }
 }
 
 function classifyPair(
@@ -834,24 +519,10 @@ function classifyPair(
   return pair[0] === dominantAllele ? 'homozygous-dominant' : 'homozygous-recessive';
 }
 
-function isPrediction(value: unknown): value is AllelePhenotypePrediction {
-  return value === 'dominant' || value === 'recessive';
-}
-
-function isYesNo(value: unknown): value is 'yes' | 'no' {
-  return value === 'yes' || value === 'no';
-}
-
-function isGenotypeClass(value: unknown): value is AlleleGenotypeClass {
-  return value === 'homozygous-dominant'
-    || value === 'heterozygous'
-    || value === 'homozygous-recessive';
-}
-
-function isEvidence(value: string): value is AlleleRuleEvidenceId {
-  return ALLELE_WORKBENCH_EVIDENCE.some(item => item.id === value);
-}
-
 function now(): number {
   return globalThis.performance?.now() ?? Date.now();
+}
+
+function isReferencePattern(value: string | undefined): value is ReferencePatternId {
+  return value === 'allele-pattern-a' || value === 'allele-pattern-b';
 }

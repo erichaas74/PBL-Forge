@@ -6,7 +6,7 @@
 }
 
 .project-hero {
-  --accent: var(--coral);
+  --accent: var(--ember);
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
   gap: clamp(3rem, 8vw, 8rem);
@@ -15,7 +15,7 @@
   padding-block: 4.5rem;
 }
 
-.project-hero.teal { --accent: var(--teal); }
+.project-hero.fury { --accent: var(--fury); }
 .project-hero.gold { --accent: var(--gold); }
 
 .back-link {

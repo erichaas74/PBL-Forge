@@ -24,7 +24,7 @@
   height: 3rem;
   place-items: center;
   border-radius: 50%;
-  background: #725a91;
+  background: var(--rune);
   color: white;
   font-weight: 900;
 }
@@ -67,7 +67,7 @@ h1 {
 }
 
 h1 em {
-  color: var(--coral);
+  color: var(--ember);
   font-style: normal;
 }
 
@@ -86,8 +86,8 @@ h1 em {
   width: 0.7rem;
   height: 0.7rem;
   border-radius: 50%;
-  background: var(--teal);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--teal) 18%, transparent);
+  background: var(--fury);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--fury) 18%, transparent);
 }
 
 .studio-header strong,
@@ -161,10 +161,10 @@ h2 {
   width: 0.55rem;
   height: 2.8rem;
   border-radius: 999px;
-  background: var(--coral);
+  background: var(--ember);
 }
 
-.accent.teal { background: var(--teal); }
+.accent.fury { background: var(--fury); }
 .accent.gold { background: var(--gold); }
 
 .project-list strong,
@@ -185,7 +185,7 @@ h2 {
 .published {
   padding: 0.3rem 0.55rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--teal) 18%, white);
+  background: color-mix(in srgb, var(--fury) 18%, white);
   color: #176a59;
   font-size: 0.65rem;
   font-weight: 800;
@@ -205,7 +205,7 @@ h2 {
 }
 
 .launch-panel > p {
-  color: var(--teal);
+  color: var(--fury);
 }
 
 .launch-panel ol {
@@ -235,8 +235,8 @@ h2 {
 }
 
 .launch-panel li.done > span {
-  border-color: var(--teal);
-  background: var(--teal);
+  border-color: var(--fury);
+  background: var(--fury);
   color: var(--ink);
 }
 

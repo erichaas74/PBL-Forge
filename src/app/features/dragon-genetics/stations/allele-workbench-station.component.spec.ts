@@ -1,231 +1,244 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { DragonVisualBridge, DragonVisualStageEvent } from '../../../shared/dragon-visuals';
-import {
-  AlleleWorkbenchMode,
-} from '../simulation/domain/allele-workbench.models';
+import { AlleleWorkbenchMode } from '../simulation/domain/allele-workbench.models';
 import { AlleleWorkbenchStationComponent } from './allele-workbench-station.component';
 
 describe('AlleleWorkbenchStationComponent', () => {
   for (const mode of ['learn', 'practice', 'official', 'reteach'] as const) {
-    it(`saves a complete laboratory investigation in ${mode} mode`, () => {
+    it(`saves a confirmed gene notebook record in ${mode} mode`, () => {
       const fixture = createFixture(mode);
       const component = fixture.componentInstance;
       const saved = jasmine.createSpy('saved');
       component.evidenceSaved.subscribe(saved);
 
-      completeInvestigation(component);
+      completeActiveInvestigation(component);
 
       expect(saved).toHaveBeenCalled();
-      const record = saved.calls.mostRecent().args[0];
-      expect(record).toEqual(jasmine.objectContaining({
+      expect(saved.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
         sampleCode: 'EX-W-104',
         focusGeneId: 'W',
-        chromosomeNumber: 5,
         workingAlleles: ['W', 'w'],
-        constructionCorrect: true,
-        predictionCorrect: true,
         genotypeClassId: 'heterozygous',
-        carrierState: true,
-        interpretedRecessiveRetained: true,
-        interpretationCorrect: true,
-        evidenceCorrect: true,
-        sampleSelectionCorrect: true,
-        geneLocationCorrect: true,
+        predictedPhenotypeId: 'dominant',
+        dominantAlleleSymbol: 'W',
+        dominantPhenotype: 'Winged',
+        recessiveAlleleSymbol: 'w',
+        recessivePhenotype: 'Wingless',
+        confirmedBy: 'Team Wyvern',
+        confirmed: true,
       }));
-      expect(record.machineActions).toContain('sample-chamber-locked');
-      expect(record.machineActions).toContain('gene-location-locked:W');
       fixture.destroy();
     });
   }
 
-  it('reports a vial mismatch and requires ejection before another sample can load', () => {
-    const fixture = createFixture('practice');
-    const component = fixture.componentInstance;
-    const wrongVial = component.vials().find(vial => vial.code !== component.activeTask().sampleCode)!;
-
-    send(component, 'specimen-selected', wrongVial.code, 'select');
-    send(component, 'hotspot-selected', 'sample-chamber', 'load');
-
-    expect(component.loadedVialCode()).toBe(wrongVial.code);
-    expect(component.chamberLocked()).toBeFalse();
-    expect(component.feedback()?.headline).toBe('Sample identifier mismatch.');
-    expect(component.feedback()?.detail).toContain(component.activeTask().sampleCode);
-
-    send(component, 'hotspot-selected', 'sample-lock', 'lock');
-    expect(component.chamberLocked()).toBeFalse();
-    send(component, 'hotspot-selected', 'sample-chamber', 'eject');
-    expect(component.loadedVialCode()).toBeNull();
-    expect(component.currentObserveStep()).toBe('select-sample');
-    fixture.destroy();
-  });
-
-  it('keeps the chromosome stage offline until the correct chamber is locked', () => {
-    const fixture = createFixture('practice');
-    const component = fixture.componentInstance;
-    expect(component.centeredGeneId()).toBe('C');
-
-    send(component, 'hotspot-selected', 'chromosome-stage', 'next');
-    expect(component.centeredGeneId()).toBe('C');
-
-    loadAndLockAssignedSample(component);
-    send(component, 'hotspot-selected', 'chromosome-stage', 'next');
-    expect(component.centeredGeneId()).toBe('F');
-    fixture.destroy();
-  });
-
-  it('does not unlock allele cartridges until the requested gene is centered and locked', () => {
+  it('starts with an unknown reference key and reveals it only after discovery is confirmed', () => {
     const fixture = createFixture('learn');
     const component = fixture.componentInstance;
-    loadAndLockAssignedSample(component);
 
-    send(component, 'hotspot-selected', 'gene-locator', 'lock');
-    expect(component.geneLocationLocked()).toBeFalse();
-    expect(component.feedback()?.headline).toContain('does not match');
+    expect(component.step()).toBe('reference');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Phenotype A');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Reference confirmed');
 
-    locateAssignedGene(component);
-    expect(component.geneLocationLocked()).toBeTrue();
-    expect(component.scene().phase).toBe('manipulate');
-    expect(component.scene().instrument.kind).toBe('allele-switchboard');
+    confirmReference(component);
+    fixture.detectChanges();
+
+    expect(component.step()).toBe('samples');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Reference confirmed');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('W allele');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Winged');
     fixture.destroy();
   });
 
-  it('requires both sockets and required predictions before the analyzer can run', () => {
+  it('renders reusable SVG patterns in a label-neutral draggable allele bank', () => {
+    const fixture = createFixture('learn');
+    const host = fixture.nativeElement as HTMLElement;
+    const bank = host.querySelector<HTMLElement>('.allele-bank')!;
+    const options = bank.querySelectorAll<HTMLElement>('.draggable-item');
+
+    expect(host.querySelector('#allele-pattern-a')).toBeTruthy();
+    expect(host.querySelector('#allele-pattern-b')).toBeTruthy();
+    expect(options.length).toBe(2);
+    expect(Array.from(options).every(option => option.draggable)).toBeTrue();
+    expect(bank.textContent).not.toContain('Dominant');
+    expect(bank.textContent).not.toContain('Recessive');
+    expect(bank.textContent).not.toContain('(W)');
+    fixture.destroy();
+  });
+
+  it('supports select-and-place as an accessible alternative to drag and drop', () => {
+    const fixture = createFixture('learn');
+    const component = fixture.componentInstance;
+
+    component.selectReferencePattern('allele-pattern-a');
+    component.placeSelectedReferencePattern(0);
+    component.selectReferencePattern('allele-pattern-b');
+    component.placeSelectedReferencePattern(1);
+
+    expect(component.referenceDrops()).toEqual(['allele-pattern-a', 'allele-pattern-b']);
+    expect(component.referenceReady()).toBeFalse();
+    fixture.destroy();
+  });
+
+  it('requires a mixed-pair expression test before dominance deductions unlock', () => {
+    const fixture = createFixture('learn');
+    const component = fixture.componentInstance;
+    const host = fixture.nativeElement as HTMLElement;
+    const deductionButtons = host.querySelectorAll<HTMLButtonElement>('.question-group button');
+
+    expect(Array.from(deductionButtons).every(button => button.disabled)).toBeTrue();
+    expect(component.mixedPairTested()).toBeFalse();
+
+    testMixedPair(component);
+    fixture.detectChanges();
+
+    expect(component.expressionTestResult()).toBe('allele-pattern-a');
+    expect(component.expressionTestPhenotype()).toBe('Winged');
+    expect(component.mixedPairTested()).toBeTrue();
+    expect(Array.from(deductionButtons).every(button => button.disabled)).toBeFalse();
+    fixture.destroy();
+  });
+
+  it('does not confirm an incorrect reference relationship', () => {
+    const fixture = createFixture('learn');
+    const component = fixture.componentInstance;
+    component.selectReferencePattern('allele-pattern-b');
+    component.placeSelectedReferencePattern(0);
+    component.selectReferencePattern('allele-pattern-a');
+    component.placeSelectedReferencePattern(1);
+    testMixedPair(component);
+    component.selectReferenceExpression('a', 'recessive');
+    component.selectReferenceExpression('b', 'dominant');
+    component.checkReference();
+
+    expect(component.step()).toBe('reference');
+    expect(component.feedback()?.tone).toBe('warn');
+    fixture.destroy();
+  });
+
+  it('requires both allele samples to match their reference fingerprints', () => {
     const fixture = createFixture('practice');
     const component = fixture.componentInstance;
-    prepareCartridgeBay(component);
+    confirmReference(component);
     const task = component.activeTask();
 
-    send(component, 'allele-moved', 'allele-slot-a', task.requestedAlleles[0]);
-    send(component, 'allele-moved', 'allele-slot-b', task.requestedAlleles[1]);
-    component.runPrimaryAction();
-    expect(component.scene().phase).toBe('manipulate');
-    expect(component.feedback()?.headline).toContain('Both allele sockets');
+    component.selectSampleAllele(0, task.requestedAlleles[1]);
+    component.selectSampleAllele(1, task.requestedAlleles[0]);
+    component.checkSamples();
 
-    secureBothSockets(component);
-    component.runPrimaryAction();
-    expect(component.scene().phase).toBe('predict');
-    expect(component.primaryAction().disabled).toBeTrue();
+    expect(component.step()).toBe('samples');
+    expect(component.feedback()?.headline).toContain('another look');
 
-    send(component, 'prediction-locked', 'phenotype-readout', task.correctPrediction);
-    expect(component.primaryAction().disabled).toBeTrue();
-    send(component, 'prediction-locked', 'recessive-prediction', 'yes');
-    expect(component.primaryAction().disabled).toBeFalse();
+    identifySamples(component);
+    expect(component.step()).toBe('analyze');
     fixture.destroy();
   });
 
-  it('requires interpretation before evidence and evidence before saving', () => {
-    const fixture = createFixture('practice');
+  it('keeps the outcome hidden until all comparison reasoning is correct', () => {
+    const fixture = createFixture('learn');
     const component = fixture.componentInstance;
-    reachInterpretation(component);
-    const saved = jasmine.createSpy('saved');
-    component.evidenceSaved.subscribe(saved);
+    confirmReference(component);
+    identifySamples(component);
 
-    send(component, 'evidence-pinned', component.activeTask().evidenceId, component.activeTask().evidenceId);
-    expect(component.currentEvidence()).toBe('Not pinned');
-    expect(component.primaryAction().disabled).toBeTrue();
+    component.selectAnalysis('comparison', 'same');
+    component.selectAnalysis('genotypeType', 'homozygous');
+    component.selectAnalysis('combination', 'two-recessive');
+    component.selectAnalysis('phenotype', 'recessive');
+    component.checkAnalysis();
 
-    send(component, 'hotspot-selected', 'genotype-interpretation', 'heterozygous');
-    send(component, 'hotspot-selected', 'recessive-interpretation', 'yes');
-    component.runPrimaryAction();
-    expect(component.primaryAction().kind).toBe('save');
-    expect(component.primaryAction().disabled).toBeTrue();
+    expect(component.step()).toBe('analyze');
+    expect(component.feedback()?.tone).toBe('warn');
 
-    send(component, 'evidence-pinned', component.activeTask().evidenceId, component.activeTask().evidenceId);
-    component.runPrimaryAction();
-    expect(saved).toHaveBeenCalled();
+    analyzePair(component);
+    expect(component.step()).toBe('reveal');
+    expect(component.activePhenotypeLabel()).toBe('Winged');
     fixture.destroy();
   });
 
-  it('keeps correctness feedback hidden during an official investigation', () => {
-    const fixture = createFixture('official');
+  it('requires a student or team name before saving a confirmed record', () => {
+    const fixture = createFixture('learn');
     const component = fixture.componentInstance;
-    reachInterpretation(component);
-    send(component, 'hotspot-selected', 'genotype-interpretation', 'homozygous-dominant');
-    send(component, 'hotspot-selected', 'recessive-interpretation', 'no');
-    component.runPrimaryAction();
+    reachNotebook(component);
 
-    expect(component.feedback()?.tone).toBe('neutral');
-    expect(component.feedback()?.headline).toBe('Interpretation locked.');
+    expect(component.notebookReady()).toBeFalse();
+    component.saveRecord();
+    expect(component.records().length).toBe(0);
+
+    setTeamName(component, 'Evidence Crew');
+    component.saveRecord();
+    expect(component.records()[0].confirmedBy).toBe('Evidence Crew');
+    fixture.destroy();
+  });
+
+  it('builds a four-gene breeding reference notebook', () => {
+    const fixture = createFixture('learn');
+    const component = fixture.componentInstance;
+    const completed = jasmine.createSpy('completed');
+    component.setCompleted.subscribe(completed);
+
+    while (component.step() !== 'review') completeActiveInvestigation(component);
+
+    expect(component.records().length).toBe(4);
+    expect(component.records().map(record => record.focusGeneId)).toEqual(['W', 'F', 'H', 'S']);
+    expect(completed).toHaveBeenCalledWith(jasmine.objectContaining({ correct: 4, total: 4 }));
     fixture.destroy();
   });
 });
 
-function completeInvestigation(component: AlleleWorkbenchStationComponent): void {
-  reachInterpretation(component);
+function completeActiveInvestigation(component: AlleleWorkbenchStationComponent): void {
+  reachNotebook(component);
+  setTeamName(component, 'Team Wyvern');
+  component.saveRecord();
+}
+
+function reachNotebook(component: AlleleWorkbenchStationComponent): void {
+  confirmReference(component);
+  identifySamples(component);
+  analyzePair(component);
+  component.openNotebook();
+}
+
+function confirmReference(component: AlleleWorkbenchStationComponent): void {
+  component.selectReferencePattern('allele-pattern-a');
+  component.placeSelectedReferencePattern(0);
+  component.selectReferencePattern('allele-pattern-b');
+  component.placeSelectedReferencePattern(1);
+  testMixedPair(component);
+  component.selectReferenceExpression('a', 'dominant');
+  component.selectReferenceExpression('b', 'recessive');
+  component.checkReference();
+}
+
+function testMixedPair(component: AlleleWorkbenchStationComponent): void {
+  component.selectReferencePattern('allele-pattern-a');
+  component.placeSelectedExpressionTestAllele(0);
+  component.selectReferencePattern('allele-pattern-b');
+  component.placeSelectedExpressionTestAllele(1);
+  component.runExpressionTest();
+}
+
+function identifySamples(component: AlleleWorkbenchStationComponent): void {
   const task = component.activeTask();
-  send(component, 'hotspot-selected', 'genotype-interpretation', task.correctGenotypeClass);
-  send(component, 'hotspot-selected', 'recessive-interpretation',
-    task.requestedAlleles.some(allele => allele === allele.toLowerCase()) ? 'yes' : 'no');
-  component.runPrimaryAction();
-  send(component, 'evidence-pinned', task.evidenceId, task.evidenceId);
-  component.runPrimaryAction();
+  component.selectSampleAllele(0, task.requestedAlleles[0]);
+  component.selectSampleAllele(1, task.requestedAlleles[1]);
+  component.checkSamples();
 }
 
-function reachInterpretation(component: AlleleWorkbenchStationComponent): void {
-  prepareCartridgeBay(component);
-  const task = component.activeTask();
-  send(component, 'allele-moved', 'allele-slot-a', task.requestedAlleles[0]);
-  send(component, 'allele-moved', 'allele-slot-b', task.requestedAlleles[1]);
-  secureBothSockets(component);
-  component.runPrimaryAction();
-  send(component, 'prediction-locked', 'phenotype-readout', task.correctPrediction);
-  if (task.correctGenotypeClass === 'heterozygous') {
-    send(component, 'prediction-locked', 'recessive-prediction', 'yes');
-  }
-  component.runPrimaryAction();
-  send(component, 'reveal-requested', 'expression-path', true);
-  component.runPrimaryAction();
-  expect(component.scene().phase).toBe('explain');
+function analyzePair(component: AlleleWorkbenchStationComponent): void {
+  component.selectAnalysis('comparison', component.sampleComparison());
+  component.selectAnalysis('genotypeType', component.genotypeType());
+  component.selectAnalysis('combination', component.alleleCombination());
+  component.selectAnalysis('phenotype', component.actualPrediction());
+  component.checkAnalysis();
 }
 
-function prepareCartridgeBay(component: AlleleWorkbenchStationComponent): void {
-  loadAndLockAssignedSample(component);
-  locateAssignedGene(component);
-}
-
-function loadAndLockAssignedSample(component: AlleleWorkbenchStationComponent): void {
-  const task = component.activeTask();
-  send(component, 'specimen-selected', task.sampleCode, 'select');
-  send(component, 'hotspot-selected', 'sample-chamber', 'load');
-  send(component, 'hotspot-selected', 'sample-lock', 'lock');
-}
-
-function locateAssignedGene(component: AlleleWorkbenchStationComponent): void {
-  const task = component.activeTask();
-  for (let index = 0; index < task.nearbyGeneIds.length && component.centeredGeneId() !== task.targetGeneId; index += 1) {
-    send(component, 'hotspot-selected', 'chromosome-stage', 'next');
-  }
-  send(component, 'hotspot-selected', 'gene-locator', 'lock');
-}
-
-function secureBothSockets(component: AlleleWorkbenchStationComponent): void {
-  send(component, 'hotspot-selected', 'socket-lock-a', 'secure');
-  send(component, 'hotspot-selected', 'socket-lock-b', 'secure');
+function setTeamName(component: AlleleWorkbenchStationComponent, value: string): void {
+  component.updateTeamName({ target: { value } } as unknown as Event);
 }
 
 function createFixture(mode: AlleleWorkbenchMode): ComponentFixture<AlleleWorkbenchStationComponent> {
-  TestBed.configureTestingModule({
-    imports: [AlleleWorkbenchStationComponent],
-    providers: [DragonVisualBridge],
-  });
+  TestBed.configureTestingModule({ imports: [AlleleWorkbenchStationComponent] });
   const fixture = TestBed.createComponent(AlleleWorkbenchStationComponent);
   fixture.componentRef.setInput('mode', mode);
   fixture.componentRef.setInput('seed', `test-${mode}`);
   fixture.detectChanges();
   return fixture;
-}
-
-function send(
-  component: AlleleWorkbenchStationComponent,
-  type: DragonVisualStageEvent['type'],
-  targetId: string,
-  value?: string | boolean,
-): void {
-  component.onStageEvent({
-    sceneId: 'test',
-    type,
-    targetId,
-    value,
-    occurredAtIso: '2026-08-03T00:00:00.000Z',
-  });
 }

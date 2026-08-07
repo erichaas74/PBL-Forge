@@ -22,6 +22,7 @@ import {
   AlleleSwitchboardTheme,
 } from './allele-switchboard.theme';
 import { buildAlleleSwitchboardViewModel } from './allele-switchboard.view-model';
+import { ChromosomeSpatialViewComponent } from './chromosome-spatial-view.component';
 
 const PHASE_RAIL: readonly { id: DragonVisualPhase; label: string }[] = [
   { id: 'observe', label: 'Intake' },
@@ -40,6 +41,7 @@ export interface AlleleSwitchboardFeedback {
 
 @Component({
   selector: 'app-allele-switchboard-display',
+  imports: [ChromosomeSpatialViewComponent],
   templateUrl: './allele-switchboard-display.component.html',
   styleUrl: './allele-switchboard-display.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -139,6 +141,20 @@ export class AlleleSwitchboardDisplayComponent {
     this.emit('hotspot-selected', this.model()?.targets.chromosomeStage ?? 'chromosome-stage', direction);
   }
 
+  selectSpatialLocus(position: number): void {
+    const model = this.model();
+    if (!model || model.observeStep !== 'locate-gene' || model.geneLocationLocked) return;
+    let current = Math.max(0, model.loci.findIndex(locus => locus.centered));
+    while (current < position) {
+      this.moveStage('next');
+      current += 1;
+    }
+    while (current > position) {
+      this.moveStage('previous');
+      current -= 1;
+    }
+  }
+
   lockGene(): void {
     if (this.model()?.observeStep !== 'locate-gene' || this.model()?.geneLocationLocked) return;
     this.emit('hotspot-selected', this.model()?.targets.geneLocator ?? 'gene-locator', 'lock');
@@ -166,6 +182,15 @@ export class AlleleSwitchboardDisplayComponent {
   placeAllele(slot: 'allele-slot-a' | 'allele-slot-b'): void {
     const symbol = this.selectedAllele();
     if (!symbol || !this.model()?.slotEnabled) return;
+    this.emit('allele-moved', slot, symbol);
+    this.selectedAlleleState.set(null);
+  }
+
+  setAllele(
+    slot: 'allele-slot-a' | 'allele-slot-b',
+    symbol: string,
+  ): void {
+    if (!this.model()?.slotEnabled) return;
     this.emit('allele-moved', slot, symbol);
     this.selectedAlleleState.set(null);
   }

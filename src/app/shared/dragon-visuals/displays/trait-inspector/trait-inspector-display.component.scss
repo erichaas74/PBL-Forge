@@ -10,9 +10,9 @@
 
 .station-idle {
   padding: 2rem;
-  border: 1px dashed #aca38f;
+  border: 1px dashed var(--line);
   border-radius: .9rem;
-  color: #68736f;
+  color: var(--muted);
   text-align: center;
 }
 

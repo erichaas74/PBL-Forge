@@ -37,9 +37,9 @@
   display: grid;
   gap: 0.7rem;
   padding: 1rem;
-  border: 1px solid #d5dfec;
+  border: 1px solid var(--line);
   border-radius: 0.9rem;
-  background: #f4f7fc;
+  background: var(--surface-raised);
 }
 
 .bench-page__genes {
@@ -53,9 +53,9 @@
   gap: 0.4rem;
   margin: 0;
   padding: 0.6rem 0.7rem;
-  border: 1px solid #d5dfec;
+  border: 1px solid var(--line);
   border-radius: 0.6rem;
-  background: #ffffff;
+  background: var(--surface-raised);
 }
 
 .gene__name {
@@ -72,28 +72,28 @@
 .gene__choice {
   flex: 1;
   padding: 0.3rem 0.2rem;
-  border: 1px solid #d5dfec;
+  border: 1px solid var(--line);
   border-radius: 0.4rem;
-  background: #ffffff;
+  background: var(--surface-raised);
   font: inherit;
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
 
   &:hover {
-    border-color: #1c5fd0;
+    border-color: var(--sea);
   }
 
   &:focus-visible {
-    outline: 2px solid #1c5fd0;
+    outline: 2px solid var(--sea);
     outline-offset: 2px;
   }
 }
 
 .gene__choice--active {
-  background: #1c5fd0;
-  border-color: #1c5fd0;
-  color: #ffffff;
+  background: var(--sea);
+  border-color: var(--sea);
+  color: var(--surface-raised);
 }
 
 .gene__phenotype {
@@ -111,26 +111,26 @@
 
 @media (prefers-color-scheme: dark) {
   .bench-page__genome {
-    background: #101823;
-    border-color: #2c3a4d;
+    background: var(--slate-deep);
+    border-color: var(--slate);
   }
 
   .gene {
-    background: #16202e;
-    border-color: #2c3a4d;
+    background: var(--slate-deep);
+    border-color: var(--slate);
   }
 
   .gene__choice {
-    background: #16202e;
-    border-color: #2c3a4d;
+    background: var(--slate-deep);
+    border-color: var(--slate);
     color: inherit;
 
-    &:hover { border-color: #7fb0ff; }
+    &:hover { border-color: var(--stone); }
   }
 
   .gene__choice--active {
-    background: #7fb0ff;
-    border-color: #7fb0ff;
+    background: var(--stone);
+    border-color: var(--stone);
     color: #0b1220;
   }
 }

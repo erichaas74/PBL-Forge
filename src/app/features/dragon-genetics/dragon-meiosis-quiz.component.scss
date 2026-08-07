@@ -22,14 +22,14 @@
 .quiz-head p,
 .prediction-question p {
   margin: 0;
-  color: #66716e;
+  color: var(--muted);
   font-size: 0.7rem;
   line-height: 1.5;
 }
 .quiz-head label {
   display: grid;
   gap: 0.3rem;
-  color: #66716e;
+  color: var(--muted);
   font-size: 0.62rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -37,14 +37,14 @@
 .quiz-head select,
 .parent-platform select {
   padding: 0.55rem;
-  border: 1px solid #cfc7b9;
+  border: 1px solid var(--line);
   border-radius: 0.5rem;
   background: white;
   color: #394843;
   font-size: 0.68rem;
 }
 .eyebrow {
-  color: var(--dragon-green, #2e735e);
+  color: var(--dragon-green, var(--moss));
   font-size: 0.61rem;
   font-weight: 850;
   letter-spacing: 0.11em;
@@ -60,7 +60,7 @@
 }
 .gene-selector legend {
   padding-inline: 0.35rem;
-  color: #68736f;
+  color: var(--muted);
   font-size: 0.6rem;
   font-weight: 850;
   text-transform: uppercase;
@@ -83,7 +83,7 @@
   font-weight: 900;
 }
 .gene-selector small {
-  color: #2e735e;
+  color: var(--moss);
   font-size: 0.5rem;
   text-transform: uppercase;
 }
@@ -99,7 +99,7 @@
   padding: 0.8rem;
   border: 1px solid #d5cec0;
   border-radius: 0.8rem;
-  background: #fbfaf6;
+  background: var(--surface-raised);
 }
 .parent-platform > header,
 .parent-platform > p,
@@ -113,7 +113,7 @@
   align-items: center;
 }
 .parent-platform > header span {
-  color: #2e735e;
+  color: var(--moss);
   font-size: 0.58rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -226,11 +226,11 @@
   font-weight: 900;
 }
 .egg-options button.selected {
-  border-color: #725a91;
+  border-color: var(--rune);
   background: #eee5f4;
 }
 .egg-options button.possible {
-  border-color: #3e9575;
+  border-color: var(--moss);
   background: #e9f7f0;
 }
 .egg-options button.impossible {
@@ -352,7 +352,7 @@
   line-height: 1.5;
 }
 .quiz-feedback.good {
-  border-color: #3e9575;
+  border-color: var(--moss);
   background: #edf8f3;
   color: #3c6857;
 }
@@ -369,7 +369,7 @@
 .quiz-actions p {
   flex: 1 1 22rem;
   margin: 0;
-  color: #68736f;
+  color: var(--muted);
   font-size: 0.61rem;
   line-height: 1.45;
 }
@@ -384,8 +384,8 @@
   cursor: pointer;
 }
 .quiz-actions button.primary {
-  border-color: #2e735e;
-  background: #2e735e;
+  border-color: var(--moss);
+  background: var(--moss);
   color: white;
 }
 .quiz-actions button:disabled {

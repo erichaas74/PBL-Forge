@@ -22,7 +22,7 @@ import {
 } from '../../assembly/rendering/three-assembly-mesh.factory';
 import { RenderQuality, resolveRenderQuality } from '../../assembly/rendering/render-quality';
 import {
-  ARENA_STAGE_THEME,
+  BERK_STAGE_THEME,
   StagePostPipeline,
   configureStageRenderer,
   createGradientSkyTexture,
@@ -49,9 +49,83 @@ const TEAM_TINTS: Record<BattleTeam, { emissive: number; intensity: number }> = 
   blue: { emissive: 0x0c1f4a, intensity: 0.22 },
 };
 
+/** Weathered timber, wet stone, rope, iron. Nothing here glows on its own. */
+const BERK_MATERIALS = {
+  timber: 0x6b563c,
+  timberDark: 0x4e3f2c,
+  sandBase: '#c2a878',
+  sandSpeckle: '#8a7350',
+  apron: 0x5c6552,
+  stone: 0x7d8288,
+  chain: 0x2f2a24,
+  emberCore: 0xff7a2b,
+  emberGlow: 0xffb347,
+  seaStack: 0x6d726d,
+} as const;
+
+/**
+ * Shield facings hung on the palisade.
+ *
+ * Four dyes a village could actually make — ochre, woad, oxblood, and bare
+ * limewash — rather than four hues off a colour wheel. Muted enough that the
+ * braziers stay the only saturated thing in frame.
+ */
+const SHIELD_FACINGS = [0x8a6a34, 0x3f5568, 0x7a3a2c, 0xa39a86] as const;
+
+/**
+ * Camera framing.
+ *
+ * A narrow field of view is doing real work here: perspective flattens as it
+ * drops, and flat perspective is what makes animation read as staged rather
+ * than as a first-person game. The rest tracks the fight so a rear-up fills
+ * frame instead of happening in a corner.
+ */
+const CAMERA_FRAMING = {
+  fieldOfView: 35,
+  /** Distance when the combatants are on top of each other. */
+  baseDistance: 12.5,
+  /** Extra distance per unit of separation between the furthest pair. */
+  dollyPerUnit: 1.35,
+  minDistance: 10,
+  maxDistance: 26,
+  /** Height the camera aims at, above the midpoint's ground position. */
+  targetLift: 1.2,
+  /** Per-frame follow rate. Low enough that a knockback does not whip the view. */
+  smoothing: 0.06,
+} as const;
+
+/** Brazier flicker, in Hz per light, so no two pulse together. */
+const BRAZIER_FLICKER_RATES = [1.7, 2.3, 3.1, 2.7] as const;
+
 interface DragonRenderRig {
   blueprint: AssemblyBlueprint;
   corePartId: string;
+}
+
+interface Brazier {
+  light: THREE.PointLight;
+  ember: THREE.Mesh;
+  baseIntensity: number;
+  rate: number;
+  phase: number;
+}
+
+interface CoreRef {
+  bodyKey: string;
+  /**
+   * Authored standing height of the torso. The blob shadow measures against
+   * this rather than against the floor, because a dragon on its feet is
+   * already more than a metre up and would otherwise render permanently faded.
+   */
+  standingHeight: number;
+}
+
+/** Flame cone plus the light it casts, kept together so both die at once. */
+interface FireEffect {
+  group: THREE.Group;
+  inner: THREE.Mesh;
+  outer: THREE.Mesh;
+  light: THREE.PointLight;
 }
 
 @Injectable()
@@ -71,8 +145,13 @@ export class AssemblyArenaRendererService {
   private readonly partObjects = new Map<string, THREE.Object3D>();
   private readonly lastHealthByBodyKey = new Map<string, number>();
   private readonly flashUntilByBodyKey = new Map<string, number>();
-  private readonly fireConeMeshes = new Map<string, THREE.Mesh>();
+  private readonly fireEffects = new Map<string, FireEffect>();
   private readonly dragonRigs = new Map<string, DragonRenderRig>();
+  private readonly braziers: Brazier[] = [];
+  private readonly contactShadows = new Map<string, THREE.Mesh>();
+  private contactShadowTexture: THREE.CanvasTexture | null = null;
+  /** Core reference per combatant, for camera framing and contact shadows. */
+  private readonly coreRefs = new Map<string, CoreRef>();
 
   mount(host: HTMLElement): void {
     this.dispose();
@@ -80,13 +159,13 @@ export class AssemblyArenaRendererService {
     this.quality = resolveRenderQuality();
 
     const scene = new THREE.Scene();
-    this.skyTexture = createGradientSkyTexture(ARENA_STAGE_THEME);
-    scene.background = this.skyTexture ?? new THREE.Color(ARENA_STAGE_THEME.skyBottom);
+    this.skyTexture = createGradientSkyTexture(BERK_STAGE_THEME);
+    scene.background = this.skyTexture ?? new THREE.Color(BERK_STAGE_THEME.skyBottom);
     this.scene = scene;
 
-    const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 250);
-    camera.position.set(6.7, 5.4, 7.2);
-    camera.lookAt(0, 1, 0);
+    const camera = new THREE.PerspectiveCamera(CAMERA_FRAMING.fieldOfView, 1, 0.1, 250);
+    camera.position.set(9.5, 7.6, 10.2);
+    camera.lookAt(0, CAMERA_FRAMING.targetLift, 0);
     this.camera = camera;
 
     // MSAA only when the post chain (which brings SMAA) is off.
@@ -95,12 +174,12 @@ export class AssemblyArenaRendererService {
     host.appendChild(renderer.domElement);
     this.renderer = renderer;
 
-    this.disposeEnvironmentMap = installStageEnvironment(scene, renderer, ARENA_STAGE_THEME);
+    this.disposeEnvironmentMap = installStageEnvironment(scene, renderer, BERK_STAGE_THEME);
     this.postPipeline = createStagePostPipeline(renderer, scene, camera, this.quality);
 
     this.controls = new OrbitControls(camera, renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.target.set(0, 1, 0);
+    this.controls.target.set(0, CAMERA_FRAMING.targetLift, 0);
 
     this.resize();
 
@@ -121,8 +200,14 @@ export class AssemblyArenaRendererService {
     this.syncArenaEnvironment(state.setup);
     const nextBodyKeys = new Set<string>();
     this.dragonRigs.clear();
+    this.coreRefs.clear();
 
     for (const combatant of state.combatants) {
+      const corePart = combatant.assembly.parts.find(part => part.id === combatant.corePartId);
+      this.coreRefs.set(combatant.id, {
+        bodyKey: getBodyKey(combatant.id, combatant.corePartId),
+        standingHeight: corePart?.position.y ?? 0,
+      });
       if (combatant.controlMode === 'dragon-attack') {
         this.dragonRigs.set(combatant.id, {
           blueprint: combatant.assembly,
@@ -196,6 +281,15 @@ export class AssemblyArenaRendererService {
       if (!scriptedBodyKeys.has(snapshot.bodyKey)) this.applyBodySnapshot(snapshot, statuses);
     }
 
+    const cores: THREE.Vector3[] = [];
+    for (const [combatantId, ref] of this.coreRefs) {
+      const core = snapshotsByBodyKey.get(ref.bodyKey);
+      if (!core) continue;
+      this.updateContactShadow(combatantId, core.position, ref.standingHeight);
+      cores.push(new THREE.Vector3(core.position.x, core.position.y, core.position.z));
+    }
+    this.updateCameraFraming(cores);
+
     this.render();
   }
 
@@ -204,6 +298,7 @@ export class AssemblyArenaRendererService {
       return;
     }
 
+    this.updateBraziers();
     this.controls?.update();
 
     if (this.postPipeline) {
@@ -223,9 +318,11 @@ export class AssemblyArenaRendererService {
 
     this.partObjects.clear();
     this.dragonRigs.clear();
+    this.coreRefs.clear();
     this.lastHealthByBodyKey.clear();
     this.flashUntilByBodyKey.clear();
     this.syncFireCones([]);
+    this.disposeContactShadows();
     this.removeEnvironment();
     this.postPipeline?.dispose();
     this.postPipeline = null;
@@ -245,6 +342,21 @@ export class AssemblyArenaRendererService {
     this.scene = null;
     this.camera = null;
     this.host = null;
+  }
+
+  /**
+   * Blob shadows share one texture, so it is freed here rather than by the
+   * per-mesh disposal that would kill it for every other blob.
+   */
+  private disposeContactShadows(): void {
+    for (const blob of this.contactShadows.values()) {
+      this.scene?.remove(blob);
+      blob.geometry.dispose();
+      if (!Array.isArray(blob.material)) blob.material.dispose();
+    }
+    this.contactShadows.clear();
+    this.contactShadowTexture?.dispose();
+    this.contactShadowTexture = null;
   }
 
   private syncPartObject(bodyKey: string, team: BattleTeam, part: AssemblyPart): void {
@@ -300,7 +412,15 @@ export class AssemblyArenaRendererService {
     });
   }
 
-  /** Additive flame cone shown while a dragon breathes fire; bloom does the rest. */
+  /**
+   * Flame cone shown while a dragon breathes fire.
+   *
+   * Two nested additive cones — a tight white-hot core inside a wider orange
+   * envelope — plus a point light at the muzzle. The light is the part that
+   * matters: having the attack illuminate the sand and the dragon it is aimed
+   * at does more for the shot than any amount of detail in the cone itself,
+   * and on an overcast palette it is the one moment the arena goes warm.
+   */
   private syncFireCones(cones: FireConeSnapshot[]): void {
     if (!this.scene) {
       return;
@@ -308,25 +428,16 @@ export class AssemblyArenaRendererService {
 
     const seen = new Set<string>();
     const up = new THREE.Vector3(0, 1, 0);
+    const seconds = performance.now() / 1000;
 
     for (const cone of cones) {
       seen.add(cone.combatantId);
-      let mesh = this.fireConeMeshes.get(cone.combatantId);
+      let effect = this.fireEffects.get(cone.combatantId);
 
-      if (!mesh) {
-        mesh = new THREE.Mesh(
-          new THREE.ConeGeometry(1.0, 3.2, 14, 1, true),
-          new THREE.MeshBasicMaterial({
-            color: 0xff8c2e,
-            transparent: true,
-            opacity: 0.42,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            side: THREE.DoubleSide,
-          }),
-        );
-        this.fireConeMeshes.set(cone.combatantId, mesh);
-        this.scene.add(mesh);
+      if (!effect) {
+        effect = this.createFireEffect();
+        this.fireEffects.set(cone.combatantId, effect);
+        this.scene.add(effect.group);
       }
 
       const direction = new THREE.Vector3(cone.direction.x, cone.direction.y, cone.direction.z);
@@ -334,24 +445,151 @@ export class AssemblyArenaRendererService {
       direction.normalize();
 
       // Cone tip (+y) points back at the mouth; the base flares away from it.
-      mesh.quaternion.setFromUnitVectors(up, direction.clone().negate());
-      mesh.position.set(
+      effect.group.quaternion.setFromUnitVectors(up, direction.clone().negate());
+      effect.group.position.set(
         cone.origin.x + direction.x * 1.6,
         cone.origin.y + direction.y * 1.6,
         cone.origin.z + direction.z * 1.6,
       );
-      const flicker = 0.9 + Math.random() * 0.2;
-      mesh.scale.set(flicker, 1, flicker);
+
+      // Two rates beating against each other: a single sine reads as a pulse,
+      // which looks mechanical. The core breathes faster than the envelope.
+      const envelope = 0.88 + Math.sin(seconds * 21) * 0.07 + Math.sin(seconds * 13.3) * 0.05;
+      const core = 0.8 + Math.sin(seconds * 31) * 0.12;
+      effect.outer.scale.set(envelope, 1, envelope);
+      effect.inner.scale.set(core, 0.92, core);
+      effect.light.intensity = 26 + Math.sin(seconds * 24) * 8;
     }
 
-    for (const [combatantId, mesh] of Array.from(this.fireConeMeshes.entries())) {
+    for (const [combatantId, effect] of Array.from(this.fireEffects.entries())) {
       if (!seen.has(combatantId)) {
-        this.scene.remove(mesh);
-        mesh.geometry.dispose();
-        if (!Array.isArray(mesh.material)) mesh.material.dispose();
-        this.fireConeMeshes.delete(combatantId);
+        this.scene.remove(effect.group);
+        disposeAssemblyObject(effect.group);
+        this.fireEffects.delete(combatantId);
       }
     }
+  }
+
+  private createFireEffect(): FireEffect {
+    const group = new THREE.Group();
+
+    const outer = new THREE.Mesh(
+      new THREE.ConeGeometry(1.0, 3.2, 16, 1, true),
+      new THREE.MeshBasicMaterial({
+        color: 0xff6a1a,
+        transparent: true,
+        opacity: 0.34,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    group.add(outer);
+
+    const inner = new THREE.Mesh(
+      new THREE.ConeGeometry(0.52, 2.6, 14, 1, true),
+      new THREE.MeshBasicMaterial({
+        color: 0xffd9a0,
+        transparent: true,
+        opacity: 0.55,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    group.add(inner);
+
+    // The group is oriented so local +y is the cone tip, which sits on the
+    // muzzle — so the light belongs there, in local space, and never has to be
+    // repositioned as the dragon turns.
+    const light = new THREE.PointLight(0xff8c3a, 26, 9, 2);
+    light.position.set(0, 1.4, 0);
+    group.add(light);
+
+    return { group, inner, outer, light };
+  }
+
+  /**
+   * Soft blob under each combatant.
+   *
+   * The shadow map already casts a real shadow, but at this scale it is thin
+   * and its contact point is ambiguous — and knowing exactly where a dragon
+   * meets the sand is what sells its weight in stylised animation. The blob
+   * shrinks and fades with height, so a leap reads as a leap.
+   */
+  private updateContactShadow(
+    combatantId: string,
+    position: Vector3Data,
+    standingHeight: number,
+  ): void {
+    if (!this.scene) return;
+
+    let blob = this.contactShadows.get(combatantId);
+    if (!blob) {
+      this.contactShadowTexture ??= createContactShadowTexture();
+      // No canvas, no blob — a flat white quad would be far worse than none.
+      if (!this.contactShadowTexture) return;
+      blob = new THREE.Mesh(
+        new THREE.PlaneGeometry(1, 1),
+        new THREE.MeshBasicMaterial({
+          color: 0x2a2416,
+          map: this.contactShadowTexture,
+          transparent: true,
+          depthWrite: false,
+          opacity: 0.42,
+        }),
+      );
+      blob.rotation.x = -Math.PI / 2;
+      blob.renderOrder = -1;
+      this.contactShadows.set(combatantId, blob);
+      this.scene.add(blob);
+    }
+
+    // Height above the stance, not above the sand: on its feet the blob is
+    // tight and dark, and a leap spreads and fades it.
+    const lift = Math.max(0, position.y - standingHeight);
+    const fade = Math.max(0, 1 - lift / 4);
+    blob.position.set(position.x, 0.02, position.z);
+    const spread = 3.4 + lift * 0.55;
+    blob.scale.set(spread, spread, 1);
+    const material = blob.material as THREE.MeshBasicMaterial;
+    material.opacity = 0.45 * fade * fade;
+    blob.visible = fade > 0.02;
+  }
+
+  /**
+   * Keeps both combatants in frame without taking the camera away from the
+   * viewer: only the orbit *target* and the distance follow the fight, so the
+   * direction someone has dragged the view to is preserved.
+   */
+  private updateCameraFraming(points: THREE.Vector3[]): void {
+    if (!this.camera || !this.controls || points.length === 0) return;
+
+    const center = new THREE.Vector3();
+    for (const point of points) center.add(point);
+    center.divideScalar(points.length);
+    center.y = CAMERA_FRAMING.targetLift;
+
+    let spread = 0;
+    for (const point of points) {
+      spread = Math.max(spread, Math.hypot(point.x - center.x, point.z - center.z));
+    }
+
+    const desired = THREE.MathUtils.clamp(
+      CAMERA_FRAMING.baseDistance + spread * CAMERA_FRAMING.dollyPerUnit,
+      CAMERA_FRAMING.minDistance,
+      CAMERA_FRAMING.maxDistance,
+    );
+
+    const offset = this.camera.position.clone().sub(this.controls.target);
+    const distance = offset.length();
+    if (distance < 1e-4) return;
+
+    offset.multiplyScalar(
+      THREE.MathUtils.lerp(distance, desired, CAMERA_FRAMING.smoothing) / distance,
+    );
+    this.controls.target.lerp(center, CAMERA_FRAMING.smoothing);
+    this.camera.position.copy(this.controls.target).add(offset);
   }
 
   /** Pulse a part's emissive briefly whenever its health drops. */
@@ -372,6 +610,28 @@ export class AssemblyArenaRendererService {
     this.lastHealthByBodyKey.set(bodyKey, status.health);
 
     applyAssemblyHitFlash(object, now < (this.flashUntilByBodyKey.get(bodyKey) ?? 0));
+  }
+
+  /**
+   * Brazier flicker.
+   *
+   * Each fire runs at its own rate with its own phase offset, because four
+   * lights pulsing in step read as one light with a fault rather than as four
+   * fires. The emissive tracks the light so the bloom bloomed by the post chain
+   * breathes with the pool it casts.
+   */
+  private updateBraziers(): void {
+    if (!this.braziers.length) return;
+    const seconds = performance.now() / 1000;
+
+    for (const brazier of this.braziers) {
+      const flicker = 0.82
+        + Math.sin(seconds * brazier.rate + brazier.phase) * 0.12
+        + Math.sin(seconds * brazier.rate * 2.7 + brazier.phase) * 0.06;
+      brazier.light.intensity = brazier.baseIntensity * flicker;
+      const material = brazier.ember.material as THREE.MeshStandardMaterial;
+      material.emissiveIntensity = 3.2 * flicker;
+    }
   }
 
   private syncArenaEnvironment(setup: ArenaSetupConfig): void {
@@ -395,44 +655,81 @@ export class AssemblyArenaRendererService {
     disposeAssemblyObject(this.environmentGroup);
     this.environmentGroup = null;
     this.currentSetupStyleId = null;
+    // The braziers live inside the environment group, so their handles go with it.
+    this.braziers.length = 0;
+  }
+
+  /**
+   * Whether this scenario gets the training-pit props.
+   *
+   * The *lighting* is Berk everywhere — there is only one theme now. What is
+   * conditional is the set dressing, because the same renderer serves car
+   * crash tests and the pinewood derby, and a timber palisade with a chain net
+   * over a downhill race track would be nonsense. Control mode is the honest
+   * signal: it is what actually makes a scenario a dragon fight. Everything
+   * else is a sand yard under the same overcast sky.
+   */
+  private isDragonSetup(setup: ArenaSetupConfig): boolean {
+    return setup.redControlMode === 'dragon-attack' || setup.blueControlMode === 'dragon-attack';
   }
 
   private addArena(group: THREE.Group, setup: ArenaSetupConfig): void {
     const radius = Math.max(setup.floorSize.x, setup.floorSize.z);
+    // The pit is drawn round while physics keeps its rectangular walls. The
+    // ring is inscribed in the floor so a dragon can never reach a stretch of
+    // sand that has no palisade drawn behind it.
+    const pitRadius = Math.min(setup.floorSize.x, setup.floorSize.z) / 2;
+    const pit = this.isDragonSetup(setup);
 
     group.add(createStageLighting(
-      ARENA_STAGE_THEME,
+      BERK_STAGE_THEME,
       { width: setup.floorSize.x, depth: setup.floorSize.z },
       this.quality,
     ));
 
     if (this.scene) {
-      this.scene.fog = new THREE.Fog(ARENA_STAGE_THEME.fogColor, radius * 1.6, radius * 5);
+      this.scene.fog = new THREE.Fog(BERK_STAGE_THEME.fogColor, radius * 1.8, radius * 6);
     }
 
-    const groundTexture = createGroundTexture('#232c3d', '#8fa7c9');
+    const groundTexture = createGroundTexture(
+      BERK_MATERIALS.sandBase,
+      BERK_MATERIALS.sandSpeckle,
+    );
     const floor = new THREE.Mesh(
       new THREE.BoxGeometry(setup.floorSize.x, setup.floorSize.y, setup.floorSize.z),
       new THREE.MeshStandardMaterial({
-        color: groundTexture ? 0xffffff : 0x232c3d,
+        color: groundTexture ? 0xffffff : 0xc2a878,
         map: groundTexture,
-        roughness: 0.88,
-        metalness: 0.05,
+        roughness: 0.95,
+        metalness: 0,
       }),
     );
     floor.position.y = -setup.floorSize.y / 2;
     floor.receiveShadow = true;
     group.add(floor);
 
-    // Wide apron under the arena so the fog has something to fade over.
+    // Wide apron of turf under the arena so the fog has something to fade over.
     const apron = new THREE.Mesh(
       new THREE.CircleGeometry(radius * 3.2, 48),
-      new THREE.MeshStandardMaterial({ color: 0x1b2333, roughness: 1, metalness: 0 }),
+      new THREE.MeshStandardMaterial({
+        color: BERK_MATERIALS.apron,
+        roughness: 1,
+        metalness: 0,
+      }),
     );
     apron.rotation.x = -Math.PI / 2;
     apron.position.y = -setup.floorSize.y - 0.01;
     apron.receiveShadow = true;
     group.add(apron);
+
+    if (pit) {
+      this.addPalisade(group, pitRadius, setup.wallHeight);
+      this.addKillRingGallery(group, pitRadius, setup.wallHeight);
+      this.addPalisadeShields(group, pitRadius, setup.wallHeight);
+      this.addChainDome(group, pitRadius, setup.wallHeight);
+      this.addBraziers(group, pitRadius, setup.wallHeight);
+      this.addSeaStacks(group, radius);
+    }
 
     const wallThickness = 0.24;
     const wallY = setup.wallHeight / 2;
@@ -452,28 +749,340 @@ export class AssemblyArenaRendererService {
     }
   }
 
+  /**
+   * Ring of upright timber around the pit.
+   *
+   * One `InstancedMesh` for the whole palisade: 64 individually-transformed
+   * posts would otherwise be 64 draw calls for scenery nobody looks at
+   * directly. The per-post jitter is what stops it reading as a fence extruded
+   * by a machine — real posts are cut by hand and driven to uneven depths.
+   */
+  private addPalisade(group: THREE.Group, pitRadius: number, wallHeight: number): void {
+    const postCount = 64;
+    const postHeight = wallHeight * 1.7;
+    const posts = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.16, 0.19, postHeight, 7),
+      new THREE.MeshStandardMaterial({ color: BERK_MATERIALS.timber, roughness: 0.92, metalness: 0 }),
+      postCount,
+    );
+    posts.castShadow = true;
+    posts.receiveShadow = true;
+
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    const euler = new THREE.Euler();
+
+    for (let index = 0; index < postCount; index += 1) {
+      const angle = (index / postCount) * Math.PI * 2;
+      // Deterministic jitter: a seeded wobble rather than Math.random, so the
+      // arena looks the same every time a match is rebuilt.
+      const wobble = Math.sin(index * 12.9898) * 0.5 + Math.sin(index * 4.1414) * 0.5;
+      const heightScale = 0.82 + Math.abs(wobble) * 0.34;
+      position.set(
+        Math.cos(angle) * (pitRadius + 0.22 + wobble * 0.05),
+        (postHeight * heightScale) / 2 - 0.25,
+        Math.sin(angle) * (pitRadius + 0.22 + wobble * 0.05),
+      );
+      euler.set(wobble * 0.05, -angle, wobble * 0.045);
+      quaternion.setFromEuler(euler);
+      scale.set(1, heightScale, 1);
+      posts.setMatrixAt(index, matrix.compose(position, quaternion, scale));
+    }
+
+    posts.instanceMatrix.needsUpdate = true;
+    group.add(posts);
+
+    // Rope banding at two heights, tying the posts into one wall.
+    for (const height of [wallHeight * 0.45, wallHeight * 1.15]) {
+      const band = new THREE.Mesh(
+        new THREE.TorusGeometry(pitRadius + 0.24, 0.05, 6, 64),
+        new THREE.MeshStandardMaterial({ color: BERK_MATERIALS.timberDark, roughness: 1, metalness: 0 }),
+      );
+      band.rotation.x = Math.PI / 2;
+      band.position.y = height;
+      group.add(band);
+    }
+  }
+
+  /**
+   * The viewing gallery ringing the pit.
+   *
+   * Deliberately thin. A solid grandstand at this camera height would wall the
+   * fight off on any low orbit, and what actually reads as a dragon-training
+   * ring from outside is the band of uprights against the sky, not the seating
+   * behind them. A narrow deck, a fascia so it is not a floating disc when the
+   * camera drops below it, and sparse rail posts buy that silhouette in four
+   * draw calls.
+   */
+  private addKillRingGallery(group: THREE.Group, pitRadius: number, wallHeight: number): void {
+    const deckY = wallHeight * 1.7;
+    const innerRadius = pitRadius + 0.55;
+    const outerRadius = pitRadius + 2.1;
+    const railHeight = 0.62;
+
+    const timber = new THREE.MeshStandardMaterial({
+      color: BERK_MATERIALS.timber,
+      roughness: 0.94,
+      metalness: 0,
+    });
+    const timberDark = new THREE.MeshStandardMaterial({
+      color: BERK_MATERIALS.timberDark,
+      roughness: 1,
+      metalness: 0,
+      side: THREE.DoubleSide,
+    });
+
+    const deck = new THREE.Mesh(new THREE.RingGeometry(innerRadius, outerRadius, 44), timber);
+    deck.rotation.x = -Math.PI / 2;
+    deck.position.y = deckY;
+    deck.receiveShadow = true;
+    group.add(deck);
+
+    const fascia = new THREE.Mesh(
+      new THREE.CylinderGeometry(outerRadius, outerRadius, 0.36, 44, 1, true),
+      timberDark,
+    );
+    fascia.position.y = deckY - 0.18;
+    group.add(fascia);
+
+    const postCount = 30;
+    const posts = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.07, 0.08, railHeight, 5),
+      timber,
+      postCount,
+    );
+    posts.castShadow = true;
+
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const scale = new THREE.Vector3(1, 1, 1);
+    const identity = new THREE.Quaternion();
+
+    for (let index = 0; index < postCount; index += 1) {
+      const angle = (index / postCount) * Math.PI * 2;
+      position.set(
+        Math.cos(angle) * innerRadius,
+        deckY + railHeight / 2,
+        Math.sin(angle) * innerRadius,
+      );
+      posts.setMatrixAt(index, matrix.compose(position, identity, scale));
+    }
+
+    posts.instanceMatrix.needsUpdate = true;
+    group.add(posts);
+
+    const rail = new THREE.Mesh(
+      new THREE.TorusGeometry(innerRadius, 0.055, 6, 44),
+      timberDark,
+    );
+    rail.rotation.x = Math.PI / 2;
+    rail.position.y = deckY + railHeight;
+    group.add(rail);
+  }
+
+  /**
+   * Round shields hung on the inner face of the palisade.
+   *
+   * The cheapest thing in the scene that says people live here rather than that
+   * the pit was extruded by a machine. Instanced with a per-shield facing from
+   * {@link SHIELD_FACINGS}, hung at uneven heights, and turned to face the
+   * centre of the pit — which is where the camera always is.
+   */
+  private addPalisadeShields(group: THREE.Group, pitRadius: number, wallHeight: number): void {
+    const shieldCount = 9;
+    const shields = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.34, 0.34, 0.07, 12),
+      new THREE.MeshStandardMaterial({ roughness: 0.82, metalness: 0.06 }),
+      shieldCount,
+    );
+    shields.castShadow = true;
+
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3(1, 1, 1);
+    const up = new THREE.Vector3(0, 1, 0);
+    const facing = new THREE.Vector3();
+    const colour = new THREE.Color();
+
+    for (let index = 0; index < shieldCount; index += 1) {
+      const wobble = Math.sin(index * 12.9898) * 0.5 + Math.sin(index * 4.1414) * 0.5;
+      // Even spacing nudged off the ring, so the shields do not line up with
+      // the 64 palisade posts behind them at a regular interval.
+      const angle = (index / shieldCount) * Math.PI * 2 + 0.31 + wobble * 0.12;
+      position.set(
+        Math.cos(angle) * (pitRadius + 0.02),
+        wallHeight * (0.75 + wobble * 0.28),
+        Math.sin(angle) * (pitRadius + 0.02),
+      );
+      // The disc's local +y becomes the inward normal, so the face looks at the
+      // middle of the pit rather than at the sky.
+      facing.set(-Math.cos(angle), 0, -Math.sin(angle));
+      quaternion.setFromUnitVectors(up, facing);
+      shields.setMatrixAt(index, matrix.compose(position, quaternion, scale));
+      shields.setColorAt(index, colour.setHex(SHIELD_FACINGS[index % SHIELD_FACINGS.length]));
+    }
+
+    shields.instanceMatrix.needsUpdate = true;
+    if (shields.instanceColor) shields.instanceColor.needsUpdate = true;
+    group.add(shields);
+  }
+
+  /**
+   * Sea stacks on the horizon.
+   *
+   * The pit sits on an island, and without anything past the palisade the sky
+   * meets the turf on a hard line that reads as a studio backdrop rather than
+   * as weather. These are deliberately crude — six-sided flat-shaded cones, no
+   * texture, no shadows — because they stand far enough out that the fog has
+   * eaten everything but the silhouette by the time they reach the camera.
+   */
+  private addSeaStacks(group: THREE.Group, radius: number): void {
+    const stackCount = 15;
+    const stacks = new THREE.InstancedMesh(
+      // Unit height: each instance scales this to its own.
+      new THREE.CylinderGeometry(0.22, 1, 1, 6, 1),
+      new THREE.MeshStandardMaterial({
+        color: BERK_MATERIALS.seaStack,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true,
+      }),
+      stackCount,
+    );
+
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    const euler = new THREE.Euler();
+
+    for (let index = 0; index < stackCount; index += 1) {
+      // Same seeded wobble as the palisade: the horizon must not reshuffle
+      // itself every time a match is rebuilt.
+      const wobble = Math.sin(index * 12.9898) * 0.5 + Math.sin(index * 4.1414) * 0.5;
+      const angle = (index / stackCount) * Math.PI * 2 + wobble * 0.16;
+      const distance = radius * (1.85 + Math.abs(wobble) * 0.6);
+      const height = radius * (0.5 + Math.abs(wobble) * 0.72);
+      const width = radius * (0.16 + Math.abs(wobble) * 0.1);
+
+      position.set(Math.cos(angle) * distance, height / 2 - radius * 0.08, Math.sin(angle) * distance);
+      euler.set(wobble * 0.04, angle, wobble * 0.03);
+      quaternion.setFromEuler(euler);
+      scale.set(width, height, width);
+      stacks.setMatrixAt(index, matrix.compose(position, quaternion, scale));
+    }
+
+    stacks.instanceMatrix.needsUpdate = true;
+    group.add(stacks);
+  }
+
+  /**
+   * The chain net over the pit — the training arena's signature silhouette.
+   *
+   * Drawn as a wireframe hemisphere rather than `LineSegments` so that
+   * `disposeAssemblyObject`, which only walks meshes, still frees it. The
+   * triangulated wireframe happens to read as chain link, which is the look
+   * this wants anyway.
+   */
+  private addChainDome(group: THREE.Group, pitRadius: number, wallHeight: number): void {
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(pitRadius + 0.3, 20, 9, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshStandardMaterial({
+        color: BERK_MATERIALS.chain,
+        wireframe: true,
+        roughness: 0.6,
+        metalness: 0.5,
+        transparent: true,
+        opacity: 0.55,
+      }),
+    );
+    dome.position.y = wallHeight * 0.9;
+    group.add(dome);
+  }
+
+  /**
+   * Corner braziers: the only saturated light in the arena.
+   *
+   * Warm pools on an otherwise cool overcast field is the whole point of the
+   * palette — without a fire source the theme reads as a flat grey day rather
+   * than as Berk. Registered on `this.braziers` so `render` can flicker them.
+   */
+  private addBraziers(group: THREE.Group, pitRadius: number, wallHeight: number): void {
+    const postMaterial = new THREE.MeshStandardMaterial({
+      color: BERK_MATERIALS.timberDark,
+      roughness: 0.9,
+      metalness: 0.05,
+    });
+    const emberMaterial = new THREE.MeshStandardMaterial({
+      color: BERK_MATERIALS.emberCore,
+      emissive: BERK_MATERIALS.emberGlow,
+      emissiveIntensity: 3.2,
+      roughness: 0.4,
+    });
+    const bowlHeight = wallHeight * 1.5;
+
+    for (let index = 0; index < 4; index += 1) {
+      const angle = Math.PI / 4 + (index / 4) * Math.PI * 2;
+      const x = Math.cos(angle) * (pitRadius + 0.75);
+      const z = Math.sin(angle) * (pitRadius + 0.75);
+
+      const post = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.11, 0.15, bowlHeight, 6),
+        postMaterial,
+      );
+      post.position.set(x, bowlHeight / 2, z);
+      post.castShadow = true;
+      group.add(post);
+
+      const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.2, 0.26, 8), postMaterial);
+      bowl.position.set(x, bowlHeight + 0.1, z);
+      bowl.castShadow = true;
+      group.add(bowl);
+
+      // Bloom is already in the post chain, so an emissive lump is all the
+      // flame this needs at arena distance.
+      const ember = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), emberMaterial.clone());
+      ember.position.set(x, bowlHeight + 0.28, z);
+      group.add(ember);
+
+      const light = new THREE.PointLight(BERK_MATERIALS.emberGlow, 14, pitRadius * 2.4, 2);
+      light.position.set(x, bowlHeight + 0.45, z);
+      group.add(light);
+
+      this.braziers.push({
+        light,
+        ember,
+        baseIntensity: 14,
+        rate: BRAZIER_FLICKER_RATES[index % BRAZIER_FLICKER_RATES.length],
+        phase: index * 1.7,
+      });
+    }
+  }
+
+  /**
+   * The physics boundary, as mortared stone.
+   *
+   * In the pit the palisade is what the player actually reads as the edge and
+   * this stands behind it; in a car or robot scenario it is the edge on its
+   * own. Either way it is the same wall — the emissive trim that used to run
+   * along the top went with the old theme.
+   */
   private addWallMesh(group: THREE.Group, position: Vector3Data, size: Vector3Data): void {
     const wall = new THREE.Mesh(
       new THREE.BoxGeometry(size.x, size.y, size.z),
-      new THREE.MeshStandardMaterial({ color: 0x3b4a63, roughness: 0.5, metalness: 0.3 }),
+      new THREE.MeshStandardMaterial({
+        color: BERK_MATERIALS.stone,
+        roughness: 0.85,
+        metalness: 0.05,
+      }),
     );
     wall.position.set(position.x, position.y, position.z);
     wall.castShadow = true;
     wall.receiveShadow = true;
     group.add(wall);
-
-    // Emissive trim along the top edge: the bloom pass turns it into arena glow.
-    const trim = new THREE.Mesh(
-      new THREE.BoxGeometry(size.x + 0.02, 0.05, size.z + 0.02),
-      new THREE.MeshStandardMaterial({
-        color: 0x06202a,
-        emissive: 0x22d3ee,
-        emissiveIntensity: 2.2,
-        roughness: 0.4,
-      }),
-    );
-    trim.position.set(position.x, position.y + size.y / 2 + 0.025, position.z);
-    group.add(trim);
   }
 
   private addObstacleMesh(
@@ -513,4 +1122,36 @@ export class AssemblyArenaRendererService {
     this.postPipeline?.setSize(width, height);
     this.render();
   }
+}
+
+/**
+ * Radial falloff for the contact blobs.
+ *
+ * Squared falloff rather than linear: a linear gradient has a visible edge
+ * where it reaches zero, which reads as a disc lying on the sand instead of as
+ * a shadow. Returns null outside a DOM, where the renderer is not running
+ * anyway.
+ */
+function createContactShadowTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+
+  const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  for (let stop = 0; stop <= 10; stop += 1) {
+    const t = stop / 10;
+    gradient.addColorStop(t, `rgba(255,255,255,${(1 - t) * (1 - t)})`);
+  }
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }

@@ -20,7 +20,7 @@
 .lab-head p {
   max-width: 48rem;
   margin: 0;
-  color: #66716e;
+  color: var(--muted);
   font-size: 0.7rem;
   line-height: 1.5;
 }
@@ -29,7 +29,7 @@
   font-size: 0.62rem;
 }
 .eyebrow {
-  color: var(--dragon-green, #2e735e);
+  color: var(--dragon-green, var(--moss));
   font-size: 0.61rem;
   font-weight: 850;
   letter-spacing: 0.11em;
@@ -38,7 +38,7 @@
 .source-note {
   padding: 0.7rem 0.8rem;
   border-left: 4px solid #3a70bd;
-  background: #eef5fb;
+  background: var(--surface-raised);
   color: #425b75 !important;
 }
 .phase-switch {
@@ -60,7 +60,7 @@
   cursor: pointer;
 }
 .phase-switch button.active {
-  background: #1b3041;
+  background: var(--slate);
   color: white;
   box-shadow: 0 4px 12px rgb(27 48 65 / 18%);
 }
@@ -82,10 +82,10 @@
   cursor: pointer;
 }
 .mode-tabs button.active {
-  border-color: #2e735e;
+  border-color: var(--moss);
   background: #e9f6f0;
   color: #235d4b;
-  box-shadow: inset 0 -3px #2e735e;
+  box-shadow: inset 0 -3px var(--moss);
 }
 @media (max-width: 760px) {
   .lab-head {

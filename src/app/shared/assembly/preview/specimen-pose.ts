@@ -53,6 +53,28 @@ export interface SpecimenBend {
   mirrorAcrossZ?: boolean;
 }
 
+/**
+ * A whole-body pitch about the hind contact — the dragon rearing up.
+ *
+ * Bends cannot express this. Every bend rotates the subtree *below* a joint,
+ * and the torso is the root of the tree, so no bend can reach it. Rearing is
+ * the opposite motion: the torso is what moves, and the hind legs are what
+ * stays put. It is therefore a rigid transform of the entire posed rig about a
+ * pivot on the ground, applied after the bends have articulated the limbs.
+ */
+export interface SpecimenRootTilt {
+  /** Positive pitches the nose up, over the hind legs. */
+  radians: number;
+  /** World axis to pitch around. Defaults to +Z (sagittal). */
+  axis?: Vector3Data;
+  /**
+   * Role whose rearmost member the body pivots over. Defaults to `leg`.
+   * A blueprint with no such part pivots about its own rearmost part, which is
+   * the closest thing to a hind contact it has.
+   */
+  pivotRole?: string;
+}
+
 export interface SpecimenPoseOptions {
   /**
    * Resting droop for hanging chains, in radians per link. Authored blueprints
@@ -66,10 +88,14 @@ export interface SpecimenPoseOptions {
   droopAxis?: Vector3Data;
   /** Extra bends layered on top of the droop — used to animate attacks. */
   bends?: readonly SpecimenBend[];
+  /** Whole-body rear-up, applied after the bends. */
+  rootTilt?: SpecimenRootTilt;
 }
 
 const DEFAULT_DROOP_ROLE = 'tail';
 const DEFAULT_DROOP_AXIS: Vector3Data = { x: 0, y: 0, z: 1 };
+const DEFAULT_PIVOT_ROLE = 'leg';
+const DEFAULT_TILT_AXIS: Vector3Data = { x: 0, y: 0, z: 1 };
 
 /** Poses every part of a blueprint for display. */
 export function buildSpecimenPose(
@@ -99,7 +125,52 @@ export function buildSpecimenPose(
     if (bend.radians !== 0) applyBend(blueprint, parts, bend);
   }
 
+  if (options.rootTilt && options.rootTilt.radians !== 0) {
+    applyRootTilt(blueprint, parts, options.rootTilt);
+  }
+
   return { parts: blueprint.parts.map(part => parts.get(part.id)!) };
+}
+
+/**
+ * Pitches the whole rig about its hind contact.
+ *
+ * The pivot is taken at ground level under the rearmost pivot-role part, so
+ * the hind feet stay planted and everything ahead of them swings up — rather
+ * than the body rotating about its own centre, which reads as a dragon
+ * levitating and tipping backwards.
+ */
+function applyRootTilt(
+  blueprint: AssemblyBlueprint,
+  parts: Map<string, SpecimenPosePart>,
+  tilt: SpecimenRootTilt,
+): void {
+  const role = tilt.pivotRole ?? DEFAULT_PIVOT_ROLE;
+  const anchors = blueprint.parts.filter(part => hasRole(part, role));
+  const candidates = anchors.length ? anchors : blueprint.parts;
+  if (!candidates.length) return;
+
+  let pivotX = Infinity;
+  for (const part of candidates) {
+    pivotX = Math.min(pivotX, parts.get(part.id)?.position.x ?? part.position.x);
+  }
+
+  let pivotY = Infinity;
+  for (const part of blueprint.parts) {
+    const pose = parts.get(part.id);
+    if (pose) pivotY = Math.min(pivotY, pose.position.y - halfExtent(part).y);
+  }
+
+  if (!Number.isFinite(pivotX) || !Number.isFinite(pivotY)) return;
+
+  const pivot: Vector3Data = { x: pivotX, y: pivotY, z: 0 };
+  const rotation = quaternionFromAxisAngle(tilt.axis ?? DEFAULT_TILT_AXIS, tilt.radians);
+
+  for (const pose of parts.values()) {
+    const offset = subtractVectors(pose.position, pivot);
+    pose.position = addVectors(pivot, rotateVectorByQuaternion(offset, rotation));
+    pose.rotation = multiplyQuaternions(rotation, pose.rotation);
+  }
 }
 
 function applyBend(

@@ -1,4 +1,4 @@
-<section class="arena-shell" aria-label="Dragon battle arena">
+<section class="arena-shell" [class.compact]="compact()" aria-label="Dragon battle arena">
   <div class="arena-stage">
     <app-arena-viewport [controlFrameFactory]="controlFrameFactory" />
     @if (!arena.state().isRunning && !arena.state().winnerId && playMode() === 'real-time') {
@@ -90,6 +90,13 @@
   </div>
   }
 
+  @if (compact()) {
+    <p class="controls-brief">
+      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Shift</kbd> boost ·
+      <kbd>J</kbd> bite · <kbd>K</kbd> wing · <kbd>L</kbd> tail · <kbd>F</kbd> fire.
+      Gamepads work too. Prefer to plan instead of react? Switch to Turn duel.
+    </p>
+  } @else {
   <div class="controls-guide" aria-label="How the dragon controls work">
     <h3>How to control your dragon</h3>
     <dl>
@@ -104,6 +111,7 @@
     <p>Damage comes from real collisions and landed attacks: an attack that touches the opponent scores a hit even at low speed, and hit parts flash. The first moments after the spawn drop are a safe settling period, then the duel is live. Pause any time.</p>
     <p><strong>Turn duel mode:</strong> no reflexes needed — pick up to three move cards, press Play turn, and watch the physics act them out. Then the Arena Warden takes its turn. Great for planning strategies or sharing one computer.</p>
   </div>
+  }
 
   <p class="arena-note"><strong>Science note:</strong> inherited traits influence the generated body and available moves, but player tactics, collisions, and physics also influence the winner. The battle result is not your genetics mastery grade.</p>
 </section>

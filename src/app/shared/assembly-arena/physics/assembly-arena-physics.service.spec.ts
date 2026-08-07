@@ -204,6 +204,84 @@ describe('AssemblyArenaPhysicsService', () => {
     expect(finish.position.y).toBeGreaterThan(authoredHeight * 0.75);
   });
 
+  it('slides a dragon off an opponent it has been dropped on top of', () => {
+    const asset = createScaledDragonAsset();
+    const setup = getArenaSetup('duel-arena');
+    const core = asset.assembly.parts.find(part => part.id === 'classic-dragon-body')!;
+    const standing = core.position.y;
+    // Stacked: the same spawn point, one torso height apart. This is the pin —
+    // before the mount separation the pair simply stayed like this, because
+    // dragon-attack mode assigns horizontal velocity outright each frame and
+    // discarded whatever separating velocity the contact produced.
+    const bottom = createCombatant(
+      'red-1', asset, 'red', { x: 0, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const top = createCombatant(
+      'blue-1', asset, 'blue', { x: 0, y: core.dimensions.y * 1.2, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const state = createTestState(setup, [bottom, top], 5);
+    const service = new AssemblyArenaPhysicsService();
+    service.rebuild(state);
+
+    const idle = { throttle: 0, steer: 0, strafe: 0, boost: false };
+    for (let frame = 0; frame < 60 * 3; frame += 1) {
+      state.elapsedSeconds = frame / 60;
+      service.step(state, 1 / 60, { 'red-1': idle, 'blue-1': idle });
+    }
+
+    const bottomCore = coreSnapshot(service, bottom);
+    const topCore = coreSnapshot(service, top);
+    const rise = topCore.position.y - bottomCore.position.y;
+    const apart = Math.hypot(
+      topCore.position.x - bottomCore.position.x,
+      topCore.position.z - bottomCore.position.z,
+    );
+
+    expect(rise)
+      .withContext(`still stacked: bottom=${JSON.stringify(bottomCore.position)} top=${JSON.stringify(topCore.position)}`)
+      .toBeLessThan(core.dimensions.y);
+    // Standing beside each other, not on each other. The pair settle just
+    // inside the personal-space floor rather than exactly at it: once the rider
+    // is clear of the back the slide disengages and only the soft crowding push
+    // remains, which tapers to nothing as the overlap closes.
+    expect(apart)
+      .withContext(`bottom=${JSON.stringify(bottomCore.position)} top=${JSON.stringify(topCore.position)}`)
+      .toBeGreaterThan(core.dimensions.z / 2);
+    // Both end the exchange back on their feet rather than one wedged aloft.
+    expect(topCore.position.y).toBeLessThan(standing * 1.6);
+  });
+
+  it('throws a rider off when the dragon underneath boosts', () => {
+    const asset = createScaledDragonAsset();
+    const setup = getArenaSetup('duel-arena');
+    const core = asset.assembly.parts.find(part => part.id === 'classic-dragon-body')!;
+    const bottom = createCombatant(
+      'red-1', asset, 'red', { x: 0, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const top = createCombatant(
+      'blue-1', asset, 'blue', { x: 0, y: core.dimensions.y * 1.2, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const state = createTestState(setup, [bottom, top], 6);
+    const service = new AssemblyArenaPhysicsService();
+    service.rebuild(state);
+
+    const idle = { throttle: 0, steer: 0, strafe: 0, boost: false };
+    let fastestThrow = 0;
+    for (let frame = 0; frame < 30; frame += 1) {
+      state.elapsedSeconds = frame / 60;
+      service.step(state, 1 / 60, {
+        'red-1': { ...idle, boost: true },
+        'blue-1': idle,
+      });
+      const rider = coreSnapshot(service, top);
+      fastestThrow = Math.max(fastestThrow, Math.hypot(rider.velocity.x, rider.velocity.z));
+    }
+
+    // The buck is the carrier's answer to being pinned: without it a rider can
+    // only ever be waited out.
+    expect(fastestThrow).toBeGreaterThan(3);
+  });
+
   it('runs a timed bite pose and hit without requiring limb contact', () => {
     const dragonAsset = createScaledDragonAsset();
     const targetAsset = createTargetAsset();

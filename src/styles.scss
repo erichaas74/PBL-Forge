@@ -1,16 +1,72 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Nunito+Sans:wght@400;500;600;700;800&display=swap');
 
+/**
+ * Berk.
+ *
+ * The whole palette is built from four real materials — bleached parchment,
+ * weathered timber, wet slate, and firelight — and it earns its character by
+ * what it withholds. Surfaces are warm and low-chroma, ink is a cold sea-grey
+ * rather than black, and saturation is spent almost entirely on the ember
+ * accent. That contrast between a cold, overcast field and one warm light is
+ * the whole visual idea, and it matches the arena's 3D stage theme so the
+ * shell and the battle read as one world.
+ *
+ * Every token below is consumed somewhere. The legacy names (`--paper`,
+ * `--ink`, `--muted`, `--line`, `--gold`) are kept deliberately: hundreds of
+ * `var()` references across the feature stylesheets already point at them, so
+ * re-pointing the names is what retheming the app actually consists of. The
+ * two that had no equivalent in the new palette — `--coral` and `--teal` —
+ * are gone, replaced by `--ember` and `--fury`.
+ */
 :root {
-  --paper: #fbfaf6;
-  --surface: #f0eee7;
-  --ink: #11212e;
-  --muted: #61707a;
-  --line: #dcd9cf;
-  --coral: #ff846f;
-  --teal: #4bc2ad;
-  --gold: #f4c95d;
-  --font-display: 'Manrope', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  /* Surfaces: parchment through to a charred panel. */
+  --paper: #f4efe4;
+  --surface: #e8e0d0;
+  --surface-raised: #fdfaf2;
+  --surface-sunken: #ded4c0;
+
+  /* Timber and stone, for panels that want to read as built rather than printed. */
+  --timber: #7a5c3e;
+  --timber-dark: #4b3826;
+  --stone: #8d949b;
+  --slate: #2b3a43;
+  --slate-deep: #1a252c;
+
+  /* Ink: cold sea-grey, never black. */
+  --ink: #1f2a30;
+  --ink-soft: #38474f;
+  --muted: #6d7a80;
+  --on-dark: #f1ece1;
+  --on-dark-muted: #a9b4b8;
+
+  /* Rules and edges. */
+  --line: #cdc2ad;
+  --line-strong: #a89074;
+  --line-dark: #3c4a52;
+
+  /* Accents. Ember is the only high-chroma colour in the system. */
+  --ember: #e2622a;
+  --ember-soft: #f2a15c;
+  --ember-deep: #a83d16;
+  --fury: #86c232;
+  --gold: #d9a441;
+  --sea: #2f6a86;
+
+  /*
+   * Two roles the feature stylesheets already had, now named. `--moss` is the
+   * old "dragon green" call-to-action: deep enough to carry white text, which
+   * `--fury` is not — Night Fury plasma green is a highlight, not a button.
+   * `--rune` is the carved-stone violet used for section eyebrows.
+   */
+  --moss: #4a7a2e;
+  --moss-tint: #e9f1e0;
+  --rune: #6b5a86;
+  --rune-tint: #eeeaf4;
+
+  /* Type. Fraunces is a carved, slightly wonky serif — woodcut, not costume. */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Nunito Sans', system-ui, sans-serif;
+
   color-scheme: light;
   font-family: var(--font-body);
   color: var(--ink);
@@ -31,9 +87,30 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+
+  /*
+   * Overcast light from above with a low fire off to one side, plus a faint
+   * fibre grain so large parchment areas do not read as flat paper. The grain
+   * is a repeating gradient rather than an image so it costs nothing.
+   */
   background:
-    radial-gradient(circle at 10% 18%, rgb(255 132 111 / 10%), transparent 25rem),
-    radial-gradient(circle at 90% 8%, rgb(75 194 173 / 10%), transparent 26rem), var(--paper);
+    repeating-linear-gradient(
+      92deg,
+      rgb(122 92 62 / 2.5%) 0 2px,
+      transparent 2px 5px
+    ),
+    radial-gradient(circle at 12% 88%, rgb(226 98 42 / 9%), transparent 30rem),
+    radial-gradient(circle at 88% 4%, rgb(47 106 134 / 8%), transparent 32rem),
+    var(--paper);
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
 }
 
 button,
@@ -49,7 +126,7 @@ a {
 }
 
 :focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--teal) 75%, var(--ink));
+  outline: 3px solid var(--ember);
   outline-offset: 3px;
 }
 
@@ -88,21 +165,21 @@ a {
   gap: 0.3rem;
   align-content: center;
   padding: 0.8rem;
-  border: 2px solid #bb9d70;
+  border: 2px solid var(--line-strong);
   border-radius: 52% 48% 46% 54% / 61% 61% 39% 39%;
-  background: #f8f0dc;
+  background: var(--surface);
   text-align: center;
 }
 .lab-shell .record-eggs article.supported {
-  border-color: #3e9575;
-  background: #eaf7f1;
+  border-color: var(--moss);
+  background: var(--moss-tint);
 }
 .lab-shell .record-eggs strong {
   font-size: 0.72rem;
 }
 .lab-shell .record-eggs span,
 .lab-shell .record-eggs small {
-  color: #6c756f;
+  color: var(--muted);
   font-size: 0.58rem;
   line-height: 1.35;
 }

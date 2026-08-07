@@ -2,7 +2,32 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { AssemblyPart } from '../domain/assembly.models';
 import { DRAGON_BODY_PROFILE, sampleDragonBodyRadius } from './dragon-body-profile';
+import {
+  DEFAULT_HEAD_SHAPE,
+  DragonHeadShape,
+  HEAD_SHAPE_BY_PROFILE,
+  dragonHeadExtent,
+  dragonHeadEyeSocket,
+  dragonHeadHornMount,
+  dragonHeadNostril,
+  dragonHeadSection,
+  dragonHeadSurfacePoint,
+  headShapeFor,
+} from './dragon-head-profile';
 import { DEFAULT_WING_SHAPE, WingMembraneShape, wingChord, wingLeadingEdge } from './dragon-wing-profile';
+import {
+  HORN_TILE,
+  KERATIN_TILE,
+  SCALE_TILE,
+  applyBoxProjectedUv,
+  applyTiledUv,
+  dragonHornTextures,
+  dragonKeratinTextures,
+  dragonMembraneTextures,
+  dragonPartSeed,
+  dragonScaleTextures,
+  membraneUsesTransmission,
+} from './dragon-textures';
 
 /**
  * Procedural dragon anatomy built from each part's physics dimensions, so the
@@ -15,18 +40,20 @@ import { DEFAULT_WING_SHAPE, WingMembraneShape, wingChord, wingLeadingEdge } fro
  */
 export function createDragonProceduralObject(part: AssemblyPart): THREE.Object3D | null {
   const profileId = part.visualProfile?.profileId ?? '';
-  const palette = createDragonPalette(part.color);
+  const palette = createDragonPalette(part.color, dragonPartSeed(part.id));
   const dims = part.dimensions;
 
   switch (profileId) {
     case 'dragon-body':
       return buildBody(dims, palette);
+    // Heads work in the profile's box terms; a sphere head's dimensions are
+    // radii, so they are converted before anything measures the skull.
     case 'dragon-head-horned':
-      return buildHornedHead(dims.x, palette);
+      return buildHornedHead(dragonHeadExtent(dims, part.shape), palette);
     case 'dragon-head-snout':
-      return buildSnoutHead(dims, palette);
+      return buildSnoutHead(dragonHeadExtent(dims, part.shape), palette);
     case 'dragon-head-armored':
-      return buildArmoredHead(dims, palette);
+      return buildArmoredHead(dragonHeadExtent(dims, part.shape), palette);
     case 'dragon-upper-jaw':
       return buildJaw(dims, palette, 'upper');
     case 'dragon-lower-jaw':
@@ -59,9 +86,14 @@ interface DragonPalette {
   claw: THREE.Color;
   tooth: THREE.Color;
   membrane: THREE.Color;
+  /**
+   * Stable 0..1 value derived from the part id. Shifts texture UVs and nudges
+   * relief depth so four legs off the same builder do not read as four copies.
+   */
+  seed: number;
 }
 
-function createDragonPalette(baseColor: string): DragonPalette {
+function createDragonPalette(baseColor: string, seed: number): DragonPalette {
   const scale = new THREE.Color(baseColor);
   return {
     scale,
@@ -70,42 +102,112 @@ function createDragonPalette(baseColor: string): DragonPalette {
     claw: scale.clone().lerp(new THREE.Color('#d8c9a3'), 0.6).multiplyScalar(0.88),
     tooth: new THREE.Color('#f2ead6'),
     membrane: scale.clone().lerp(new THREE.Color('#ffffff'), 0.22),
+    seed,
   };
 }
 
-function scaleMaterial(palette: DragonPalette): THREE.MeshStandardMaterial {
+/**
+ * Relief depth varies a little per part, on top of the UV offset, so repeated
+ * parts catch the key light differently.
+ */
+function reliefScale(palette: DragonPalette, base: number): THREE.Vector2 {
+  const depth = base * (0.85 + palette.seed * 0.3);
+  return new THREE.Vector2(depth, depth);
+}
+
+/**
+ * `roughness` and the roughness map *multiply*, so a material carrying a map
+ * has to sit at 1 and let the map speak. Leaving the old scalar in place would
+ * darken every roughness value by that factor and read as uniform gloss.
+ */
+function scaleMaterial(palette: DragonPalette, relief = 0.9): THREE.MeshStandardMaterial {
+  const skin = dragonScaleTextures();
   return new THREE.MeshStandardMaterial({
     color: palette.scale,
-    roughness: 0.58,
+    map: skin.map,
+    normalMap: skin.normalMap,
+    normalScale: reliefScale(palette, relief),
+    roughnessMap: skin.roughnessMap,
+    roughness: skin.roughnessMap ? 1 : 0.58,
     metalness: 0.12,
   });
 }
 
 function hornMaterial(palette: DragonPalette, side: THREE.Side = THREE.FrontSide): THREE.MeshStandardMaterial {
+  const keratin = dragonHornTextures();
   return new THREE.MeshStandardMaterial({
     color: palette.horn,
-    roughness: 0.42,
+    map: keratin.map,
+    normalMap: keratin.normalMap,
+    normalScale: reliefScale(palette, 0.75),
+    roughnessMap: keratin.roughnessMap,
+    roughness: keratin.roughnessMap ? 1 : 0.42,
     metalness: 0.08,
     side,
   });
 }
 
 function clawMaterial(palette: DragonPalette): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({ color: palette.claw, roughness: 0.4, metalness: 0.1 });
+  const keratin = dragonKeratinTextures();
+  return new THREE.MeshStandardMaterial({
+    color: palette.claw,
+    map: keratin.map,
+    normalMap: keratin.normalMap,
+    normalScale: reliefScale(palette, 0.5),
+    roughnessMap: keratin.roughnessMap,
+    roughness: keratin.roughnessMap ? 1 : 0.4,
+    metalness: 0.1,
+  });
 }
 
 function toothMaterial(palette: DragonPalette): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({ color: palette.tooth, roughness: 0.35, metalness: 0.02 });
+  const keratin = dragonKeratinTextures();
+  return new THREE.MeshStandardMaterial({
+    color: palette.tooth,
+    normalMap: keratin.normalMap,
+    normalScale: reliefScale(palette, 0.35),
+    roughness: 0.35,
+    metalness: 0.02,
+  });
 }
 
+/**
+ * The membrane was a flat 78% opaque sheet, which is the one place a dragon
+ * most obviously reads as plastic: a real wing is a thin skin that *glows* when
+ * the sun is behind it, opaque only along its vessels.
+ *
+ * The alpha map carries that thickness variation, and on the high tier
+ * `transmission` adds true backlit scatter. Transmission costs a second scene
+ * render, so lower tiers keep plain alpha blending — the alpha map alone
+ * already does most of the work.
+ */
 function membraneMaterial(palette: DragonPalette): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
+  const skin = dragonMembraneTextures();
+  const shared = {
     color: palette.membrane,
-    roughness: 0.62,
+    map: skin.map,
+    normalMap: skin.normalMap,
+    normalScale: reliefScale(palette, 0.7),
+    roughnessMap: skin.roughnessMap,
+    roughness: skin.roughnessMap ? 1 : 0.62,
+    alphaMap: skin.alphaMap,
     metalness: 0,
     transparent: true,
-    opacity: 0.78,
+    // The alpha map now carries the thinness; opacity only trims it overall.
+    opacity: skin.alphaMap ? 0.94 : 0.78,
     side: THREE.DoubleSide,
+  };
+
+  if (!membraneUsesTransmission()) {
+    return new THREE.MeshStandardMaterial(shared);
+  }
+
+  return new THREE.MeshPhysicalMaterial({
+    ...shared,
+    transmission: 0.35,
+    // Thin-walled: a wing membrane is skin, not glass.
+    thickness: 0.02,
+    ior: 1.35,
   });
 }
 
@@ -130,6 +232,61 @@ function mesh(geometry: THREE.BufferGeometry, material: THREE.Material): THREE.M
 }
 
 // ---------------------------------------------------------------------------
+// UV assignment.
+//
+// Every builder sizes its texture in *world units*, not in fractions of the
+// part. A genome that doubles a wing span should give you twice as many scales,
+// not the same scales at twice the size.
+// ---------------------------------------------------------------------------
+
+/** Bodies of revolution — lathes, cylinders, cones: `u` wraps the axis, `v` runs along it. */
+function revolvedUv<T extends THREE.BufferGeometry>(
+  geometry: T,
+  radius: number,
+  length: number,
+  tile: number,
+  palette: DragonPalette,
+): T {
+  applyTiledUv(geometry, 2 * Math.PI * Math.abs(radius), Math.abs(length), tile, palette.seed);
+  return geometry;
+}
+
+/** Spheres, with the three semi-axes the mesh will be scaled to. */
+function sphereUv<T extends THREE.BufferGeometry>(
+  geometry: T,
+  radii: { x: number; y: number; z: number },
+  tile: number,
+  palette: DragonPalette,
+): T {
+  applyTiledUv(
+    geometry,
+    Math.PI * (Math.abs(radii.x) + Math.abs(radii.z)),
+    Math.PI * Math.abs(radii.y),
+    tile,
+    palette.seed,
+  );
+  return geometry;
+}
+
+/** Boxes and anything else without a usable seam: cube-project from object space. */
+function boxUv<T extends THREE.BufferGeometry>(geometry: T, tile: number, palette: DragonPalette): T {
+  applyBoxProjectedUv(geometry, tile, palette.seed);
+  return geometry;
+}
+
+/** `TubeGeometry` runs `u` along the path and `v` around the tube — the opposite of a lathe. */
+function tubeUv<T extends THREE.BufferGeometry>(
+  geometry: T,
+  length: number,
+  radius: number,
+  tile: number,
+  palette: DragonPalette,
+): T {
+  applyTiledUv(geometry, Math.abs(length), 2 * Math.PI * Math.abs(radius), tile, palette.seed);
+  return geometry;
+}
+
+// ---------------------------------------------------------------------------
 // Body: tapered lathe along X with dorsal ridge spikes.
 // ---------------------------------------------------------------------------
 
@@ -143,22 +300,37 @@ function buildBody(dims: { x: number; y: number; z: number }, palette: DragonPal
   );
   lathe.rotateZ(-Math.PI / 2);
   lathe.scale(1, dims.y / 2, dims.z / 2);
+  // Mean profile radius across the torso, so scales stay the same size from
+  // shoulder to hip rather than stretching over the taper.
+  revolvedUv(lathe, ((dims.y + dims.z) / 4) * 0.72, length, SCALE_TILE, palette);
   group.add(mesh(lathe, scaleMaterial(palette)));
 
+  const bellyRadii = { x: length * 0.38, y: dims.y * 0.3, z: dims.z * 0.34 };
+  const bellySkin = dragonScaleTextures();
   const belly = mesh(
-    new THREE.SphereGeometry(1, 12, 8),
-    new THREE.MeshStandardMaterial({ color: palette.scaleDeep, roughness: 0.66, metalness: 0.04 }),
+    sphereUv(new THREE.SphereGeometry(1, 12, 8), bellyRadii, SCALE_TILE, palette),
+    new THREE.MeshStandardMaterial({
+      color: palette.scaleDeep,
+      map: bellySkin.map,
+      normalMap: bellySkin.normalMap,
+      normalScale: reliefScale(palette, 0.6),
+      roughnessMap: bellySkin.roughnessMap,
+      roughness: bellySkin.roughnessMap ? 1 : 0.66,
+      metalness: 0.04,
+    }),
   );
   belly.name = 'dragon-belly';
-  belly.scale.set(length * 0.38, dims.y * 0.3, dims.z * 0.34);
+  belly.scale.set(bellyRadii.x, bellyRadii.y, bellyRadii.z);
   belly.position.set(length * 0.04, -dims.y * 0.22, 0);
   group.add(belly);
 
   const style = getActiveDragonStyle().body;
   const spikeMaterial = hornMaterial(palette);
+  const spikeRadius = length * style.spikeRadius;
+  const spikeHeight = length * style.spikeHeight;
   for (const t of spreadPositions(style.spikeCount, style.spikeSpread, -0.01)) {
     const spike = mesh(
-      new THREE.ConeGeometry(length * style.spikeRadius, length * style.spikeHeight, 6),
+      revolvedUv(new THREE.ConeGeometry(spikeRadius, spikeHeight, 6), spikeRadius, spikeHeight, HORN_TILE, palette),
       spikeMaterial,
     );
     spike.position.set(t * length, sampleDragonBodyRadius(t) * (dims.y / 2) * 0.96, 0);
@@ -173,27 +345,148 @@ function buildBody(dims: { x: number; y: number; z: number }, palette: DragonPal
 // Heads.
 // ---------------------------------------------------------------------------
 
-function buildHornedHead(radius: number, palette: DragonPalette): THREE.Group {
-  const group = new THREE.Group();
+/** Rings and radial divisions of the lofted skull. */
+const HEAD_AXIAL_SEGMENTS = 22;
+const HEAD_RADIAL_SEGMENTS = 18;
 
-  const skull = mesh(new THREE.SphereGeometry(radius * 0.92, 24, 16), scaleMaterial(palette));
-  skull.scale.set(1.18, 0.92, 0.9);
+/**
+ * Heads wear finer scales than flanks do — facial scales are small on any real
+ * animal, and at body pitch a skull reads as a pinecone.
+ */
+const HEAD_SCALE_TILE = SCALE_TILE * 0.5;
+
+/**
+ * Rounds the loft closed over the last few percent at each end, so the nose and
+ * the occiput finish as domes rather than open tubes. A circular ease, not a
+ * linear one — a linear taper cones the nose to a point.
+ */
+function headCapEase(axialFraction: number): number {
+  const CAP_SPAN = 0.08;
+  const toEnd = 0.5 - Math.abs(axialFraction);
+  if (toEnd >= CAP_SPAN) return 1;
+  return Math.sqrt(Math.max(0, 1 - Math.pow(1 - toEnd / CAP_SPAN, 2)));
+}
+
+/**
+ * The skull as a loft over the head profile's cross-sections.
+ *
+ * A lathe would force every section to be a circle; the whole point of the
+ * profile is that a section is an ellipse whose aspect ratio *and* centre
+ * height change from braincase to nose. Poles close each end, so topology
+ * matches a sphere and `computeVertexNormals` has something sane to work with.
+ */
+function buildHeadGeometry(
+  dims: { x: number; y: number; z: number },
+  shape: DragonHeadShape,
+): THREE.BufferGeometry {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  // The seam column is duplicated so u can reach 1 instead of wrapping to 0.
+  const columns = HEAD_RADIAL_SEGMENTS + 1;
+  const ringAt = (ring: number): number => -0.5 + ring / (HEAD_AXIAL_SEGMENTS + 1);
+  const vertexAt = (ring: number, column: number): number => 1 + (ring - 1) * columns + column;
+
+  const occiput = dragonHeadSection(dims, -0.5, shape);
+  positions.push(-dims.x / 2, occiput.centerY, 0);
+  uvs.push(0.5, 0);
+
+  for (let ring = 1; ring <= HEAD_AXIAL_SEGMENTS; ring += 1) {
+    const axial = ringAt(ring);
+    const section = dragonHeadSection(dims, axial, shape);
+    const cap = headCapEase(axial);
+
+    for (let column = 0; column <= HEAD_RADIAL_SEGMENTS; column += 1) {
+      const angle = (column / HEAD_RADIAL_SEGMENTS) * Math.PI * 2;
+      positions.push(
+        axial * dims.x,
+        section.centerY + Math.cos(angle) * section.halfHeight * cap,
+        Math.sin(angle) * section.halfWidth * cap,
+      );
+      uvs.push(column / HEAD_RADIAL_SEGMENTS, ring / (HEAD_AXIAL_SEGMENTS + 1));
+    }
+  }
+
+  const nose = dragonHeadSection(dims, 0.5, shape);
+  const noseIndex = 1 + HEAD_AXIAL_SEGMENTS * columns;
+  positions.push(dims.x / 2, nose.centerY, 0);
+  uvs.push(0.5, 1);
+
+  for (let column = 0; column < HEAD_RADIAL_SEGMENTS; column += 1) {
+    indices.push(0, vertexAt(1, column + 1), vertexAt(1, column));
+    indices.push(noseIndex, vertexAt(HEAD_AXIAL_SEGMENTS, column), vertexAt(HEAD_AXIAL_SEGMENTS, column + 1));
+  }
+
+  for (let ring = 1; ring < HEAD_AXIAL_SEGMENTS; ring += 1) {
+    for (let column = 0; column < HEAD_RADIAL_SEGMENTS; column += 1) {
+      const a = vertexAt(ring, column);
+      const b = vertexAt(ring, column + 1);
+      const c = vertexAt(ring + 1, column);
+      const d = vertexAt(ring + 1, column + 1);
+      indices.push(a, b, c, b, d, c);
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/**
+ * Skull mesh for a head variant.
+ *
+ * `headShapeFor` is what makes a gene visible: the variant supplies the base
+ * character, and the part's own proportions — which the phenotype builder has
+ * already scaled per locus — bend it from there.
+ */
+function buildSkull(
+  dims: { x: number; y: number; z: number },
+  palette: DragonPalette,
+  base: DragonHeadShape,
+): { skull: THREE.Mesh; shape: DragonHeadShape } {
+  const shape = headShapeFor(dims, base);
+  const geometry = buildHeadGeometry(dims, shape);
+  const midSection = dragonHeadSection(dims, 0, shape);
+  revolvedUv(
+    geometry,
+    (midSection.halfHeight + midSection.halfWidth) / 2,
+    dims.x,
+    HEAD_SCALE_TILE,
+    palette,
+  );
+
+  // Shallower relief to match: at this scale a body-strength normal map turns
+  // the skull into a golf ball.
+  return { skull: mesh(geometry, scaleMaterial(palette, 0.5)), shape };
+}
+
+function buildHornedHead(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
+  const group = new THREE.Group();
+  const style = getActiveDragonStyle().head;
+  const { skull, shape } = buildSkull(dims, palette, style);
   group.add(skull);
 
-  const style = getActiveDragonStyle().head;
+  // Horn sizes stay keyed to the head's height, so a longer snout lengthens the
+  // skull without also growing the horns.
+  const scaleRef = dims.y / 2;
   const horn = hornMaterial(palette);
-  for (const side of [-1, 1]) {
-    const mainHorn = buildHorn(radius * style.hornLength, radius * style.hornRadius, horn);
-    mainHorn.position.set(-radius * 0.12, radius * 0.5, side * radius * 0.34);
+  for (const side of [-1, 1] as const) {
+    const mount = dragonHeadHornMount(dims, side, shape);
+    const mainHorn = buildHorn(scaleRef * style.hornLength, scaleRef * style.hornRadius, horn, palette);
+    mainHorn.position.set(mount.x, mount.y, mount.z);
     mainHorn.rotation.set(side * 0.5, 0, 0.55);
     group.add(mainHorn);
 
-    const browSpike = buildHorn(radius * style.browLength, radius * 0.08, horn);
-    browSpike.position.set(radius * 0.34, radius * 0.55, side * radius * 0.3);
+    const browMount = dragonHeadSurfacePoint(dims, -0.02, side * 0.5, shape);
+    const browSpike = buildHorn(scaleRef * style.browLength, scaleRef * 0.08, horn, palette);
+    browSpike.position.set(browMount.x, browMount.y, browMount.z);
     browSpike.rotation.set(side * 0.3, 0, 0.75);
     group.add(browSpike);
 
-    group.add(buildEye(radius, side));
+    group.add(buildEye(dims, side, shape));
   }
 
   return group;
@@ -201,24 +494,18 @@ function buildHornedHead(radius: number, palette: DragonPalette): THREE.Group {
 
 function buildSnoutHead(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
-  const body = scaleMaterial(palette);
+  const { skull, shape } = buildSkull(dims, palette, HEAD_SHAPE_BY_PROFILE['dragon-head-snout']);
+  group.add(skull);
 
-  const cranium = mesh(new THREE.SphereGeometry(1, 20, 14), body);
-  cranium.scale.set(dims.x * 0.42, dims.y * 0.52, dims.z * 0.5);
-  cranium.position.x = -dims.x * 0.18;
-  group.add(cranium);
+  const nostrilMaterial = new THREE.MeshStandardMaterial({ color: palette.scaleDeep, roughness: 0.7 });
+  for (const side of [-1, 1] as const) {
+    const nostril = mesh(new THREE.SphereGeometry(dims.y * 0.07, 10, 7), nostrilMaterial);
+    const at = dragonHeadNostril(dims, side, shape);
+    nostril.scale.set(1.3, 0.5, 1);
+    nostril.position.set(at.x, at.y, at.z);
+    group.add(nostril);
 
-  const muzzle = mesh(
-    createTaperedBoxGeometry(dims.x * 0.74, dims.y * 0.62, dims.z * 0.72, 0.6, 0.68),
-    body,
-  );
-  muzzle.position.set(dims.x * 0.22, -dims.y * 0.05, 0);
-  group.add(muzzle);
-
-  for (const side of [-1, 1]) {
-    const eye = mesh(new THREE.SphereGeometry(dims.y * 0.16, 12, 8), eyeMaterial());
-    eye.position.set(-dims.x * 0.02, dims.y * 0.22, side * dims.z * 0.4);
-    group.add(eye);
+    group.add(buildEye(dims, side, shape));
   }
 
   return group;
@@ -226,42 +513,69 @@ function buildSnoutHead(dims: { x: number; y: number; z: number }, palette: Drag
 
 function buildArmoredHead(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
-  const minDim = Math.min(dims.x, dims.y, dims.z);
-
-  const skull = mesh(
-    new RoundedBoxGeometry(dims.x * 0.95, dims.y * 0.85, dims.z * 0.95, 2, minDim * 0.14),
-    scaleMaterial(palette),
-  );
+  const { skull, shape } = buildSkull(dims, palette, HEAD_SHAPE_BY_PROFILE['dragon-head-armored']);
   group.add(skull);
 
+  // Crest fins ride the crown line, so they follow the skull rather than
+  // hovering at a fixed fraction of the bounding box.
   const crest = hornMaterial(palette);
-  for (const [offset, height] of [[-0.28, 0.5], [0, 0.62], [0.26, 0.48]] as const) {
-    const fin = mesh(new THREE.BoxGeometry(dims.x * 0.3, dims.y * height, dims.z * 0.07), crest);
-    fin.position.set(dims.x * offset, dims.y * 0.6, 0);
-    fin.rotation.z = 0.4;
+  for (const [axial, height] of [[-0.3, 0.34], [-0.08, 0.42], [0.14, 0.3]] as const) {
+    const crown = dragonHeadSurfacePoint(dims, axial, 0, shape);
+    const finHeight = dims.y * height;
+    // Built along +x and turned upright, so the taper runs to the tip: a plain
+    // box reads as a paddle balanced on the skull, not a crest growing from it.
+    const geometry = createTaperedBoxGeometry(finHeight, dims.x * 0.22, dims.z * 0.07, 0.3, 0.55);
+    geometry.rotateZ(Math.PI / 2);
+    const fin = mesh(boxUv(geometry, HORN_TILE, palette), crest);
+    // Sunk into the crown, so the fin grows out of the skull rather than
+    // balancing on it. The lean stays slight; much past 0.2 radians the tilt
+    // swings the base clear of the head and it reads detached again.
+    fin.position.set(crown.x, crown.y + finHeight * 0.06, 0);
+    fin.rotation.z = 0.16;
     group.add(fin);
   }
 
-  for (const side of [-1, 1]) {
-    const eye = mesh(new THREE.SphereGeometry(dims.y * 0.14, 12, 8), eyeMaterial());
-    eye.position.set(dims.x * 0.32, dims.y * 0.16, side * dims.z * 0.42);
-    group.add(eye);
+  for (const side of [-1, 1] as const) {
+    group.add(buildEye(dims, side, shape));
   }
 
   return group;
 }
 
-function buildHorn(length: number, baseRadius: number, material: THREE.Material): THREE.Group {
+function buildHorn(
+  length: number,
+  baseRadius: number,
+  material: THREE.Material,
+  palette: DragonPalette,
+): THREE.Group {
   const horn = new THREE.Group();
 
-  const base = mesh(new THREE.CylinderGeometry(baseRadius * 0.45, baseRadius, length * 0.55, 8), material);
+  const base = mesh(
+    revolvedUv(
+      new THREE.CylinderGeometry(baseRadius * 0.45, baseRadius, length * 0.55, 8),
+      baseRadius * 0.72,
+      length * 0.55,
+      HORN_TILE,
+      palette,
+    ),
+    material,
+  );
   base.position.y = length * 0.275;
   horn.add(base);
 
   const tipPivot = new THREE.Group();
   tipPivot.position.y = length * 0.55;
   tipPivot.rotation.z = 0.55;
-  const tip = mesh(new THREE.CylinderGeometry(baseRadius * 0.04, baseRadius * 0.45, length * 0.5, 8), material);
+  const tip = mesh(
+    revolvedUv(
+      new THREE.CylinderGeometry(baseRadius * 0.04, baseRadius * 0.45, length * 0.5, 8),
+      baseRadius * 0.25,
+      length * 0.5,
+      HORN_TILE,
+      palette,
+    ),
+    material,
+  );
   tip.position.y = length * 0.25;
   tipPivot.add(tip);
   horn.add(tipPivot);
@@ -269,9 +583,21 @@ function buildHorn(length: number, baseRadius: number, material: THREE.Material)
   return horn;
 }
 
-function buildEye(radius: number, side: number): THREE.Mesh {
-  const eye = mesh(new THREE.SphereGeometry(radius * 0.13, 12, 8), eyeMaterial());
-  eye.position.set(radius * 0.6, radius * 0.16, side * radius * 0.52);
+/**
+ * Eye set into the skull's orbital pinch.
+ *
+ * The position used to be a hand-tuned multiple of the head radius, which only
+ * held for a sphere: on any head the profile actually shapes, it put the eye
+ * inside the bone or floating off the cheek.
+ */
+function buildEye(
+  dims: { x: number; y: number; z: number },
+  side: -1 | 1,
+  shape: DragonHeadShape,
+): THREE.Mesh {
+  const eye = mesh(new THREE.SphereGeometry(dims.y * 0.055, 12, 8), eyeMaterial());
+  const socket = dragonHeadEyeSocket(dims, side, shape);
+  eye.position.set(socket.x, socket.y, socket.z);
   return eye;
 }
 
@@ -287,9 +613,13 @@ function buildJaw(
   const group = new THREE.Group();
   const pointDown = variant === 'upper';
 
-  group.add(mesh(createTaperedBoxGeometry(dims.x, dims.y, dims.z, 0.55, 0.5), scaleMaterial(palette)));
+  group.add(mesh(
+    boxUv(createTaperedBoxGeometry(dims.x, dims.y, dims.z, 0.55, 0.5), SCALE_TILE, palette),
+    scaleMaterial(palette),
+  ));
 
   if (variant === 'upper') {
+    // Nostrils stay smooth: scale relief on a 2cm sphere just reads as noise.
     const nostrilMaterial = new THREE.MeshStandardMaterial({ color: palette.scaleDeep, roughness: 0.7 });
     for (const side of [-1, 1]) {
       const nostril = mesh(
@@ -307,9 +637,19 @@ function buildJaw(
   const enamel = toothMaterial(palette);
   const toothHeight = dims.y * style.toothHeight;
   // Teeth march back from the snout tip; the range matches the jaw's taper.
+  const toothRadius = dims.z * style.toothRadius;
   for (const along of spreadPositions(style.toothCount, 0.6, 0.08).reverse()) {
     for (const side of [-1, 1]) {
-      const tooth = mesh(new THREE.ConeGeometry(dims.z * style.toothRadius, toothHeight, 5), enamel);
+      const tooth = mesh(
+        revolvedUv(
+          new THREE.ConeGeometry(toothRadius, toothHeight, 5),
+          toothRadius,
+          toothHeight,
+          KERATIN_TILE,
+          palette,
+        ),
+        enamel,
+      );
       tooth.position.set(
         along * dims.x,
         (pointDown ? -1 : 1) * dims.y * 0.42,
@@ -348,6 +688,7 @@ function buildLeg(dims: { x: number; y: number; z: number }, palette: DragonPale
     LEG_PROFILE.map(([t, radius]) => new THREE.Vector2(radius * dims.x, t * dims.y)),
     16,
   );
+  revolvedUv(lathe, dims.x * 0.7, dims.y, SCALE_TILE, palette);
   group.add(mesh(lathe, scaleMaterial(palette)));
   return group;
 }
@@ -355,15 +696,26 @@ function buildLeg(dims: { x: number; y: number; z: number }, palette: DragonPale
 function buildFoot(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
 
-  const pad = mesh(createTaperedBoxGeometry(dims.x * 0.9, dims.y, dims.z, 0.72, 0.78), scaleMaterial(palette));
+  const pad = mesh(
+    boxUv(createTaperedBoxGeometry(dims.x * 0.9, dims.y, dims.z, 0.72, 0.78), SCALE_TILE, palette),
+    scaleMaterial(palette),
+  );
   pad.position.x = -dims.x * 0.05;
   group.add(pad);
 
   const style = getActiveDragonStyle().foot;
   const keratin = clawMaterial(palette);
+  const talonRadius = dims.y * style.talonRadius;
+  const talonLength = dims.x * style.talonLength;
   for (const side of spreadPositions(style.talonCount, 2)) {
     const talon = mesh(
-      new THREE.ConeGeometry(dims.y * style.talonRadius, dims.x * style.talonLength, 6),
+      revolvedUv(
+        new THREE.ConeGeometry(talonRadius, talonLength, 6),
+        talonRadius,
+        talonLength,
+        KERATIN_TILE,
+        palette,
+      ),
       keratin,
     );
     talon.position.set(dims.x * 0.46, -dims.y * 0.12, side * dims.z * 0.3);
@@ -379,14 +731,32 @@ function buildTalon(radius: number, length: number, palette: DragonPalette): THR
   const group = new THREE.Group();
   const keratin = clawMaterial(palette);
 
-  const base = mesh(new THREE.CylinderGeometry(radius * 0.5, radius * 0.85, length * 0.55, 8), keratin);
+  const base = mesh(
+    revolvedUv(
+      new THREE.CylinderGeometry(radius * 0.5, radius * 0.85, length * 0.55, 8),
+      radius * 0.68,
+      length * 0.55,
+      KERATIN_TILE,
+      palette,
+    ),
+    keratin,
+  );
   base.position.y = -length * 0.22;
   group.add(base);
 
   const tipPivot = new THREE.Group();
   tipPivot.position.y = length * 0.05;
   tipPivot.rotation.z = 0.5;
-  const tip = mesh(new THREE.CylinderGeometry(radius * 0.02, radius * 0.5, length * 0.5, 8), keratin);
+  const tip = mesh(
+    revolvedUv(
+      new THREE.CylinderGeometry(radius * 0.02, radius * 0.5, length * 0.5, 8),
+      radius * 0.26,
+      length * 0.5,
+      KERATIN_TILE,
+      palette,
+    ),
+    keratin,
+  );
   tip.position.y = length * 0.22;
   tipPivot.add(tip);
   group.add(tipPivot);
@@ -408,6 +778,13 @@ export {
   WING_SHAPES,
   type WingMembraneShape,
 } from './dragon-wing-profile';
+
+export {
+  DEFAULT_HEAD_SHAPE,
+  HEAD_SHAPES,
+  headShapeFor,
+  type DragonHeadShape,
+} from './dragon-head-profile';
 
 /**
  * Feature counts and proportions, kept out of the builders so they can be tuned
@@ -438,12 +815,17 @@ export interface DragonJawStyle {
   toothRadius: number;
 }
 
-export interface DragonHeadStyle {
-  /** Main horn length, as a fraction of head radius. */
+/**
+ * Horn proportions on top of the skull silhouette itself, so the parts lab can
+ * drag both from one section. Extending {@link DragonHeadShape} means the style
+ * *is* a valid base shape and passes straight to `headShapeFor`.
+ */
+export interface DragonHeadStyle extends DragonHeadShape {
+  /** Main horn length, as a fraction of head height. */
   hornLength: number;
-  /** Main horn base radius, as a fraction of head radius. */
+  /** Main horn base radius, as a fraction of head height. */
   hornRadius: number;
-  /** Brow spike length, as a fraction of head radius. */
+  /** Brow spike length, as a fraction of head height. */
   browLength: number;
 }
 
@@ -478,7 +860,10 @@ export const DEFAULT_DRAGON_STYLE: DragonStyle = {
   // spikes over a longer ridge than the original five nubs.
   body: { spikeCount: 6, spikeSpread: 0.73, spikeHeight: 0.2, spikeRadius: 0.051, spikeLean: 0.56 },
   jaw: { toothCount: 4, toothHeight: 1.15, toothRadius: 0.1 },
-  head: { hornLength: 1.35, hornRadius: 0.16, browLength: 0.45 },
+  // Horn lengths were authored against the old sphere's radius (dims.x / 2 on a
+  // uniform head); they now key off head height, which is the same number on
+  // the shipped horned head.
+  head: { ...DEFAULT_HEAD_SHAPE, hornLength: 1.35, hornRadius: 0.16, browLength: 0.45 },
   foot: { talonCount: 3, talonLength: 0.6, talonRadius: 0.42 },
   tailClub: { spikeCount: 5, spikeLength: 0.85, spikeRadius: 0.18 },
 };
@@ -577,7 +962,16 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
     new THREE.Vector3(leadingAt(0.45) + 0.01, thickness * 0.5 + membraneY(0.45, 0), zOf(0.45)),
     new THREE.Vector3(leadingAt(1) - 0.02, thickness * 0.2 + membraneY(0.98, 0), zOf(0.98)),
   ]);
-  group.add(mesh(new THREE.TubeGeometry(armCurve, 14, thickness * 0.5, 6), bone));
+  group.add(mesh(
+    tubeUv(
+      new THREE.TubeGeometry(armCurve, 14, thickness * 0.5, 6),
+      armCurve.getLength(),
+      thickness * 0.5,
+      HORN_TILE,
+      palette,
+    ),
+    bone,
+  ));
 
   const elbow = new THREE.Vector3(
     leadingAt(0.45),
@@ -591,7 +985,16 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   ));
   for (const target of fingerTargets) {
     const strut = new THREE.LineCurve3(elbow, target);
-    group.add(mesh(new THREE.TubeGeometry(strut, 1, thickness * 0.26, 5), bone));
+    group.add(mesh(
+      tubeUv(
+        new THREE.TubeGeometry(strut, 1, thickness * 0.26, 5),
+        elbow.distanceTo(target),
+        thickness * 0.26,
+        HORN_TILE,
+        palette,
+      ),
+      bone,
+    ));
   }
 
   // Mirror the whole wing for the right side. Materials are double-sided, so the
@@ -618,6 +1021,7 @@ function buildWingMembraneGeometry(
   membraneY: (s: number, c: number) => number,
 ): THREE.BufferGeometry {
   const positions: number[] = [];
+  const uvs: number[] = [];
   const indices: number[] = [];
   const columns = WING_CHORD_SEGMENTS + 1;
 
@@ -630,6 +1034,12 @@ function buildWingMembraneGeometry(
     for (let column = 0; column <= WING_CHORD_SEGMENTS; column += 1) {
       const c = column / WING_CHORD_SEGMENTS;
       positions.push(leading + (trailing - leading) * c, membraneY(s, c), z);
+      // The membrane is the one part that maps its texture once rather than
+      // tiling it: the vein network has to run root-to-tip with the anatomy, so
+      // the UVs are the parametric coordinates themselves — chord across, span
+      // along. That also puts the alpha map's thin edge exactly on the trailing
+      // edge at c = 1, whatever the scallop does to the outline.
+      uvs.push(c, s);
     }
   }
 
@@ -645,6 +1055,7 @@ function buildWingMembraneGeometry(
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   return geometry;
@@ -676,6 +1087,7 @@ function buildTailSegment(dims: { x: number; y: number; z: number }, palette: Dr
     TAIL_PROFILE.map(([t, radius]) => new THREE.Vector2(radius * dims.x, t * dims.y)),
     14,
   );
+  revolvedUv(lathe, dims.x * 0.76, dims.y, SCALE_TILE, palette);
   group.add(mesh(lathe, scaleMaterial(palette)));
   return group;
 }
@@ -687,19 +1099,27 @@ function buildTailClub(dims: { x: number; y: number; z: number }, palette: Drago
     [[-0.36, 0.34], [0, 0.6], [0.5, 1.0]].map(([t, radius]) => new THREE.Vector2(radius * dims.x, t * dims.y)),
     14,
   );
+  revolvedUv(shaft, dims.x * 0.65, dims.y, SCALE_TILE, palette);
   group.add(mesh(shaft, scaleMaterial(palette)));
 
-  const knob = mesh(new THREE.IcosahedronGeometry(dims.z * 0.8, 1), scaleMaterial(palette));
+  // Cube projection, not the polyhedron's own UVs: those wrap a sphere onto a
+  // triangle list and tear at every seam.
+  const knob = mesh(
+    boxUv(new THREE.IcosahedronGeometry(dims.z * 0.8, 1), SCALE_TILE, palette),
+    scaleMaterial(palette),
+  );
   knob.position.y = -dims.y * 0.42;
   group.add(knob);
 
   const style = getActiveDragonStyle().tailClub;
   const spikeMaterial = hornMaterial(palette);
   const spikeCount = Math.max(1, Math.round(style.spikeCount));
+  const spikeRadius = dims.z * style.spikeRadius;
+  const spikeLength = dims.z * style.spikeLength;
   for (let index = 0; index < spikeCount; index += 1) {
     const angle = (index / spikeCount) * Math.PI * 2;
     const spike = mesh(
-      new THREE.ConeGeometry(dims.z * style.spikeRadius, dims.z * style.spikeLength, 6),
+      revolvedUv(new THREE.ConeGeometry(spikeRadius, spikeLength, 6), spikeRadius, spikeLength, HORN_TILE, palette),
       spikeMaterial,
     );
     spike.position.set(
@@ -718,7 +1138,16 @@ function buildTailClub(dims: { x: number; y: number; z: number }, palette: Drago
 function buildStinger(radius: number, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
 
-  const knuckle = mesh(new THREE.SphereGeometry(radius * 0.72, 12, 8), scaleMaterial(palette));
+  const knuckleRadius = radius * 0.72;
+  const knuckle = mesh(
+    sphereUv(
+      new THREE.SphereGeometry(knuckleRadius, 12, 8),
+      { x: knuckleRadius, y: knuckleRadius, z: knuckleRadius },
+      SCALE_TILE,
+      palette,
+    ),
+    scaleMaterial(palette),
+  );
   knuckle.position.y = radius * 0.18;
   group.add(knuckle);
 

@@ -5,14 +5,14 @@
   display: grid;
   gap: 1.1rem;
 
-  --lab-edge: #d5dfec;
-  --lab-panel: #ffffff;
-  --lab-surface: #f4f7fc;
-  --lab-muted: #4a566b;
-  --lab-accent: #1c5fd0;
+  --lab-edge: var(--line);
+  --lab-panel: var(--surface-raised);
+  --lab-surface: var(--surface-raised);
+  --lab-muted: var(--muted);
+  --lab-accent: var(--sea);
   /* Mid grey: parts are baked on transparent, and a neutral backdrop is the
      only honest way to judge a silhouette. */
-  --lab-stage: #e9eef6;
+  --lab-stage: var(--surface);
 }
 
 .lab__eyebrow {
@@ -278,7 +278,7 @@
   padding: 0.5rem 0.65rem;
   border-radius: 0.45rem;
   background: #fdf2e6;
-  color: #8a4b12;
+  color: var(--timber-dark);
   font-size: 0.82rem;
 }
 
@@ -364,11 +364,11 @@
 
 @media (prefers-color-scheme: dark) {
   .lab {
-    --lab-edge: #2c3a4d;
-    --lab-panel: #16202e;
-    --lab-surface: #101823;
-    --lab-muted: #9fb0c6;
-    --lab-accent: #7fb0ff;
+    --lab-edge: var(--slate);
+    --lab-panel: var(--slate-deep);
+    --lab-surface: var(--slate-deep);
+    --lab-muted: var(--stone);
+    --lab-accent: var(--stone);
     --lab-stage: #1b2634;
   }
 

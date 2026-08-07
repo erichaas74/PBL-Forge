@@ -4,6 +4,7 @@ import { AssemblyPart } from '../domain/assembly.models';
 import { positiveNumber } from '../domain/vector-data';
 import { instantiateAssemblyAsset, loadAssemblyAssetTemplate } from './assembly-asset-loader';
 import { createDragonProceduralObject } from './dragon-procedural-mesh.factory';
+import { isSharedDragonTexture } from './dragon-textures';
 
 export interface AssemblyMaterialOptions {
   emissive?: number;
@@ -254,13 +255,23 @@ function forEachStandardMaterial(
   });
 }
 
+/**
+ * Frees a part's geometry and materials.
+ *
+ * Textures are only disposed when this object *owns* them. The dragon's PBR
+ * maps are generated once and shared by every dragon on the field, so freeing
+ * one part's map would strip the skin off all of its siblings — the shared
+ * cache outlives any single mesh and is released by `disposeDragonTextures`.
+ */
 export function disposeAssemblyObject(root: THREE.Object3D): void {
   root.traverse(object => {
     if (!(object instanceof THREE.Mesh)) return;
     object.geometry.dispose();
     const materials = Array.isArray(object.material) ? object.material : [object.material];
     for (const material of materials) {
-      if (material instanceof THREE.MeshStandardMaterial) material.map?.dispose();
+      if (material instanceof THREE.MeshStandardMaterial && !isSharedDragonTexture(material.map)) {
+        material.map?.dispose();
+      }
       material.dispose();
     }
   });

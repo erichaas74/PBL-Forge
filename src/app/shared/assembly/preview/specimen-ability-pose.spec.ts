@@ -63,6 +63,20 @@ function positionOf(pose: { parts: readonly { partId: string; position: { x: num
   return pose.parts.find(entry => entry.partId === id)!.position;
 }
 
+/** Which way a posed part is pointing: its local +x carried into world space. */
+function forwardOf(
+  pose: { parts: readonly { partId: string; position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number; w: number } }[] },
+  id: string,
+) {
+  const entry = pose.parts.find(part => part.partId === id)!;
+  const tip = worldPoint(entry, { x: 1, y: 0, z: 0 });
+  return {
+    x: tip.x - entry.position.x,
+    y: tip.y - entry.position.y,
+    z: tip.z - entry.position.z,
+  };
+}
+
 describe('ability demos', () => {
   it('defines a demo for every ability the bench can offer', () => {
     for (const ability of ['bite', 'wing-buffet', 'tail-sweep', 'fire-breath'] as const) {
@@ -90,14 +104,42 @@ describe('ability demos', () => {
     }
   });
 
-  it('moves the jaw during a bite, and nothing else', () => {
+  it('opens the jaw and rears the body during a bite', () => {
     const blueprint = dragon();
     const posed = poseSpecimenForAbility(blueprint, 'bite', 0.3);
     const rest = buildSpecimenPose(blueprint);
 
     expect(distance(positionOf(posed, 'jaw'), positionOf(rest, 'jaw'))).toBeGreaterThan(0.05);
-    expect(distance(positionOf(posed, 'body'), positionOf(rest, 'body'))).toBeLessThan(1e-6);
-    expect(distance(positionOf(posed, 'wing-l'), positionOf(rest, 'wing-l'))).toBeLessThan(1e-6);
+    // The whole body is up on its haunches, so the torso and the wings riding
+    // on it travel too — that is the rear-up, not a leak from the jaw bend.
+    expect(positionOf(posed, 'body').y).toBeGreaterThan(positionOf(rest, 'body').y);
+    expect(positionOf(posed, 'wing-l').y).toBeGreaterThan(positionOf(rest, 'wing-l').y);
+  });
+
+  it('rears highest for a breath and comes back down through a bite', () => {
+    const blueprint = dragon();
+    const rest = buildSpecimenPose(blueprint);
+    const restY = positionOf(rest, 'body').y;
+
+    const breath = positionOf(poseSpecimenForAbility(blueprint, 'fire-breath', 0.5), 'body').y;
+    const windUp = positionOf(poseSpecimenForAbility(blueprint, 'bite', 0.45), 'body').y;
+    const landed = positionOf(poseSpecimenForAbility(blueprint, 'bite', 0.9), 'body').y;
+
+    expect(breath).toBeGreaterThan(windUp);
+    expect(windUp).toBeGreaterThan(restY);
+    // Past the strike the chest is back down, so the bite lands with the body.
+    expect(landed).toBeCloseTo(restY, 5);
+  });
+
+  it('keeps the muzzle aimed forward while the chest rears for a bite', () => {
+    const blueprint = dragon();
+    const posed = poseSpecimenForAbility(blueprint, 'bite', 0.45);
+
+    // Rearing necessarily lifts the head — it is out in front of the pivot. What
+    // the counter-rotation buys is *aim*: the torso pitches skyward while the
+    // muzzle stays level, so the dragon bites its opponent and not the clouds.
+    expect(forwardOf(posed, 'body').y).toBeGreaterThan(0.3);
+    expect(forwardOf(posed, 'head').y).toBeCloseTo(0, 5);
   });
 
   it('sweeps paired wings symmetrically rather than both the same way', () => {

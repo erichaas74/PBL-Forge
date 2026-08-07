@@ -2,13 +2,13 @@
   display: block;
   container-type: inline-size;
 
-  --bench-ink: #16202e;
-  --bench-muted: #4a566b;
-  --bench-edge: #d5dfec;
-  --bench-panel: #ffffff;
-  --bench-surface: #f4f7fc;
-  --bench-accent: #1c5fd0;
-  --bench-warn: #8a4b12;
+  --bench-ink: var(--slate-deep);
+  --bench-muted: var(--muted);
+  --bench-edge: var(--line);
+  --bench-panel: var(--surface-raised);
+  --bench-surface: var(--surface-raised);
+  --bench-accent: var(--sea);
+  --bench-warn: var(--timber-dark);
 }
 
 .bench {
@@ -238,7 +238,7 @@
   display: block;
   height: 0.35rem;
   border-radius: 999px;
-  background: #e3eaf4;
+  background: var(--surface-raised);
   overflow: hidden;
 }
 
@@ -288,11 +288,11 @@
 @media (prefers-color-scheme: dark) {
   :host {
     --bench-ink: #e8eef7;
-    --bench-muted: #9fb0c6;
-    --bench-edge: #2c3a4d;
-    --bench-panel: #16202e;
-    --bench-surface: #101823;
-    --bench-accent: #7fb0ff;
+    --bench-muted: var(--stone);
+    --bench-edge: var(--slate);
+    --bench-panel: var(--slate-deep);
+    --bench-surface: var(--slate-deep);
+    --bench-accent: var(--stone);
   }
 
   .bench__badge { background: #1d2c3f; }
@@ -301,6 +301,6 @@
   .bench__defence--absent { background: #131c27; }
   .bench__meter { background: #223043; }
   .bench__caveat { background: #14202e; }
-  .bench__stage { background: #16202e; }
+  .bench__stage { background: var(--slate-deep); }
   .bench__error { background: #2e2113; }
 }

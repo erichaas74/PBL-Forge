@@ -90,6 +90,186 @@ function limbPart(profileId: 'dragon-leg' | 'dragon-claw', dimensions: AssemblyP
   };
 }
 
+/** First mesh in the group carrying a standard material. */
+function skinOf(object: THREE.Object3D): THREE.MeshStandardMaterial {
+  let found: THREE.MeshStandardMaterial | null = null;
+  object.traverse(child => {
+    if (found || !(child instanceof THREE.Mesh)) return;
+    if (child.material instanceof THREE.MeshStandardMaterial) found = child.material;
+  });
+  if (!found) throw new Error('no standard material');
+  return found;
+}
+
+describe('dragon part materials', () => {
+  /**
+   * `roughness` and `roughnessMap` multiply in the shader. Leaving the old 0.58
+   * scalar in place alongside a map would scale every roughness value down by
+   * that factor and read as uniform gloss — the exact plastic look the maps are
+   * there to remove.
+   */
+  it('hands roughness to the map instead of multiplying it by a leftover scalar', () => {
+    const skin = skinOf(createDragonProceduralObject(bodyPart())!);
+
+    expect(skin.roughnessMap).toBeTruthy();
+    expect(skin.roughness).toBe(1);
+  });
+
+  it('keeps the genetics pigment on the material, not baked into the maps', () => {
+    const skin = skinOf(createDragonProceduralObject(bodyPart({ color: '#22c55e' }))!);
+
+    expect(skin.color.getHexString()).toBe(new THREE.Color('#22c55e').getHexString());
+    expect(skin.normalMap).toBeTruthy();
+  });
+
+  it('varies relief depth per part, so repeated parts do not read as copies', () => {
+    const left = skinOf(createDragonProceduralObject(limbPart('dragon-leg', { x: 0.22, y: 0.7, z: 0.22 }))!);
+    const right = skinOf(createDragonProceduralObject({
+      ...limbPart('dragon-leg', { x: 0.22, y: 0.7, z: 0.22 }),
+      id: 'rear-right-leg',
+    })!);
+
+    expect(left.normalScale.x).not.toBeCloseTo(right.normalScale.x, 4);
+  });
+});
+
+function headPart(
+  profileId: 'dragon-head-horned' | 'dragon-head-snout' | 'dragon-head-armored',
+  shape: 'sphere' | 'box',
+  dimensions: AssemblyPart['dimensions'],
+): AssemblyPart {
+  return {
+    id: profileId,
+    label: profileId,
+    roles: ['head'],
+    shape,
+    mass: 0.8,
+    dimensions,
+    position: { x: 0, y: 0, z: 0 },
+    color: '#f97316',
+    visualProfile: { profileId, meshType: 'procedural' },
+  };
+}
+
+/** The skull is the densest mesh in a head group. */
+function skullOf(object: THREE.Object3D): THREE.Mesh {
+  let densest: THREE.Mesh | null = null;
+  object.traverse(child => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const count = child.geometry.getAttribute('position')?.count ?? 0;
+    if (count > (densest?.geometry.getAttribute('position')?.count ?? -1)) densest = child;
+  });
+  if (!densest) throw new Error('no mesh in head');
+  return densest;
+}
+
+/**
+ * Signed volume of a closed mesh. Positive means the triangles wind
+ * counter-clockwise seen from outside — the convention three needs for
+ * `computeVertexNormals` to point outward.
+ */
+function signedVolume(mesh: THREE.Mesh): number {
+  const position = mesh.geometry.getAttribute('position');
+  const index = mesh.geometry.getIndex()!;
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  let total = 0;
+
+  for (let i = 0; i < index.count; i += 3) {
+    a.fromBufferAttribute(position, index.getX(i));
+    b.fromBufferAttribute(position, index.getX(i + 1));
+    c.fromBufferAttribute(position, index.getX(i + 2));
+    total += a.dot(b.clone().cross(c)) / 6;
+  }
+  return total;
+}
+
+describe('dragon head mesh', () => {
+  /**
+   * The skull used to be a `SphereGeometry` with `scale.set(1.18, 0.92, 0.9)`,
+   * built from `dims.x` alone — the other two axes were discarded, so no gene
+   * could move it. Lofting the profile is what gives a trait somewhere to land.
+   */
+  it('lofts a skull that responds to all three dimensions', () => {
+    const round = skullOf(createDragonProceduralObject(
+      headPart('dragon-head-snout', 'box', { x: 0.5, y: 0.4, z: 0.4 }),
+    )!);
+    const long = skullOf(createDragonProceduralObject(
+      headPart('dragon-head-snout', 'box', { x: 1.1, y: 0.4, z: 0.4 }),
+    )!);
+
+    const roundBox = new THREE.Box3().setFromObject(round);
+    const longBox = new THREE.Box3().setFromObject(long);
+
+    expect(longBox.max.x - longBox.min.x).toBeGreaterThan((roundBox.max.x - roundBox.min.x) * 1.8);
+    // A stretched skull is not just a scaled one: the muzzle thins as it runs out.
+    expect(longBox.max.y - longBox.min.y).toBeLessThanOrEqual(roundBox.max.y - roundBox.min.y + 1e-6);
+  });
+
+  /**
+   * Winding was derived, not observed. Inside-out triangles are invisible under
+   * backface culling, which is the kind of bug that only shows up in the app.
+   */
+  it('winds its triangles outward', () => {
+    for (const part of [
+      headPart('dragon-head-horned', 'sphere', { x: 0.42, y: 0.42, z: 0.42 }),
+      headPart('dragon-head-snout', 'box', { x: 0.68, y: 0.38, z: 0.34 }),
+      headPart('dragon-head-armored', 'box', { x: 0.54, y: 0.48, z: 0.44 }),
+    ]) {
+      expect(signedVolume(skullOf(createDragonProceduralObject(part)!))).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * A sphere part's `dimensions.x` is a radius, not a width. Read as a width the
+   * horned head lofts at half size and every horn and eye lands inside the bone.
+   */
+  it('sizes a sphere head from its radius, not its diameter', () => {
+    const head = createDragonProceduralObject(
+      headPart('dragon-head-horned', 'sphere', { x: 0.42, y: 0.42, z: 0.42 }),
+    )!;
+    const bounds = new THREE.Box3().setFromObject(skullOf(head));
+
+    expect(bounds.max.x).toBeCloseTo(0.42, 2);
+    expect(bounds.min.x).toBeCloseTo(-0.42, 2);
+  });
+
+  it('keeps the skull inside the physics volume', () => {
+    const dims = { x: 0.54, y: 0.48, z: 0.44 };
+    const bounds = new THREE.Box3().setFromObject(
+      skullOf(createDragonProceduralObject(headPart('dragon-head-armored', 'box', dims))!),
+    );
+
+    expect(bounds.max.y).toBeLessThanOrEqual(dims.y / 2 + 1e-4);
+    expect(bounds.min.y).toBeGreaterThanOrEqual(-dims.y / 2 - 1e-4);
+    expect(bounds.max.z).toBeLessThanOrEqual(dims.z / 2 + 1e-4);
+  });
+
+  it('gives the skull UVs so the scale texture lands on it', () => {
+    const skull = skullOf(createDragonProceduralObject(
+      headPart('dragon-head-snout', 'box', { x: 0.68, y: 0.38, z: 0.34 }),
+    )!);
+    const uv = skull.geometry.getAttribute('uv');
+
+    expect(uv).toBeTruthy();
+    expect(uv.count).toBe(skull.geometry.getAttribute('position').count);
+  });
+
+  it('builds a distinct skull per head variant', () => {
+    const dims = { x: 0.6, y: 0.45, z: 0.42 };
+    const heights = (['dragon-head-horned', 'dragon-head-snout', 'dragon-head-armored'] as const).map(
+      profileId => {
+        const skull = skullOf(createDragonProceduralObject(headPart(profileId, 'box', dims))!);
+        const bounds = new THREE.Box3().setFromObject(skull);
+        return (bounds.max.y - bounds.min.y).toFixed(4);
+      },
+    );
+
+    expect(new Set(heights).size).toBe(3);
+  });
+});
+
 describe('dragon body mesh', () => {
   it('adds a simple belly mesh that scales with the body', () => {
     const body = createDragonProceduralObject(bodyPart())!;
@@ -193,6 +373,29 @@ describe('dragon wing membrane', () => {
     }))!);
 
     expect(verticalRelief(large)).toBeGreaterThan(verticalRelief(small) * 1.5);
+  });
+
+  /**
+   * The membrane maps its texture once rather than tiling it, so the veins run
+   * with the anatomy. `u` has to be the chord fraction for the alpha map's thin
+   * edge to land on the trailing edge, and `v` the span fraction for the veins
+   * to radiate from the root.
+   */
+  it('carries chord/span UVs for the vein and thickness maps', () => {
+    const membrane = membraneOf(createDragonProceduralObject(wingPart())!);
+    const uv = membrane.geometry.getAttribute('uv');
+
+    expect(uv).toBeTruthy();
+    expect(uv.count).toBe(membrane.geometry.getAttribute('position').count);
+
+    let maxU = -Infinity;
+    let maxV = -Infinity;
+    for (let index = 0; index < uv.count; index += 1) {
+      maxU = Math.max(maxU, uv.getX(index));
+      maxV = Math.max(maxV, uv.getY(index));
+    }
+    expect(maxU).toBeCloseTo(1, 5);
+    expect(maxV).toBeCloseTo(1, 5);
   });
 
   it('mirrors the right wing rather than building a second mesh', () => {

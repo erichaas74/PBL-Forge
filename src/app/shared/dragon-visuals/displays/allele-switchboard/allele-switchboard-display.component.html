@@ -119,6 +119,26 @@
             <span class="stage-status" [class.locked]="vm.geneLocationLocked">{{ vm.geneLocationLocked ? 'GENE ' + vm.focusGeneId + ' LOCKED' : 'SCAN FOR GENE ' + vm.focusGeneId }}</span>
           </div>
           <p class="stage-note">The same gene loci line up on both homologous chromosomes. Each copy can carry a different allele.</p>
+          @if (!vm.geneLocationLocked) {
+            <app-chromosome-spatial-view
+              [chromosomeNumber]="vm.chromosomeNumber"
+              [loci]="vm.loci"
+              [banding]="vm.bandingEnabled"
+              [fluorescence]="vm.fluorescenceEnabled"
+              [compareCopies]="vm.homologComparisonEnabled"
+              [disabled]="vm.observeStep !== 'locate-gene'"
+              [locked]="false"
+              [reducedMotion]="reducedMotion()"
+              (locusSelected)="selectSpatialLocus($event)"
+              (lockRequested)="lockGene()" />
+          } @else {
+            <div class="independent-copy-banner">
+              <i aria-hidden="true">A</i>
+              <div><span>ALLELE SOCKET DECK</span><strong>Manipulate each chromosome copy independently</strong><p>Choose and secure Copy A and Copy B separately. A change in one display does not overwrite the other.</p></div>
+              <i aria-hidden="true">B</i>
+            </div>
+          }
+          <div class="socket-divider"><span>TWO INDEPENDENT ALLELE DISPLAYS</span><i></i></div>
           <div class="pair">
             @for (copyIndex of [0, 1]; track copyIndex) {
               <div class="chromosome-column">
@@ -160,16 +180,56 @@
                     }
                   </div>
                 </div>
-                <button
-                  type="button"
-                  class="socket-lock"
+                <section
+                  class="allele-copy-console"
                   [class.secured]="vm.socketsSecured[copyIndex]"
-                  [disabled]="!vm.slotEnabled"
-                  [attr.aria-pressed]="vm.socketsSecured[copyIndex]"
-                  [attr.aria-label]="'Secure allele socket ' + (copyIndex === 0 ? 'A' : 'B')"
-                  (click)="secureSocket(copyIndex === 0 ? 'socket-lock-a' : 'socket-lock-b')">
-                  <i aria-hidden="true"></i>{{ vm.socketsSecured[copyIndex] ? 'SOCKET SECURED' : 'SECURE SOCKET' }}
-                </button>
+                  [attr.aria-label]="'Independent allele display for chromosome copy ' + (copyIndex === 0 ? 'A' : 'B')"
+                  (dragover)="onSlotDragOver($event)"
+                  (drop)="onSlotDrop(copyIndex === 0 ? 'allele-slot-a' : 'allele-slot-b', $event)">
+                  <header>
+                    <span>COPY {{ copyIndex === 0 ? 'A' : 'B' }}</span>
+                    <strong>{{ vm.socketsSecured[copyIndex] ? 'SECURED' : 'INDEPENDENT CONTROL' }}</strong>
+                  </header>
+                  <div
+                    class="copy-allele-readout"
+                    [class.dominant]="vm.workingAlleles[copyIndex] === vm.dominantAllele"
+                    [class.recessive]="vm.workingAlleles[copyIndex] === vm.recessiveAllele">
+                    <span>ALLELE</span>
+                    <b>{{ vm.workingAlleles[copyIndex] }}</b>
+                    <small>CHROMOSOME {{ copyIndex === 0 ? 'A' : 'B' }}</small>
+                  </div>
+                  <div class="copy-allele-controls" [attr.aria-label]="'Set allele for chromosome copy ' + (copyIndex === 0 ? 'A' : 'B')">
+                    <button
+                      type="button"
+                      class="dominant-choice"
+                      [class.selected]="vm.workingAlleles[copyIndex] === vm.dominantAllele"
+                      [disabled]="!vm.slotEnabled"
+                      [attr.aria-pressed]="vm.workingAlleles[copyIndex] === vm.dominantAllele"
+                      (click)="setAllele(copyIndex === 0 ? 'allele-slot-a' : 'allele-slot-b', vm.dominantAllele)">
+                      <b>{{ vm.dominantAllele }}</b><span>Dominant</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="recessive-choice"
+                      [class.selected]="vm.workingAlleles[copyIndex] === vm.recessiveAllele"
+                      [disabled]="!vm.slotEnabled"
+                      [attr.aria-pressed]="vm.workingAlleles[copyIndex] === vm.recessiveAllele"
+                      (click)="setAllele(copyIndex === 0 ? 'allele-slot-a' : 'allele-slot-b', vm.recessiveAllele)">
+                      <b>{{ vm.recessiveAllele }}</b><span>Recessive</span>
+                    </button>
+                  </div>
+                  <p>Change this chromosome copy without changing the other.</p>
+                  <button
+                    type="button"
+                    class="socket-lock"
+                    [class.secured]="vm.socketsSecured[copyIndex]"
+                    [disabled]="!vm.slotEnabled"
+                    [attr.aria-pressed]="vm.socketsSecured[copyIndex]"
+                    [attr.aria-label]="'Secure allele socket ' + (copyIndex === 0 ? 'A' : 'B')"
+                    (click)="secureSocket(copyIndex === 0 ? 'socket-lock-a' : 'socket-lock-b')">
+                    <i aria-hidden="true"></i>{{ vm.socketsSecured[copyIndex] ? 'COPY SECURED' : 'SECURE THIS COPY' }}
+                  </button>
+                </section>
               </div>
             }
           </div>
@@ -204,7 +264,7 @@
                 <span>{{ vm.recessiveAllele }}</span><small>RECESSIVE<br />CARTRIDGE</small><i aria-hidden="true"></i>
               </button>
             </div>
-            <p>Select a cartridge, then choose socket A or B. Dragging is optional.</p>
+            <p>Optional drag rack: drag a cartridge to either independent copy display above.</p>
           </div>
 
           <div class="prediction-console" [class.active]="vm.phase === 'predict'">

@@ -23,7 +23,24 @@ describe('buildDragonArenaPose', () => {
     expect(pose.length).toBe(blueprint.parts.length);
   });
 
-  it('poses jaws and legs for a bite without moving the torso', () => {
+  it('rears the rendered torso off the physics body for a breath', () => {
+    const rest = buildDragonArenaPose('red-1', blueprint, corePartId, core, undefined);
+    const breath = buildDragonArenaPose('red-1', blueprint, corePartId, core, {
+      combatantId: 'red-1',
+      ability: 'fire-breath',
+      phase: 0.5,
+    });
+
+    const before = rest.find(part => part.sourcePartId === corePartId)!;
+    const after = breath.find(part => part.sourcePartId === corePartId)!;
+
+    // The physics core has not moved; the *drawn* torso has, because a rear-up
+    // is a whole-body transform measured against the resting rig rather than
+    // the posed one. Measured against the posed torso this would be zero.
+    expect(after.position.y).toBeGreaterThan(before.position.y);
+  });
+
+  it('poses jaws and legs for a bite', () => {
     const rest = buildDragonArenaPose('red-1', blueprint, corePartId, core, undefined);
     const bite = buildDragonArenaPose('red-1', blueprint, corePartId, core, {
       combatantId: 'red-1',
@@ -44,6 +61,17 @@ describe('buildDragonArenaPose', () => {
     expect(changed('classic-dragon-front-left-leg')).toBeTrue();
     expect(changed('classic-dragon-front-left-lower-leg')).toBeTrue();
     expect(changed('classic-dragon-front-left-foot')).toBeTrue();
-    expect(bite.find(part => part.sourcePartId === corePartId)?.position).toEqual(core.position);
+  });
+
+  it('leaves the drawn torso on the physics body when nothing is rearing', () => {
+    const sweep = buildDragonArenaPose('red-1', blueprint, corePartId, core, {
+      combatantId: 'red-1',
+      ability: 'wing-buffet',
+      phase: 0.5,
+    });
+
+    // A wing buffet is pure articulation, so the torso stays exactly where
+    // physics put it.
+    expect(sweep.find(part => part.sourcePartId === corePartId)?.position).toEqual(core.position);
   });
 });

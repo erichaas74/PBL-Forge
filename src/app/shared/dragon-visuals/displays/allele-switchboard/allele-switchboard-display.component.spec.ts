@@ -72,6 +72,18 @@ describe('AlleleSwitchboardDisplayComponent', () => {
     }));
   });
 
+  it('manipulates chromosome-copy allele displays independently', () => {
+    render(scene('manipulate', { geneLocationLocked: true, centeredGeneId: 'W' }));
+    const displays = host().querySelectorAll<HTMLElement>('.allele-copy-console');
+    displays[0].querySelector<HTMLButtonElement>('.recessive-choice')!.click();
+    displays[1].querySelector<HTMLButtonElement>('.dominant-choice')!.click();
+
+    expect(events.slice(-2)).toEqual([
+      jasmine.objectContaining({ type: 'allele-moved', targetId: 'allele-slot-a', value: 'w' }),
+      jasmine.objectContaining({ type: 'allele-moved', targetId: 'allele-slot-b', value: 'W' }),
+    ]);
+  });
+
   it('keeps the scientific result shielded until the analyzer emits a reveal request', () => {
     render(scene('predict', { geneLocationLocked: true }));
     expect(host().querySelector('.phenotype-readout')?.textContent).toContain('RESULT SHIELDED');

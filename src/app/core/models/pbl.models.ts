@@ -1,5 +1,5 @@
 export type ProjectStatus = 'draft' | 'published' | 'archived';
-export type ProjectAccent = 'coral' | 'teal' | 'gold';
+export type ProjectAccent = 'ember' | 'fury' | 'gold';
 export type ActivityType = 'choice' | 'matching' | 'reflection';
 
 export interface PblProject {

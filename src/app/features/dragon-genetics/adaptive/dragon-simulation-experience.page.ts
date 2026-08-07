@@ -10,7 +10,11 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { SessionService } from '../../../core/firebase/session.service';
+import { DragonArenaComponent } from '../dragon-arena.component';
 import { DragonDnaRepairLabComponent } from '../dragon-dna-repair-lab.component';
+import { findParent, runDragonBatch } from '../dragon-genetics.domain';
+import { DragonBattleResult, StudentDragonRecord } from '../dragon-genetics.models';
+import { DRAGON_TRAITS, genotypeLabel } from '../simulation/domain/dragon-inheritance';
 import { AlleleVaultWorkbenchComponent } from './allele-workbench/allele-vault-workbench.component';
 import {
   ALLELE_VAULT_GENES,
@@ -39,6 +43,7 @@ import { DragonSimulationVisualComponent } from './dragon-simulation-visual.comp
     DragonSimulationVisualComponent,
     AlleleVaultWorkbenchComponent,
     DragonDnaRepairLabComponent,
+    DragonArenaComponent,
   ],
   templateUrl: './dragon-simulation-experience.page.html',
   styleUrl: './dragon-simulation-experience.page.scss',
@@ -131,6 +136,62 @@ export class DragonSimulationExperiencePage {
     };
     return questionByNode[focusNodeId ?? ''] ?? questionByNode['replication'];
   });
+  /**
+   * Breeding seed for the arena champion, isolated from the rest of the run.
+   *
+   * `run()` changes on every answered question, so deriving the champion
+   * straight from it would rebuild the dragon — and reset the battle in
+   * progress — each time a student answers. The seed itself only changes on a
+   * restart, and a computed returning the same number stops there.
+   */
+  private readonly arenaSeed = computed<number | null>(() => {
+    const definition = this.definition();
+    if (definition?.id !== 'dragon-arena') return null;
+    const seed = this.run()?.seed;
+    return seed ? seedToRunNumber(seed) : null;
+  });
+  /**
+   * The dragon a student takes into the arena.
+   *
+   * Bred from the run seed rather than from a fixed number, so the champion is
+   * the same animal every time this student reloads the module but not the same
+   * animal as the student beside them — which is the whole point of a module
+   * about whether one trial proves anything about a genotype.
+   */
+  readonly arenaChampion = computed<StudentDragonRecord | null>(() => {
+    const seed = this.arenaSeed();
+    if (seed === null) return null;
+    return runDragonBatch(findParent('ember'), findParent('tide'), seed, 1).sample[0] ?? null;
+  });
+  /** The most recent completed trial, or null before the first battle ends. */
+  readonly arenaTrial = signal<DragonBattleResult | null>(null);
+  /**
+   * What each evidence target on the arena rail reports right now.
+   *
+   * The genetics target reads the champion's actual genotype and the outcome
+   * targets stay empty until a battle has finished, so a student answering
+   * "what can this trial prove" is looking at their own trial rather than at a
+   * caption written in advance.
+   */
+  readonly arenaNodeReadouts = computed<Record<string, string>>(() => {
+    const champion = this.arenaChampion();
+    const trial = this.arenaTrial();
+    const readouts: Record<string, string> = {
+      genetics: champion
+        ? DRAGON_TRAITS.map(
+            (trait) => `${trait.name} ${genotypeLabel(champion.genome[trait.id])}`,
+          ).join(' · ')
+        : 'Breeding your champion…',
+      strategy: 'Both dragons use the same attack program and arena.',
+      combat: trial
+        ? `${trial.winnerName} won in ${trial.elapsedSeconds.toFixed(1)}s`
+        : 'No trial run yet — start a battle.',
+      evidence: trial
+        ? `${trial.remainingHealthPercent}% champion health left. One trial, one outcome.`
+        : 'Run a trial, then judge what it can and cannot show.',
+    };
+    return readouts;
+  });
   readonly nextDefinition = computed(() => {
     const definition = this.definition();
     if (!definition) return null;
@@ -151,8 +212,20 @@ export class DragonSimulationExperiencePage {
       }
       this.selectedNodeId.set(null);
       this.hintOpen.set(false);
+      this.arenaTrial.set(null);
       void this.store.prepareRun(definition);
     });
+  }
+
+  /**
+   * Records a finished battle without answering anything.
+   *
+   * Winning is not evidence of understanding — separating the two is the
+   * misconception this module targets — so the trial only fills the evidence
+   * rail. The student still has to say what it shows.
+   */
+  handleArenaTrial(result: DragonBattleResult): void {
+    this.arenaTrial.set(result);
   }
 
   selectNode(nodeId: string): void {
@@ -199,4 +272,20 @@ export class DragonSimulationExperiencePage {
     this.store.setTeacherPreviewLevel(value as InstructionLevel);
     void this.restart();
   }
+}
+
+/**
+ * Folds a run seed string into the numeric run index the breeding helpers take.
+ *
+ * An FNV-1a hash kept inside 32 bits: the breeder only needs a stable, well
+ * spread number, and the seed already carries the student, assignment, and
+ * attempt, so a restart legitimately produces a different dragon.
+ */
+function seedToRunNumber(seed: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash | 0);
 }

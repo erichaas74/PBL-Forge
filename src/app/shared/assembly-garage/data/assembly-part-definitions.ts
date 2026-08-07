@@ -13,10 +13,28 @@ import {
 import { createAssemblyId } from '../utils/assembly-id';
 import { quaternionFromAxisAngle } from '../utils/vector-data';
 import { dragonBodySurfacePoint } from '../../assembly/rendering/dragon-body-profile';
+import { dragonHeadJawMountFor } from '../../assembly/rendering/dragon-head-profile';
 import { wingClawAnchor, wingRootMount } from '../../assembly/rendering/dragon-wing-profile';
 import { inferAssemblyPartRoles } from '../../assembly/domain/assembly-clone';
 
 export type AssemblyPartFamily = 'primitive' | 'car' | 'robot' | 'dragon';
+
+/**
+ * Head sizes, named because the part and its jaw socket must measure the same
+ * skull — the socket is derived from these, not authored beside them.
+ *
+ * The horned head is a sphere, so its numbers are radii; the other two are
+ * boxes, so theirs are full extents.
+ */
+/**
+ * Not a cube of numbers any more. A sphere part collides on `x` alone
+ * (`CANNON.Sphere(dimensions.x)`), so `y` and `z` are free for the mesh — and
+ * the head profile needs them, because a skull as tall as it is long can only
+ * ever loft as a ball. The collider is untouched.
+ */
+const HORNED_HEAD_DIMENSIONS: Vector3Data = { x: 0.42, y: 0.32, z: 0.3 };
+const SNOUT_HEAD_DIMENSIONS: Vector3Data = { x: 0.68, y: 0.38, z: 0.34 };
+const ARMORED_HEAD_DIMENSIONS: Vector3Data = { x: 0.54, y: 0.48, z: 0.44 };
 
 export interface AssemblyPartDefinition {
   id: string;
@@ -342,38 +360,32 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
       ...wingSockets(dimensions, -0.07, 'secondary'),
     ],
   ),
-  dragonPart('dragon-horned-head', 'Horned Head', 'sphere', { x: 0.42, y: 0.42, z: 0.42 }, 0.75, '#f97316', {
+  dragonPart('dragon-horned-head', 'Horned Head', 'sphere', HORNED_HEAD_DIMENSIONS, 0.75, '#f97316', {
     parentSnapId: 'dragon-head-socket',
     childSnapId: 'dragon-neck',
     jointType: 'hinge',
     axis: { x: 0, y: 1, z: 0 },
     childSnapPosition: { x: -0.36, y: 0, z: 0 },
     behavior: BREAKABLE_MEDIUM,
-    extraSnapPoints: [
-      socket('dragon-upper-jaw-head-socket', 'Upper jaw mount', { x: 0.34, y: -0.08, z: 0 }, 'dragon-upper-jaw-root'),
-    ],
+    extraSnapPoints: [jawSocket('dragon-head-horned', HORNED_HEAD_DIMENSIONS, 'sphere')],
   }),
-  dragonPart('dragon-snout-head', 'Long Snout Head', 'box', { x: 0.68, y: 0.38, z: 0.34 }, 0.82, '#fb923c', {
+  dragonPart('dragon-snout-head', 'Long Snout Head', 'box', SNOUT_HEAD_DIMENSIONS, 0.82, '#fb923c', {
     parentSnapId: 'dragon-head-socket',
     childSnapId: 'dragon-neck',
     jointType: 'hinge',
     axis: { x: 0, y: 1, z: 0 },
     childSnapPosition: { x: -0.34, y: 0, z: 0 },
     behavior: BREAKABLE_MEDIUM,
-    extraSnapPoints: [
-      socket('dragon-upper-jaw-head-socket', 'Upper jaw mount', { x: 0.4, y: -0.08, z: 0 }, 'dragon-upper-jaw-root'),
-    ],
+    extraSnapPoints: [jawSocket('dragon-head-snout', SNOUT_HEAD_DIMENSIONS, 'box')],
   }),
-  dragonPart('dragon-armored-head', 'Armored Head', 'box', { x: 0.54, y: 0.48, z: 0.44 }, 0.95, '#64748b', {
+  dragonPart('dragon-armored-head', 'Armored Head', 'box', ARMORED_HEAD_DIMENSIONS, 0.95, '#64748b', {
     parentSnapId: 'dragon-head-socket',
     childSnapId: 'dragon-neck',
     jointType: 'fixed',
     axis: { x: 0, y: 1, z: 0 },
     childSnapPosition: { x: -0.28, y: 0, z: 0 },
     behavior: BREAKABLE_MEDIUM,
-    extraSnapPoints: [
-      socket('dragon-upper-jaw-head-socket', 'Upper jaw mount', { x: 0.32, y: -0.08, z: 0 }, 'dragon-upper-jaw-root'),
-    ],
+    extraSnapPoints: [jawSocket('dragon-head-armored', ARMORED_HEAD_DIMENSIONS, 'box')],
   }),
   dragonPart('dragon-upper-jaw', 'Upper Jaw', 'box', { x: 0.52, y: 0.2, z: 0.3 }, 0.28, '#fbbf24', {
     parentSnapId: 'dragon-upper-jaw-head-socket',
@@ -745,6 +757,29 @@ function wingSockets(
  * blunt armoured head all close over the opening from their own mount offsets.
  * Carried slightly above the spine axis, which reads as a raised head.
  */
+/**
+ * Where the upper jaw hangs off a head.
+ *
+ * Read from the head profile rather than authored by hand. The old flat
+ * `{ x, -0.08, 0 }` was placed against the bounding box, so on any head whose
+ * muzzle actually drops — which is now all of them — the hinge sat above the
+ * skull surface and the jaw floated clear of the face it belongs to. Going
+ * through the profile also means a genome that lengthens a skull carries the
+ * jaw forward with it.
+ */
+function jawSocket(
+  profileId: string,
+  dimensions: Vector3Data,
+  partShape: 'box' | 'sphere',
+): AssemblySnapDefinition {
+  return socket(
+    'dragon-upper-jaw-head-socket',
+    'Upper jaw mount',
+    dragonHeadJawMountFor(profileId, dimensions, partShape),
+    'dragon-upper-jaw-root',
+  );
+}
+
 function neckSocket(dimensions: Vector3Data): AssemblySnapDefinition {
   return socket(
     'dragon-head-socket',

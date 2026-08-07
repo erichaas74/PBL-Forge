@@ -6,11 +6,11 @@
   position: relative;
   min-height: 29rem;
   overflow: hidden;
-  border: 1px solid #dbe5f3;
+  border: 1px solid var(--line);
   border-radius: 1rem;
   background:
     radial-gradient(circle at 50% 50%, rgb(84 144 255 / 12%), transparent 31%),
-    linear-gradient(#fff, #f7fbff);
+    linear-gradient(#fff, var(--surface-raised));
 }
 .stage-title {
   position: absolute;
@@ -36,7 +36,7 @@
 }
 .rail {
   border-radius: 0;
-  background: linear-gradient(180deg, #789fe4, #315aab);
+  background: linear-gradient(180deg, var(--stone), var(--sea));
   box-shadow: 0 0.25rem 0.5rem rgb(36 59 104 / 20%);
 }
 .base-row,
@@ -66,7 +66,7 @@
 .pair-lines i {
   justify-self: center;
   width: 2px;
-  border-left: 2px dashed #91a2bf;
+  border-left: 2px dashed var(--stone);
 }
 .strand-tag {
   position: absolute;
@@ -151,7 +151,7 @@
 .incoming-pair i,
 .leaving-pair i {
   height: 100%;
-  border-left: 2px dashed #91a2bf;
+  border-left: 2px dashed var(--stone);
 }
 .repair-ladder {
   --count: var(--original-count);
@@ -166,7 +166,7 @@
   transform: translateY(5rem);
 }
 .repair-ladder b.repaired {
-  outline: 3px solid #49a06f;
+  outline: 3px solid var(--moss);
   outline-offset: 0.3rem;
   animation: repair-drop 0.7s ease-out;
 }
@@ -217,8 +217,8 @@
   color: #7b3e38;
 }
 .mismatch-callout.fixed {
-  border-color: #49a06f;
-  background: #edf9f2;
+  border-color: var(--moss);
+  background: var(--moss-tint);
   color: #37684b;
 }
 .mismatch-callout strong,
@@ -239,22 +239,22 @@
 }
 .animation-controls button {
   padding: 0.6rem 0.8rem;
-  border: 1px solid #315aab;
+  border: 1px solid var(--sea);
   border-radius: 0.55rem;
-  background: #315aab;
+  background: var(--sea);
   color: white;
   font-size: 0.66rem;
   font-weight: 850;
   cursor: pointer;
 }
 .animation-controls span {
-  color: #64738e;
+  color: var(--muted);
   font-size: 0.62rem;
   font-weight: 800;
 }
 .repair-controls > p:first-child {
   margin: 0;
-  color: #53617b;
+  color: var(--muted);
   font-size: 0.66rem;
 }
 .base-choices {
@@ -287,14 +287,14 @@
   line-height: 1.45;
 }
 .repair-feedback.correct {
-  border-color: #49a06f;
-  background: #edf9f2;
+  border-color: var(--moss);
+  background: var(--moss-tint);
   color: #37684b;
 }
 .process-caption {
   margin: 0;
   padding: 0.65rem 0.75rem;
-  border-left: 4px solid #315aab;
+  border-left: 4px solid var(--sea);
   background: #eef4fc;
   color: #405a78;
   font-size: 0.66rem;

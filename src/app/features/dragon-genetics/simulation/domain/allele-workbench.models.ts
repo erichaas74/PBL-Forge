@@ -78,6 +78,24 @@ export interface AlleleWorkbenchRecord {
   interpretedGenotypeClassId?: AlleleGenotypeClass;
 }
 
+export interface AlleleWorkbenchNotebookRecord extends AlleleWorkbenchRecord {
+  geneName: string;
+  traitControlled: string;
+  dominantAlleleSymbol: string;
+  dominantPhenotype: string;
+  recessiveAlleleSymbol: string;
+  recessivePhenotype: string;
+  genotypeOutcomes: {
+    homozygousDominant: string;
+    heterozygous: string;
+    homozygousRecessive: string;
+  };
+  investigationEvidence: readonly string[];
+  discoveredAtIso: string;
+  confirmedBy: string;
+  confirmed: true;
+}
+
 export interface AlleleWorkbenchSetResult {
   mode: AlleleWorkbenchMode;
   correct: number;

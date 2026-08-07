@@ -96,7 +96,17 @@ const STYLE_CONTROLS: Readonly<Record<string, readonly Omit<StyleControl, 'value
   ],
   'dragon-upper-jaw': jawControls(),
   'dragon-lower-jaw': jawControls(),
+  // Skull silhouette first, then the horns that sit on it. The shape values are
+  // the base `DragonHeadShape`; a head's own proportions bend them from there,
+  // so dragging these tunes the whole family rather than one specimen.
   'dragon-head-horned': [
+    { section: 'head', key: 'cranium', label: 'Braincase', min: 0.6, max: 1.4, step: 0.02 },
+    { section: 'head', key: 'browRidge', label: 'Brow ridge', min: 0, max: 0.5, step: 0.01 },
+    { section: 'head', key: 'muzzleDepth', label: 'Muzzle depth', min: 0.4, max: 1.6, step: 0.02 },
+    { section: 'head', key: 'muzzleWidth', label: 'Muzzle width', min: 0.4, max: 1.6, step: 0.02 },
+    { section: 'head', key: 'muzzleDrop', label: 'Muzzle droop', min: 0, max: 2, step: 0.05 },
+    { section: 'head', key: 'cheek', label: 'Cheek flare', min: 0.6, max: 1.4, step: 0.02 },
+    { section: 'head', key: 'eyeAxial', label: 'Eye position', min: -0.3, max: 0.4, step: 0.01 },
     { section: 'head', key: 'hornLength', label: 'Horn length', min: 0.2, max: 3.5, step: 0.05 },
     { section: 'head', key: 'hornRadius', label: 'Horn thickness', min: 0.04, max: 0.5, step: 0.01 },
     { section: 'head', key: 'browLength', label: 'Brow spike', min: 0, max: 1.5, step: 0.05 },

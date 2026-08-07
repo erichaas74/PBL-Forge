@@ -33,55 +33,79 @@ export interface StageTheme {
   environmentIntensity: number;
 }
 
-/** Dusk battle arena: moody, saturated, game-like. */
-export const ARENA_STAGE_THEME: StageTheme = {
-  skyTop: '#141e30',
-  skyBottom: '#2c3e5c',
-  fogColor: '#2c3e5c',
-  hemisphereSky: '#9db4d6',
-  hemisphereGround: '#33261d',
-  keyColor: '#ffe0b8',
-  keyIntensity: 2.4,
-  fillColor: '#7fa7d9',
-  fillIntensity: 0.55,
-  rimColor: '#9dd8ff',
-  rimIntensity: 1.7,
-  environmentIntensity: 0.5,
+/**
+ * Berk: an overcast north-Atlantic afternoon. The arena theme.
+ *
+ * The point of the palette is what it *withholds*: the sky is a desaturated
+ * grey-blue, the bounce is wet earth, and the rim is nearly gone, so the only
+ * saturated thing in frame is fire — braziers and dragon breath. A high
+ * environment intensity keeps the shadow side open the way a cloud deck does,
+ * which is what makes this read as daylight rather than as a dark scene.
+ *
+ * This replaced a dusk-and-neon arena theme outright. There is no longer a
+ * second battle look to fall back to: every scenario the arena renders, dragon
+ * or otherwise, is lit as the same overcast day, because two competing looks
+ * in one renderer is how an app ends up with no identity at all.
+ */
+export const BERK_STAGE_THEME: StageTheme = {
+  skyTop: '#8fa5b8',
+  skyBottom: '#c9d4dc',
+  fogColor: '#b8c6d0',
+  hemisphereSky: '#b9cbdc',
+  hemisphereGround: '#6b5b45',
+  keyColor: '#fff1dc',
+  keyIntensity: 1.9,
+  fillColor: '#a8bccd',
+  fillIntensity: 0.8,
+  rimColor: '#dbe7f0',
+  rimIntensity: 0.5,
+  environmentIntensity: 1.05,
 };
 
-/** Bright workshop: neutral, readable, for the garage and previews. */
+/**
+ * Bright workshop: the forge with its doors open. Neutral and readable, for
+ * the garage and previews.
+ *
+ * Warmer and less blue than it was, so a part carried from the workshop to the
+ * arena does not appear to change colour on the way.
+ */
 export const STUDIO_STAGE_THEME: StageTheme = {
-  skyTop: '#dfe8f4',
-  skyBottom: '#f6f8fc',
-  fogColor: '#e8eef7',
-  hemisphereSky: '#dbe7f5',
-  hemisphereGround: '#b0a695',
-  keyColor: '#fff4e2',
+  skyTop: '#e4ddcd',
+  skyBottom: '#f8f4ea',
+  fogColor: '#ece4d5',
+  hemisphereSky: '#e0dccf',
+  hemisphereGround: '#8a7a60',
+  keyColor: '#fff3de',
   keyIntensity: 2.1,
-  fillColor: '#c3d9f2',
-  fillIntensity: 0.6,
-  rimColor: '#eaf4ff',
-  rimIntensity: 1.1,
-  environmentIntensity: 0.85,
+  fillColor: '#cdd4d8',
+  fillIntensity: 0.65,
+  rimColor: '#f2ece0',
+  rimIntensity: 1,
+  environmentIntensity: 0.9,
 };
 
 /**
  * Specimen bench: brighter and flatter than the studio, with a cool rim so a
  * small silhouette still separates from the panel behind it. Tuned for
  * inspection at 300px and thumbnails at 120px, where arena contrast reads as
- * mud and the studio's warm key hides pigment differences.
+ * mud and a warm key hides pigment differences.
+ *
+ * **Deliberately left near-neutral by the Berk retheme.** This stage exists so
+ * a student can compare the pigment genes of two dragons side by side, and any
+ * strong colour cast here is a cast applied to the exact thing being measured.
+ * The bench is an instrument, not a set.
  */
 export const SPECIMEN_STAGE_THEME: StageTheme = {
-  skyTop: '#eef3fa',
+  skyTop: '#f2f0ea',
   skyBottom: '#ffffff',
-  fogColor: '#eef3fa',
-  hemisphereSky: '#e8f0fb',
+  fogColor: '#f2f0ea',
+  hemisphereSky: '#f0eee9',
   hemisphereGround: '#c2b8a6',
-  keyColor: '#fffaf2',
+  keyColor: '#fffbf5',
   keyIntensity: 2.35,
-  fillColor: '#d3e4f8',
+  fillColor: '#e2e4e4',
   fillIntensity: 0.85,
-  rimColor: '#dceeff',
+  rimColor: '#eceef0',
   rimIntensity: 1.45,
   environmentIntensity: 1,
 };

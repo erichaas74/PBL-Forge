@@ -25,14 +25,14 @@
   p {
     max-width: 44rem;
     margin: 0;
-    color: #66716e;
+    color: var(--muted);
     font-size: .74rem;
     line-height: 1.55;
   }
 }
 
 .eyebrow {
-  color: var(--dragon-green, #2e735e);
+  color: var(--dragon-green, var(--moss));
   font-size: .62rem;
   font-weight: 850;
   letter-spacing: .11em;
@@ -41,10 +41,10 @@
 
 .mode-tag {
   padding: .4rem .7rem;
-  border: 1px solid #cfc7b9;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: #fffaf0;
-  color: #7a6738;
+  background: var(--surface-raised);
+  color: var(--timber-dark);
   font-size: .64rem;
   font-weight: 800;
 }
@@ -54,12 +54,12 @@
   gap: .2rem;
   padding: .8rem 1rem;
   border: 1px solid #d3c294;
-  border-left: 4px solid var(--dragon-gold, #e6b849);
+  border-left: 4px solid var(--dragon-gold, var(--gold));
   border-radius: .7rem;
-  background: #fff8e5;
+  background: var(--surface);
 
   strong { font-size: .72rem; }
-  p { margin: 0; color: #6d6350; font-size: .72rem; line-height: 1.5; }
+  p { margin: 0; color: var(--timber-dark); font-size: .72rem; line-height: 1.5; }
 }
 
 .station-grid {
@@ -77,15 +77,15 @@
   gap: .8rem;
   align-items: center;
   padding: .7rem;
-  border: 1px solid #d7d0c2;
+  border: 1px solid var(--line);
   border-radius: .8rem;
-  background: #203649;
+  background: var(--slate);
   color: white;
 
   > div { min-width: 0; }
   h4 { margin: .25rem 0; font-family: var(--font-display, inherit); font-size: 1rem; }
   p { margin: 0; color: #cad6dc; font-size: .66rem; line-height: 1.45; }
-  article > strong { display: block; margin-top: .55rem; padding-left: .55rem; border-left: 3px solid var(--dragon-gold, #e6b849); color: #f3dfaa; font-size: .61rem; line-height: 1.45; }
+  article > strong { display: block; margin-top: .55rem; padding-left: .55rem; border-left: 3px solid var(--dragon-gold, var(--gold)); color: #f3dfaa; font-size: .61rem; line-height: 1.45; }
   .eyebrow { color: #86d5bf; }
 }
 
@@ -96,7 +96,7 @@
   gap: .8rem;
   align-content: start;
   padding: 1rem;
-  border: 1px solid #d7d0c2;
+  border: 1px solid var(--line);
   border-radius: .9rem;
   background: rgb(255 255 255 / 88%);
   box-shadow: 0 8px 26px rgb(46 53 48 / 5%);
@@ -112,7 +112,7 @@
     align-items: center;
     justify-content: space-between;
     margin: 0 0 .4rem;
-    color: #4a5854;
+    color: var(--muted);
     font-size: .66rem;
     letter-spacing: .06em;
     text-transform: uppercase;
@@ -120,7 +120,7 @@
     b {
       padding: .1rem .4rem;
       border-radius: .35rem;
-      background: #eee8dc;
+      background: var(--line);
       font-size: .62rem;
     }
   }
@@ -136,11 +136,11 @@
     grid-template-columns: 6.2rem minmax(0, 1fr);
     gap: .5rem;
     padding-bottom: .4rem;
-    border-bottom: 1px dashed #e2dbcd;
+    border-bottom: 1px dashed var(--line);
   }
 
   dt {
-    color: #78827e;
+    color: var(--muted);
     font-size: .6rem;
     font-weight: 800;
     letter-spacing: .04em;
@@ -175,13 +175,13 @@
     grid-template-columns: 1.15rem minmax(0, 1fr);
     gap: .45rem;
     padding: .45rem .5rem;
-    border-left: 3px solid #c8c0b1;
+    border-left: 3px solid var(--line);
     border-radius: .35rem;
-    background: #f7f4ed;
+    background: var(--paper);
   }
 
-  li.correct { border-left-color: #4f9d82; }
-  li.incorrect { border-left-color: #d0846f; }
+  li.correct { border-left-color: var(--moss); }
+  li.incorrect { border-left-color: var(--ember-soft); }
 
   .mark {
     display: grid;
@@ -189,17 +189,17 @@
     height: 1.15rem;
     place-items: center;
     border-radius: 50%;
-    background: #e6e0d3;
+    background: var(--line);
     font-size: .6rem;
     font-weight: 850;
   }
 
-  li.correct .mark { background: #d8efe5; color: #2c6a56; }
+  li.correct .mark { background: var(--moss-tint); color: var(--moss); }
   li.incorrect .mark { background: #fbe0d8; color: #93493a; }
 
   strong { display: block; font-size: .68rem; line-height: 1.3; }
-  small { display: block; margin-top: .12rem; color: #77817d; font-size: .6rem; text-transform: capitalize; }
-  .empty { margin: 0; color: #78827e; font-size: .66rem; line-height: 1.45; }
+  small { display: block; margin-top: .12rem; color: var(--muted); font-size: .6rem; text-transform: capitalize; }
+  .empty { margin: 0; color: var(--muted); font-size: .66rem; line-height: 1.45; }
 }
 
 .watch-list {
@@ -215,24 +215,24 @@
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     gap: .4rem;
-    color: #6d6250;
+    color: var(--timber-dark);
     font-size: .64rem;
     line-height: 1.45;
   }
 
-  strong { color: #96593f; }
+  strong { color: var(--timber); }
 }
 
 .boundary {
   margin: 0;
   padding: .7rem .75rem;
-  border-left: 4px solid var(--dragon-gold, #e6b849);
-  background: #fff8e5;
-  color: #6d6350;
+  border-left: 4px solid var(--dragon-gold, var(--gold));
+  background: var(--surface);
+  color: var(--timber-dark);
   font-size: .64rem;
   line-height: 1.5;
 
-  strong { display: block; color: #79602b; }
+  strong { display: block; color: var(--timber-dark); }
 }
 
 // ---------------------------------------------------------------- action rail
@@ -243,29 +243,29 @@
   align-items: center;
   gap: .6rem;
   padding: .7rem .9rem;
-  border: 1px solid #d7d0c2;
+  border: 1px solid var(--line);
   border-radius: .8rem;
   background: rgb(255 255 255 / 88%);
 
   .step-hint {
     flex: 1 1 18rem;
     margin: 0;
-    color: #55605c;
+    color: var(--muted);
     font-size: .72rem;
     line-height: 1.45;
   }
 
   .counter {
-    color: #78827e;
+    color: var(--muted);
     font-size: .66rem;
     font-weight: 800;
   }
 
   .primary {
     padding: .7rem 1rem;
-    border: 1px solid var(--dragon-green, #2e735e);
+    border: 1px solid var(--dragon-green, var(--moss));
     border-radius: .6rem;
-    background: var(--dragon-green, #2e735e);
+    background: var(--dragon-green, var(--moss));
     color: white;
     font-size: .74rem;
     font-weight: 850;
@@ -273,9 +273,9 @@
   }
 
   .primary:disabled {
-    border-color: #c3bcae;
-    background: #ece7dc;
-    color: #8b938f;
+    border-color: var(--line);
+    background: var(--line);
+    color: var(--muted);
     cursor: not-allowed;
   }
 }

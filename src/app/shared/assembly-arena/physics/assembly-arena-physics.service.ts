@@ -40,6 +40,26 @@ interface BodyMeta {
   sourcePartId: string;
   isCore: boolean;
   roles: AssemblyPartRole[];
+  /**
+   * Core half-extents in the body's own frame, cached for stance separation.
+   * Read from the blueprint rather than the CANNON shape so a box, sphere, and
+   * cylinder torso all report the same three numbers.
+   */
+  half: CoreHalfExtents;
+}
+
+/** Half-extents of a torso: along its spine, across it, and vertically. */
+interface CoreHalfExtents {
+  length: number;
+  width: number;
+  height: number;
+}
+
+/** One torso riding on top of another, with the way off already chosen. */
+interface MountState {
+  carrierId: string;
+  /** Horizontal slide velocity that takes the rider out of the carrier's footprint. */
+  slide: { x: number; z: number };
 }
 
 interface TrackedArenaJoint {
@@ -90,6 +110,43 @@ const DAMAGE_COOLDOWN_SECONDS = 0.45;
 type AbilityDefinition = AssemblyContactAbility;
 const ABILITY_DEFINITIONS = ASSEMBLY_CONTACT_ABILITIES;
 
+/**
+ * Mount separation.
+ *
+ * A dragon-attack torso has its horizontal velocity assigned outright each
+ * frame (see `applyPlayerControl`), which is what makes the controls feel
+ * direct — but it also discards whatever separating velocity the solver just
+ * computed for a torso-on-torso contact. Two dragons could therefore climb onto
+ * one another and stay there: the carrier's ride-height spring held the rider
+ * up, and neither had any way to slide apart. These drive an explicit slide-off
+ * that is *added* to the requested velocity rather than replaced by it.
+ */
+const MOUNT_SEPARATION = {
+  /** Fraction of the summed half-heights above which one torso counts as riding another. */
+  heightRatio: 0.5,
+  /** How far a rider may sit outside the carrier's footprint and still count, as a fraction of its own half-extents. */
+  footprintSlack: 0.35,
+  /** Peak slide-off speed, in metres per second, at full overlap. */
+  slideSpeed: 4.6,
+  /** Sideways buck impulse when the carrier boosts, as a multiple of the rider's mass. */
+  buckImpulse: 7.5,
+  /** Upward component of the same buck. */
+  buckLift: 4.2,
+  /** Seconds between buck throws, so holding boost is not a continuous cannon. */
+  buckCooldownSeconds: 0.8,
+} as const;
+
+/**
+ * Floor for how close two torsos may sit horizontally, as a fraction of their
+ * summed half-widths.
+ *
+ * Deliberately well inside bite range: a bite reaches 2.7 units core to core
+ * and two classic torsos are 1.5 wide summed, so this keeps dragons from
+ * occupying the same point without ever holding them outside the range of the
+ * move they are trying to land.
+ */
+const CORE_PERSONAL_SPACE_RATIO = 1;
+
 @Injectable()
 export class AssemblyArenaPhysicsService {
   private world = this.createWorld();
@@ -101,6 +158,9 @@ export class AssemblyArenaPhysicsService {
   private readonly lastAbilityHitAt = new Map<string, number>();
   private readonly activeAttacks = new Map<string, ActiveScriptedAttack>();
   private readonly attackReactions = new Map<string, CANNON.Vec3>();
+  /** Combatants currently riding on top of another torso. Rebuilt every step. */
+  private readonly mountedOn = new Map<string, MountState>();
+  private readonly lastBuckAt = new Map<string, number>();
   private readonly fixedTimeStep = 1 / 60;
   private readonly maxSubSteps = 6;
   private currentSetupStyleId: ArenaSetupStyleId = 'duel-arena';
@@ -117,6 +177,7 @@ export class AssemblyArenaPhysicsService {
 
   step(state: BattleArenaState, deltaSeconds: number, controlFrames: ControlFrameByCombatant): BattlePhysicsFrame {
     this.updateScriptedAttacks(state, controlFrames);
+    this.updateMountState();
     this.applyControllers(state, controlFrames);
     this.updateJointBehaviors(state.elapsedSeconds);
 
@@ -181,6 +242,8 @@ export class AssemblyArenaPhysicsService {
     this.lastAbilityHitAt.clear();
     this.activeAttacks.clear();
     this.attackReactions.clear();
+    this.mountedOn.clear();
+    this.lastBuckAt.clear();
   }
 
   private addCombatant(combatant: BattleCombatant): void {
@@ -202,6 +265,7 @@ export class AssemblyArenaPhysicsService {
         sourcePartId: part.id,
         isCore: part.id === combatant.corePartId,
         roles: [...(part.roles ?? [])],
+        half: coreHalfExtents(part),
       });
       this.world.addBody(body);
     }
@@ -433,6 +497,7 @@ export class AssemblyArenaPhysicsService {
         core,
         controlFrames[combatant.id] ?? EMPTY_CONTROL_FRAME,
         combatant.controlMode,
+        state.elapsedSeconds,
       );
     }
   }
@@ -442,6 +507,7 @@ export class AssemblyArenaPhysicsService {
     core: CANNON.Body,
     controls: ArenaControlFrame,
     mode: BattleCombatant['controlMode'],
+    elapsedSeconds: number,
   ): void {
     core.wakeUp();
 
@@ -486,16 +552,24 @@ export class AssemblyArenaPhysicsService {
       const desiredX = (forward.x * controls.throttle + right.x * controls.strafe * 0.65) * speed;
       const desiredZ = (forward.z * controls.throttle + right.z * controls.strafe * 0.65) * speed;
       const reaction = this.attackReactions.get(combatant.id);
+      // Separation is added, not blended: assigning velocity outright is what
+      // keeps the controls direct, but it also discards the solver's contact
+      // response, so torso-on-torso overlap has to be re-supplied here or the
+      // two dragons simply occupy each other.
+      const separation = this.resolveCoreSeparation(combatant.id, core);
       // Input directly owns horizontal root velocity. Physics still controls
       // height, impacts, knockback, rotation, and recovery, but floor/leg state
       // cannot swallow or redirect a requested move.
-      core.velocity.x = desiredX + (reaction?.x ?? 0);
-      core.velocity.z = desiredZ + (reaction?.z ?? 0);
+      core.velocity.x = desiredX + (reaction?.x ?? 0) + separation.x;
+      core.velocity.z = desiredZ + (reaction?.z ?? 0) + separation.z;
       if (reaction) {
         reaction.scale(0.84, reaction);
         if (reaction.lengthSquared() < 0.01) this.attackReactions.delete(combatant.id);
       }
       core.applyTorque(new CANNON.Vec3(0, -controls.steer * 34, 0));
+      if (controls.boost) {
+        this.applyBuck(combatant.id, core, elapsedSeconds);
+      }
       this.applyWingLift(combatant, core, controls);
       this.applyDragonStance(combatant, core, controls);
       return;
@@ -626,11 +700,152 @@ export class AssemblyArenaPhysicsService {
 
     // Gravity compensation plus a damped spring. Never apply a downward drive:
     // a dragon launched above its stance height should fall naturally.
-    const supportAcceleration = Math.max(0, Math.min(
+    let supportAcceleration = Math.max(0, Math.min(
       48,
       9.82 + heightError * 30 - core.velocity.y * 9,
     ));
+
+    // A dragon standing on another one gets no support of its own — it should
+    // fall off, not hover at its stance height on top of the pile. A carrier
+    // holds only itself up, so the pin collapses under the rider's weight
+    // instead of being propped up by the very spring meant to model legs.
+    if (this.mountedOn.has(combatant.id)) {
+      supportAcceleration = 0;
+    } else if (this.isCarrying(combatant.id)) {
+      supportAcceleration *= 0.45;
+    }
+
     core.applyForce(new CANNON.Vec3(0, core.mass * supportAcceleration, 0));
+  }
+
+  /**
+   * Recomputes which torsos are riding on which.
+   *
+   * Done once per step, before any controller runs, so every dragon reads the
+   * same mount state regardless of the order combatants are processed in — a
+   * carrier must not still be jacking up a rider that an earlier iteration
+   * already decided had slid off.
+   */
+  private updateMountState(): void {
+    this.mountedOn.clear();
+    const cores = this.getCoreBodies();
+
+    for (const rider of cores) {
+      const riderMeta = this.bodyMetaById.get(rider.id);
+      if (!riderMeta) continue;
+
+      for (const carrier of cores) {
+        const carrierMeta = this.bodyMetaById.get(carrier.id);
+        if (!carrierMeta || carrierMeta.combatantId === riderMeta.combatantId) continue;
+
+        const slide = resolveMountSlide(rider, riderMeta, carrier, carrierMeta);
+        if (!slide) continue;
+
+        this.mountedOn.set(riderMeta.combatantId, { carrierId: carrierMeta.combatantId, slide });
+        break;
+      }
+    }
+  }
+
+  /**
+   * Horizontal separation velocity for a torso, added on top of the requested
+   * move rather than replacing it.
+   *
+   * Two cases, both measured in the other torso's own frame so a dragon is
+   * treated as the long box it is instead of as a fat cylinder that would hold
+   * the pair further apart than a bite can reach:
+   *
+   * - *Riding*: this torso is sitting on the other one. It slides off along
+   *   whichever footprint axis it is nearest to leaving.
+   * - *Crowding*: the two are at the same height and inside their summed
+   *   half-widths. A soft push keeps them from merging into one silhouette.
+   */
+  private resolveCoreSeparation(combatantId: string, core: CANNON.Body): { x: number; z: number } {
+    const meta = this.bodyMetaById.get(core.id);
+    if (!meta) return { x: 0, z: 0 };
+
+    const mount = this.mountedOn.get(combatantId);
+    let x = mount?.slide.x ?? 0;
+    let z = mount?.slide.z ?? 0;
+
+    for (const other of this.getCoreBodies()) {
+      const otherMeta = this.bodyMetaById.get(other.id);
+      if (!otherMeta || otherMeta.combatantId === combatantId) continue;
+      // Already handled by the slide; a crowding push on the same pair would
+      // fight it for control of the exit direction.
+      if (mount?.carrierId === otherMeta.combatantId) continue;
+
+      const dx = core.position.x - other.position.x;
+      const dz = core.position.z - other.position.z;
+      const personalSpace = (meta.half.width + otherMeta.half.width) * CORE_PERSONAL_SPACE_RATIO;
+      const distance = Math.hypot(dx, dz);
+      if (distance >= personalSpace) continue;
+
+      // Exactly coincident centres have no separating direction of their own;
+      // fall back to the other torso's flank so the pair still parts.
+      const flank = getHorizontalAxis(other, new CANNON.Vec3(0, 0, 1));
+      const nx = distance > 1e-4 ? dx / distance : flank.x;
+      const nz = distance > 1e-4 ? dz / distance : flank.z;
+      const overlap = (personalSpace - distance) / personalSpace;
+      x += nx * overlap * MOUNT_SEPARATION.slideSpeed * 0.5;
+      z += nz * overlap * MOUNT_SEPARATION.slideSpeed * 0.5;
+    }
+
+    return { x, z };
+  }
+
+  /**
+   * Boost while something is standing on you throws it off.
+   *
+   * Without this a rider can only ever be waited out, which is what made a
+   * pin unrecoverable: the carrier had no input that addressed the one thing
+   * happening to it.
+   */
+  private applyBuck(carrierId: string, core: CANNON.Body, elapsedSeconds: number): void {
+    const last = this.lastBuckAt.get(carrierId);
+    if (last !== undefined && elapsedSeconds - last < MOUNT_SEPARATION.buckCooldownSeconds) {
+      return;
+    }
+
+    for (const [riderId, mount] of this.mountedOn) {
+      if (mount.carrierId !== carrierId) continue;
+
+      const riderCore = this.getCoreBody(riderId);
+      if (!riderCore) continue;
+
+      const slide = mount.slide;
+      const length = Math.hypot(slide.x, slide.z) || 1;
+      riderCore.wakeUp();
+      riderCore.applyImpulse(new CANNON.Vec3(
+        (slide.x / length) * riderCore.mass * MOUNT_SEPARATION.buckImpulse,
+        riderCore.mass * MOUNT_SEPARATION.buckLift,
+        (slide.z / length) * riderCore.mass * MOUNT_SEPARATION.buckImpulse,
+      ));
+      // Routed through the attack reaction so the rider's own controller keeps
+      // carrying the throw for a few frames instead of overwriting it next step.
+      this.attackReactions.set(riderId, new CANNON.Vec3(
+        (slide.x / length) * MOUNT_SEPARATION.slideSpeed,
+        0,
+        (slide.z / length) * MOUNT_SEPARATION.slideSpeed,
+      ));
+      this.lastBuckAt.set(carrierId, elapsedSeconds);
+    }
+  }
+
+  private isCarrying(combatantId: string): boolean {
+    for (const mount of this.mountedOn.values()) {
+      if (mount.carrierId === combatantId) return true;
+    }
+    return false;
+  }
+
+  private getCoreBodies(): CANNON.Body[] {
+    const cores: CANNON.Body[] = [];
+    for (const [bodyKey, body] of this.bodies.entries()) {
+      const meta = this.bodyMetaById.get(body.id);
+      if (meta?.isCore && bodyKey === meta.bodyKey) cores.push(body);
+    }
+    return cores;
   }
 
   private getOpponentCoreBody(combatantId: string): CANNON.Body | null {
@@ -1080,6 +1295,74 @@ const DEFAULT_ARENA_SETUP: ArenaSetupConfig = {
   winCondition: { type: 'core-survival' },
   obstacles: [],
 };
+
+/**
+ * Torso half-extents in the body's own frame.
+ *
+ * Mirrors `createAssemblyGeometry`'s reading of `dimensions`: a sphere carries
+ * a radius in `x`, a cylinder a radius in `x` and a full height in `y`, and a
+ * box three full extents.
+ */
+function coreHalfExtents(part: AssemblyPart): CoreHalfExtents {
+  if (part.shape === 'sphere') {
+    return { length: part.dimensions.x, width: part.dimensions.x, height: part.dimensions.x };
+  }
+  if (part.shape === 'cylinder') {
+    return { length: part.dimensions.x, width: part.dimensions.x, height: part.dimensions.y / 2 };
+  }
+  return {
+    length: part.dimensions.x / 2,
+    width: part.dimensions.z / 2,
+    height: part.dimensions.y / 2,
+  };
+}
+
+/**
+ * Slide-off velocity for `rider` if it is standing on `carrier`, else null.
+ *
+ * The footprint test runs in the carrier's horizontal frame, and the exit is
+ * taken along whichever of its two axes the rider is closest to clearing —
+ * across the flank for a rider near the ribs, off the nose or tail for one
+ * near either end. Picking the nearest edge rather than a fixed direction is
+ * what stops a rider being pushed the long way down a torso it was already
+ * halfway off.
+ */
+function resolveMountSlide(
+  rider: CANNON.Body,
+  riderMeta: BodyMeta,
+  carrier: CANNON.Body,
+  carrierMeta: BodyMeta,
+): { x: number; z: number } | null {
+  const rise = rider.position.y - carrier.position.y;
+  const stackHeight = (riderMeta.half.height + carrierMeta.half.height) * MOUNT_SEPARATION.heightRatio;
+  if (stackHeight <= 0 || rise <= stackHeight) return null;
+
+  const forward = getHorizontalAxis(carrier, new CANNON.Vec3(1, 0, 0));
+  const flank = getHorizontalAxis(carrier, new CANNON.Vec3(0, 0, 1));
+  const dx = rider.position.x - carrier.position.x;
+  const dz = rider.position.z - carrier.position.z;
+  const along = dx * forward.x + dz * forward.z;
+  const across = dx * flank.x + dz * flank.z;
+
+  const slack = MOUNT_SEPARATION.footprintSlack;
+  const limitAlong = carrierMeta.half.length + riderMeta.half.length * slack;
+  const limitAcross = carrierMeta.half.width + riderMeta.half.width * slack;
+  if (Math.abs(along) >= limitAlong || Math.abs(across) >= limitAcross) return null;
+
+  // Full speed once the rider is clear of the carrier's back, tapering to zero
+  // as it descends past the stack threshold, so the push fades out instead of
+  // flinging a dragon that has already landed beside its opponent.
+  const engagement = Math.min(1, rise / stackHeight - 1);
+  const speed = MOUNT_SEPARATION.slideSpeed * engagement;
+  const exitAcross = limitAcross - Math.abs(across) <= limitAlong - Math.abs(along);
+  const axis = exitAcross ? flank : forward;
+  const offset = exitAcross ? across : along;
+  // Dead centre has no side of its own; a torso is narrower across than along,
+  // so leaving by the flank is the shorter trip either way.
+  const sign = Math.abs(offset) > 1e-4 ? Math.sign(offset) : 1;
+
+  return { x: axis.x * sign * speed, z: axis.z * sign * speed };
+}
 
 function toCannonVec3(vector: Vector3Data): CANNON.Vec3 {
   return new CANNON.Vec3(vector.x, vector.y, vector.z);

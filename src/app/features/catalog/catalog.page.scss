@@ -30,7 +30,7 @@
   display: block;
   width: 1.5rem;
   height: 2px;
-  background: var(--coral);
+  background: var(--ember);
 }
 
 h1,
@@ -49,7 +49,7 @@ h1 {
 }
 
 h1 em {
-  color: var(--coral);
+  color: var(--ember);
   font-style: normal;
 }
 
@@ -144,7 +144,7 @@ h1 em {
   height: 9rem;
   border: 2px solid var(--ink);
   border-radius: 50%;
-  background: var(--coral);
+  background: var(--ember);
   box-shadow: inset -1.2rem -0.8rem 0 rgb(17 33 46 / 14%);
 }
 
@@ -263,8 +263,8 @@ h1 em {
   content: '';
 }
 
-.project-card.coral { --card-accent: var(--coral); }
-.project-card.teal { --card-accent: var(--teal); }
+.project-card.ember { --card-accent: var(--ember); }
+.project-card.fury { --card-accent: var(--fury); }
 .project-card.gold { --card-accent: var(--gold); }
 
 .project-number {
@@ -354,7 +354,7 @@ dd {
   display: grid;
   gap: 0.35rem;
   margin-bottom: 1.5rem;
-  border-left: 5px solid var(--coral);
+  border-left: 5px solid var(--ember);
 }
 
 .notice span,
@@ -367,7 +367,7 @@ dd {
 }
 
 .empty-state > span {
-  color: var(--teal);
+  color: var(--fury);
   font-size: 3rem;
 }
 
@@ -399,7 +399,7 @@ dd {
 }
 
 .principles strong {
-  color: var(--coral);
+  color: var(--ember);
   font-family: var(--font-display);
   font-size: 1.3rem;
 }

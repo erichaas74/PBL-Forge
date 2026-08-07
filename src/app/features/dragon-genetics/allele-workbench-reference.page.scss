@@ -27,12 +27,12 @@ nav {
 }
 
 nav a {
-  color: #f3c86a;
+  color: var(--gold);
   text-decoration: none;
 }
 
 nav a:hover { text-decoration: underline; }
-nav a:focus-visible { outline: 3px solid #f3c86a; outline-offset: 3px; }
+nav a:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 main { width: min(1540px, 100%); margin: auto; }
 
 @media (max-width: 560px) {

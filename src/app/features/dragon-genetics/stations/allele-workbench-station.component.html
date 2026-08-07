@@ -1,89 +1,462 @@
-<section class="station">
-  <header class="station-head">
+<svg class="allele-svg-definitions" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="allele-capsule" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d8b878" />
+      <stop offset=".5" stop-color="#a77d42" />
+      <stop offset="1" stop-color="#6d4e29" />
+    </linearGradient>
+    <g id="allele-pattern-a">
+      <rect x="4" y="8" width="232" height="84" rx="14" fill="#09141c" stroke="#7195a0" stroke-width="2" />
+      <rect x="24" y="28" width="192" height="44" rx="18" fill="url(#allele-capsule)" />
+      <ellipse cx="24" cy="50" rx="8" ry="22" fill="#b68b4d" />
+      <ellipse cx="216" cy="50" rx="8" ry="22" fill="#8f6738" />
+      <rect x="53" y="28" width="17" height="44" fill="#198bc7" />
+      <rect x="82" y="28" width="14" height="44" fill="#b9a080" />
+      <rect x="96" y="28" width="27" height="44" fill="#25a36f" />
+      <rect x="140" y="28" width="14" height="44" fill="#76543c" />
+      <rect x="154" y="28" width="24" height="44" fill="#e2ad2f" />
+    </g>
+    <g id="allele-pattern-b">
+      <rect x="4" y="8" width="232" height="84" rx="14" fill="#09141c" stroke="#8b96b0" stroke-width="2" />
+      <rect x="24" y="28" width="192" height="44" rx="18" fill="url(#allele-capsule)" />
+      <ellipse cx="24" cy="50" rx="8" ry="22" fill="#b68b4d" />
+      <ellipse cx="216" cy="50" rx="8" ry="22" fill="#8f6738" />
+      <rect x="57" y="28" width="22" height="44" fill="#d73e45" />
+      <rect x="79" y="28" width="18" height="44" fill="#d9dbda" />
+      <rect x="128" y="28" width="13" height="44" fill="#5e493b" />
+      <rect x="141" y="28" width="23" height="44" fill="#7c3bb0" />
+    </g>
+  </defs>
+</svg>
+
+<div class="workspace">
+<section class="trait-workstation">
+  <header class="station-header">
     <div>
-      <span class="eyebrow">Royal Hatchery Genetics Laboratory · Station GEN-4</span>
-      <h3>Allele Workbench</h3>
-      <p>Operate the sample chamber, locate a gene on homologous chromosomes, configure its allele pair, and preserve the evidence chain in a laboratory record.</p>
+      <span class="eyebrow">Dragon Genetics Notebook · Trait Investigation</span>
+      <h1>Allele &amp; Trait Investigation</h1>
+      <p>Discover a gene rule, test it with two samples, and save it for future breeding decisions.</p>
     </div>
-    <span class="mode-tag">{{ modeLabel() }}</span>
+    <div class="mission-status">
+      <span>{{ modeLabel() }}</span>
+      <strong>Gene {{ taskNumber() }} of {{ tasks().length }}</strong>
+    </div>
   </header>
 
-  <section class="mission-card" aria-label="Current laboratory mission">
-    <div class="mission-index"><span>MISSION</span><strong>{{ activeTaskNumber().toString().padStart(2, '0') }}</strong></div>
-    <div class="mission-copy">
-      <span class="eyebrow">Specimen assignment · {{ activeTask().sampleCode }}</span>
-      <strong>{{ activeTask().prompt }}</strong>
-      <p>{{ activeTask().sampleLabel }} · chromosome {{ activeTask().chromosomeNumber }} · locate gene {{ activeTask().targetGeneId }} · configure {{ activeTask().requestedAlleles.join('') }}</p>
+  <nav class="progress-rail" aria-label="Investigation progress">
+    @for (item of stepLabels; track item.id; let index = $index) {
+      <span [class.active]="step() === item.id" [class.done]="stepDone(item.id)">
+        <i>{{ stepDone(item.id) ? '✓' : index + 1 }}</i>{{ item.label }}
+      </span>
+    }
+  </nav>
+
+  <section class="gene-banner">
+    <div class="gene-symbol">{{ activeTask().targetGeneId }}</div>
+    <div>
+      <span class="eyebrow">Gene under investigation</span>
+      <h2>{{ trait().name }}</h2>
+      <p>Trait controlled: {{ trait().name }} · Chromosome {{ activeTask().chromosomeNumber }}</p>
     </div>
-    <div class="mission-pair"><span>START</span><b>{{ activeTask().startingAlleles.join('') }}</b><i aria-hidden="true">→</i><span>ASSIGNED</span><b>{{ activeTask().requestedAlleles.join('') }}</b></div>
+    <div class="mission-pair">
+      <span>Sample pair</span>
+      <strong>{{ step() === 'reference' ? '? ?' : activeTask().requestedAlleles.join('') }}</strong>
+    </div>
   </section>
 
-  <div class="station-grid">
-    <app-allele-switchboard-display [copy]="copy" [feedback]="feedback()" (stageEvent)="onStageEvent($event)" />
+  <section class="reference-panel" aria-labelledby="reference-title">
+    @if (step() === 'reference') {
+      <div class="allele-bank" aria-labelledby="allele-bank-title">
+        <header>
+          <div>
+            <span class="step-kicker">01 · Possible allele types</span>
+            <h2 id="allele-bank-title">Drag a resistor-code allele to its matching phenotype</h2>
+          </div>
+          <span class="bank-instruction">Drag &amp; drop options</span>
+        </header>
+        <div class="bank-options">
+          <div
+            class="draggable-item"
+            [class.selected]="selectedReferencePattern() === 'allele-pattern-a'"
+            draggable="true"
+            role="button"
+            tabindex="0"
+            aria-label="Select Allele Option 1"
+            (click)="selectReferencePattern('allele-pattern-a')"
+            (keydown.enter)="selectReferencePattern('allele-pattern-a')"
+            (keydown.space)="selectReferencePattern('allele-pattern-a'); $event.preventDefault()"
+            (dragstart)="startReferenceDrag($event, 'allele-pattern-a')">
+            <span class="drag-handle" aria-hidden="true">⠿</span>
+            <div><strong>Allele Option 1</strong><small>Match by stripe sequence</small></div>
+            <svg viewBox="0 0 240 100" role="img" aria-label="Allele Option 1 resistor-code pattern"><use href="#allele-pattern-a" /></svg>
+          </div>
+          <div
+            class="draggable-item"
+            [class.selected]="selectedReferencePattern() === 'allele-pattern-b'"
+            draggable="true"
+            role="button"
+            tabindex="0"
+            aria-label="Select Allele Option 2"
+            (click)="selectReferencePattern('allele-pattern-b')"
+            (keydown.enter)="selectReferencePattern('allele-pattern-b')"
+            (keydown.space)="selectReferencePattern('allele-pattern-b'); $event.preventDefault()"
+            (dragstart)="startReferenceDrag($event, 'allele-pattern-b')">
+            <span class="drag-handle" aria-hidden="true">⠿</span>
+            <div><strong>Allele Option 2</strong><small>Match by stripe sequence</small></div>
+            <svg viewBox="0 0 240 100" role="img" aria-label="Allele Option 2 resistor-code pattern"><use href="#allele-pattern-b" /></svg>
+          </div>
+        </div>
+        <p class="click-alternative">Keyboard or touch: select an option, then activate a drop zone.</p>
+      </div>
 
-    <aside class="evidence-dock" aria-label="Evidence dock and laboratory notebook">
-      <header>
-        <span class="eyebrow">Persistent evidence dock</span>
-        <h4>Laboratory notebook</h4>
-        <p>Live instrument data and saved records remain visible throughout the investigation.</p>
+      <header class="panel-heading discovery-heading">
+        <div>
+          <span class="step-kicker">Reference dragon models</span>
+          <h2 id="reference-title">Compare the visible trait, match the allele, then deduce expression</h2>
+        </div>
       </header>
 
-      <section class="live-record">
-        <div class="section-label"><span>Current data</span><i aria-hidden="true"></i></div>
-        <dl>
-          <div><dt>Sample</dt><dd>{{ activeTask().sampleCode }}</dd></div>
-          <div><dt>Specimen</dt><dd>{{ selectedSample().name }}</dd></div>
-          <div><dt>Gene</dt><dd>{{ activeTask().targetGeneId }}</dd></div>
-          <div><dt>Chromosome</dt><dd>{{ activeTask().chromosomeNumber }}</dd></div>
-          <div><dt>Starting pair</dt><dd>{{ activeTask().startingAlleles.join('') }}</dd></div>
-          <div><dt>Working pair</dt><dd>{{ currentPair() }}</dd></div>
-          <div><dt>Prediction</dt><dd>{{ currentPrediction() }}</dd></div>
-          <div><dt>Evidence</dt><dd>{{ currentEvidence() }}</dd></div>
-        </dl>
-      </section>
-
-      <section class="evidence-state">
-        <div class="section-label"><span>Evidence chain</span><i aria-hidden="true"></i></div>
-        <ol>
-          <li [class.complete]="chamberLocked()"><i aria-hidden="true"></i><span>Sample identity</span><strong>{{ chamberLocked() ? 'VERIFIED' : 'PENDING' }}</strong></li>
-          <li [class.complete]="geneLocationLocked()"><i aria-hidden="true"></i><span>Gene location</span><strong>{{ geneLocationLocked() ? 'LOCKED' : 'PENDING' }}</strong></li>
-          <li [class.complete]="socketsSecured()[0] && socketsSecured()[1]"><i aria-hidden="true"></i><span>Allele copies</span><strong>{{ socketsSecured()[0] && socketsSecured()[1] ? 'SECURED' : 'PENDING' }}</strong></li>
-          <li [class.complete]="currentPrediction() !== 'Not locked'"><i aria-hidden="true"></i><span>Prediction</span><strong>{{ currentPrediction() === 'Not locked' ? 'PENDING' : 'RECORDED' }}</strong></li>
-          <li [class.complete]="currentEvidence() !== 'Not pinned'"><i aria-hidden="true"></i><span>Rule evidence</span><strong>{{ currentEvidence() === 'Not pinned' ? 'PENDING' : 'PINNED' }}</strong></li>
-        </ol>
-      </section>
-
-      <section class="notebook">
-        <div class="section-label"><span>Saved records</span><b>{{ records().length }}</b></div>
-        @if (!records().length) {
-          <p class="empty-note">No record saved yet. A complete record will preserve the sample, gene, allele pair, predictions, observed expression, interpretation, and supporting rule.</p>
-        } @else {
-          <ol class="record-list">
-            @for (record of records(); track record.taskId) {
-              <li [class.supported]="mode() !== 'official' && record.constructionCorrect && record.predictionCorrect && record.evidenceCorrect && record.interpretationCorrect">
-                <div class="record-head"><span>{{ record.sampleCode ?? record.sampleId }}</span><strong>{{ record.focusGeneId }} · {{ record.workingAlleles.join('') }}</strong></div>
-                <dl>
-                  <div><dt>Starting pair</dt><dd>{{ record.startingAlleles.join('') }}</dd></div>
-                  <div><dt>Genotype class</dt><dd>{{ record.genotypeClassId.replaceAll('-', ' ') }}</dd></div>
-                  <div><dt>Predicted</dt><dd>{{ record.predictedPhenotypeId }}</dd></div>
-                  <div><dt>Observed</dt><dd>{{ record.actualPhenotypeId }}</dd></div>
-                  <div><dt>Recessive retained</dt><dd>{{ record.interpretedRecessiveRetained ? 'Yes' : 'No' }}</dd></div>
-                  <div><dt>Evidence</dt><dd>{{ record.evidenceId.replaceAll('-', ' ') }}</dd></div>
-                </dl>
-                <p><strong>Conclusion</strong>{{ taskLabel(record.taskId) }}</p>
-              </li>
+      <div class="comparison-area">
+        <article class="phenotype-panel" id="panel-a">
+          <header><span>Phenotype A</span><strong>{{ trait().dominantPhenotype }}</strong></header>
+          <div class="phenotype-evidence">
+            <app-dragon-portrait [profile]="dominantReferenceDragon()" [compact]="true" />
+            <div class="fingerprint-clue">
+              <span>Observed fingerprint</span>
+              <svg viewBox="0 0 240 100" role="img" aria-label="Fingerprint observed with Phenotype A"><use href="#allele-pattern-a" /></svg>
+            </div>
+          </div>
+          <div
+            class="drop-zone"
+            id="drop-a"
+            [class.filled]="referenceDrops()[0]"
+            [attr.aria-label]="referenceDrops()[0] ? 'Phenotype A contains Allele Option ' + referenceOptionNumber(referenceDrops()[0]) + '. Activate to replace it with the selected option.' : 'Drop matching allele for Phenotype A here'"
+            role="button"
+            tabindex="0"
+            (click)="placeSelectedReferencePattern(0)"
+            (keydown.enter)="placeSelectedReferencePattern(0)"
+            (keydown.space)="placeSelectedReferencePattern(0); $event.preventDefault()"
+            (dragover)="allowReferenceDrop($event)"
+            (drop)="dropReference($event, 0)">
+            @if (referenceDrops()[0]; as pattern) {
+              <svg viewBox="0 0 240 100" aria-hidden="true"><use [attr.href]="'#' + pattern" /></svg>
+              <span><strong>Allele Option {{ referenceOptionNumber(pattern) }}</strong><small>Placed with Phenotype A</small></span>
+            } @else {
+              <i aria-hidden="true">↓</i><span><strong>Drop matching allele here</strong><small>or select an option, then activate</small></span>
             }
-          </ol>
-        }
+          </div>
+          <div class="question-group">
+            <span>How is this allele expressed?</span>
+            <div class="button-group">
+              <button type="button" [class.selected]="referenceAnswers().aExpression === 'dominant'" [disabled]="!mixedPairTested()" (click)="selectReferenceExpression('a', 'dominant')">Dominant</button>
+              <button type="button" [class.selected]="referenceAnswers().aExpression === 'recessive'" [disabled]="!mixedPairTested()" (click)="selectReferenceExpression('a', 'recessive')">Recessive</button>
+            </div>
+          </div>
+        </article>
+
+        <div class="comparison-divider" aria-hidden="true"><span>Compare</span></div>
+
+        <article class="phenotype-panel" id="panel-b">
+          <header><span>Phenotype B</span><strong>{{ trait().recessivePhenotype }}</strong></header>
+          <div class="phenotype-evidence">
+            <app-dragon-portrait [profile]="recessiveReferenceDragon()" [compact]="true" />
+            <div class="fingerprint-clue">
+              <span>Observed fingerprint</span>
+              <svg viewBox="0 0 240 100" role="img" aria-label="Fingerprint observed with Phenotype B"><use href="#allele-pattern-b" /></svg>
+            </div>
+          </div>
+          <div
+            class="drop-zone"
+            id="drop-b"
+            [class.filled]="referenceDrops()[1]"
+            [attr.aria-label]="referenceDrops()[1] ? 'Phenotype B contains Allele Option ' + referenceOptionNumber(referenceDrops()[1]) + '. Activate to replace it with the selected option.' : 'Drop matching allele for Phenotype B here'"
+            role="button"
+            tabindex="0"
+            (click)="placeSelectedReferencePattern(1)"
+            (keydown.enter)="placeSelectedReferencePattern(1)"
+            (keydown.space)="placeSelectedReferencePattern(1); $event.preventDefault()"
+            (dragover)="allowReferenceDrop($event)"
+            (drop)="dropReference($event, 1)">
+            @if (referenceDrops()[1]; as pattern) {
+              <svg viewBox="0 0 240 100" aria-hidden="true"><use [attr.href]="'#' + pattern" /></svg>
+              <span><strong>Allele Option {{ referenceOptionNumber(pattern) }}</strong><small>Placed with Phenotype B</small></span>
+            } @else {
+              <i aria-hidden="true">↓</i><span><strong>Drop matching allele here</strong><small>or select an option, then activate</small></span>
+            }
+          </div>
+          <div class="question-group">
+            <span>How is this allele expressed?</span>
+            <div class="button-group">
+              <button type="button" [class.selected]="referenceAnswers().bExpression === 'dominant'" [disabled]="!mixedPairTested()" (click)="selectReferenceExpression('b', 'dominant')">Dominant</button>
+              <button type="button" [class.selected]="referenceAnswers().bExpression === 'recessive'" [disabled]="!mixedPairTested()" (click)="selectReferenceExpression('b', 'recessive')">Recessive</button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <section class="expression-test-panel" aria-labelledby="expression-test-title">
+        <header>
+          <div>
+            <span class="step-kicker">Dominance test bench</span>
+            <h3 id="expression-test-title">Combine two alleles and observe the expressed phenotype</h3>
+            <p>Test one of each option. The phenotype that appears in the mixed pair identifies the dominant allele.</p>
+          </div>
+          <span class="evidence-chip" [class.complete]="mixedPairTested()">{{ mixedPairTested() ? '✓ Mixed-pair evidence collected' : 'Mixed-pair test required' }}</span>
+        </header>
+
+        <div class="expression-test-rig">
+          <div class="test-pair" aria-label="Allele pair test sockets">
+            @for (pattern of expressionTestPair(); track $index; let index = $index) {
+              <div
+                class="expression-socket"
+                [class.filled]="pattern"
+                role="button"
+                tabindex="0"
+                [attr.aria-label]="pattern ? 'Test socket ' + (index + 1) + ' contains Allele Option ' + referenceOptionNumber(pattern) : 'Load selected allele into test socket ' + (index + 1)"
+                (click)="placeSelectedExpressionTestAllele(index === 0 ? 0 : 1)"
+                (keydown.enter)="placeSelectedExpressionTestAllele(index === 0 ? 0 : 1)"
+                (keydown.space)="placeSelectedExpressionTestAllele(index === 0 ? 0 : 1); $event.preventDefault()"
+                (dragover)="allowReferenceDrop($event)"
+                (drop)="dropExpressionTestAllele($event, index === 0 ? 0 : 1)">
+                @if (pattern) {
+                  <svg viewBox="0 0 240 100" aria-hidden="true"><use [attr.href]="'#' + pattern" /></svg>
+                  <span>Option {{ referenceOptionNumber(pattern) }}</span>
+                } @else {
+                  <i aria-hidden="true">+</i><span>Drop allele {{ index + 1 }}</span>
+                }
+              </div>
+              @if (index === 0) { <b aria-hidden="true">+</b> }
+            }
+          </div>
+
+          <button type="button" class="run-expression" [disabled]="!expressionTestReady()" (click)="runExpressionTest()">
+            <span aria-hidden="true">▶</span><strong>Run allele pair</strong><small>Reveal expression</small>
+          </button>
+
+          <output class="expression-result" aria-live="polite" [class.revealed]="expressionTestResult()">
+            @if (expressionTestDragon(); as dragon) {
+              <app-dragon-portrait [profile]="dragon" [compact]="true" />
+              <div><span>Expressed result</span><strong>{{ expressionTestResult() === 'allele-pattern-a' ? 'Phenotype A' : 'Phenotype B' }}</strong><small>{{ expressionTestPhenotype() }}</small></div>
+            } @else {
+              <i aria-hidden="true">?</i>
+              <div><span>Phenotype output</span><strong>Result hidden</strong><small>Load two alleles and run the pair</small></div>
+            }
+          </output>
+        </div>
       </section>
 
-      <p class="boundary"><span>MODEL BOUNDARY</span><strong>Dominant ≠ stronger</strong>Dominant describes which phenotype is expressed in this simplified model. It does not mean better, healthier, more common, or more useful.</p>
-    </aside>
-  </div>
+      <div class="panel-action reference-action">
+        <p>{{ mixedPairTested() ? 'Use the mixed-pair result to classify each allele. The symbols remain hidden until confirmation.' : 'Run a mixed allele pair below before deciding which allele is dominant.' }}</p>
+        <button type="button" id="confirm-models-btn" class="primary-action" [disabled]="!referenceReady()" (click)="checkReference()">Confirm reference models</button>
+      </div>
+    } @else {
+      <header class="panel-heading">
+        <div><span class="step-kicker">Confirmed reference models</span><h2 id="reference-title">{{ trait().name }} allele key</h2></div>
+        <span class="confirmed-chip">✓ Reference confirmed</span>
+      </header>
+      <div class="confirmed-reference-grid">
+        <article>
+          <app-dragon-portrait [profile]="dominantReferenceDragon()" [compact]="true" />
+          <div><strong>{{ trait().dominantAllele }} allele</strong><span>{{ trait().dominantPhenotype }}</span><b>Dominant</b></div>
+        </article>
+        <article>
+          <app-dragon-portrait [profile]="recessiveReferenceDragon()" [compact]="true" />
+          <div><strong>{{ trait().recessiveAllele }} allele</strong><span>{{ trait().recessivePhenotype }}</span><b>Recessive</b></div>
+        </article>
+      </div>
+    }
+  </section>
 
-  <footer class="action-rail">
-    <div><span class="eyebrow">Next laboratory action</span><p>{{ stepHint() }}</p></div>
-    <span>Mission {{ activeTaskNumber() }} of {{ taskCount() }} · {{ correctCount() }} fully supported records</span>
-    <button type="button" [disabled]="primaryAction().disabled" (click)="runPrimaryAction()">{{ primaryAction().label }}</button>
-  </footer>
+  @if (step() === 'samples') {
+    <section class="sample-panel" aria-labelledby="samples-title">
+      <header class="panel-heading">
+        <div>
+          <span class="step-kicker">02 · Sample analysis</span>
+          <h2 id="samples-title">Identify the two allele samples</h2>
+        </div>
+        <span class="sample-code">{{ activeTask().sampleCode }}</span>
+      </header>
+
+      <div class="sample-grid">
+        @for (allele of activeTask().requestedAlleles; track $index; let index = $index) {
+          <article class="sample-card">
+            <header><span>Sample {{ index === 0 ? 'A' : 'B' }}</span><small>Chromosome copy {{ index + 1 }}</small></header>
+            <div class="sample-marker" [class.dominant]="fingerprintKind(allele) === 'dominant'" [class.recessive]="fingerprintKind(allele) === 'recessive'">
+              <span class="chromosome-marker"><i></i><i></i><i></i></span>
+              <span>ALLELE MARKER</span>
+            </div>
+            <fieldset>
+              <legend>Which allele is this?</legend>
+              <div class="button-group allele-choices">
+                <button type="button" [class.selected]="sampleAnswers()[index] === trait().dominantAllele" (click)="selectSampleAllele(index === 0 ? 0 : 1, trait().dominantAllele)">{{ trait().dominantAllele }}</button>
+                <button type="button" [class.selected]="sampleAnswers()[index] === trait().recessiveAllele" (click)="selectSampleAllele(index === 0 ? 0 : 1, trait().recessiveAllele)">{{ trait().recessiveAllele }}</button>
+              </div>
+            </fieldset>
+          </article>
+        }
+      </div>
+
+      <div class="panel-action">
+        <p>Match each sample marker to the fingerprint on the confirmed reference models.</p>
+        <button type="button" class="primary-action" [disabled]="!samplesReady()" (click)="checkSamples()">Check sample identities</button>
+      </div>
+    </section>
+  }
+
+  @if (step() === 'analyze') {
+    <section class="analysis-panel" aria-labelledby="analysis-title">
+      <header class="panel-heading">
+        <div>
+          <span class="step-kicker">03 · Analyze the pair</span>
+          <h2 id="analysis-title">Reason from the alleles before seeing the dragon</h2>
+        </div>
+        <div class="pair-readout"><span>Identified pair</span><strong>{{ activeTask().requestedAlleles.join('') }}</strong></div>
+      </header>
+
+      <div class="question-list">
+        <fieldset>
+          <legend><span>1</span> How do the alleles compare?</legend>
+          <div class="button-group wide">
+            <button type="button" [class.selected]="analysisAnswers().comparison === 'same'" (click)="selectAnalysis('comparison', 'same')">Same</button>
+            <button type="button" [class.selected]="analysisAnswers().comparison === 'different'" (click)="selectAnalysis('comparison', 'different')">Different</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend><span>2</span> What genotype type is this?</legend>
+          <div class="button-group wide">
+            <button type="button" [class.selected]="analysisAnswers().genotypeType === 'homozygous'" (click)="selectAnalysis('genotypeType', 'homozygous')">Homozygous</button>
+            <button type="button" [class.selected]="analysisAnswers().genotypeType === 'heterozygous'" (click)="selectAnalysis('genotypeType', 'heterozygous')">Heterozygous</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend><span>3</span> Which allele combination is present?</legend>
+          <div class="button-group stacked">
+            <button type="button" [class.selected]="analysisAnswers().combination === 'two-dominant'" (click)="selectAnalysis('combination', 'two-dominant')">Two dominant</button>
+            <button type="button" [class.selected]="analysisAnswers().combination === 'mixed'" (click)="selectAnalysis('combination', 'mixed')">One dominant + one recessive</button>
+            <button type="button" [class.selected]="analysisAnswers().combination === 'two-recessive'" (click)="selectAnalysis('combination', 'two-recessive')">Two recessive</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend><span>4</span> Which phenotype should appear?</legend>
+          <div class="button-group stacked phenotype-choices">
+            <button type="button" [class.selected]="analysisAnswers().phenotype === 'dominant'" (click)="selectAnalysis('phenotype', 'dominant')">{{ trait().dominantPhenotype }}</button>
+            <button type="button" [class.selected]="analysisAnswers().phenotype === 'recessive'" (click)="selectAnalysis('phenotype', 'recessive')">{{ trait().recessivePhenotype }}</button>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="panel-action">
+        <p>The actual dragon remains hidden until every part of the analysis is complete.</p>
+        <button type="button" class="primary-action" [disabled]="!analysisReady()" (click)="checkAnalysis()">Check investigation</button>
+      </div>
+    </section>
+  }
+
+  @if (step() === 'reveal') {
+    <section class="reveal-panel" aria-labelledby="result-title">
+      <div class="reveal-dragon">
+        <span class="result-seal">Prediction match</span>
+        <app-dragon-portrait [profile]="observedDragon()" />
+      </div>
+      <div class="reveal-copy">
+        <span class="step-kicker">04 · Investigation result</span>
+        <h2 id="result-title">{{ activeTask().requestedAlleles.join('') }} produces {{ activePhenotypeLabel() }}</h2>
+        <p>{{ activeTask().explanation }}</p>
+        <dl>
+          <div><dt>Allele pair</dt><dd>{{ activeTask().requestedAlleles.join('') }}</dd></div>
+          <div><dt>Genotype class</dt><dd>{{ genotypeClass().replaceAll('-', ' ') }}</dd></div>
+          <div><dt>Visible phenotype</dt><dd>{{ activePhenotypeLabel() }}</dd></div>
+          <div><dt>Recessive allele present</dt><dd>{{ recessiveAllelePresent() ? 'Yes' : 'No' }}</dd></div>
+        </dl>
+        <button type="button" class="primary-action" (click)="openNotebook()">Build notebook record</button>
+      </div>
+    </section>
+  }
+
+  @if (step() === 'notebook') {
+    <section class="notebook-builder" aria-labelledby="notebook-builder-title">
+      <header class="panel-heading">
+        <div>
+          <span class="step-kicker">05 · Team notebook record</span>
+          <h2 id="notebook-builder-title">Turn this investigation into a breeding reference</h2>
+        </div>
+        <span class="confirmed-chip">All evidence checked</span>
+      </header>
+
+      <article class="trait-record preview-record">
+        <header>
+          <div><span>Gene</span><h3>{{ trait().name }}</h3></div>
+          <span class="record-status">Ready to confirm</span>
+        </header>
+        <div class="allele-facts">
+          <div class="allele-fact dominant-fact"><strong>{{ trait().dominantAllele }}</strong><span>{{ trait().dominantPhenotype }}</span><b>Dominant</b></div>
+          <div class="allele-fact recessive-fact"><strong>{{ trait().recessiveAllele }}</strong><span>{{ trait().recessivePhenotype }}</span><b>Recessive</b></div>
+        </div>
+        <div class="outcome-grid">
+          <div><strong>{{ trait().dominantAllele }}{{ trait().dominantAllele }}</strong><span>{{ trait().dominantPhenotype }}</span></div>
+          <div><strong>{{ trait().dominantAllele }}{{ trait().recessiveAllele }}</strong><span>{{ trait().dominantPhenotype }}</span></div>
+          <div><strong>{{ trait().recessiveAllele }}{{ trait().recessiveAllele }}</strong><span>{{ trait().recessivePhenotype }}</span></div>
+        </div>
+        <ul class="confirmation-list">
+          <li>✓ Trait identified</li>
+          <li>✓ Dominant and recessive alleles identified</li>
+          <li>✓ Three genotype outcomes completed</li>
+          <li>✓ Dragon phenotype models matched</li>
+        </ul>
+        <label class="team-field">
+          <span>Student or team confirming this record</span>
+          <input type="text" [value]="teamName()" placeholder="Enter student or team name" autocomplete="organization" (input)="updateTeamName($event)" />
+        </label>
+      </article>
+
+      <div class="panel-action">
+        <p>Confirmed records become available as reference material in later breeding decisions.</p>
+        <button type="button" class="primary-action" [disabled]="!notebookReady()" (click)="saveRecord()">Save confirmed record</button>
+      </div>
+    </section>
+  }
+
+  @if (feedback(); as message) {
+    <aside class="feedback" [class.good]="message.tone === 'good'" [class.warn]="message.tone === 'warn'" aria-live="polite">
+      <i aria-hidden="true">{{ message.tone === 'good' ? '✓' : '!' }}</i>
+      <div><strong>{{ message.headline }}</strong><p>{{ message.detail }}</p></div>
+    </aside>
+  }
+
+  @if (records().length || step() === 'review') {
+    <section class="shared-notebook" aria-labelledby="shared-notebook-title">
+      <header>
+        <div>
+          <span class="eyebrow">Shared breeding reference</span>
+          <h2 id="shared-notebook-title">Dragon Genetics Notebook</h2>
+        </div>
+        <span class="notebook-count">{{ records().length }} confirmed</span>
+      </header>
+
+      @if (step() === 'review') {
+        <div class="notebook-complete">
+          <span>✓</span><div><strong>Gene library ready</strong><p>Use these confirmed rules to choose parents, preserve recessive alleles, and predict offspring.</p></div>
+        </div>
+      }
+
+      <div class="record-grid">
+        @for (record of records(); track record.taskId) {
+          <article class="trait-record saved-record">
+            <header>
+              <div><span>Gene</span><h3>{{ record.geneName }}</h3></div>
+              <span class="record-status confirmed">Confirmed gene record</span>
+            </header>
+            <div class="allele-summary"><b>{{ record.dominantAlleleSymbol }}</b> = {{ record.dominantPhenotype }} <i>·</i> <b>{{ record.recessiveAlleleSymbol }}</b> = {{ record.recessivePhenotype }}</div>
+            <div class="compact-outcomes">
+              <span><b>{{ record.dominantAlleleSymbol }}{{ record.dominantAlleleSymbol }}</b> → {{ record.dominantPhenotype }}</span>
+              <span><b>{{ record.dominantAlleleSymbol }}{{ record.recessiveAlleleSymbol }}</b> → {{ record.dominantPhenotype }}</span>
+              <span><b>{{ record.recessiveAlleleSymbol }}{{ record.recessiveAlleleSymbol }}</b> → {{ record.recessivePhenotype }}</span>
+            </div>
+            <footer>Confirmed by {{ record.confirmedBy }} · {{ record.discoveredAtIso | date: 'mediumDate' }}</footer>
+          </article>
+        }
+      </div>
+    </section>
+  }
 </section>
+</div>

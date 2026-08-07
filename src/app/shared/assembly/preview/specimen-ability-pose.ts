@@ -24,6 +24,11 @@ export interface AbilityDemo {
   strikeAt: number;
   /** Bends at a given point in the demo, `phase` running 0..1. */
   bendsAt(phase: number): SpecimenBend[];
+  /**
+   * Whole-body rear-up in radians at this phase, if the move has one. Positive
+   * pitches the nose up over the hind legs.
+   */
+  rearUpAt?(phase: number): number;
   /** Whether the fire cone should be drawn at this phase. */
   fireConeAt?(phase: number): boolean;
 }
@@ -70,6 +75,72 @@ function gapeCurve(phase: number): number {
   return Math.max(0, (1 - phase) / 0.1);
 }
 
+/**
+ * Rear, hold, settle. Rises to full by `peak`, stands there until `hold`, then
+ * eases back down onto the forelegs — the shape of a dragon planting itself to
+ * breathe, where the stance is held for as long as the fire flows.
+ */
+function rearCurve(phase: number, peak: number, hold: number): number {
+  if (phase <= 0) return 0;
+  if (phase < peak) return Math.sin((phase / peak) * Math.PI * 0.5);
+  if (phase < hold) return 1;
+  return Math.cos(((phase - hold) / Math.max(1 - hold, 1e-6)) * Math.PI * 0.5);
+}
+
+/**
+ * Rear, then drop through the target. Unlike {@link rearCurve} there is no
+ * hold: the dragon comes down as the jaws close, so the body weight lands with
+ * the bite instead of the head snapping on its own while the torso hangs back.
+ * Flat after `drop` so the recovery is still and the move ends at rest.
+ */
+function lungeCurve(phase: number): number {
+  const rise = 0.45;
+  const drop = 0.78;
+  if (phase < rise) return Math.sin((phase / rise) * Math.PI * 0.5);
+  if (phase < drop) return Math.cos(((phase - rise) / (drop - rise)) * Math.PI * 0.5);
+  return 0;
+}
+
+/**
+ * Coil and crack.
+ *
+ * A plain sinusoid sweeps at a constant rate, which reads as a turntable
+ * spinning the tail rather than a whip. This spends most of the timeline
+ * winding away from the target and then returns fast and overshoots through
+ * rest, so the tip is at its quickest exactly when the strike lands.
+ */
+function whipCurve(phase: number): number {
+  const coil = 0.55;
+  if (phase < coil) return -Math.sin((phase / coil) * Math.PI * 0.5) * 0.75;
+  const t = (phase - coil) / (1 - coil);
+  return -0.75 * Math.cos(t * Math.PI * 0.5) + Math.sin(t * Math.PI) * 0.9;
+}
+
+/**
+ * The vertical half of the whip: the tail gathers upward on the coil and slams
+ * down through the strike. Combined with {@link whipCurve} the tip travels a
+ * helix rather than a flat circle, which is what separates a whip from a sweep.
+ */
+function whipLiftCurve(phase: number): number {
+  const coil = 0.55;
+  if (phase < coil) return Math.sin((phase / coil) * Math.PI * 0.5);
+  const t = (phase - coil) / (1 - coil);
+  return Math.cos(t * Math.PI * 0.5) - Math.sin(t * Math.PI) * 0.55;
+}
+
+/**
+ * Peak rear-up angles, in radians.
+ *
+ * A breath plants hardest — the dragon is stationary and committed for the
+ * whole cone. A lunge rears less because it is about to travel forward, and the
+ * tail sweep only lifts enough to keep the tip off the floor at the bottom of
+ * its arc. Much past 0.7 the hind feet slide out from under the body and it
+ * reads as toppling rather than rearing.
+ */
+const BITE_REAR_RADIANS = 0.42;
+const FIRE_REAR_RADIANS = 0.6;
+const TAIL_REAR_RADIANS = 0.16;
+
 const ABILITY_DEMOS: Readonly<Record<AssemblyAbilityId, AbilityDemo>> = {
   bite: {
     ability: 'bite',
@@ -77,6 +148,7 @@ const ABILITY_DEMOS: Readonly<Record<AssemblyAbilityId, AbilityDemo>> = {
     strikeAt: SCRIPTED_ASSEMBLY_ATTACKS.bite.strikeAt,
     bendsAt: phase => {
       const open = biteCurve(phase);
+      const rear = lungeCurve(phase);
       return [
         // Jaws hinge apart around the head joint, then close through it.
         { role: 'jaw', radians: open * 0.5, axis: AXIS_Z },
@@ -88,8 +160,14 @@ const ABILITY_DEMOS: Readonly<Record<AssemblyAbilityId, AbilityDemo>> = {
           axis: AXIS_Z,
           mirrorAcrossZ: true,
         },
+        // Counter-rotated by the full rear-up so the head holds its resting
+        // aim while the chest comes up. Without it the dragon rears and bites
+        // the sky.
+        { role: 'head', radians: -rear * BITE_REAR_RADIANS, axis: AXIS_Z },
       ];
     },
+    // Up on the haunches through the wind-up, then down through the target.
+    rearUpAt: phase => lungeCurve(phase) * BITE_REAR_RADIANS,
   },
   'wing-buffet': {
     ability: 'wing-buffet',
@@ -112,8 +190,21 @@ const ABILITY_DEMOS: Readonly<Record<AssemblyAbilityId, AbilityDemo>> = {
     strikeAt: SCRIPTED_ASSEMBLY_ATTACKS['tail-sweep'].strikeAt,
     bendsAt: phase => [
       // Horizontal whip: each link adds to the arc, so the tip travels furthest.
-      { role: 'tail', radians: windAndStrikeCurve(phase, 0.5) * 0.45, axis: AXIS_Y },
+      { role: 'tail', radians: whipCurve(phase) * 0.5, axis: AXIS_Y },
+      // Gathered up on the coil and driven down through the strike, so the tip
+      // arrives on a diagonal rather than skimming a flat circle.
+      { role: 'tail', radians: whipLiftCurve(phase) * 0.24, axis: AXIS_Z },
+      // Hind legs brace and the forelegs come off the floor as the mass swings
+      // round — the counterweight to a tail that heavy has to go somewhere.
+      {
+        role: 'leg',
+        radians: whipLiftCurve(phase) * -0.16,
+        axis: AXIS_Z,
+        mirrorAcrossZ: true,
+      },
     ],
+    // A shallow rear keeps the tail clear of the floor at the bottom of its arc.
+    rearUpAt: phase => whipLiftCurve(phase) * TAIL_REAR_RADIANS,
   },
   'fire-breath': {
     ability: 'fire-breath',
@@ -124,7 +215,18 @@ const ABILITY_DEMOS: Readonly<Record<AssemblyAbilityId, AbilityDemo>> = {
       { role: 'head', radians: -0.3 * inhaleCurve(phase), axis: AXIS_Z },
       // Jaw gapes and stays open for as long as the fire is flowing.
       { role: 'jaw', radians: -0.4 * gapeCurve(phase), axis: AXIS_Z },
+      // Forelegs tuck once they leave the floor, rather than hanging down like
+      // a dropped puppet's.
+      {
+        role: 'leg',
+        radians: rearCurve(phase, 0.3, 0.85) * -0.34,
+        axis: AXIS_Z,
+        mirrorAcrossZ: true,
+      },
     ],
+    // Planted on the hind legs for the whole breath: the chest comes up before
+    // the cone opens and stays up until the fire is spent.
+    rearUpAt: phase => rearCurve(phase, 0.3, 0.85) * FIRE_REAR_RADIANS,
     fireConeAt: phase => phase >= 0.32 && phase <= 0.92,
   },
 };
@@ -142,9 +244,11 @@ export function poseSpecimenForAbility(
 ): SpecimenPose {
   const demo = ABILITY_DEMOS[ability];
   const clamped = Math.max(0, Math.min(1, phase));
+  const rearUp = demo.rearUpAt?.(clamped) ?? 0;
   return buildSpecimenPose(blueprint, {
     droopRadians: restingDroopRadians,
     bends: demo.bendsAt(clamped),
+    rootTilt: rearUp === 0 ? undefined : { radians: rearUp },
   });
 }
 

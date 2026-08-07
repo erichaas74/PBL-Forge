@@ -49,7 +49,7 @@
   height: 2.75rem;
   place-items: center;
   border-radius: 0.8rem 0.8rem 0.8rem 0.2rem;
-  background: var(--coral);
+  background: var(--ember);
   color: var(--ink);
   font-family: var(--font-display);
   font-weight: 850;
@@ -112,8 +112,8 @@ nav a.active {
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
-  background: var(--teal);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 18%, transparent);
+  background: var(--fury);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--fury) 18%, transparent);
 }
 
 .session button {

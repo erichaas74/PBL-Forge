@@ -84,7 +84,7 @@ header p {
 }
 .options button.correct {
   border-color: #3f9a70;
-  background: #eff9f4;
+  background: var(--moss-tint);
   color: #32694f;
 }
 .options button.incorrect {
@@ -104,12 +104,12 @@ header p {
 }
 .answer-feedback.correct {
   border-color: #3f9a70;
-  background: #eff9f4;
+  background: var(--moss-tint);
   color: #35634e;
 }
 .science-boundary {
   border-color: #547cac;
-  background: #eef5fb;
+  background: var(--surface-raised);
   color: #425b75;
 }
 [data-base='A'] {

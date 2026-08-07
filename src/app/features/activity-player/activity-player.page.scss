@@ -30,7 +30,7 @@
 .activity-type {
   display: inline-block;
   margin-bottom: 1rem;
-  color: var(--coral);
+  color: var(--ember);
   font-size: 0.7rem;
   font-weight: 850;
   letter-spacing: 0.08em;
@@ -71,7 +71,7 @@ h1 {
 }
 
 .progress > span.complete {
-  background: var(--teal);
+  background: var(--fury);
 }
 
 .progress small {
@@ -100,7 +100,7 @@ h1 {
   margin: 0;
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--coral) 16%, white);
+  background: color-mix(in srgb, var(--ember) 16%, white);
 }
 
 fieldset {
@@ -185,7 +185,7 @@ legend,
 .row-number {
   width: 2.2rem;
   height: 2.2rem;
-  background: color-mix(in srgb, var(--teal) 18%, white);
+  background: color-mix(in srgb, var(--fury) 18%, white);
   font-size: 0.75rem;
 }
 
@@ -194,7 +194,7 @@ legend,
 }
 
 .connector {
-  color: var(--teal);
+  color: var(--fury);
   font-size: 1.2rem;
 }
 
@@ -277,11 +277,11 @@ textarea:focus {
 }
 
 .feedback.success {
-  background: color-mix(in srgb, var(--teal) 18%, white);
+  background: color-mix(in srgb, var(--fury) 18%, white);
 }
 
 .feedback.retry {
-  background: color-mix(in srgb, var(--coral) 16%, white);
+  background: color-mix(in srgb, var(--ember) 16%, white);
 }
 
 .feedback > span {

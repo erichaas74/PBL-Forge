@@ -75,6 +75,7 @@
             class="visual-stage"
             [class.allele-stage]="simulation.id === 'allele-workbench'"
             [class.dna-stage]="simulation.id === 'dna-process-lab'"
+            [class.arena-stage]="simulation.id === 'dragon-arena'"
           >
             @if (simulation.id === 'allele-workbench') {
               <app-allele-vault-workbench
@@ -87,6 +88,30 @@
                 [focusQuestionId]="dnaLabFocusQuestionId()"
                 (modelSelected)="selectNode($event)"
               />
+            } @else if (simulation.id === 'dragon-arena') {
+              @if (arenaChampion(); as champion) {
+                <app-dragon-arena
+                  class="arena-embed"
+                  [champion]="champion"
+                  [compact]="true"
+                  (battleFinished)="handleArenaTrial($event)"
+                />
+              }
+              <div class="arena-evidence" role="group" aria-label="Trial evidence targets">
+                @for (node of simulation.nodes; track node.id) {
+                  <button
+                    type="button"
+                    class="arena-evidence-target"
+                    [class.active]="selectedNodeId() === node.id"
+                    [attr.aria-pressed]="selectedNodeId() === node.id"
+                    (click)="selectNode(node.id)"
+                  >
+                    <span aria-hidden="true">{{ node.symbol }}</span>
+                    <strong>{{ node.label }}</strong>
+                    <small>{{ arenaNodeReadouts()[node.id] }}</small>
+                  </button>
+                }
+              </div>
             } @else {
               <div class="stage-cue">
                 <span>{{ activeSection()?.phase }}</span>

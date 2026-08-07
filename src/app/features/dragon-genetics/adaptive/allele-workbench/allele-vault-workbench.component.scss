@@ -6,11 +6,11 @@
 }
 
 .allele-instrument {
-  --vault-cyan: #73e7ee;
-  --vault-cyan-soft: rgb(115 231 238 / 14%);
-  --vault-violet: #b58cff;
-  --vault-gold: #f2c66b;
-  --vault-ink: #06131c;
+  --vault-flame: #f0a44e;
+  --vault-flame-soft: rgb(240 164 78 / 14%);
+  --vault-rune: #a891c9;
+  --vault-gold: #e8c27a;
+  --vault-ink: #15110d;
   position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
@@ -19,16 +19,16 @@
   min-height: 37rem;
   padding: 0.75rem;
   overflow: hidden;
-  border: 1px solid rgb(115 231 238 / 18%);
+  border: 1px solid rgb(240 164 78 / 18%);
   border-radius: 1.35rem;
   background:
-    radial-gradient(circle at 82% 15%, rgb(181 140 255 / 11%), transparent 30%),
-    radial-gradient(circle at 16% 86%, rgb(115 231 238 / 9%), transparent 34%),
-    linear-gradient(150deg, #091d28, #06131c 58%, #0a1823);
+    radial-gradient(circle at 82% 15%, rgb(168 145 201 / 11%), transparent 30%),
+    radial-gradient(circle at 16% 86%, rgb(240 164 78 / 9%), transparent 34%),
+    linear-gradient(150deg, #1c1610, #15110d 58%, #1c1610);
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 3%),
     0 28px 70px rgb(0 0 0 / 30%);
-  color: #eafcff;
+  color: #fdf4e6;
   isolation: isolate;
 }
 
@@ -38,8 +38,8 @@
   inset: 0;
   opacity: 0.28;
   background-image:
-    linear-gradient(rgb(115 231 238 / 5%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(115 231 238 / 5%) 1px, transparent 1px);
+    linear-gradient(rgb(240 164 78 / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(240 164 78 / 5%) 1px, transparent 1px);
   background-size: 2.3rem 2.3rem;
   mask-image: linear-gradient(to bottom, transparent, black 20%, black 75%, transparent);
 }
@@ -49,7 +49,7 @@
   z-index: -1;
   inset: -25% -12% auto;
   height: 35%;
-  background: linear-gradient(to bottom, transparent, rgb(115 231 238 / 5%), transparent);
+  background: linear-gradient(to bottom, transparent, rgb(240 164 78 / 5%), transparent);
   transform: rotate(-7deg);
   animation: scan-field 9s ease-in-out infinite alternate;
   pointer-events: none;
@@ -66,9 +66,9 @@ button {
   gap: 0.4rem;
   min-height: 0;
   padding: 0.45rem;
-  border: 1px solid rgb(115 231 238 / 14%);
+  border: 1px solid rgb(240 164 78 / 14%);
   border-radius: 0.85rem;
-  background: linear-gradient(165deg, rgb(12 38 50 / 82%), rgb(4 15 23 / 88%));
+  background: linear-gradient(165deg, rgb(46 37 28 / 82%), rgb(18 14 11 / 88%));
 }
 
 .gene-selector > button {
@@ -80,8 +80,8 @@ button {
   padding: 0.48rem 0.6rem;
   border: 1px solid rgb(255 255 255 / 9%);
   border-radius: 0.62rem;
-  background: rgb(5 18 27 / 74%);
-  color: #7894a0;
+  background: rgb(21 17 13 / 74%);
+  color: #a1978a;
   cursor: pointer;
   transition:
     border-color 0.2s ease,
@@ -91,18 +91,18 @@ button {
 }
 
 .gene-selector > button:hover:not(:disabled) {
-  border-color: rgb(115 231 238 / 48%);
-  color: #dffcff;
+  border-color: rgb(240 164 78 / 48%);
+  color: var(--surface-raised);
   transform: translateX(2px);
 }
 
 .gene-selector > button.active {
-  border-color: var(--vault-cyan);
-  background: linear-gradient(110deg, rgb(115 231 238 / 16%), rgb(115 231 238 / 4%));
-  color: #efffff;
+  border-color: var(--vault-flame);
+  background: linear-gradient(110deg, rgb(240 164 78 / 16%), rgb(240 164 78 / 4%));
+  color: #fdf4e6;
   box-shadow:
-    inset 3px 0 var(--vault-cyan),
-    0 0 18px rgb(115 231 238 / 8%);
+    inset 3px 0 var(--vault-flame),
+    0 0 18px rgb(240 164 78 / 8%);
 }
 
 .gene-selector button i {
@@ -112,7 +112,7 @@ button {
   place-items: center;
   border-radius: 50%;
   background: rgb(255 255 255 / 5%);
-  color: var(--vault-cyan);
+  color: var(--vault-flame);
   font-size: 0.68rem;
   font-style: normal;
 }
@@ -140,12 +140,12 @@ button {
 }
 
 .locus-readout small {
-  color: #65818d;
+  color: #8e8478;
   font-size: 0.5rem;
   letter-spacing: 0.08em;
 }
 .locus-readout b {
-  color: var(--vault-cyan);
+  color: var(--vault-flame);
   font-size: 0.65rem;
   letter-spacing: 0.09em;
 }
@@ -165,10 +165,10 @@ button {
   gap: 0.65rem;
   min-height: 0;
   padding: 0.65rem;
-  border: 1px solid rgb(115 231 238 / 16%);
+  border: 1px solid rgb(240 164 78 / 16%);
   border-radius: 0.85rem;
-  background: linear-gradient(165deg, rgb(12 38 50 / 92%), rgb(4 15 23 / 94%));
-  box-shadow: inset 0 0 30px rgb(115 231 238 / 3%);
+  background: linear-gradient(165deg, rgb(46 37 28 / 92%), rgb(18 14 11 / 94%));
+  box-shadow: inset 0 0 30px rgb(240 164 78 / 3%);
   transition:
     box-shadow 0.25s ease,
     border-color 0.25s ease;
@@ -180,7 +180,7 @@ button {
   left: 12%;
   right: 12%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--vault-cyan), transparent);
+  background: linear-gradient(90deg, transparent, var(--vault-flame), transparent);
   content: '';
   opacity: 0.35;
 }
@@ -206,7 +206,7 @@ button {
   position: relative;
   width: 1.5rem;
   height: 1.5rem;
-  border: 1px solid var(--vault-cyan);
+  border: 1px solid var(--vault-flame);
   border-radius: 50%;
 }
 
@@ -214,8 +214,8 @@ button {
 .vault-mark::after {
   position: absolute;
   inset: 6px 2px;
-  border-top: 1px solid var(--vault-cyan);
-  border-bottom: 1px solid var(--vault-cyan);
+  border-top: 1px solid var(--vault-flame);
+  border-bottom: 1px solid var(--vault-flame);
   border-radius: 50%;
   content: '';
   transform: rotate(42deg);
@@ -228,17 +228,17 @@ button {
   display: grid;
 }
 .allele-vault header small {
-  color: #65848f;
+  color: #8e8478;
   font-size: 0.42rem;
   letter-spacing: 0.17em;
 }
 .allele-vault header b {
-  color: #dffcff;
+  color: var(--surface-raised);
   font-size: 0.58rem;
   letter-spacing: 0.08em;
 }
 .allele-vault header > i {
-  color: var(--vault-cyan);
+  color: var(--vault-flame);
   font-size: 0.6rem;
   font-style: normal;
 }
@@ -267,7 +267,7 @@ button {
   transform: translateY(-0.1rem);
 }
 .vault-gene > span {
-  color: #5c7783;
+  color: #7d7468;
   font-size: 0.48rem;
   font-weight: 850;
   writing-mode: vertical-rl;
@@ -286,8 +286,8 @@ button {
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 11%);
   border-radius: 0.55rem;
-  background: linear-gradient(145deg, #112b37, #081821 72%);
-  color: #b5c7ce;
+  background: linear-gradient(145deg, #241d16, #15110d 72%);
+  color: #c8bda9;
   cursor: grab;
   transition:
     transform 0.2s ease,
@@ -297,7 +297,7 @@ button {
 
 .allele-token:hover:not(:disabled) {
   transform: scale(1.06);
-  border-color: rgb(181 140 255 / 60%);
+  border-color: rgb(168 145 201 / 60%);
 }
 .allele-token:active:not(:disabled) {
   cursor: grabbing;
@@ -307,7 +307,7 @@ button {
   position: absolute;
   inset: auto 8% 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgb(181 140 255 / 40%), transparent);
+  background: linear-gradient(90deg, transparent, rgb(168 145 201 / 40%), transparent);
   content: '';
 }
 
@@ -322,18 +322,18 @@ button {
   position: absolute;
   right: 0.3rem;
   bottom: 0.18rem;
-  color: #69828e;
+  color: #8e8478;
   font-size: 0.35rem;
   font-weight: 900;
   letter-spacing: 0.08em;
 }
 
 .allele-token.selected {
-  border-color: var(--vault-violet);
+  border-color: var(--vault-rune);
   color: #fff;
   box-shadow:
-    0 0 0 3px rgb(181 140 255 / 12%),
-    0 0 22px rgb(181 140 255 / 24%);
+    0 0 0 3px rgb(168 145 201 / 12%),
+    0 0 22px rgb(168 145 201 / 24%);
   animation: token-lock 0.38s ease-out;
 }
 .allele-token.locked {
@@ -344,16 +344,16 @@ button {
 
 .vault-chromosome,
 .socket-chromosome {
-  --locus-color: var(--vault-cyan);
+  --locus-color: var(--vault-flame);
   --locus-y: 18%;
   position: relative;
   display: block;
   width: 0.62rem;
   height: 2.35rem;
-  border: 1px solid rgb(115 231 238 / 58%);
+  border: 1px solid rgb(240 164 78 / 58%);
   border-radius: 0.38rem;
-  background: #dffcff;
-  box-shadow: 0 0 10px rgb(115 231 238 / 15%);
+  background: var(--surface-raised);
+  box-shadow: 0 0 10px rgb(240 164 78 / 15%);
 }
 
 .vault-chromosome .band,
@@ -362,7 +362,7 @@ button {
   right: 1px;
   left: 1px;
   height: 10%;
-  background: #78dce7;
+  background: #eeab5f;
   opacity: 0.7;
 }
 
@@ -410,7 +410,7 @@ button {
   --locus-y: 67%;
 }
 .locus-scales {
-  --locus-color: #b98bff;
+  --locus-color: #ab94cc;
   --locus-y: 85%;
 }
 
@@ -429,8 +429,8 @@ button {
   width: 0.38rem;
   height: 0.38rem;
   border-radius: 50%;
-  background: var(--vault-cyan);
-  box-shadow: 0 0 10px var(--vault-cyan);
+  background: var(--vault-flame);
+  box-shadow: 0 0 10px var(--vault-flame);
 }
 
 .allele-vault footer b {
@@ -438,7 +438,7 @@ button {
 }
 .allele-vault footer small {
   overflow: hidden;
-  color: #71909b;
+  color: #a1978a;
   font-size: 0.48rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -452,7 +452,7 @@ button {
   padding: 0.65rem;
   border: 1px solid rgb(255 255 255 / 8%);
   border-radius: 0.85rem;
-  background: rgb(3 14 21 / 66%);
+  background: rgb(16 13 10 / 66%);
   transition:
     box-shadow 0.25s ease,
     border-color 0.25s ease;
@@ -470,7 +470,7 @@ button {
   display: grid;
 }
 .comparison-header small {
-  color: #5f7a86;
+  color: #7d7468;
   font-size: 0.43rem;
   letter-spacing: 0.14em;
 }
@@ -479,7 +479,7 @@ button {
   letter-spacing: 0.09em;
 }
 .comparison-header output {
-  color: #718d98;
+  color: #a1978a;
   font-size: 0.5rem;
 }
 .comparison-header output b {
@@ -502,10 +502,10 @@ button {
   min-height: 0;
   padding: 0.55rem;
   overflow: hidden;
-  border: 1px solid rgb(115 231 238 / 12%);
+  border: 1px solid rgb(240 164 78 / 12%);
   background:
-    radial-gradient(circle at 50% 45%, rgb(115 231 238 / 7%), transparent 55%),
-    linear-gradient(170deg, rgb(11 34 45 / 72%), rgb(5 18 27 / 82%));
+    radial-gradient(circle at 50% 45%, rgb(240 164 78 / 7%), transparent 55%),
+    linear-gradient(170deg, rgb(42 34 26 / 72%), rgb(21 17 13 / 82%));
 }
 
 .reference-pane {
@@ -517,7 +517,7 @@ button {
 .variant-pane::after {
   position: absolute;
   inset: 0;
-  border: 1px solid rgb(181 140 255 / 12%);
+  border: 1px solid rgb(168 145 201 / 12%);
   content: '';
   pointer-events: none;
 }
@@ -531,7 +531,7 @@ button {
 }
 
 .genome-pane header span {
-  color: #63828d;
+  color: #8e8478;
   font-size: 0.46rem;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -539,15 +539,15 @@ button {
 .genome-pane header b {
   grid-row: 1 / 3;
   grid-column: 2;
-  color: var(--vault-cyan);
+  color: var(--vault-flame);
   font-family: var(--font-display);
   font-size: 1.3rem;
 }
 .variant-pane header b {
-  color: var(--vault-violet);
+  color: var(--vault-rune);
 }
 .genome-pane header small {
-  color: #9fb4bc;
+  color: #a1978a;
   font-size: 0.52rem;
 }
 
@@ -591,12 +591,12 @@ button {
   min-width: 3.6rem;
   min-height: 4.5rem;
   place-items: center;
-  color: var(--vault-cyan);
+  color: var(--vault-flame);
   isolation: isolate;
 }
 
 .variant-phenotype .dragon-part-slot {
-  color: var(--vault-violet);
+  color: var(--vault-rune);
 }
 
 .dragon-part-slot::before {
@@ -636,14 +636,14 @@ button {
 }
 
 .phenotype-preview figcaption small {
-  color: #5d7883;
+  color: #7d7468;
   font-size: 0.4rem;
   letter-spacing: 0.1em;
 }
 
 .phenotype-preview figcaption b {
   overflow: hidden;
-  color: #d8e8ed;
+  color: #ded4c3;
   font-size: 0.56rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -660,10 +660,10 @@ button {
   position: absolute;
   width: 0.68rem;
   height: 76%;
-  border: 1px solid rgb(115 231 238 / 36%);
+  border: 1px solid rgb(240 164 78 / 36%);
   border-radius: 80% 20% 75% 25%;
-  background: linear-gradient(to bottom, rgb(115 231 238 / 18%), rgb(115 231 238 / 4%));
-  box-shadow: 0 0 18px rgb(115 231 238 / 9%);
+  background: linear-gradient(to bottom, rgb(240 164 78 / 18%), rgb(240 164 78 / 4%));
+  box-shadow: 0 0 18px rgb(240 164 78 / 9%);
   transform: rotate(28deg);
 }
 
@@ -676,36 +676,36 @@ button {
   left: -20%;
   width: 140%;
   height: 2px;
-  background: var(--vault-cyan);
-  box-shadow: 0 0 9px var(--vault-cyan);
+  background: var(--vault-flame);
+  box-shadow: 0 0 9px var(--vault-flame);
 }
 .variant-pane .chromosome {
-  border-color: rgb(181 140 255 / 40%);
-  background: linear-gradient(to bottom, rgb(181 140 255 / 18%), rgb(181 140 255 / 4%));
+  border-color: rgb(168 145 201 / 40%);
+  background: linear-gradient(to bottom, rgb(168 145 201 / 18%), rgb(168 145 201 / 4%));
 }
 .variant-pane .chromosome i {
-  background: var(--vault-violet);
-  box-shadow: 0 0 9px var(--vault-violet);
+  background: var(--vault-rune);
+  box-shadow: 0 0 9px var(--vault-rune);
 }
 
 .locus-pulse {
   position: absolute;
   width: 4.4rem;
   height: 1.15rem;
-  border: 1px solid var(--vault-cyan);
+  border: 1px solid var(--vault-flame);
   border-radius: 50%;
-  box-shadow: 0 0 16px rgb(115 231 238 / 17%);
+  box-shadow: 0 0 16px rgb(240 164 78 / 17%);
   animation: locus-breathe 2.8s ease-in-out infinite;
 }
 
 .variant-pane .locus-pulse {
-  border-color: var(--vault-violet);
-  box-shadow: 0 0 16px rgb(181 140 255 / 17%);
+  border-color: var(--vault-rune);
+  box-shadow: 0 0 16px rgb(168 145 201 / 17%);
 }
 .chromosome-view > b {
   position: absolute;
   bottom: 0.25rem;
-  color: #627e89;
+  color: #8e8478;
   font-size: 0.42rem;
   letter-spacing: 0.12em;
 }
@@ -723,17 +723,17 @@ button {
   left: 50%;
   width: 1.15rem;
   overflow: hidden;
-  border: 1px solid rgb(115 231 238 / 72%);
+  border: 1px solid rgb(240 164 78 / 72%);
   border-radius: 0.62rem;
-  background: #dffcff;
-  box-shadow: 0 0 22px rgb(115 231 238 / 18%);
+  background: var(--surface-raised);
+  box-shadow: 0 0 22px rgb(240 164 78 / 18%);
   transform: translateX(-50%);
 }
 
 .variant-map .chromosome-cap {
-  border-color: rgb(181 140 255 / 75%);
-  background: #f0e9ff;
-  box-shadow: 0 0 22px rgb(181 140 255 / 17%);
+  border-color: rgb(168 145 201 / 75%);
+  background: #f2ecf6;
+  box-shadow: 0 0 22px rgb(168 145 201 / 17%);
 }
 
 .chromosome-band {
@@ -741,12 +741,12 @@ button {
   right: 1px;
   left: 1px;
   height: 7%;
-  background: #6fdbe7;
+  background: #e9a253;
   opacity: 0.72;
 }
 
 .variant-map .chromosome-band {
-  background: #ac8fe7;
+  background: #a08bc0;
 }
 .chromosome-band.band-one {
   top: 6%;
@@ -773,25 +773,25 @@ button {
   right: -1px;
   left: -1px;
   height: 3px;
-  border-top: 1px solid #226f8e;
-  border-bottom: 1px solid #226f8e;
-  background: #081923;
+  border-top: 1px solid #8a5a25;
+  border-bottom: 1px solid #8a5a25;
+  background: #15110d;
   transform: translateY(-50%);
 }
 
 .variant-map .centromere {
-  border-color: #7253a8;
+  border-color: #6b5a86;
 }
 
 .chromosome-locus {
-  --locus-color: var(--vault-cyan);
+  --locus-color: var(--vault-flame);
   --locus-y: 18%;
   position: absolute;
   top: var(--locus-y);
   right: 0;
   left: 0;
   height: 1.2rem;
-  color: #647e89;
+  color: #8e8478;
   transform: translateY(-50%);
   transition:
     color 0.2s ease,
@@ -825,13 +825,13 @@ button {
 }
 
 .chromosome-locus > b {
-  color: #cadbe1;
+  color: #c8bda9;
   font-family: var(--font-display);
   font-size: 0.73rem;
 }
 
 .chromosome-locus > small {
-  color: #647e89;
+  color: #8e8478;
   font-size: 0.44rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -877,14 +877,14 @@ button {
   font-size: 1rem;
 }
 .chromosome-locus.active > small {
-  color: #d6e6eb;
+  color: #ded4c3;
 }
 
 .chromosome-id {
   position: absolute;
   bottom: -0.05rem;
   left: 50%;
-  color: #5d7883;
+  color: #7d7468;
   font-size: 0.4rem;
   font-weight: 900;
   letter-spacing: 0.1em;
@@ -905,7 +905,7 @@ button {
   --locus-y: 67%;
 }
 .locus-scales {
-  --locus-color: #b98bff;
+  --locus-color: #ab94cc;
   --locus-y: 85%;
 }
 
@@ -913,11 +913,11 @@ button {
   width: 100%;
   max-height: 4.1rem;
   overflow: visible;
-  color: var(--vault-cyan);
+  color: var(--vault-flame);
 }
 
 .variant-pane .dna-helix {
-  color: var(--vault-violet);
+  color: var(--vault-rune);
 }
 .dna-helix .strand {
   fill: none;
@@ -947,20 +947,20 @@ button {
   min-width: 0;
   min-height: 1.1rem;
   place-items: center;
-  border-bottom: 1px solid rgb(115 231 238 / 24%);
-  background: rgb(115 231 238 / 4%);
-  color: #708994;
+  border-bottom: 1px solid rgb(240 164 78 / 24%);
+  background: rgb(240 164 78 / 4%);
+  color: #a1978a;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: clamp(0.38rem, 0.7vw, 0.56rem);
 }
 
 .variant-pane .sequence-strip span {
-  border-color: rgb(181 140 255 / 24%);
+  border-color: rgb(168 145 201 / 24%);
 }
 .variant-pane .sequence-strip span.changed {
   border-color: var(--vault-gold);
-  background: rgb(242 198 107 / 14%);
-  color: #ffe5a5;
+  background: rgb(232 194 122 / 14%);
+  color: #f5dcae;
   box-shadow: inset 0 -2px var(--vault-gold);
   animation: base-change 0.42s ease-out;
 }
@@ -975,8 +975,8 @@ button {
   justify-self: center;
   border: 1px solid rgb(255 255 255 / 16%);
   border-radius: 50%;
-  background: #0d2733;
-  color: #c6d8de;
+  background: #241d16;
+  color: #c8bda9;
   cursor: pointer;
   transition:
     color 0.2s ease,
@@ -985,8 +985,8 @@ button {
 }
 
 .swap-comparison:hover:not(:disabled) {
-  border-color: var(--vault-cyan);
-  color: var(--vault-cyan);
+  border-color: var(--vault-flame);
+  color: var(--vault-flame);
   transform: rotate(180deg);
 }
 
@@ -1002,7 +1002,7 @@ button {
   padding: 0.55rem 0.7rem;
   border: 1px solid rgb(255 255 255 / 9%);
   border-radius: 0.85rem;
-  background: linear-gradient(90deg, rgb(8 26 36 / 88%), rgb(11 24 34 / 88%));
+  background: linear-gradient(90deg, rgb(32 26 20 / 88%), rgb(30 24 19 / 88%));
   transition:
     box-shadow 0.25s ease,
     border-color 0.25s ease;
@@ -1019,7 +1019,7 @@ button {
   gap: 0.14rem;
 }
 .pair-builder header small {
-  color: #63808b;
+  color: #8e8478;
   font-size: 0.44rem;
   letter-spacing: 0.13em;
 }
@@ -1046,25 +1046,25 @@ button {
   height: 4.2rem;
   place-items: center;
   padding: 0.3rem;
-  border: 1px dashed rgb(181 140 255 / 45%);
+  border: 1px dashed rgb(168 145 201 / 45%);
   border-radius: 0.55rem;
-  background: linear-gradient(145deg, rgb(181 140 255 / 12%), rgb(5 18 27 / 80%) 70%);
-  color: #e8dcff;
+  background: linear-gradient(145deg, rgb(168 145 201 / 12%), rgb(21 17 13 / 80%) 70%);
+  color: #ece5f2;
   cursor: pointer;
 }
 
 .allele-socket::before {
   position: absolute;
   inset: -0.26rem;
-  border: 1px solid rgb(181 140 255 / 15%);
+  border: 1px solid rgb(168 145 201 / 15%);
   border-radius: 0.7rem;
   content: '';
 }
 
 .allele-socket.dominant {
-  border-color: rgb(115 231 238 / 62%);
-  background: radial-gradient(circle, rgb(115 231 238 / 12%), rgb(5 18 27 / 80%) 65%);
-  color: #dfffff;
+  border-color: rgb(240 164 78 / 62%);
+  background: radial-gradient(circle, rgb(240 164 78 / 12%), rgb(21 17 13 / 80%) 65%);
+  color: #fdf4e6;
 }
 .allele-socket > b {
   font-family: var(--font-display);
@@ -1073,7 +1073,7 @@ button {
 .allele-socket > small {
   position: absolute;
   bottom: 0.2rem;
-  color: #607a85;
+  color: #7d7468;
   font-size: 0.38rem;
 }
 .allele-socket.charged {
@@ -1094,7 +1094,7 @@ button {
 .expression-conduit::after {
   flex: 1;
   height: 1px;
-  background: rgb(115 231 238 / 16%);
+  background: rgb(240 164 78 / 16%);
   content: '';
 }
 .expression-conduit i {
@@ -1102,7 +1102,7 @@ button {
   height: 0.28rem;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: #294651;
+  background: #3a3026;
 }
 
 .express-trigger {
@@ -1111,14 +1111,14 @@ button {
   width: 5rem;
   height: 5rem;
   place-items: center;
-  border: 1px solid var(--vault-cyan);
+  border: 1px solid var(--vault-flame);
   border-radius: 50%;
-  background: radial-gradient(circle, #153845 12%, #081b25 64%);
-  color: #ecfeff;
+  background: radial-gradient(circle, #3a3026 12%, #15110d 64%);
+  color: #fdf4e6;
   cursor: pointer;
   box-shadow:
-    0 0 0 0.35rem rgb(115 231 238 / 5%),
-    inset 0 0 20px rgb(115 231 238 / 8%);
+    0 0 0 0.35rem rgb(240 164 78 / 5%),
+    inset 0 0 20px rgb(240 164 78 / 8%);
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
@@ -1127,8 +1127,8 @@ button {
 .express-trigger:hover:not(:disabled) {
   transform: scale(1.04);
   box-shadow:
-    0 0 0 0.35rem rgb(115 231 238 / 9%),
-    0 0 25px rgb(115 231 238 / 16%);
+    0 0 0 0.35rem rgb(240 164 78 / 9%),
+    0 0 25px rgb(240 164 78 / 16%);
 }
 .express-trigger:disabled {
   cursor: not-allowed;
@@ -1137,7 +1137,7 @@ button {
 .express-trigger > span {
   position: absolute;
   inset: 0.38rem;
-  border: 1px dashed rgb(115 231 238 / 32%);
+  border: 1px dashed rgb(240 164 78 / 32%);
   border-radius: 50%;
 }
 .express-trigger b {
@@ -1147,7 +1147,7 @@ button {
 }
 .express-trigger small {
   margin-top: -1rem;
-  color: var(--vault-cyan);
+  color: var(--vault-flame);
   font-family: var(--font-display);
   font-size: 0.72rem;
 }
@@ -1168,7 +1168,7 @@ button {
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: 50%;
   background: rgb(255 255 255 / 3%);
-  color: #5e7984;
+  color: #7d7468;
   font-family: var(--font-display);
   font-size: 1.1rem;
 }
@@ -1178,14 +1178,14 @@ button {
   min-width: 0;
 }
 .phenotype-result small {
-  color: #607c87;
+  color: #7d7468;
   font-size: 0.43rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .phenotype-result b {
   overflow: hidden;
-  color: #849ba5;
+  color: #a1978a;
   font-family: var(--font-display);
   font-size: clamp(0.72rem, 1.3vw, 1rem);
   text-overflow: ellipsis;
@@ -1194,7 +1194,7 @@ button {
 
 .interaction-hint {
   margin: -0.25rem 0 0;
-  color: #56717d;
+  color: #7d7468;
   font-size: 0.43rem;
   letter-spacing: 0.06em;
   text-align: center;
@@ -1222,26 +1222,26 @@ button {
 .allele-instrument.is-revealed .phenotype-result > span {
   border-color: var(--vault-gold);
   color: var(--vault-gold);
-  box-shadow: 0 0 24px rgb(242 198 107 / 18%);
+  box-shadow: 0 0 24px rgb(232 194 122 / 18%);
   animation: result-reveal 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .allele-instrument.is-revealed .phenotype-result b {
-  color: #fff1c5;
+  color: #fbeed2;
 }
 .allele-instrument.focus-vault .allele-vault,
 .allele-instrument.focus-comparison .comparison-deck,
 .allele-instrument.focus-pair .expression-rig,
 .allele-instrument.focus-expression .expression-rig {
-  border-color: rgb(242 198 107 / 64%);
+  border-color: rgb(232 194 122 / 64%);
   box-shadow:
-    0 0 0 2px rgb(242 198 107 / 7%),
-    0 0 28px rgb(242 198 107 / 8%);
+    0 0 0 2px rgb(232 194 122 / 7%),
+    0 0 28px rgb(232 194 122 / 8%);
 }
 .allele-instrument.focus-expression .express-trigger {
   border-color: var(--vault-gold);
   box-shadow:
-    0 0 0 0.35rem rgb(242 198 107 / 8%),
-    0 0 26px rgb(242 198 107 / 13%);
+    0 0 0 0.35rem rgb(232 194 122 / 8%),
+    0 0 26px rgb(232 194 122 / 13%);
 }
 
 @keyframes scan-field {
@@ -1284,11 +1284,11 @@ button {
 @keyframes socket-charge {
   0% {
     transform: scale(0.75);
-    box-shadow: 0 0 0 0 rgb(181 140 255 / 45%);
+    box-shadow: 0 0 0 0 rgb(168 145 201 / 45%);
   }
   70% {
     transform: scale(1.06);
-    box-shadow: 0 0 0 0.65rem rgb(181 140 255 / 0%);
+    box-shadow: 0 0 0 0.65rem rgb(168 145 201 / 0%);
   }
   100% {
     transform: scale(1);
@@ -1302,12 +1302,12 @@ button {
 @keyframes conduit-flow {
   0%,
   100% {
-    background: #294651;
+    background: #3a3026;
     box-shadow: none;
   }
   50% {
-    background: var(--vault-cyan);
-    box-shadow: 0 0 10px var(--vault-cyan);
+    background: var(--vault-flame);
+    box-shadow: 0 0 10px var(--vault-flame);
   }
 }
 @keyframes result-reveal {

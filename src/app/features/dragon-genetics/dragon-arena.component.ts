@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   HostListener,
   OnChanges,
   SimpleChanges,
@@ -75,10 +76,17 @@ const MAX_CARDS_PER_TURN = 3;
 })
 export class DragonArenaComponent implements OnChanges {
   readonly champion = input.required<StudentDragonRecord>();
+  /**
+   * Drops the standalone control reference. Set when the arena is embedded in a
+   * lesson that carries its own instructions, where a second full keyboard
+   * guide is a wall of text between the student and the fight.
+   */
+  readonly compact = input(false);
   readonly battleFinished = output<DragonBattleResult>();
   readonly arena = inject(AssemblyArenaStore);
   readonly sound = inject(DragonArenaSoundService);
   private readonly library = inject(CreationLibraryService);
+  private readonly host = inject(ElementRef<HTMLElement>);
   private readonly controls = signal<ReadonlySet<ControlKey>>(new Set());
   private biteUntil = 0;
   private wingUntil = 0;
@@ -368,15 +376,38 @@ export class DragonArenaComponent implements OnChanges {
 
   @HostListener('window:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
-    if (isTypingTarget(event.target) || this.arena.state().playMode === 'turn-based') return;
+    if (this.ignoresKey(event) || this.arena.state().playMode === 'turn-based') return;
     if (this.applyKey(event.key.toLowerCase(), true)) event.preventDefault();
   }
 
+  /**
+   * Release is deliberately unguarded: a key pressed while the arena had the
+   * keyboard must still clear its control when it comes up, even if focus moved
+   * to a control outside the arena in between. Otherwise the dragon runs on.
+   */
   @HostListener('window:keyup', ['$event'])
   onKeyUp(event: KeyboardEvent): void {
     if (!isTypingTarget(event.target)) {
       this.applyKey(event.key.toLowerCase(), false);
     }
+  }
+
+  /**
+   * Whether a keypress belongs to something other than the dragon.
+   *
+   * The arena listens on `window` because a student steering with WASD should
+   * not first have to click the canvas. But embedded in a lesson it shares that
+   * window with answer buttons, and an arrow key pressed while one of those
+   * holds focus belongs to the page, not to the fight. Focus on the document
+   * body — the usual case, and the case after clicking the arena itself — still
+   * drives the dragon.
+   */
+  private ignoresKey(event: KeyboardEvent): boolean {
+    const target = event.target;
+    if (isTypingTarget(target)) return true;
+    return target instanceof HTMLElement
+      && target !== document.body
+      && !this.host.nativeElement.contains(target);
   }
 
   @HostListener('window:blur')

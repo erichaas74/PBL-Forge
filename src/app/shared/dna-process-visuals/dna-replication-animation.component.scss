@@ -1,18 +1,18 @@
 :host {
   display: grid;
   gap: 0.7rem;
-  --old-rail: #315aab;
+  --old-rail: var(--sea);
   --new-rail: #3aa7b8;
 }
 .process-stage {
   position: relative;
   min-height: 37rem;
   overflow: hidden;
-  border: 1px solid #dbe5f3;
+  border: 1px solid var(--line);
   border-radius: 1rem;
   background:
     radial-gradient(circle at 50% 46%, rgb(84 144 255 / 14%), transparent 27%),
-    linear-gradient(#fff, #f7fbff);
+    linear-gradient(#fff, var(--surface-raised));
 }
 .strand {
   position: absolute;
@@ -37,7 +37,7 @@
   display: block;
   height: 0.85rem;
   border-radius: 0;
-  background: linear-gradient(180deg, #789fe4, var(--old-rail));
+  background: linear-gradient(180deg, var(--stone), var(--old-rail));
   box-shadow: 0 0.25rem 0.5rem rgb(36 59 104 / 22%);
 }
 .strand.new .rail {
@@ -150,9 +150,9 @@
 }
 .animation-controls button {
   padding: 0.6rem 0.8rem;
-  border: 1px solid #2367ef;
+  border: 1px solid var(--sea);
   border-radius: 0.55rem;
-  background: #2367ef;
+  background: var(--sea);
   color: white;
   font-size: 0.66rem;
   font-weight: 850;
@@ -164,16 +164,16 @@
   min-width: 15rem;
   gap: 0.6rem;
   align-items: center;
-  color: #53617b;
+  color: var(--muted);
   font-size: 0.62rem;
   font-weight: 800;
 }
 .animation-controls input {
   flex: 1;
-  accent-color: #2367ef;
+  accent-color: var(--sea);
 }
 .animation-controls > span {
-  color: #64738e;
+  color: var(--muted);
   font-size: 0.6rem;
   font-weight: 750;
 }
