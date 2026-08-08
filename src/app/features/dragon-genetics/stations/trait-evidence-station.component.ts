@@ -41,7 +41,11 @@ import {
   toVisualClues,
   toVisualObservations,
 } from '../visual-adapter/dragon-visual-scene.adapter';
-import { DragonPortraitComponent } from '../dragon-portrait.component';
+import { SpecimenThumbComponent } from '../../../shared/assembly/preview';
+import {
+  dragonParentSource,
+  provideDragonSpecimenProfile,
+} from '../simulation/domain/dragon-specimen.profile';
 
 interface ItemState {
   prediction: TraitEvidenceCategory | null;
@@ -80,12 +84,15 @@ const WORKED_EXAMPLE_ID = 'worked-ash-stain';
  */
 @Component({
   selector: 'app-trait-evidence-station',
-  imports: [TraitInspectorDisplayComponent, DragonPortraitComponent],
+  imports: [TraitInspectorDisplayComponent, SpecimenThumbComponent],
   templateUrl: './trait-evidence-station.component.html',
   styleUrl: './trait-evidence-station.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [provideDragonSpecimenProfile()],
 })
 export class TraitEvidenceStationComponent {
+  /** Memoised upstream, so calling this from a binding is safe. */
+  readonly specimenSource = dragonParentSource;
   private readonly bridge = inject(DragonVisualBridge);
 
   readonly mode = input<TraitEvidenceMode>('learn');

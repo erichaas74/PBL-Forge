@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { AssemblyPart } from '../domain/assembly.models';
 import { DRAGON_BODY_PROFILE, sampleDragonBodyRadius } from './dragon-body-profile';
 import {

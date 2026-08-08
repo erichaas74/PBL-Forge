@@ -22,6 +22,12 @@
         <i [style.width.%]="progressPercent()"></i>
       </div>
       <small>{{ store.assignment().title }}</small>
+      <!--
+        Authoring control, not a student setting: flips every specimen tile in
+        the lab between the drawn plate and the baked 3D render so the two can
+        be compared. Move or remove it once the plate is settled.
+      -->
+      <app-specimen-render-toggle class="specimen-mode" />
     </aside>
   </header>
 

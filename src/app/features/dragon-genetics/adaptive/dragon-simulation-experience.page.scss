@@ -39,7 +39,7 @@
 .stage-cue span,
 .eyebrow {
   color: var(--simulation-accent);
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
   font-weight: 900;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -66,13 +66,13 @@
   border-radius: 0.55rem;
   background: var(--simulation-accent);
   color: var(--slate-deep);
-  font-size: 0.7rem;
+  font-size: var(--text-base);
   font-weight: 950;
 }
 .level-chip small {
   width: 9rem;
   color: var(--stone);
-  font-size: 0.56rem;
+  font-size: var(--text-xs);
   line-height: 1.25;
 }
 .save-state {
@@ -80,7 +80,7 @@
   align-items: center;
   gap: 0.4rem;
   color: var(--stone);
-  font-size: 0.6rem;
+  font-size: var(--text-sm);
   font-weight: 800;
 }
 .save-state i {
@@ -100,7 +100,7 @@
   gap: 1rem;
   margin: -0.2rem 0 0.6rem;
   color: #a9bdc6;
-  font-size: 0.62rem;
+  font-size: var(--text-sm);
 }
 .preview-toolbar strong {
   color: #f5c65b;
@@ -130,7 +130,7 @@
   padding: 0.35rem 0.65rem;
   border-radius: 99px;
   color: #6f8995;
-  font-size: 0.56rem;
+  font-size: var(--text-xs);
   font-weight: 850;
   text-transform: uppercase;
 }
@@ -188,7 +188,7 @@
 .stage-cue p {
   margin: 0.15rem 0 0;
   color: #9fb4be;
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
 }
 .question-dock {
   display: flex;
@@ -209,14 +209,14 @@
 }
 .question-dock header b {
   color: #75909d;
-  font-size: 0.62rem;
+  font-size: var(--text-sm);
 }
 .question-copy {
   padding: 1rem 0;
 }
 .question-copy small {
   color: #78909b;
-  font-size: 0.6rem;
+  font-size: var(--text-sm);
 }
 .question-copy h2 {
   margin: 0.35rem 0 0;
@@ -254,12 +254,12 @@
   border-radius: 0.55rem;
   background: #18333f;
   color: #9db2bc;
-  font-size: 0.62rem;
+  font-size: var(--text-sm);
   font-style: normal;
   font-weight: 900;
 }
 .answer-grid button span {
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   line-height: 1.35;
 }
 .answer-grid button.selected {
@@ -280,7 +280,7 @@
   border: 0;
   background: none;
   color: #f1c664;
-  font-size: 0.62rem;
+  font-size: var(--text-sm);
   font-weight: 800;
   cursor: pointer;
 }
@@ -290,7 +290,7 @@
   border-radius: 0.6rem;
   background: rgb(241 198 100 / 9%);
   color: #d2c5a4;
-  font-size: 0.64rem;
+  font-size: var(--text-sm);
   line-height: 1.4;
 }
 .feedback {
@@ -305,7 +305,7 @@
 }
 .feedback span {
   color: #f29a89;
-  font-size: 0.59rem;
+  font-size: var(--text-xs);
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -316,7 +316,7 @@
 .feedback p {
   margin: 0.3rem 0 0;
   color: #b0c0c7;
-  font-size: 0.66rem;
+  font-size: var(--text-sm);
   line-height: 1.45;
 }
 .continue {
@@ -327,7 +327,7 @@
   border-radius: 0.75rem;
   background: var(--simulation-accent);
   color: var(--slate-deep);
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
   font-weight: 900;
   cursor: pointer;
 }
@@ -397,7 +397,7 @@
   border-radius: 0.7rem;
   background: #0f2631;
   color: white;
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
   font-weight: 850;
   text-decoration: none;
   cursor: pointer;
@@ -414,7 +414,7 @@
   justify-items: center;
   gap: 1rem;
   color: var(--stone);
-  font-size: 0.72rem;
+  font-size: var(--text-base);
 }
 .loading-state i {
   width: 3rem;
@@ -556,15 +556,15 @@
   border-radius: 0.55rem;
   background: color-mix(in srgb, var(--simulation-accent) 28%, #10222d);
   color: color-mix(in srgb, var(--simulation-accent) 80%, white);
-  font-size: 0.66rem;
+  font-size: var(--text-sm);
   font-weight: 900;
 }
 .arena-evidence-target strong {
-  font-size: 0.7rem;
+  font-size: var(--text-base);
 }
 .arena-evidence-target small {
   color: #a8bdc8;
-  font-size: 0.56rem;
+  font-size: var(--text-xs);
   line-height: 1.35;
 }
 /*

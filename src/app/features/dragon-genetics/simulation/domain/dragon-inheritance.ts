@@ -239,19 +239,62 @@ function selectAllele(genotype: DragonTraitGenotype, seed: string): string {
   return genotype[stableHash(seed) % 2];
 }
 
-export function createVisualGenome(id: string, genome: DragonLabGenome, generation: number) {
+/**
+ * How a dragon's identity colour reaches the engine genome.
+ *
+ * `pigment-hue` is a single 0..1 scalar that `expressDragonPhenotype` turns
+ * back into `hsl(hue …)`, so an exact brand colour cannot survive the round
+ * trip. Callers that have one pass it here: the scalar keeps the *engine*
+ * roughly in agreement (it drives arena tinting and thumbnail accents), and
+ * `createEducationalAssembly` repaints the parts with the exact value.
+ */
+export interface DragonIdentityPaint {
+  /** Base scale colour — the dragon's card colour. */
+  color: string;
+  /** Second tone, shown only on a dragon expressing spotted scales. */
+  accentColor: string;
+}
+
+export function createVisualGenome(
+  id: string,
+  genome: DragonLabGenome,
+  generation: number,
+  identity?: DragonIdentityPaint,
+) {
   const winged = showsDominantPhenotype(genome.wings, 'wings');
   const fire = showsDominantPhenotype(genome.fire, 'fire');
-  const spotted = showsDominantPhenotype(genome.scales, 'scales');
   const horned = showsDominantPhenotype(genome.horns, 'horns');
+
   const visual = createFounderDragonGenome(id, {
+    /*
+     * Body size, tail length, and temperament are individual variation, not
+     * modelled genes. They are hashed off the dragon's id so they are stable
+     * for a given animal and clearly not something a student can predict from
+     * the four-gene Punnett square — which is the honest representation, since
+     * the lesson does not model them.
+     */
     'body-size': 0.42 + (stableHash(`${id}:body`) % 40) / 100,
+    'tail-length': 0.4 + (stableHash(`${id}:tail`) % 35) / 100,
+    temperament: 0.35 + (stableHash(`${id}:temperament`) % 45) / 100,
+
+    /*
+     * The four modelled genes. Each is binary on purpose: `Ww` and `WW` must
+     * produce an identical animal, because "the heterozygote is
+     * indistinguishable from the homozygous dominant" is the single idea the
+     * whole hatchery is teaching. Anything continuous here would leak the
+     * genotype into the phenotype and quietly destroy the lesson.
+     */
     'wing-span': winged ? 0.78 : 0.04,
     'jaw-strength': fire ? 0.76 : 0.3,
-    'tail-length': 0.4 + (stableHash(`${id}:tail`) % 35) / 100,
     'armor-density': horned ? 0.72 : 0.25,
-    'pigment-hue': spotted ? 0.7 : 0.28,
-    temperament: 0.35 + (stableHash(`${id}:temperament`) % 45) / 100,
+    /*
+     * Pigment is *identity*, not a trait readout. It used to encode the scales
+     * genotype, which meant Ember and Moss rendered as the same animal whenever
+     * their scale genes matched, and it taught students that the S gene changes
+     * hue — which it does not. Scale pattern now shows as a pattern (see
+     * `createEducationalAssembly`) and colour says who this dragon is.
+     */
+    'pigment-hue': identity ? hueScalar(identity.color) : 0.28,
   });
   visual.generation = generation;
   return visual;
@@ -262,9 +305,26 @@ export interface EducationalDragonBuild {
   combatProfile: AssemblyCombatProfile;
 }
 
+/**
+ * Turns a four-gene lab genotype into the actual animal.
+ *
+ * Each modelled gene gets its own visual channel, and they are deliberately
+ * different *kinds* of change so no two can be confused for one another:
+ *
+ * | Gene   | Channel                                           |
+ * |--------|---------------------------------------------------|
+ * | wings  | wing parts present or absent                      |
+ * | horns  | horned skull or smooth snout                      |
+ * | scales | two-tone patterning or a single solid colour      |
+ * | fire   | jaw size, plus the fire ability in combat         |
+ *
+ * Colour is reserved for identity — see the note on `pigment-hue` in
+ * {@link createVisualGenome}.
+ */
 export function createEducationalAssembly(
   genome: DragonLabGenome,
   engineGenome: ReturnType<typeof createFounderDragonGenome>,
+  identity?: DragonIdentityPaint,
 ): EducationalDragonBuild {
   const generated = generateDragonAssembly(CLASSIC_DRAGON_TEST_PRESET.state, engineGenome);
   let blueprint = cloneAssemblyBlueprint(generated.blueprint);
@@ -280,7 +340,33 @@ export function createEducationalAssembly(
     };
   }
 
-  if (showsDominantPhenotype(genome.scales, 'scales')) {
+  /*
+   * Horns: swap the skull's visual profile rather than bolting parts on. The
+   * procedural factory grows horns for `dragon-head-horned` and a bare muzzle
+   * for `dragon-head-snout`, both sized from the same physics volume, so a
+   * hornless dragon is a genuinely different silhouette at no collision cost.
+   */
+  if (!showsDominantPhenotype(genome.horns, 'horns')) {
+    blueprint.parts = blueprint.parts.map(part =>
+      part.visualProfile?.profileId === 'dragon-head-horned'
+        ? { ...part, visualProfile: { ...part.visualProfile, profileId: 'dragon-head-snout' } }
+        : part);
+  }
+
+  /*
+   * Scale pattern. A spotted dragon is two-tone — every third part takes the
+   * accent colour, which at specimen scale reads as banding down the flank and
+   * tail; a solid dragon is one colour throughout. This replaced a uniform
+   * lightening that was nearly invisible next to a solid dragon, and it is the
+   * only channel the S gene owns, so it has to be legible on a 120px thumbnail.
+   */
+  const spotted = showsDominantPhenotype(genome.scales, 'scales');
+  if (identity) {
+    blueprint.parts = blueprint.parts.map((part, index) => ({
+      ...part,
+      color: spotted && index % 3 === 0 ? identity.accentColor : identity.color,
+    }));
+  } else if (spotted) {
     blueprint.parts = blueprint.parts.map((part, index) => ({
       ...part,
       color: index % 3 === 0 ? lightenColor(part.color) : part.color,
@@ -319,4 +405,49 @@ function stableHash(value: string): number {
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
+}
+
+/**
+ * A colour's hue as the 0..1 scalar the `pigment-hue` locus stores.
+ *
+ * Inverts `expressDragonPhenotype`, which reads the locus back as
+ * `hue = pigment * 320 + 20`. Round-tripping through that formula is lossy —
+ * it cannot represent hues below 20° or above 340°, and saturation and
+ * lightness are dropped entirely — which is exactly why the parts are also
+ * repainted with the literal colour. This only has to be close enough that
+ * arena tinting and thumbnail accents land in the right family.
+ *
+ * Accepts the `#rrggbb` and `hsl(h …)` forms the lab actually stores. Anything
+ * else falls back to mid-range rather than throwing: a dragon with an
+ * unparseable colour should still render.
+ */
+function hueScalar(color: string): number {
+  const hue = hueOf(color);
+  return hue === null ? 0.28 : Math.max(0, Math.min(1, (hue - 20) / 320));
+}
+
+function hueOf(color: string): number | null {
+  const hslMatch = /^hsl\(\s*([\d.]+)/.exec(color);
+  if (hslMatch) return Number.parseFloat(hslMatch[1]) % 360;
+
+  const hex = /^#([0-9a-f]{6})$/i.exec(color.trim());
+  if (!hex) return null;
+
+  const value = Number.parseInt(hex[1], 16);
+  const red = ((value >> 16) & 255) / 255;
+  const green = ((value >> 8) & 255) / 255;
+  const blue = (value & 255) / 255;
+
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const chroma = max - min;
+  // Achromatic: no hue to recover, so let the caller use its default.
+  if (chroma < 1e-6) return null;
+
+  let hue: number;
+  if (max === red) hue = ((green - blue) / chroma) % 6;
+  else if (max === green) hue = (blue - red) / chroma + 2;
+  else hue = (red - green) / chroma + 4;
+
+  return ((hue * 60) % 360 + 360) % 360;
 }

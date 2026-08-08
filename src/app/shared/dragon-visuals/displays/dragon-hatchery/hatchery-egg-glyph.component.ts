@@ -68,7 +68,7 @@ interface Speckle {
 
         @for (label of alleleLabels().slice(0, 3); track $index) {
           <g class="allele-locus" [attr.transform]="'translate(32 ' + locusY($index) + ')'">
-            <rect x="-10" y="-6" width="20" height="12" rx="3" />
+            <rect x="-11" y="-7" width="22" height="14" rx="3" />
             <text x="0" y="3.2" text-anchor="middle">{{ label }}</text>
           </g>
         }
@@ -119,10 +119,18 @@ interface Speckle {
         stroke: var(--dh-staged, #67e8f9);
         stroke-width: 1;
       }
+      /*
+       * SVG user units, not CSS pixels: this scales with the viewBox. At the
+       * glyph's 5.5rem cap against a 64-unit box the factor is ~1.375, so 9
+       * units lands at ~12px on screen — the same floor --text-xs sets for
+       * everything laid out in CSS. Allele letters are content, not decoration;
+       * they may not fall below it. Raising this means growing the locus rect
+       * in the template to match.
+       */
       .allele-locus text {
         fill: #fff;
         font-family: ui-monospace, monospace;
-        font-size: 7px;
+        font-size: 9px;
         font-weight: 800;
       }
 

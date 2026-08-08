@@ -29,6 +29,15 @@ export interface SpecimenTraitReadout {
   roles: readonly AssemblyPartRole[];
   /** 0..1 when the trait is continuous, so hosts can draw a meter. */
   normalized?: number;
+  /**
+   * Whether a *binary* trait is showing — winged, horned, breathes fire.
+   *
+   * Flat renderers need this as data. Without it the only way to know whether a
+   * dragon has wings is to read `valueLabel` and look for the word, which
+   * breaks the moment the copy is reworded or translated. Continuous traits
+   * leave it unset and use `normalized` instead.
+   */
+  expressed?: boolean;
 }
 
 /** Everything the viewer needs to draw and label one specimen. */

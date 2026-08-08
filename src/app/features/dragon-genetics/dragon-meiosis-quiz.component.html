@@ -63,7 +63,7 @@
             }
           </select>
         </header>
-        <app-dragon-portrait [profile]="parent" />
+        <app-specimen-thumb [source]="specimenSource(parent)" [size]="200" [showLabel]="false" />
         <p>
           <strong>{{ parentPhenotype(parent) }}</strong> phenotype for {{ focusTrait().name }}
         </p>

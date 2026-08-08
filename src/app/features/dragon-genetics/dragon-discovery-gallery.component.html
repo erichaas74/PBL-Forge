@@ -12,7 +12,7 @@
     <nav class="dragon-roster" aria-label="Dragon model gallery">
       @for (dragon of dragons; track dragon.id) {
         <button type="button" [class.selected]="selectedDragonId() === dragon.id" [attr.aria-pressed]="selectedDragonId() === dragon.id" (click)="selectDragon(dragon.id)">
-          <app-dragon-portrait [profile]="dragon" [compact]="true" />
+          <app-specimen-thumb [source]="specimenSource(dragon)" [size]="120" [showLabel]="false" />
           <span><strong>{{ dragon.name }}</strong><small>{{ dragon.title }}</small></span>
         </button>
       }
@@ -21,7 +21,7 @@
     <section class="model-stage panel" aria-label="Interactive dragon model viewer">
       <div class="model-label"><span>Selected model</span><strong>{{ selectedDragon().name }}</strong><small>{{ selectedDragon().title }}</small></div>
       <div class="turntable" [style.transform]="modelTransform()">
-        <app-dragon-portrait [profile]="selectedDragon()" />
+        <app-specimen-thumb [source]="specimenSource(selectedDragon())" [size]="300" [showLabel]="false" />
       </div>
       <div class="model-controls" aria-label="Model view controls">
         <button type="button" (click)="rotate(-12)" aria-label="Rotate model left">↶ Rotate</button>
@@ -110,7 +110,7 @@
       @for (member of familyMembers; track member.id; let index = $index) {
         <article [class.hatchling]="index === 2">
           <span>{{ index < 2 ? 'Parent comparison' : 'Impossible Hatchling' }}</span>
-          <app-dragon-portrait [profile]="member" [compact]="true" />
+          <app-specimen-thumb [source]="specimenSource(member)" [size]="120" [showLabel]="false" />
           <strong>{{ member.name }}</strong><small>{{ familyPhenotype(member) }}</small>
         </article>
       }

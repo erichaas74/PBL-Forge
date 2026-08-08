@@ -9,6 +9,7 @@ import {
 } from '../../domain/dragon-visual.models';
 import { DragonVisualBridge } from '../../state/dragon-visual.bridge';
 import { DragonHatcheryDisplayComponent } from './dragon-hatchery-display.component';
+import { DRAGON_HATCHERY_THEME } from './dragon-hatchery.theme';
 
 const COPY = {
   'clutch.clutch-1.label': 'Ember × Tide · run 1',
@@ -210,8 +211,9 @@ describe('DragonHatcheryDisplayComponent', () => {
       targetId: 'egg-2',
     }));
     expect(host().querySelector('.bay')?.classList).toContain('reduced-motion');
+    // Against the theme, not a literal — see the note in the scanner spec.
     expect(host().querySelector<HTMLElement>('.bay')?.style.getPropertyValue('--dh-brass'))
-      .toBe('#e6b849');
+      .toBe(DRAGON_HATCHERY_THEME.palette.brass);
     expect(host().querySelector('[aria-live="polite"]')?.textContent)
       .toContain('Clutch of 2 eggs: 0 examined, 0 sampled, 0 hatched.');
   });

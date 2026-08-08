@@ -7,7 +7,7 @@
 }
 
 .bench-page__eyebrow {
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -98,7 +98,7 @@
 
 .gene__phenotype {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   opacity: 0.75;
   min-height: 1.2em;
 }

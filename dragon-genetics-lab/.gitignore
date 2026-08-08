@@ -1,6 +1,0 @@
-/dist
-/node_modules
-/.angular
-/.firebase
-firebase-debug.log
-*.local

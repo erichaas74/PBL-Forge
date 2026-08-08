@@ -9,6 +9,7 @@ import {
 } from '../../domain/dragon-visual.models';
 import { DragonVisualBridge } from '../../state/dragon-visual.bridge';
 import { GenotypeScannerDisplayComponent } from './genotype-scanner-display.component';
+import { GENOTYPE_SCANNER_THEME } from './genotype-scanner.theme';
 
 const COPY = {
   'sample.scan-s11.caption': 'Intake 05-02 · records only.',
@@ -169,8 +170,11 @@ describe('GenotypeScannerDisplayComponent', () => {
     render(scene('predict'));
 
     expect(host().querySelector('.console')?.classList).toContain('reduced-motion');
+    // Asserted against the theme, not a literal: the point is that the theme
+    // reaches the DOM, and pinning the hex here makes every retheme a test
+    // failure in a file that has no opinion about which colour brass is.
     expect(host().querySelector<HTMLElement>('.console')?.style.getPropertyValue('--gs-brass'))
-      .toBe('#e6b849');
+      .toBe(GENOTYPE_SCANNER_THEME.palette.brass);
     expect(host().querySelector('[aria-live="polite"]')?.textContent)
       .toContain('Allele pair is shielded.');
   });

@@ -1,5 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
-import { DragonPortraitComponent } from './dragon-portrait.component';
+import { SpecimenThumbComponent } from '../../shared/assembly/preview';
+import {
+  dragonParentSource,
+  provideDragonSpecimenProfile,
+} from './simulation/domain/dragon-specimen.profile';
 import {
   ARENA_CONNECTIONS,
   DRAGON_GALLERY_TRAITS,
@@ -16,13 +20,16 @@ import { DragonParentProfile, DragonTraitId } from './simulation/domain/dragon-l
 
 @Component({
   selector: 'app-dragon-discovery-gallery',
-  imports: [DragonPortraitComponent],
+  imports: [SpecimenThumbComponent],
+  providers: [provideDragonSpecimenProfile()],
   templateUrl: './dragon-discovery-gallery.component.html',
   styleUrl: './dragon-discovery-gallery.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonDiscoveryGalleryComponent {
   readonly dragons = DRAGON_PARENTS;
+  /** Memoised upstream, so calling this from a binding is safe. */
+  readonly specimenSource = dragonParentSource;
   readonly hatchling = TRAIT_EVIDENCE_SPECIMEN;
   readonly traits = DRAGON_GALLERY_TRAITS;
   readonly impressionPrompts = FIRST_IMPRESSION_PROMPTS;

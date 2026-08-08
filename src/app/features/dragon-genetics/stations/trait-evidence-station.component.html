@@ -18,7 +18,7 @@
   <div class="station-grid">
     <div class="investigation-bay">
       <section class="specimen-viewer" aria-label="Visible dragon characteristic">
-        <div><app-dragon-portrait [profile]="specimen" [compact]="true" /></div>
+        <div><app-specimen-thumb [source]="specimenSource(specimen)" [size]="160" [showLabel]="false" /></div>
         <article>
           <span class="eyebrow">Visible model · observation only</span>
           <h4>{{ activeItem()?.label ?? 'Impossible Hatchling' }}</h4>

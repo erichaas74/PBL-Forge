@@ -16,7 +16,7 @@
 }
 
 .lab__eyebrow {
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -151,7 +151,7 @@
   aspect-ratio: 1;
   border-radius: 0.4rem;
   background: var(--lab-stage);
-  font-size: 0.75rem;
+  font-size: var(--text-base);
   color: var(--lab-muted);
 }
 
@@ -162,7 +162,7 @@
 
 .lab__tile-id,
 .lab__angle-label {
-  font-size: 0.7rem;
+  font-size: var(--text-base);
   color: var(--lab-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   overflow-wrap: anywhere;
@@ -209,7 +209,7 @@
   div { display: grid; gap: 0.1rem; }
 
   dt {
-    font-size: 0.68rem;
+    font-size: var(--text-sm);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--lab-muted);
@@ -247,7 +247,7 @@
   border: 0;
   background: none;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: var(--text-base);
   color: var(--lab-accent);
   text-decoration: underline;
   cursor: pointer;
@@ -258,7 +258,7 @@
   gap: 0.15rem;
 
   span {
-    font-size: 0.76rem;
+    font-size: var(--text-base);
     color: var(--lab-muted);
     font-variant-numeric: tabular-nums;
   }
@@ -268,7 +268,7 @@
 
 .lab__hint {
   margin: 0.2rem 0 0;
-  font-size: 0.74rem;
+  font-size: var(--text-base);
   line-height: 1.45;
   color: var(--lab-muted);
 }
@@ -332,7 +332,7 @@
 
 .lab__record-values {
   flex: 1;
-  font-size: 0.76rem;
+  font-size: var(--text-base);
   color: var(--lab-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   overflow-wrap: anywhere;
@@ -344,7 +344,7 @@
   border: 1px solid var(--lab-edge);
   border-radius: 0.5rem;
   background: var(--lab-panel);
-  font-size: 0.76rem;
+  font-size: var(--text-base);
   line-height: 1.5;
   overflow-x: auto;
   white-space: pre;

@@ -12,6 +12,10 @@ import {
   SpecimenProfile,
   provideSpecimenProfile,
 } from '../../../../shared/assembly/preview/specimen-profile.registry';
+import { provideSpecimenPlate } from '../../../../shared/assembly/preview/specimen-plate.registry';
+import {
+  DragonSpecimenPlateComponent,
+} from '../../../../shared/dragon-visuals/specimen-plate/dragon-specimen-plate.component';
 import {
   DRAGON_LOCUS_VISUALS,
   expressDragonPhenotype,
@@ -22,6 +26,7 @@ import { DragonGeneLocus, DragonGenome, DragonPhenotype } from './dragon-genetic
 import { DragonLabGenome, DragonOffspring, DragonParentProfile } from './dragon-lab.models';
 import {
   DRAGON_TRAITS,
+  DragonIdentityPaint,
   createEducationalAssembly,
   createVisualGenome,
   showsDominantPhenotype,
@@ -44,19 +49,46 @@ export const DRAGON_SPECIMEN_PROFILE_ID = 'dragon-genetics';
 
 type DragonSpecimenGenome =
   | { kind: 'engine'; genome: DragonGenome }
-  | { kind: 'lab'; genome: DragonLabGenome; generation?: number };
+  | {
+      kind: 'lab';
+      genome: DragonLabGenome;
+      generation?: number;
+      /**
+       * The dragon's card colours. Optional because an anonymous genotype (a
+       * Punnett cell, a predicted outcome) has no identity yet — those render
+       * in the engine's own pigment.
+       */
+      identity?: DragonIdentityPaint;
+    };
 
 export const DRAGON_SPECIMEN_PROFILE: SpecimenProfile<DragonSpecimenGenome> = {
   id: DRAGON_SPECIMEN_PROFILE_ID,
   supports: isDragonSpecimenGenome,
   express: (genome, options) => genome.kind === 'engine'
     ? describeEngineGenome(genome.genome, options)
-    : describeLabGenome(genome.genome, { ...options, generation: options.generation ?? genome.generation }),
+    : describeLabGenome(
+        genome.genome,
+        { ...options, generation: options.generation ?? genome.generation },
+        genome.identity,
+      ),
 };
 
-/** Register once, wherever the viewer is used (route providers or bootstrap). */
-export function provideDragonSpecimenProfile(): Provider {
-  return provideSpecimenProfile(DRAGON_SPECIMEN_PROFILE as SpecimenProfile);
+/**
+ * Register once, wherever the viewer is used (route providers or bootstrap).
+ *
+ * Supplies both halves of "how to show a dragon": the rule for expressing a
+ * genome into an assembly, and the flat artwork for drawing one at tile size.
+ * They travel together so a screen can never end up able to express a dragon
+ * but not draw it.
+ */
+export function provideDragonSpecimenProfile(): Provider[] {
+  return [
+    provideSpecimenProfile(DRAGON_SPECIMEN_PROFILE as SpecimenProfile),
+    provideSpecimenPlate({
+      profileId: DRAGON_SPECIMEN_PROFILE_ID,
+      component: DragonSpecimenPlateComponent,
+    }),
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -67,12 +99,17 @@ export function provideDragonSpecimenProfile(): Provider {
 export function dragonLabGenomeSource(
   id: string,
   genome: DragonLabGenome,
-  options: { label?: string; generation?: number } = {},
+  options: { label?: string; generation?: number; identity?: DragonIdentityPaint } = {},
 ): SpecimenSource {
   return {
     kind: 'genome',
     profileId: DRAGON_SPECIMEN_PROFILE_ID,
-    genome: { kind: 'lab', genome, generation: options.generation } satisfies DragonSpecimenGenome,
+    genome: {
+      kind: 'lab',
+      genome,
+      generation: options.generation,
+      identity: options.identity,
+    } satisfies DragonSpecimenGenome,
     id,
     label: options.label ?? id,
     generation: options.generation,
@@ -94,9 +131,36 @@ export function dragonEngineGenomeSource(
   };
 }
 
-/** A parent the student picked in the lab. */
+/**
+ * Memoised per profile object.
+ *
+ * Templates call `dragonParentSource(profile)` inside a binding, so this runs
+ * on every change-detection pass. Returning a fresh object each time would
+ * change the input identity of every specimen tile on the screen and force a
+ * re-resolve — and resolving runs `createEducationalAssembly`, which rebuilds
+ * a whole blueprint. The parent profiles are module constants, so keying on
+ * object identity is both safe and exact.
+ */
+const parentSources = new WeakMap<DragonParentProfile, SpecimenSource>();
+
+/**
+ * A parent the student picked in the lab.
+ *
+ * Carries the profile's own colours through, so the specimen on screen is the
+ * same red Ember or blue Tide as every card that names it. Without this the
+ * engine repaints from `pigment-hue` alone and two parents with matching scale
+ * genes come out as the same animal.
+ */
 export function dragonParentSource(parent: DragonParentProfile): SpecimenSource {
-  return dragonLabGenomeSource(parent.id, parent.genome, { label: parent.name });
+  const cached = parentSources.get(parent);
+  if (cached) return cached;
+
+  const source = dragonLabGenomeSource(parent.id, parent.genome, {
+    label: parent.name,
+    identity: { color: parent.color, accentColor: parent.accentColor },
+  });
+  parentSources.set(parent, source);
+  return source;
 }
 
 /**
@@ -115,11 +179,11 @@ export interface DragonBenchBuild {
 export function createDragonBenchBuild(
   id: string,
   genome: DragonLabGenome,
-  options: { label?: string; generation?: number } = {},
+  options: { label?: string; generation?: number; identity?: DragonIdentityPaint } = {},
 ): DragonBenchBuild {
   const generation = options.generation ?? 0;
-  const engineGenome = createVisualGenome(id, genome, generation);
-  const build = createEducationalAssembly(genome, engineGenome);
+  const engineGenome = createVisualGenome(id, genome, generation, options.identity);
+  const build = createEducationalAssembly(genome, engineGenome, options.identity);
 
   return {
     source: {
@@ -128,7 +192,7 @@ export function createDragonBenchBuild(
         label: options.label ?? id,
         profileId: DRAGON_SPECIMEN_PROFILE_ID,
         generation,
-        accentColor: expressDragonPhenotype(engineGenome).scaleColor,
+        accentColor: options.identity?.color ?? expressDragonPhenotype(engineGenome).scaleColor,
         traits: buildDragonTraitReadouts(expressDragonPhenotype(engineGenome), genome),
       }),
     },
@@ -142,8 +206,16 @@ export function createDragonBenchBuild(
  * already tuned, so this reuses that blueprint rather than re-expressing — the
  * student inspects the exact animal in their clutch.
  */
+const offspringSources = new WeakMap<DragonOffspring, SpecimenSource>();
+
 export function dragonOffspringSource(offspring: DragonOffspring): SpecimenSource {
-  return {
+  // Memoised for the same reason as parents — see `parentSources`. An offspring
+  // object is replaced whenever the clutch changes, so the cache turns over
+  // exactly when the animal actually does.
+  const cached = offspringSources.get(offspring);
+  if (cached) return cached;
+
+  const source: SpecimenSource = {
     kind: 'descriptor',
     descriptor: describeSpecimen(offspring.id, offspring.assembly, {
       label: offspring.name,
@@ -156,6 +228,8 @@ export function dragonOffspringSource(offspring: DragonOffspring): SpecimenSourc
       ),
     }),
   };
+  offspringSources.set(offspring, source);
+  return source;
 }
 
 // ---------------------------------------------------------------------------
@@ -179,19 +253,20 @@ function describeEngineGenome(
 function describeLabGenome(
   genome: DragonLabGenome,
   options: SpecimenExpressOptions,
+  identity?: DragonIdentityPaint,
 ): SpecimenDescriptor {
   const id = options.id ?? 'dragon-specimen';
   const generation = options.generation ?? 0;
-  const engineGenome = createVisualGenome(id, genome, generation);
+  const engineGenome = createVisualGenome(id, genome, generation, identity);
   // Same call the hatchery makes, so a wingless genotype loses its wings here
   // exactly as it does in the clutch and in the arena.
-  const build = createEducationalAssembly(genome, engineGenome);
+  const build = createEducationalAssembly(genome, engineGenome, identity);
 
   return describeSpecimen(id, build.assembly, {
     label: options.label ?? id,
     profileId: DRAGON_SPECIMEN_PROFILE_ID,
     generation,
-    accentColor: expressDragonPhenotype(engineGenome).scaleColor,
+    accentColor: identity?.color ?? expressDragonPhenotype(engineGenome).scaleColor,
     traits: buildDragonTraitReadouts(expressDragonPhenotype(engineGenome), genome),
   });
 }
@@ -220,6 +295,9 @@ export function buildDragonTraitReadouts(
         valueLabel: `${genotype.join('')} — ${dominant ? trait.dominantPhenotype : trait.recessivePhenotype}`,
         detail: trait.description,
         roles: labTraitRoles(trait.id),
+        // Structured, so a flat renderer never has to read the copy to find out
+        // whether this dragon has wings.
+        expressed: dominant,
       });
     }
   }

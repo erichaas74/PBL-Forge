@@ -1,3 +1,4 @@
+import { BERK_INSTRUMENT } from '../../../design/berk-palette';
 import { DragonGenomeLevelId } from '../../domain/dragon-visual.models';
 
 export interface GenomeMicroscopeTheme {
@@ -25,27 +26,33 @@ export interface GenomeMicroscopeTheme {
 }
 
 export const GENOME_MICROSCOPE_THEME: GenomeMicroscopeTheme = {
-  id: 'royal-hatchery-genome-microscope',
-  version: '1.0.0',
+  id: 'berk-hatchery-genome-microscope',
+  version: '2.0.0',
   palette: {
-    consoleTop: '#17283c',
-    consoleBottom: '#0c1727',
-    panel: '#20364d',
-    panelEdge: '#3f617d',
-    ink: '#eef8ff',
-    mutedInk: '#a7bfd1',
-    cyan: '#67e0d1',
-    indigo: '#9e9cff',
-    brass: '#efc668',
-    correct: '#58cba6',
-    incorrect: '#f08a72',
+    consoleTop: BERK_INSTRUMENT.consoleTop,
+    consoleBottom: BERK_INSTRUMENT.consoleBottom,
+    panel: BERK_INSTRUMENT.panel,
+    panelEdge: BERK_INSTRUMENT.panelEdge,
+    ink: BERK_INSTRUMENT.ink,
+    mutedInk: BERK_INSTRUMENT.mutedInk,
+    cyan: BERK_INSTRUMENT.glow,
+    indigo: BERK_INSTRUMENT.violet,
+    brass: BERK_INSTRUMENT.brass,
+    correct: BERK_INSTRUMENT.correct,
+    incorrect: BERK_INSTRUMENT.incorrect,
   },
+  /*
+   * One accent per containment level, walking cool-to-warm as the zoom goes
+   * deeper. The order is the teaching point — the student should feel the
+   * descent from cell to allele — so these are a deliberate ramp rather than
+   * five picks off the token list.
+   */
   levelAccents: {
-    cell: '#66d7c4',
-    chromosome: '#75bdec',
-    dna: '#9b9cf3',
-    gene: '#e7bb5f',
-    allele: '#ef8f9f',
+    cell: '#6fb8ae',
+    chromosome: BERK_INSTRUMENT.glow,
+    dna: BERK_INSTRUMENT.violet,
+    gene: BERK_INSTRUMENT.brass,
+    allele: '#dd8a68',
   },
   motion: { focusMs: 650, traceMs: 1000, revealMs: 850 },
 };

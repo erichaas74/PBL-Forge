@@ -19,7 +19,7 @@
 }
 .analysis-kind {
   color: #81b9d6;
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
   font-weight: 850;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -43,7 +43,7 @@
   background: rgb(255 255 255 / 7%);
   color: #dbe9ee;
   font: inherit;
-  font-size: 0.64rem;
+  font-size: var(--text-sm);
   font-weight: 800;
   cursor: pointer;
 }
@@ -68,12 +68,12 @@
 }
 .strand-label strong {
   color: white;
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
 }
 .strand-label span {
   margin-top: 0.12rem;
   color: #7f9eab;
-  font-size: 0.53rem;
+  font-size: var(--text-xs);
 }
 .base-track {
   display: grid;
@@ -100,7 +100,7 @@ button.base {
   top: 0.22rem;
   left: 0.28rem;
   color: rgb(255 255 255 / 72%);
-  font-size: 0.46rem;
+  font-size: var(--text-xs);
 }
 .base[data-base='A'] {
   background: #4da83b;
@@ -154,7 +154,7 @@ fieldset {
 legend {
   padding: 0 0.35rem;
   color: #9db4be;
-  font-size: 0.59rem;
+  font-size: var(--text-xs);
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -176,7 +176,7 @@ legend i {
 .analysis-submit {
   min-height: 2.7rem;
   color: #a8bec7;
-  font-size: 0.65rem;
+  font-size: var(--text-sm);
 }
 .analysis-submit strong {
   color: white;

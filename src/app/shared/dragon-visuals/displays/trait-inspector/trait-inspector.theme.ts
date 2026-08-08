@@ -1,3 +1,4 @@
+import { BERK_INSTRUMENT } from '../../../design/berk-palette';
 import {
   DragonEvidenceSourceId,
   DragonTraitCategory,
@@ -127,19 +128,19 @@ const WEATHER_MARK: TraitInspectorGlyph = {
 };
 
 export const TRAIT_INSPECTOR_THEME: TraitInspectorTheme = {
-  id: 'royal-hatchery-evidence-console',
-  version: '1.0.0',
+  id: 'berk-hatchery-evidence-console',
+  version: '2.0.0',
   palette: {
-    consoleTop: '#1b2a3d',
-    consoleBottom: '#132030',
-    panel: '#22344a',
-    panelEdge: '#3b5570',
-    ink: '#f2f6fa',
-    mutedInk: '#a8bccd',
-    brass: '#e6b849',
-    glow: '#7fe3d0',
-    correct: '#54c9a4',
-    incorrect: '#f08a72',
+    consoleTop: BERK_INSTRUMENT.consoleTop,
+    consoleBottom: BERK_INSTRUMENT.consoleBottom,
+    panel: BERK_INSTRUMENT.panel,
+    panelEdge: BERK_INSTRUMENT.panelEdge,
+    ink: BERK_INSTRUMENT.ink,
+    mutedInk: BERK_INSTRUMENT.mutedInk,
+    brass: BERK_INSTRUMENT.brass,
+    glow: BERK_INSTRUMENT.glow,
+    correct: BERK_INSTRUMENT.correct,
+    incorrect: BERK_INSTRUMENT.incorrect,
   },
   motion: {
     tracePathMs: 1500,
@@ -147,27 +148,34 @@ export const TRAIT_INSPECTOR_THEME: TraitInspectorTheme = {
     pulseMs: 900,
   },
   sampleGlyph: SPECIMEN_TUBE,
+  /*
+   * Source and category share a hue on purpose: a card drawn from the gene
+   * record is the same green as the "inherited" bin it belongs in, so the
+   * student can see where a card is going before reading a word of it. The
+   * source is the lighter of each pair — it is the thing in hand, the bin is
+   * the thing at rest. Do not break the pairing when restyling.
+   */
   sources: {
-    'gene-record': { accent: '#63d6bb', glyph: HELIX },
-    'training-log': { accent: '#f0c064', glyph: SIGNAL_LOG },
-    'environment-log': { accent: '#b49cf2', glyph: FIELD_LOG },
+    'gene-record': { accent: '#6fb8ae', glyph: HELIX },
+    'training-log': { accent: BERK_INSTRUMENT.focus, glyph: SIGNAL_LOG },
+    'environment-log': { accent: BERK_INSTRUMENT.recessive, glyph: FIELD_LOG },
   },
   categories: {
     inherited: {
-      accent: '#3fb894',
-      surface: '#12312c',
+      accent: '#5aa08f',
+      surface: '#17282a',
       texture: 'dots',
       glyph: EGG_MARK,
     },
     learned: {
-      accent: '#e5ad4a',
-      surface: '#33260f',
+      accent: BERK_INSTRUMENT.brass,
+      surface: '#2d2415',
       texture: 'stripes',
       glyph: PRACTICE_LOOP,
     },
     environmental: {
-      accent: '#a68cf0',
-      surface: '#241f3d',
+      accent: '#9b82b8',
+      surface: '#241f2c',
       texture: 'grid',
       glyph: WEATHER_MARK,
     },

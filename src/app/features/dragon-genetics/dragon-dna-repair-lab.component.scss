@@ -21,16 +21,16 @@
   max-width: 48rem;
   margin: 0;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--text-base);
   line-height: 1.5;
 }
 .lab-head code {
   color: #315f73;
-  font-size: 0.62rem;
+  font-size: var(--text-sm);
 }
 .eyebrow {
   color: var(--dragon-green, var(--moss));
-  font-size: 0.61rem;
+  font-size: var(--text-sm);
   font-weight: 850;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -55,7 +55,7 @@
   border-radius: 0.55rem;
   background: transparent;
   color: #596762;
-  font-size: 0.67rem;
+  font-size: var(--text-sm);
   font-weight: 850;
   cursor: pointer;
 }
@@ -77,7 +77,7 @@
   border-radius: 0.55rem 0.55rem 0 0;
   background: white;
   color: #46544f;
-  font-size: 0.64rem;
+  font-size: var(--text-sm);
   font-weight: 800;
   cursor: pointer;
 }

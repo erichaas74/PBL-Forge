@@ -17,7 +17,7 @@
 .context-panel > a {
   width: fit-content;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   font-weight: 750;
   text-decoration: none;
 }
@@ -31,7 +31,7 @@
   display: inline-block;
   margin-bottom: 1rem;
   color: var(--ember);
-  font-size: 0.7rem;
+  font-size: var(--text-base);
   font-weight: 850;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -78,7 +78,7 @@ h1 {
   grid-column: 1 / -1;
   margin-top: 0.5rem;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
 }
 
 .workspace {
@@ -91,7 +91,7 @@ h1 {
   justify-content: space-between;
   margin-bottom: clamp(3rem, 6vw, 5.5rem);
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--text-base);
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -186,7 +186,7 @@ legend,
   width: 2.2rem;
   height: 2.2rem;
   background: color-mix(in srgb, var(--fury) 18%, white);
-  font-size: 0.75rem;
+  font-size: var(--text-base);
 }
 
 .match-row strong {
@@ -237,7 +237,7 @@ textarea:focus {
   justify-content: flex-end;
   margin-top: 0.5rem;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--text-base);
 }
 
 .writing-meta .ready {

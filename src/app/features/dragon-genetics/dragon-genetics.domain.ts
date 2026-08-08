@@ -190,8 +190,11 @@ export function toStudentDragonRecord(dragon: DragonOffspring): StudentDragonRec
 }
 
 export function materializeDragon(record: StudentDragonRecord): DragonOffspring {
-  const engineGenome = createVisualGenome(record.id, record.genome, record.generation);
-  const build = createEducationalAssembly(record.genome, engineGenome);
+  // The record's own colours drive the build, so a hatchling keeps the identity
+  // its card shows all the way into the arena.
+  const identity = { color: record.color, accentColor: record.accentColor };
+  const engineGenome = createVisualGenome(record.id, record.genome, record.generation, identity);
+  const build = createEducationalAssembly(record.genome, engineGenome, identity);
   return {
     ...record,
     engineGenome,

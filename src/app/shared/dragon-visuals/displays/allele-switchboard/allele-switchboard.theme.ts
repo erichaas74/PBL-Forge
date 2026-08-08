@@ -1,3 +1,5 @@
+import { BERK_INSTRUMENT } from '../../../design/berk-palette';
+
 export interface AlleleSwitchboardTheme {
   id: string;
   version: string;
@@ -19,21 +21,21 @@ export interface AlleleSwitchboardTheme {
 }
 
 export const ALLELE_SWITCHBOARD_THEME: AlleleSwitchboardTheme = {
-  id: 'royal-hatchery-allele-workbench',
-  version: '1.0.0',
+  id: 'berk-hatchery-allele-workbench',
+  version: '2.0.0',
   palette: {
-    consoleTop: '#192b38',
-    consoleBottom: '#0b1721',
-    panel: '#203845',
-    panelEdge: '#456575',
-    ink: '#effbff',
-    mutedInk: '#aac3cd',
-    dominant: '#67e0d1',
-    recessive: '#d2a7ff',
-    focus: '#f3c86a',
-    brass: '#e9b95c',
-    correct: '#5ad0a6',
-    incorrect: '#f18a75',
+    consoleTop: BERK_INSTRUMENT.consoleTop,
+    consoleBottom: BERK_INSTRUMENT.consoleBottom,
+    panel: BERK_INSTRUMENT.panel,
+    panelEdge: BERK_INSTRUMENT.panelEdge,
+    ink: BERK_INSTRUMENT.ink,
+    mutedInk: BERK_INSTRUMENT.mutedInk,
+    dominant: BERK_INSTRUMENT.dominant,
+    recessive: BERK_INSTRUMENT.recessive,
+    focus: BERK_INSTRUMENT.focus,
+    brass: BERK_INSTRUMENT.brass,
+    correct: BERK_INSTRUMENT.correct,
+    incorrect: BERK_INSTRUMENT.incorrect,
   },
   motion: { moveMs: 420, traceMs: 1400, revealMs: 800 },
 };

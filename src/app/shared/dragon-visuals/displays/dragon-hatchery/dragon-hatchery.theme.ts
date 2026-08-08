@@ -1,3 +1,4 @@
+import { BERK_INSTRUMENT } from '../../../design/berk-palette';
 import { CHROMOSOME_DIAGRAM, ChromosomeDiagramTheme } from '../shared/chromosome-diagram';
 
 /**
@@ -46,25 +47,32 @@ export interface DragonHatcheryTheme {
 }
 
 export const DRAGON_HATCHERY_THEME: DragonHatcheryTheme = {
-  id: 'royal-hatchery-incubation-bay',
-  version: '1.0.0',
+  id: 'berk-hatchery-incubation-bay',
+  version: '2.0.0',
   palette: {
-    bayTop: '#16273a',
-    bayBottom: '#0e1b2b',
-    panel: '#1f3348',
-    panelEdge: '#3c5c79',
-    ink: '#eef7ff',
-    mutedInk: '#a4bcd0',
-    brass: '#e6b849',
-    glow: '#67e8f9',
-    shell: '#e6ecf5',
-    shellEdge: '#8fa7bf',
-    speckle: '#7d93ac',
-    examined: '#efc668',
-    sampled: '#b49cf2',
-    hatched: '#58cba6',
-    staged: '#67e8f9',
-    locked: '#6d8098',
+    bayTop: BERK_INSTRUMENT.consoleTop,
+    bayBottom: BERK_INSTRUMENT.consoleBottom,
+    panel: BERK_INSTRUMENT.panel,
+    panelEdge: BERK_INSTRUMENT.panelEdge,
+    ink: BERK_INSTRUMENT.ink,
+    mutedInk: BERK_INSTRUMENT.mutedInk,
+    brass: BERK_INSTRUMENT.brass,
+    glow: BERK_INSTRUMENT.glow,
+    /*
+     * The shell is the one warm object in the bay. It was a cold blue-white,
+     * which read as porcelain under a fluorescent tube; bone over parchment
+     * reads as something laid in straw and kept warm, and it is the only thing
+     * on screen the student is meant to feel protective of.
+     */
+    shell: '#ece3d2',
+    shellEdge: '#a89074',
+    speckle: '#8a7358',
+    /* Status colours double as the candling light, so each stays a light source. */
+    examined: BERK_INSTRUMENT.brass,
+    sampled: BERK_INSTRUMENT.recessive,
+    hatched: BERK_INSTRUMENT.correct,
+    staged: BERK_INSTRUMENT.glow,
+    locked: '#77848a',
   },
   shell: {
     viewBoxWidth: 64,

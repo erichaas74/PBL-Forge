@@ -113,13 +113,13 @@ button {
   border-radius: 50%;
   background: rgb(255 255 255 / 5%);
   color: var(--vault-flame);
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
   font-style: normal;
 }
 
 .gene-selector button span {
   overflow: hidden;
-  font-size: 0.6rem;
+  font-size: var(--text-sm);
   font-weight: 850;
   letter-spacing: 0.05em;
   text-overflow: ellipsis;
@@ -128,7 +128,7 @@ button {
 }
 
 .gene-selector button b {
-  font-size: 0.72rem;
+  font-size: var(--text-base);
 }
 
 .locus-readout {
@@ -141,12 +141,12 @@ button {
 
 .locus-readout small {
   color: #8e8478;
-  font-size: 0.5rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.08em;
 }
 .locus-readout b {
   color: var(--vault-flame);
-  font-size: 0.65rem;
+  font-size: var(--text-sm);
   letter-spacing: 0.09em;
 }
 
@@ -229,17 +229,17 @@ button {
 }
 .allele-vault header small {
   color: #8e8478;
-  font-size: 0.42rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.17em;
 }
 .allele-vault header b {
   color: var(--surface-raised);
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.08em;
 }
 .allele-vault header > i {
   color: var(--vault-flame);
-  font-size: 0.6rem;
+  font-size: var(--text-sm);
   font-style: normal;
 }
 
@@ -268,7 +268,7 @@ button {
 }
 .vault-gene > span {
   color: #7d7468;
-  font-size: 0.48rem;
+  font-size: var(--text-xs);
   font-weight: 850;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
@@ -323,7 +323,7 @@ button {
   right: 0.3rem;
   bottom: 0.18rem;
   color: #8e8478;
-  font-size: 0.35rem;
+  font-size: var(--text-xs);
   font-weight: 900;
   letter-spacing: 0.08em;
 }
@@ -434,12 +434,12 @@ button {
 }
 
 .allele-vault footer b {
-  font-size: 0.72rem;
+  font-size: var(--text-base);
 }
 .allele-vault footer small {
   overflow: hidden;
   color: #a1978a;
-  font-size: 0.48rem;
+  font-size: var(--text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -471,20 +471,20 @@ button {
 }
 .comparison-header small {
   color: #7d7468;
-  font-size: 0.43rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.14em;
 }
 .comparison-header b {
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.09em;
 }
 .comparison-header output {
   color: #a1978a;
-  font-size: 0.5rem;
+  font-size: var(--text-xs);
 }
 .comparison-header output b {
   color: var(--vault-gold);
-  font-size: 0.72rem;
+  font-size: var(--text-base);
 }
 
 .split-screen {
@@ -532,7 +532,7 @@ button {
 
 .genome-pane header span {
   color: #8e8478;
-  font-size: 0.46rem;
+  font-size: var(--text-xs);
   font-weight: 900;
   letter-spacing: 0.14em;
 }
@@ -548,7 +548,7 @@ button {
 }
 .genome-pane header small {
   color: #a1978a;
-  font-size: 0.52rem;
+  font-size: var(--text-xs);
 }
 
 .pane-visuals {
@@ -637,14 +637,14 @@ button {
 
 .phenotype-preview figcaption small {
   color: #7d7468;
-  font-size: 0.4rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.1em;
 }
 
 .phenotype-preview figcaption b {
   overflow: hidden;
   color: #ded4c3;
-  font-size: 0.56rem;
+  font-size: var(--text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -706,7 +706,7 @@ button {
   position: absolute;
   bottom: 0.25rem;
   color: #8e8478;
-  font-size: 0.42rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
 }
 
@@ -827,12 +827,12 @@ button {
 .chromosome-locus > b {
   color: #c8bda9;
   font-family: var(--font-display);
-  font-size: 0.73rem;
+  font-size: var(--text-base);
 }
 
 .chromosome-locus > small {
   color: #8e8478;
-  font-size: 0.44rem;
+  font-size: var(--text-xs);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -885,7 +885,7 @@ button {
   bottom: -0.05rem;
   left: 50%;
   color: #7d7468;
-  font-size: 0.4rem;
+  font-size: var(--text-xs);
   font-weight: 900;
   letter-spacing: 0.1em;
   transform: translateX(-50%);
@@ -1020,12 +1020,12 @@ button {
 }
 .pair-builder header small {
   color: #8e8478;
-  font-size: 0.44rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.13em;
 }
 .pair-builder header span {
   color: var(--vault-gold);
-  font-size: 0.48rem;
+  font-size: var(--text-xs);
   font-weight: 850;
   letter-spacing: 0.08em;
 }
@@ -1074,7 +1074,7 @@ button {
   position: absolute;
   bottom: 0.2rem;
   color: #7d7468;
-  font-size: 0.38rem;
+  font-size: var(--text-xs);
 }
 .allele-socket.charged {
   animation: socket-charge 0.55s ease-out;
@@ -1142,14 +1142,14 @@ button {
 }
 .express-trigger b {
   margin-top: 0.2rem;
-  font-size: 0.52rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.09em;
 }
 .express-trigger small {
   margin-top: -1rem;
   color: var(--vault-flame);
   font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-size: var(--text-base);
 }
 
 .phenotype-result {
@@ -1179,7 +1179,7 @@ button {
 }
 .phenotype-result small {
   color: #7d7468;
-  font-size: 0.43rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1195,7 +1195,7 @@ button {
 .interaction-hint {
   margin: -0.25rem 0 0;
   color: #7d7468;
-  font-size: 0.43rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.06em;
   text-align: center;
   text-transform: uppercase;
@@ -1461,7 +1461,7 @@ button {
   }
   .phenotype-preview figcaption b {
     max-width: 3.5rem;
-    font-size: 0.42rem;
+    font-size: var(--text-xs);
   }
   .dna-helix {
     max-height: 3rem;

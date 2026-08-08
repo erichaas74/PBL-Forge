@@ -29,7 +29,7 @@
 
 .eyebrow {
   color: #2a9d8f;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -137,7 +137,7 @@ h1 {
   background: #ffffff;
   color: #243447;
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   line-height: 1.45;
   padding: 10px 12px;
   resize: vertical;
@@ -162,7 +162,7 @@ h1 {
   display: grid;
   gap: 5px;
   color: #526173;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;

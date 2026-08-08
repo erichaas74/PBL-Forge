@@ -120,7 +120,7 @@
         <article class="phenotype-panel" id="panel-a">
           <header><span>Phenotype A</span><strong>{{ trait().dominantPhenotype }}</strong></header>
           <div class="phenotype-evidence">
-            <app-dragon-portrait [profile]="dominantReferenceDragon()" [compact]="true" />
+            <app-specimen-thumb [source]="specimenSource(dominantReferenceDragon())" [size]="120" [showLabel]="false" />
             <div class="fingerprint-clue">
               <span>Observed fingerprint</span>
               <svg viewBox="0 0 240 100" role="img" aria-label="Fingerprint observed with Phenotype A"><use href="#allele-pattern-a" /></svg>
@@ -159,7 +159,7 @@
         <article class="phenotype-panel" id="panel-b">
           <header><span>Phenotype B</span><strong>{{ trait().recessivePhenotype }}</strong></header>
           <div class="phenotype-evidence">
-            <app-dragon-portrait [profile]="recessiveReferenceDragon()" [compact]="true" />
+            <app-specimen-thumb [source]="specimenSource(recessiveReferenceDragon())" [size]="120" [showLabel]="false" />
             <div class="fingerprint-clue">
               <span>Observed fingerprint</span>
               <svg viewBox="0 0 240 100" role="img" aria-label="Fingerprint observed with Phenotype B"><use href="#allele-pattern-b" /></svg>
@@ -235,7 +235,7 @@
 
           <output class="expression-result" aria-live="polite" [class.revealed]="expressionTestResult()">
             @if (expressionTestDragon(); as dragon) {
-              <app-dragon-portrait [profile]="dragon" [compact]="true" />
+              <app-specimen-thumb [source]="specimenSource(dragon)" [size]="120" [showLabel]="false" />
               <div><span>Expressed result</span><strong>{{ expressionTestResult() === 'allele-pattern-a' ? 'Phenotype A' : 'Phenotype B' }}</strong><small>{{ expressionTestPhenotype() }}</small></div>
             } @else {
               <i aria-hidden="true">?</i>
@@ -256,11 +256,11 @@
       </header>
       <div class="confirmed-reference-grid">
         <article>
-          <app-dragon-portrait [profile]="dominantReferenceDragon()" [compact]="true" />
+          <app-specimen-thumb [source]="specimenSource(dominantReferenceDragon())" [size]="120" [showLabel]="false" />
           <div><strong>{{ trait().dominantAllele }} allele</strong><span>{{ trait().dominantPhenotype }}</span><b>Dominant</b></div>
         </article>
         <article>
-          <app-dragon-portrait [profile]="recessiveReferenceDragon()" [compact]="true" />
+          <app-specimen-thumb [source]="specimenSource(recessiveReferenceDragon())" [size]="120" [showLabel]="false" />
           <div><strong>{{ trait().recessiveAllele }} allele</strong><span>{{ trait().recessivePhenotype }}</span><b>Recessive</b></div>
         </article>
       </div>
@@ -356,7 +356,7 @@
     <section class="reveal-panel" aria-labelledby="result-title">
       <div class="reveal-dragon">
         <span class="result-seal">Prediction match</span>
-        <app-dragon-portrait [profile]="observedDragon()" />
+        <app-specimen-thumb [source]="specimenSource(observedDragon())" [size]="260" />
       </div>
       <div class="reveal-copy">
         <span class="step-kicker">04 · Investigation result</span>

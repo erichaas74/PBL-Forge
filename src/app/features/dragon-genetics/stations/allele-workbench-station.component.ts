@@ -1,6 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { DragonPortraitComponent } from '../dragon-portrait.component';
+import { SpecimenThumbComponent } from '../../../shared/assembly/preview';
+import {
+  dragonParentSource,
+  provideDragonSpecimenProfile,
+} from '../simulation/domain/dragon-specimen.profile';
 import {
   alleleWorkbenchTask,
   alleleWorkbenchTasks,
@@ -69,10 +73,11 @@ const STEP_LABELS: readonly { id: InvestigationStep; label: string }[] = [
 
 @Component({
   selector: 'app-allele-workbench-station',
-  imports: [DatePipe, DragonPortraitComponent],
+  imports: [DatePipe, SpecimenThumbComponent],
   templateUrl: './allele-workbench-station.component.html',
   styleUrl: './allele-workbench-station.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [provideDragonSpecimenProfile()],
 })
 export class AlleleWorkbenchStationComponent {
   readonly mode = input<AlleleWorkbenchMode>('learn');
@@ -115,6 +120,8 @@ export class AlleleWorkbenchStationComponent {
   readonly teamName = this.teamNameState.asReadonly();
 
   readonly activeTask = computed(() => this.tasks()[this.activeIndex()] ?? this.tasks()[0]);
+  /** Memoised upstream, so calling this from a binding is safe. */
+  readonly specimenSource = dragonParentSource;
   readonly trait = computed(() => getTrait(this.activeTask().traitId));
   readonly selectedSample = computed(() =>
     DRAGON_PARENTS.find(profile => profile.id === this.activeTask().sampleProfileId) ?? DRAGON_PARENTS[0]);

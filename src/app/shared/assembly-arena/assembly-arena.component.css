@@ -29,7 +29,7 @@
 
 .eyebrow {
   color: #b42318;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -60,7 +60,7 @@ h1 {
   gap: 5px;
   min-width: 0;
   color: #526173;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -163,7 +163,7 @@ input {
 .setup-strip em {
   margin-left: auto;
   color: #64748b;
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   font-style: normal;
   font-weight: 900;
   white-space: nowrap;
@@ -237,7 +237,7 @@ h2 {
 
 .score-title strong {
   color: #64748b;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -245,7 +245,7 @@ h2 {
 .mode-label {
   margin: -4px 0 0;
   color: #64748b;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -282,7 +282,7 @@ dl div,
 dt,
 .control-grid span:nth-child(odd) {
   color: #64748b;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -320,7 +320,7 @@ dd {
   border-radius: 8px;
   cursor: pointer;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   font-weight: 900;
 }
 
@@ -365,7 +365,7 @@ dd {
   color: #9a3412;
   cursor: pointer;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   font-weight: 900;
 }
 
@@ -392,7 +392,7 @@ dd {
 .attack-move-detail span,
 .attack-move-detail small {
   color: #64748b;
-  font-size: 0.76rem;
+  font-size: var(--text-base);
   font-weight: 800;
   line-height: 1.35;
 }
@@ -401,7 +401,7 @@ dd {
   display: grid;
   gap: 5px;
   color: #64748b;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -436,7 +436,7 @@ dd {
   border-radius: 8px;
   background: #101827;
   color: #dbeafe;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   line-height: 1.45;
   padding: 10px;
   white-space: pre-wrap;

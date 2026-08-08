@@ -25,7 +25,7 @@
         [attr.aria-pressed]="selectedSampleId() === profile.id"
         (click)="selectSample(profile.id)"
       >
-        <app-dragon-portrait [profile]="profile" [compact]="true" />
+        <app-specimen-thumb [source]="specimenSource(profile)" [size]="120" [showLabel]="false" />
         <span
           ><strong>{{ profile.name }}</strong
           ><small>Sample {{ profile.id.toUpperCase() }}</small></span
@@ -36,7 +36,7 @@
 
   <section class="expedition-context" aria-label="Selected dragon genome journey">
     <div class="selected-dragon">
-      <div class="portrait-focus"><app-dragon-portrait [profile]="selectedSample()" /></div>
+      <div class="portrait-focus"><app-specimen-thumb [source]="specimenSource(selectedSample())" [size]="260" /></div>
       <div>
         <span class="eyebrow">Trait Genome File</span>
         <h4>{{ investigationQuestion() }}</h4>

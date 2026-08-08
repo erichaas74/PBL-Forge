@@ -20,7 +20,7 @@ nav {
   width: min(1540px, 100%);
   margin: 0 auto .7rem;
   color: #9fb9c2;
-  font-size: .65rem;
+  font-size: var(--text-sm);
   font-weight: 800;
   letter-spacing: .05em;
   text-transform: uppercase;

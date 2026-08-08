@@ -138,7 +138,7 @@
 }
 
 .specimen-view__trait-detail {
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   line-height: 1.4;
   color: var(--specimen-muted-ink, var(--muted));
 }

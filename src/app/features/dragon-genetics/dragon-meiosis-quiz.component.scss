@@ -23,14 +23,14 @@
 .prediction-question p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--text-base);
   line-height: 1.5;
 }
 .quiz-head label {
   display: grid;
   gap: 0.3rem;
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: var(--text-sm);
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -41,11 +41,11 @@
   border-radius: 0.5rem;
   background: white;
   color: #394843;
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
 }
 .eyebrow {
   color: var(--dragon-green, var(--moss));
-  font-size: 0.61rem;
+  font-size: var(--text-sm);
   font-weight: 850;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -61,7 +61,7 @@
 .gene-selector legend {
   padding-inline: 0.35rem;
   color: var(--muted);
-  font-size: 0.6rem;
+  font-size: var(--text-sm);
   font-weight: 850;
   text-transform: uppercase;
 }
@@ -73,18 +73,18 @@
   border-radius: 0.45rem;
   background: #f2eee6;
   color: #53605c;
-  font-size: 0.63rem;
+  font-size: var(--text-sm);
   font-weight: 750;
 }
 .gene-selector label > span {
   color: #57416f;
   font-family: ui-monospace, monospace;
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   font-weight: 900;
 }
 .gene-selector small {
   color: var(--moss);
-  font-size: 0.5rem;
+  font-size: var(--text-xs);
   text-transform: uppercase;
 }
 .parent-platforms {
@@ -114,14 +114,14 @@
 }
 .parent-platform > header span {
   color: var(--moss);
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
   font-weight: 900;
   text-transform: uppercase;
 }
 .parent-platform > p {
   margin: 0;
   color: #61706b;
-  font-size: 0.62rem;
+  font-size: var(--text-sm);
 }
 .gene-rack {
   display: grid;
@@ -145,7 +145,7 @@
 .chromosome-model > span {
   min-height: 2em;
   color: #665c72;
-  font-size: 0.5rem;
+  font-size: var(--text-xs);
   font-weight: 800;
 }
 .chromosome-model > i {
@@ -179,12 +179,12 @@
   color: #563f70;
   font-family: ui-monospace, monospace;
   font-style: normal;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
 }
 .chromosome-model > strong {
   color: #503d72;
   font-family: ui-monospace, monospace;
-  font-size: 0.7rem;
+  font-size: var(--text-base);
 }
 .prediction-question {
   display: grid;
@@ -222,7 +222,7 @@
 }
 .egg-options button > span {
   font-family: ui-monospace, monospace;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 900;
 }
 .egg-options button.selected {
@@ -259,7 +259,7 @@
 .fertilized-eggs > span {
   grid-column: 1 / -1;
   color: #53645e;
-  font-size: 0.57rem;
+  font-size: var(--text-xs);
   font-weight: 900;
   text-align: center;
   text-transform: uppercase;
@@ -288,7 +288,7 @@
   background: #57416f;
   color: white;
   font-family: ui-monospace, monospace;
-  font-size: 0.65rem;
+  font-size: var(--text-sm);
 }
 .fertilized-eggs article {
   display: grid;
@@ -305,7 +305,7 @@
 .fertilized-eggs small {
   color: #53605c;
   font-family: ui-monospace, monospace;
-  font-size: 0.52rem;
+  font-size: var(--text-xs);
   font-weight: 850;
   text-align: center;
 }
@@ -348,7 +348,7 @@
   border-left: 4px solid #c77859;
   background: #fff4eb;
   color: #6f574d;
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 .quiz-feedback.good {
@@ -370,7 +370,7 @@
   flex: 1 1 22rem;
   margin: 0;
   color: var(--muted);
-  font-size: 0.61rem;
+  font-size: var(--text-sm);
   line-height: 1.45;
 }
 .quiz-actions button {
@@ -379,7 +379,7 @@
   border-radius: 0.6rem;
   background: white;
   color: #17253a;
-  font-size: 0.7rem;
+  font-size: var(--text-base);
   font-weight: 850;
   cursor: pointer;
 }

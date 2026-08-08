@@ -1,3 +1,5 @@
+import { BERK, BERK_TRAIT_BANDS } from '../../../design/berk-palette';
+
 /**
  * Chromosome geometry and palette taken from `docs/allelle-diagram.html`.
  *
@@ -41,30 +43,42 @@ export interface ChromosomeDiagramTheme {
 }
 
 export const CHROMOSOME_DIAGRAM: ChromosomeDiagramTheme = {
-  id: 'allele-diagram-chromosome',
-  version: '1.0.0',
+  id: 'berk-chromosome',
+  version: '2.0.0',
   body: { width: 18, height: 200, radius: 9, top: 12 },
   columns: { left: 37, right: 77 },
   labels: { leftText: 26, leftLeader: 28, rightLeader: 96, rightText: 106 },
   viewportWidth: 132,
-  fill: '#e0ffff',
-  stroke: '#1d4ed8',
+  /*
+   * Bone over a slate console, not the neon cyan this started as. The body and
+   * its decorative banding are *substrate* — they exist so the gene bands have
+   * something to sit on — so they are deliberately the lowest-contrast marks
+   * here. Anything that competes with the coloured loci is a bug.
+   */
+  fill: '#e6ded0',
+  stroke: BERK.slate,
   strokeWidth: 1.5,
   banding: [
-    { y: 10, height: 10, fill: '#a5f3fc' },
-    { y: 37, height: 20, fill: '#67e8f9' },
-    { y: 77, height: 15, fill: '#a5f3fc' },
-    { y: 108, height: 15, fill: '#a5f3fc' },
-    { y: 142, height: 20, fill: '#67e8f9' },
-    { y: 182, height: 12, fill: '#a5f3fc' },
+    { y: 10, height: 10, fill: '#d3c8b6' },
+    { y: 37, height: 20, fill: '#c2b6a1' },
+    { y: 77, height: 15, fill: '#d3c8b6' },
+    { y: 108, height: 15, fill: '#d3c8b6' },
+    { y: 142, height: 20, fill: '#c2b6a1' },
+    { y: 182, height: 12, fill: '#d3c8b6' },
   ],
+  /*
+   * The four trait loci. These are the only saturated marks on the diagram and
+   * they are load-bearing: a student learns "the red band is the wing locus"
+   * at the microscope and has to recognise it again at the scanner three
+   * stations later. See BERK_TRAIT_BANDS for why these four hues.
+   */
   geneBands: [
-    { id: 'band-1', y: 25, height: 6, fill: '#dc2626' },
-    { id: 'band-2', y: 65, height: 6, fill: '#16a34a' },
-    { id: 'band-3', y: 130, height: 6, fill: '#1e3a8a' },
-    { id: 'band-4', y: 170, height: 6, fill: '#9333ea' },
+    { id: 'band-1', y: 25, height: 6, fill: BERK_TRAIT_BANDS[0] },
+    { id: 'band-2', y: 65, height: 6, fill: BERK_TRAIT_BANDS[1] },
+    { id: 'band-3', y: 130, height: 6, fill: BERK_TRAIT_BANDS[2] },
+    { id: 'band-4', y: 170, height: 6, fill: BERK_TRAIT_BANDS[3] },
   ],
-  shield: { fill: '#1b2b3f', stroke: '#e6b849', hatch: '#3d5876' },
+  shield: { fill: '#22303a', stroke: BERK.gold, hatch: '#44555f' },
 };
 
 /** Centre line of a gene band in diagram coordinates, including the top margin. */

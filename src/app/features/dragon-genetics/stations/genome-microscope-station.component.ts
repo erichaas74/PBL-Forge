@@ -27,7 +27,11 @@ import {
   DRAGON_TRAITS,
   phenotypeLabel,
 } from '../simulation/domain/dragon-inheritance';
-import { DragonPortraitComponent } from '../dragon-portrait.component';
+import { SpecimenThumbComponent } from '../../../shared/assembly/preview';
+import {
+  dragonParentSource,
+  provideDragonSpecimenProfile,
+} from '../simulation/domain/dragon-specimen.profile';
 import { genomeTraitFile } from '../simulation/data/dragon-genome-expedition.content';
 import {
   GENOME_MICROSCOPE_COPY,
@@ -65,10 +69,11 @@ interface PrimaryAction {
 
 @Component({
   selector: 'app-genome-microscope-station',
-  imports: [GenomeMicroscopeDisplayComponent, DragonPortraitComponent],
+  imports: [GenomeMicroscopeDisplayComponent, SpecimenThumbComponent],
   templateUrl: './genome-microscope-station.component.html',
   styleUrl: './genome-microscope-station.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [provideDragonSpecimenProfile()],
 })
 export class GenomeMicroscopeStationComponent {
   private readonly bridge = inject(DragonVisualBridge);
@@ -79,6 +84,8 @@ export class GenomeMicroscopeStationComponent {
   readonly setCompleted = output<GenomeMicroscopeSetResult>();
 
   readonly profiles = DRAGON_PARENTS;
+  /** Memoised upstream, so calling this from a binding is safe. */
+  readonly specimenSource = dragonParentSource;
   readonly copy = GENOME_MICROSCOPE_COPY;
   readonly misconceptionNotes = GENOME_MICROSCOPE_MISCONCEPTION_NOTES;
   readonly selectedSampleId = signal(DRAGON_PARENTS[0].id);

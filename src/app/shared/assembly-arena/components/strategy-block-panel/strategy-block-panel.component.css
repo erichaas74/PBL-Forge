@@ -33,7 +33,7 @@ label {
   gap: 5px;
   min-width: 0;
   color: #526173;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -76,7 +76,7 @@ button {
   color: #243447;
   cursor: pointer;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   font-weight: 850;
   padding: 0 10px;
   white-space: nowrap;
@@ -154,7 +154,7 @@ button:disabled {
 .block-actions button {
   min-height: 28px;
   border-radius: 7px;
-  font-size: 0.7rem;
+  font-size: var(--text-base);
   padding: 0 7px;
 }
 
@@ -182,7 +182,7 @@ button:disabled {
   border-radius: 999px;
   background: #ffffff;
   color: #1d4ed8;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 900;
   padding: 0 9px;
 }

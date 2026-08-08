@@ -9,7 +9,11 @@ import {
   signal,
 } from '@angular/core';
 import { HatcheryEggGlyphComponent } from '../../shared/dragon-visuals/displays/dragon-hatchery/hatchery-egg-glyph.component';
-import { DragonPortraitComponent } from './dragon-portrait.component';
+import { SpecimenThumbComponent } from '../../shared/assembly/preview';
+import {
+  dragonParentSource,
+  provideDragonSpecimenProfile,
+} from './simulation/domain/dragon-specimen.profile';
 import {
   DragonParentProfile,
   DragonTraitDefinition,
@@ -55,12 +59,15 @@ const EGG_PAIRINGS = [
 
 @Component({
   selector: 'app-dragon-meiosis-quiz',
-  imports: [DragonPortraitComponent, HatcheryEggGlyphComponent],
+  imports: [SpecimenThumbComponent, HatcheryEggGlyphComponent],
+  providers: [provideDragonSpecimenProfile()],
   templateUrl: './dragon-meiosis-quiz.component.html',
   styleUrl: './dragon-meiosis-quiz.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonMeiosisQuizComponent implements OnDestroy {
+  /** Memoised upstream, so calling this from a binding is safe. */
+  readonly specimenSource = dragonParentSource;
   readonly parents = input.required<readonly DragonParentProfile[]>();
   readonly selectedParents = input.required<readonly [DragonParentProfile, DragonParentProfile]>();
   readonly traits = input.required<readonly DragonTraitDefinition[]>();

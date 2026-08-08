@@ -8,6 +8,7 @@ import {
 } from '../../domain/dragon-visual.models';
 import { DragonVisualBridge } from '../../state/dragon-visual.bridge';
 import { TraitInspectorDisplayComponent } from './trait-inspector-display.component';
+import { TRAIT_INSPECTOR_THEME } from './trait-inspector.theme';
 
 const COPY = {
   'observation.scar.label': 'Scar across the wing membrane',
@@ -186,7 +187,9 @@ describe('TraitInspectorDisplayComponent', () => {
     render(scene('observe'));
     const console = host().querySelector<HTMLElement>('.console');
 
-    expect(console?.style.getPropertyValue('--tia-brass')).toBe('#e6b849');
+    // Against the theme, not a literal — see the note in the scanner spec.
+    expect(console?.style.getPropertyValue('--tia-brass'))
+      .toBe(TRAIT_INSPECTOR_THEME.palette.brass);
     expect(console?.style.getPropertyValue('--tia-trace-ms')).toBe('1500ms');
   });
 

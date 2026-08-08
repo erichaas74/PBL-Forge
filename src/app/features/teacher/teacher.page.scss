@@ -30,8 +30,8 @@
 }
 
 .dragon-dashboard strong { font-size: .9rem; }
-.dragon-dashboard p { margin: .25rem 0 0; color: var(--muted); font-size: .72rem; }
-.dragon-dashboard a { padding: .65rem .8rem; border-radius: .55rem; background: var(--ink); color: white; font-size: .7rem; font-weight: 800; text-decoration: none; }
+.dragon-dashboard p { margin: .25rem 0 0; color: var(--muted); font-size: var(--text-base); }
+.dragon-dashboard a { padding: .65rem .8rem; border-radius: .55rem; background: var(--ink); color: white; font-size: var(--text-base); font-weight: 800; text-decoration: none; }
 
 .studio-header {
   display: flex;
@@ -52,7 +52,7 @@ h2 {
 .launch-panel > p {
   margin-bottom: 0.8rem;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--text-base);
   font-weight: 850;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -102,7 +102,7 @@ h1 em {
 .studio-header small {
   margin-top: 0.2rem;
   color: var(--muted);
-  font-size: 0.67rem;
+  font-size: var(--text-sm);
 }
 
 .studio-grid {
@@ -179,7 +179,7 @@ h2 {
 .project-list small {
   margin-top: 0.25rem;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
 }
 
 .published {
@@ -187,13 +187,13 @@ h2 {
   border-radius: 999px;
   background: color-mix(in srgb, var(--fury) 18%, white);
   color: #176a59;
-  font-size: 0.65rem;
+  font-size: var(--text-sm);
   font-weight: 800;
 }
 
 .project-list a {
   color: var(--ink);
-  font-size: 0.75rem;
+  font-size: var(--text-base);
   font-weight: 800;
   text-decoration: none;
 }
@@ -230,7 +230,7 @@ h2 {
   border: 1px solid rgb(255 255 255 / 35%);
   border-radius: 50%;
   color: rgb(255 255 255 / 65%);
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
   font-weight: 800;
 }
 
@@ -246,13 +246,13 @@ h2 {
 }
 
 .launch-panel strong {
-  font-size: 0.78rem;
+  font-size: var(--text-base);
 }
 
 .launch-panel small {
   margin-top: 0.2rem;
   color: rgb(255 255 255 / 56%);
-  font-size: 0.66rem;
+  font-size: var(--text-sm);
 }
 
 .guardrail {
@@ -284,7 +284,7 @@ h2 {
 .guardrail p {
   margin: 0.25rem 0 0;
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: var(--text-base);
 }
 
 @media (max-width: 760px) {

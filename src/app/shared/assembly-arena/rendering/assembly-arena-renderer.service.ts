@@ -41,7 +41,10 @@ import {
   BattleTeam,
   FireConeSnapshot,
 } from '../models/arena.models';
+import { getAbilityDemo } from '../../assembly/preview/specimen-ability-pose';
 import { getBodyKey } from '../utils/battle-assembly';
+import { ArenaHudLayer, HudCombatant } from './arena-hud-layer';
+import { ArenaImpactEffects } from './arena-impact-effects';
 import { buildDragonArenaPose } from './dragon-arena-pose';
 
 const TEAM_TINTS: Record<BattleTeam, { emissive: number; intensity: number }> = {
@@ -112,6 +115,17 @@ interface Brazier {
 
 interface CoreRef {
   bodyKey: string;
+  /** Shown on the in-world plate. */
+  name: string;
+  team: BattleTeam;
+  /**
+   * Every body this combatant owns.
+   *
+   * Held explicitly rather than recovered by prefix-matching `combatantId:` off
+   * the status keys — combatant ids are free-form, so one that happens to
+   * prefix another ("red" and "red-2") would silently pool their health.
+   */
+  bodyKeys: string[];
   /**
    * Authored standing height of the torso. The blob shadow measures against
    * this rather than against the floor, because a dragon on its feet is
@@ -152,6 +166,12 @@ export class AssemblyArenaRendererService {
   private contactShadowTexture: THREE.CanvasTexture | null = null;
   /** Core reference per combatant, for camera framing and contact shadows. */
   private readonly coreRefs = new Map<string, CoreRef>();
+  private impacts: ArenaImpactEffects | null = null;
+  private hud: ArenaHudLayer | null = null;
+  private lastRenderMs = 0;
+  /** Set while the pointer is down on the canvas, cleared when the glide stops. */
+  private viewSettlingUntilMs = 0;
+  private viewDragging = false;
 
   mount(host: HTMLElement): void {
     this.dispose();
@@ -180,6 +200,17 @@ export class AssemblyArenaRendererService {
     this.controls = new OrbitControls(camera, renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.target.set(0, CAMERA_FRAMING.targetLift, 0);
+    // Damping keeps the view gliding after the pointer lifts, so the idle
+    // throttle has to know about the glide as well as the drag itself.
+    this.controls.addEventListener('start', this.onControlsStart);
+    this.controls.addEventListener('change', this.onControlsChange);
+    this.controls.addEventListener('end', this.onControlsEnd);
+
+    this.impacts = new ArenaImpactEffects(scene, this.quality, prefersReducedMotion());
+    // The host must establish a containing block, or the absolutely-positioned
+    // CSS2D layer escapes to the viewport.
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+    this.hud = new ArenaHudLayer(scene, host);
 
     this.resize();
 
@@ -206,6 +237,9 @@ export class AssemblyArenaRendererService {
       const corePart = combatant.assembly.parts.find(part => part.id === combatant.corePartId);
       this.coreRefs.set(combatant.id, {
         bodyKey: getBodyKey(combatant.id, combatant.corePartId),
+        name: combatant.name,
+        team: combatant.team,
+        bodyKeys: combatant.assembly.parts.map(part => getBodyKey(combatant.id, part.id)),
         standingHeight: corePart?.position.y ?? 0,
       });
       if (combatant.controlMode === 'dragon-attack') {
@@ -265,6 +299,13 @@ export class AssemblyArenaRendererService {
     for (const [combatantId, rig] of this.dragonRigs) {
       const core = snapshotsByBodyKey.get(getBodyKey(combatantId, rig.corePartId));
       if (!core) continue;
+
+      this.impacts?.setTelegraph(
+        combatantId,
+        core.position,
+        telegraphIntensity(attacksByCombatant.get(combatantId)),
+      );
+
       for (const snapshot of buildDragonArenaPose(
         combatantId,
         rig.blueprint,
@@ -282,30 +323,75 @@ export class AssemblyArenaRendererService {
     }
 
     const cores: THREE.Vector3[] = [];
+    const hudCombatants: HudCombatant[] = [];
     for (const [combatantId, ref] of this.coreRefs) {
       const core = snapshotsByBodyKey.get(ref.bodyKey);
       if (!core) continue;
       this.updateContactShadow(combatantId, core.position, ref.standingHeight);
       cores.push(new THREE.Vector3(core.position.x, core.position.y, core.position.z));
+
+      /*
+       * The plate reports *whole-combatant* health, not the torso's.
+       * A dragon whose wings have been torn off but whose core is untouched is
+       * not at full strength, and a bar that says otherwise is worse than no
+       * bar — it is the scoreboard's `totalHealth`, put where the student is
+       * already looking.
+       */
+      const totals = combatantHealth(ref.bodyKeys, statuses);
+      hudCombatants.push({
+        id: combatantId,
+        name: ref.name,
+        team: ref.team,
+        healthRatio: totals.max > 0 ? totals.current / totals.max : 0,
+        position: core.position,
+        standingHeight: ref.standingHeight,
+      });
     }
     this.updateCameraFraming(cores);
+    this.hud?.sync(hudCombatants);
 
     this.render();
   }
+
 
   render(): void {
     if (!this.scene || !this.camera || !this.renderer) {
       return;
     }
 
+    const now = performance.now();
+    const delta = this.lastRenderMs === 0 ? 0 : (now - this.lastRenderMs) / 1000;
+    this.lastRenderMs = now;
+
     this.updateBraziers();
     this.controls?.update();
+    this.impacts?.update(delta);
+    this.hud?.update(delta);
+
+    /*
+     * Shake is applied to the camera *after* the controls have settled and
+     * removed again immediately after the draw.
+     *
+     * OrbitControls derives its state from `camera.position`, so leaving the
+     * offset in place would feed the shake back in as a real orbit change: the
+     * view would drift a little further from where the student put it on every
+     * hit and never return. Displacing only for the duration of the draw keeps
+     * the jolt purely visual.
+     */
+    const shake = this.impacts?.shakeOffset;
+    const shaking = shake !== undefined && shake.lengthSq() > 1e-8;
+    if (shaking) this.camera.position.add(shake);
 
     if (this.postPipeline) {
       this.postPipeline.render();
     } else {
       this.renderer.render(this.scene, this.camera);
     }
+
+    // Drawn from the un-shaken camera: DOM labels jittering in sympathy with a
+    // camera jolt reads as a rendering fault, not as an impact.
+    if (shaking) this.camera.position.sub(shake);
+    this.hud?.render(this.camera);
   }
 
   dispose(): void {
@@ -323,6 +409,11 @@ export class AssemblyArenaRendererService {
     this.flashUntilByBodyKey.clear();
     this.syncFireCones([]);
     this.disposeContactShadows();
+    this.impacts?.dispose();
+    this.impacts = null;
+    this.hud?.dispose();
+    this.hud = null;
+    this.lastRenderMs = 0;
     this.removeEnvironment();
     this.postPipeline?.dispose();
     this.postPipeline = null;
@@ -330,8 +421,13 @@ export class AssemblyArenaRendererService {
     this.disposeEnvironmentMap = null;
     this.skyTexture?.dispose();
     this.skyTexture = null;
+    this.controls?.removeEventListener('start', this.onControlsStart);
+    this.controls?.removeEventListener('change', this.onControlsChange);
+    this.controls?.removeEventListener('end', this.onControlsEnd);
     this.controls?.dispose();
     this.controls = null;
+    this.viewDragging = false;
+    this.viewSettlingUntilMs = 0;
 
     if (this.renderer) {
       this.renderer.domElement.remove();
@@ -592,7 +688,15 @@ export class AssemblyArenaRendererService {
     this.camera.position.copy(this.controls.target).add(offset);
   }
 
-  /** Pulse a part's emissive briefly whenever its health drops. */
+  /**
+   * Pulse a part's emissive briefly whenever its health drops, and report the
+   * blow to the impact layer.
+   *
+   * A health drop is the only honest impact signal available here: the physics
+   * has already resolved contacts, ability windows, and rate limits by the time
+   * a frame arrives, so anything derived from raw collisions would fire on
+   * grazes the damage model deliberately ignored.
+   */
   private updateHitFlash(
     object: THREE.Object3D,
     bodyKey: string,
@@ -606,10 +710,55 @@ export class AssemblyArenaRendererService {
     const previousHealth = this.lastHealthByBodyKey.get(bodyKey);
     if (previousHealth !== undefined && status.health < previousHealth - 0.01 && !status.destroyed) {
       this.flashUntilByBodyKey.set(bodyKey, now + 240);
+      const dealt = previousHealth - status.health;
+      // Severity relative to the part's own maximum, so a chipped claw and a
+      // cracked skull are scaled by what each can actually take.
+      this.impacts?.report({
+        position: object.position,
+        severity: status.maxHealth > 0 ? dealt / status.maxHealth : 0,
+      });
+      this.hud?.reportDamage(object.position, dealt);
     }
     this.lastHealthByBodyKey.set(bodyKey, status.health);
 
     applyAssemblyHitFlash(object, now < (this.flashUntilByBodyKey.get(bodyKey) ?? 0));
+  }
+
+  /**
+   * Whether the student is moving the camera, or it is still gliding to a stop.
+   *
+   * The paused-frame throttle asks this so a dragged view stays at full rate
+   * while a merely idle one drops to a trickle.
+   */
+  isUserAdjustingView(): boolean {
+    return this.viewDragging || performance.now() < this.viewSettlingUntilMs;
+  }
+
+  private readonly onControlsStart = (): void => {
+    this.viewDragging = true;
+  };
+
+  private readonly onControlsEnd = (): void => {
+    this.viewDragging = false;
+  };
+
+  /**
+   * Damping emits `change` for as long as the view keeps gliding, so each one
+   * extends a short grace window. When they stop arriving the window lapses on
+   * its own and the throttle takes over again.
+   */
+  private readonly onControlsChange = (): void => {
+    this.viewSettlingUntilMs = performance.now() + 220;
+  };
+
+  /**
+   * Seconds of hit-stop the next physics step should absorb.
+   *
+   * Owned by the impact layer but consumed by the viewport, which is the only
+   * place that drives the integrator. Consumed on read.
+   */
+  takeHitStopSeconds(): number {
+    return this.impacts?.takeHitStopSeconds() ?? 0;
   }
 
   /**
@@ -1120,8 +1269,56 @@ export class AssemblyArenaRendererService {
     // so only the top-left quadrant was visible.
     this.renderer.setSize(width, height);
     this.postPipeline?.setSize(width, height);
+    this.hud?.setSize(width, height);
     this.render();
   }
+}
+
+/**
+ * How bright the wind-up ring is for an attack in progress.
+ *
+ * Rises from nothing at the start of the move to full at the instant the blow
+ * lands, then goes out. `strikeAt` is authored per ability alongside the pose
+ * curves, so the ring peaks exactly when the jaws close — a fixed fraction
+ * would drift out of sync the moment a move's timing was retuned.
+ */
+function telegraphIntensity(attack: BattleAttackPoseSnapshot | undefined): number {
+  if (!attack) return 0;
+
+  const strikeAt = getAbilityDemo(attack.ability)?.strikeAt ?? 0.5;
+  if (strikeAt <= 0 || attack.phase > strikeAt) return 0;
+
+  return Math.max(0, Math.min(1, attack.phase / strikeAt));
+}
+
+/** Summed health across every part a combatant owns. */
+function combatantHealth(
+  bodyKeys: readonly string[],
+  statuses: Record<string, BattlePartStatus>,
+): { current: number; max: number } {
+  let current = 0;
+  let max = 0;
+
+  for (const bodyKey of bodyKeys) {
+    const status = statuses[bodyKey];
+    if (!status) continue;
+    current += status.destroyed ? 0 : status.health;
+    max += status.maxHealth;
+  }
+
+  return { current, max };
+}
+
+/**
+ * Whether the viewer has asked for reduced motion.
+ *
+ * The 2D stations have honoured this for a while; the arena did not, which
+ * meant the one screen in the app with continuous camera movement was also the
+ * one screen ignoring the request. Read once at mount — a duel is short enough
+ * that watching for changes mid-match is not worth the listener.
+ */
+function prefersReducedMotion(): boolean {
+  return globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
 /**

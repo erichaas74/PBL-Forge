@@ -82,7 +82,7 @@
 .dna-strand > span,
 .mrna-strand > span {
   color: #203c78;
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
   font-weight: 900;
 }
 .template > span {
@@ -115,11 +115,11 @@
 }
 .rna-polymerase strong {
   transform: translateY(-0.45rem);
-  font-size: 0.72rem;
+  font-size: var(--text-base);
 }
 .rna-polymerase span {
   transform: translateY(0.55rem);
-  font-size: 0.52rem;
+  font-size: var(--text-xs);
   font-weight: 800;
 }
 .uracil-note {
@@ -148,7 +148,7 @@
 .uracil-note span,
 .uracil-note strong {
   display: block;
-  font-size: 0.56rem;
+  font-size: var(--text-xs);
 }
 .animation-controls {
   display: flex;
@@ -162,7 +162,7 @@
   border-radius: 0.55rem;
   background: #7b57d1;
   color: white;
-  font-size: 0.66rem;
+  font-size: var(--text-sm);
   font-weight: 850;
   cursor: pointer;
 }
@@ -173,7 +173,7 @@
   gap: 0.6rem;
   align-items: center;
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: var(--text-sm);
   font-weight: 800;
 }
 .animation-controls input {
@@ -182,7 +182,7 @@
 }
 .animation-controls > span {
   color: var(--muted);
-  font-size: 0.6rem;
+  font-size: var(--text-sm);
   font-weight: 750;
 }
 .process-caption {
@@ -191,7 +191,7 @@
   border-left: 4px solid #b85ac7;
   background: #fbf0fc;
   color: #67476c;
-  font-size: 0.66rem;
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 [data-base='A'] {
@@ -218,7 +218,7 @@
     width: 1.35rem;
     min-width: 0;
     height: 2.7rem;
-    font-size: 0.72rem;
+    font-size: var(--text-base);
   }
   .rna-polymerase {
     width: 4rem;

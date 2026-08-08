@@ -21,12 +21,12 @@
   max-width: 47rem;
   margin: 0;
   color: var(--muted);
-  font-size: 0.74rem;
+  font-size: var(--text-base);
   line-height: 1.55;
 }
 .eyebrow {
   color: var(--dragon-green, var(--moss));
-  font-size: 0.61rem;
+  font-size: var(--text-sm);
   font-weight: 850;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -37,7 +37,7 @@
   border-radius: 99px;
   background: var(--surface-raised);
   color: var(--timber-dark);
-  font-size: 0.64rem;
+  font-size: var(--text-sm);
   font-weight: 800;
 }
 .sample-selector {
@@ -59,12 +59,12 @@
   display: block;
 }
 .sample-selector > .archive-intro strong {
-  font-size: 0.72rem;
+  font-size: var(--text-base);
 }
 .sample-selector > .archive-intro small {
   margin-top: 0.2rem;
   color: var(--muted);
-  font-size: 0.56rem;
+  font-size: var(--text-xs);
 }
 .sample-selector button {
   display: grid;
@@ -79,18 +79,18 @@
   text-align: left;
   cursor: pointer;
 }
-.sample-selector button app-dragon-portrait {
+.sample-selector button app-specimen-thumb {
   min-width: 0;
 }
 .sample-selector button > span {
   align-self: center;
 }
 .sample-selector button strong {
-  font-size: 0.66rem;
+  font-size: var(--text-sm);
 }
 .sample-selector button small {
   color: var(--muted);
-  font-size: 0.52rem;
+  font-size: var(--text-xs);
 }
 .sample-selector button.selected {
   border-color: var(--dragon-green, var(--moss));
@@ -132,7 +132,7 @@
 }
 .selected-dragon h4 {
   margin: 0.25rem 0 0.55rem;
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   line-height: 1.4;
 }
 .selected-dragon dl {
@@ -149,13 +149,13 @@
 }
 .selected-dragon dt {
   color: var(--muted);
-  font-size: 0.52rem;
+  font-size: var(--text-xs);
   font-weight: 850;
   text-transform: uppercase;
 }
 .selected-dragon dd {
   margin: 0;
-  font-size: 0.59rem;
+  font-size: var(--text-xs);
   line-height: 1.35;
 }
 .microscope-intro {
@@ -170,7 +170,7 @@
 .microscope-intro p {
   margin: 0;
   color: #596963;
-  font-size: 0.64rem;
+  font-size: var(--text-sm);
   line-height: 1.45;
 }
 .station-grid {
@@ -208,14 +208,14 @@
 }
 .evidence-dock dt {
   color: var(--muted);
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
   font-weight: 850;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .evidence-dock dd {
   margin: 0;
-  font-size: 0.67rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   text-transform: capitalize;
 }
@@ -224,7 +224,7 @@
   justify-content: space-between;
   margin: 0 0 0.4rem;
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: var(--text-sm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -236,7 +236,7 @@
 .notebook > p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: var(--text-sm);
   line-height: 1.45;
 }
 .notebook ol {
@@ -265,7 +265,7 @@
   place-items: center;
   border-radius: 50%;
   background: #eee5d8;
-  font-size: 0.57rem;
+  font-size: var(--text-xs);
   font-weight: 850;
 }
 .notebook li strong,
@@ -273,13 +273,13 @@
   display: block;
 }
 .notebook li strong {
-  font-size: 0.63rem;
+  font-size: var(--text-sm);
   line-height: 1.35;
 }
 .notebook li small {
   margin-top: 0.12rem;
   color: var(--muted);
-  font-size: 0.56rem;
+  font-size: var(--text-xs);
   text-transform: capitalize;
 }
 .boundary {
@@ -288,7 +288,7 @@
   border-left: 4px solid var(--dragon-gold, var(--gold));
   background: var(--surface);
   color: var(--timber-dark);
-  font-size: 0.62rem;
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 .boundary strong {
@@ -312,7 +312,7 @@
 }
 .allele-vault h4 {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
 }
 .allele-vault > div {
   display: grid;
@@ -334,13 +334,13 @@
 }
 .allele-vault span {
   color: #6c746e;
-  font-size: 0.53rem;
+  font-size: var(--text-xs);
   line-height: 1.4;
 }
 .allele-vault p {
   margin: 0;
   color: #655f50;
-  font-size: 0.59rem;
+  font-size: var(--text-xs);
   line-height: 1.45;
 }
 .action-rail {
@@ -357,12 +357,12 @@
   flex: 1 1 18rem;
   margin: 0;
   color: var(--muted);
-  font-size: 0.71rem;
+  font-size: var(--text-base);
   line-height: 1.45;
 }
 .action-rail span {
   color: var(--muted);
-  font-size: 0.63rem;
+  font-size: var(--text-sm);
   font-weight: 800;
 }
 .action-rail button {
@@ -371,7 +371,7 @@
   border-radius: 0.6rem;
   background: var(--dragon-green, var(--moss));
   color: white;
-  font-size: 0.72rem;
+  font-size: var(--text-base);
   font-weight: 850;
   cursor: pointer;
 }

@@ -22,7 +22,7 @@ h3 {
 }
 
 h3 {
-  font-size: 0.74rem;
+  font-size: var(--text-base);
   color: #526173;
 }
 
@@ -101,7 +101,7 @@ input[type='color'] {
   color: #243447;
   cursor: pointer;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   font-weight: 800;
   padding: 0 10px;
 }
@@ -147,7 +147,7 @@ input[type='color'] {
 
 .joint-motion__header span {
   color: #64748b;
-  font-size: 0.76rem;
+  font-size: var(--text-base);
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -184,7 +184,7 @@ input[type='color'] {
 
 dt {
   color: #64748b;
-  font-size: 0.76rem;
+  font-size: var(--text-base);
   font-weight: 800;
   text-transform: uppercase;
 }

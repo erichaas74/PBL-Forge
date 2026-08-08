@@ -1,3 +1,4 @@
+import { BERK_INSTRUMENT } from '../../../design/berk-palette';
 import { CHROMOSOME_DIAGRAM, ChromosomeDiagramTheme } from '../shared/chromosome-diagram';
 
 /**
@@ -31,22 +32,22 @@ export interface GenotypeScannerTheme {
 }
 
 export const GENOTYPE_SCANNER_THEME: GenotypeScannerTheme = {
-  id: 'royal-hatchery-genotype-scanner',
-  version: '1.0.0',
+  id: 'berk-hatchery-genotype-scanner',
+  version: '2.0.0',
   palette: {
-    consoleTop: '#16273a',
-    consoleBottom: '#0e1b2b',
-    panel: '#1f3348',
-    panelEdge: '#3c5c79',
-    ink: '#eef7ff',
-    mutedInk: '#a4bcd0',
-    brass: '#e6b849',
-    glow: '#67e8f9',
-    dominant: '#5fd0b4',
-    recessive: '#b49cf2',
-    correct: '#58cba6',
-    incorrect: '#f08a72',
-    missed: '#efc668',
+    consoleTop: BERK_INSTRUMENT.consoleTop,
+    consoleBottom: BERK_INSTRUMENT.consoleBottom,
+    panel: BERK_INSTRUMENT.panel,
+    panelEdge: BERK_INSTRUMENT.panelEdge,
+    ink: BERK_INSTRUMENT.ink,
+    mutedInk: BERK_INSTRUMENT.mutedInk,
+    brass: BERK_INSTRUMENT.brass,
+    glow: BERK_INSTRUMENT.glow,
+    dominant: BERK_INSTRUMENT.dominant,
+    recessive: BERK_INSTRUMENT.recessive,
+    correct: BERK_INSTRUMENT.correct,
+    incorrect: BERK_INSTRUMENT.incorrect,
+    missed: BERK_INSTRUMENT.missed,
   },
   chromosome: CHROMOSOME_DIAGRAM,
   motion: { scanMs: 1200, revealMs: 900, pulseMs: 800 },

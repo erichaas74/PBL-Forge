@@ -35,7 +35,7 @@ const DUEL_TEST_RUN = 7;
   styles: `
     .duel-page { max-width: 72rem; margin: 0 auto; padding: 1.6rem 1.2rem 2.4rem; }
     header { margin-bottom: 1rem; }
-    .eyebrow { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+    .eyebrow { font-size: var(--text-base); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
     h1 { margin: 0.2rem 0 0.35rem; }
     .genome { margin: 0; font-size: 0.92rem; opacity: 0.85; }
     .result { margin: 0.5rem 0 0; font-weight: 700; }
