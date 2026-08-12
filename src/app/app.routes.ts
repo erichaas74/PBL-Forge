@@ -25,27 +25,15 @@ export const routes: Routes = [
       import('./features/dragon-genetics/dragon-genetics.page').then((m) => m.DragonGeneticsPage)
   },
   {
-    path: 'dragon-genetics/allele-workbench',
-    pathMatch: 'full',
-    redirectTo: 'dragon-genetics/allele-workbench-reference'
-  },
-  {
     path: 'dragon-genetics/allele-workbench-reference',
-    title: 'Allele Workbench · Royal Hatchery Genetics Laboratory',
-    loadComponent: () =>
-      import('./features/dragon-genetics/allele-workbench-reference.page')
-        .then((m) => m.AlleleWorkbenchReferencePage)
+    pathMatch: 'full',
+    redirectTo: 'dragon-genetics/allele-workbench'
   },
   {
     path: 'dragon-genetics/:simulationId',
     loadComponent: () =>
       import('./features/dragon-genetics/adaptive/dragon-simulation-experience.page')
         .then((m) => m.DragonSimulationExperiencePage)
-  },
-  {
-    path: 'parts-lab',
-    loadComponent: () =>
-      import('./features/parts-lab/parts-lab.page').then((m) => m.PartsLabPage)
   },
   {
     path: 'dragon-test-bench',
@@ -56,11 +44,6 @@ export const routes: Routes = [
     path: 'dragon-duel',
     loadComponent: () =>
       import('./features/dragon-genetics/dragon-duel.page').then((m) => m.DragonDuelPage)
-  },
-  {
-    path: 'dragon-garage',
-    loadComponent: () =>
-      import('./features/dragon-genetics/dragon-garage.page').then((m) => m.DragonGaragePage)
   },
   {
     path: 'teacher',

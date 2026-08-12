@@ -44,23 +44,23 @@ export function createDragonProceduralObject(part: AssemblyPart): THREE.Object3D
 
   switch (profileId) {
     case 'dragon-body':
-      return buildBody(dims, palette);
+      return buildBody(part, palette);
     // Heads work in the profile's box terms; a sphere head's dimensions are
     // radii, so they are converted before anything measures the skull.
     case 'dragon-head-horned':
-      return buildHornedHead(dragonHeadExtent(dims, part.shape), palette);
+      return buildHornedHead(part, dragonHeadExtent(dims, part.shape), palette);
     case 'dragon-head-snout':
-      return buildSnoutHead(dragonHeadExtent(dims, part.shape), palette);
+      return buildSnoutHead(part, dragonHeadExtent(dims, part.shape), palette);
     case 'dragon-head-armored':
-      return buildArmoredHead(dragonHeadExtent(dims, part.shape), palette);
+      return buildArmoredHead(part, dragonHeadExtent(dims, part.shape), palette);
     case 'dragon-upper-jaw':
-      return buildJaw(dims, palette, 'upper');
+      return buildJaw(part, palette, 'upper');
     case 'dragon-lower-jaw':
-      return buildJaw(dims, palette, 'lower');
+      return buildJaw(part, palette, 'lower');
     case 'dragon-leg':
       return buildLeg(dims, palette);
     case 'dragon-foot':
-      return buildFoot(dims, palette);
+      return buildFoot(part, palette);
     case 'dragon-claw':
     case 'dragon-wing-claw':
       return buildTalon(dims.x, dims.y, palette);
@@ -70,7 +70,7 @@ export function createDragonProceduralObject(part: AssemblyPart): THREE.Object3D
     case 'dragon-tail':
       return buildTailSegment(dims, palette);
     case 'dragon-tail-club':
-      return buildTailClub(dims, palette);
+      return buildTailClub(part, palette);
     case 'dragon-tail-stinger':
       return buildStinger(dims.x, palette);
     default:
@@ -210,10 +210,10 @@ function membraneMaterial(palette: DragonPalette): THREE.MeshStandardMaterial {
   });
 }
 
-function eyeMaterial(): THREE.MeshStandardMaterial {
+function eyeMaterial(color = '#ff9f2e'): THREE.MeshStandardMaterial {
   const material = new THREE.MeshStandardMaterial({
     color: '#3a1d05',
-    emissive: '#ff9f2e',
+    emissive: color,
     emissiveIntensity: 1.15,
     roughness: 0.25,
     metalness: 0,
@@ -289,8 +289,9 @@ function tubeUv<T extends THREE.BufferGeometry>(
 // Body: tapered lathe along X with dorsal ridge spikes.
 // ---------------------------------------------------------------------------
 
-function buildBody(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
+function buildBody(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
+  const dims = part.dimensions;
   const length = dims.x;
 
   const lathe = new THREE.LatheGeometry(
@@ -323,11 +324,20 @@ function buildBody(dims: { x: number; y: number; z: number }, palette: DragonPal
   belly.position.set(length * 0.04, -dims.y * 0.22, 0);
   group.add(belly);
 
-  const style = getActiveDragonStyle().body;
+  const defaults = getActiveDragonStyle().body;
+  const style: DragonBodyStyle = {
+    spikeCount: visualNumber(part, 'spikeCount', defaults.spikeCount),
+    spikeSpread: visualNumber(part, 'spikeSpread', defaults.spikeSpread),
+    spikeHeight: visualNumber(part, 'spikeHeight', defaults.spikeHeight),
+    spikeRadius: visualNumber(part, 'spikeRadius', defaults.spikeRadius),
+    spikeLean: visualNumber(part, 'spikeLean', defaults.spikeLean),
+  };
+  const spikeCount = visualNumber(part, 'backSpikeCount', style.spikeCount);
+  const spikeScale = visualNumber(part, 'backSpikeScale', 1);
   const spikeMaterial = hornMaterial(palette);
   const spikeRadius = length * style.spikeRadius;
-  const spikeHeight = length * style.spikeHeight;
-  for (const t of spreadPositions(style.spikeCount, style.spikeSpread, -0.01)) {
+  const spikeHeight = length * style.spikeHeight * spikeScale;
+  for (const t of spreadPositions(spikeCount, style.spikeSpread, -0.01)) {
     const spike = mesh(
       revolvedUv(new THREE.ConeGeometry(spikeRadius, spikeHeight, 6), spikeRadius, spikeHeight, HORN_TILE, palette),
       spikeMaterial,
@@ -462,9 +472,13 @@ function buildSkull(
   return { skull: mesh(geometry, scaleMaterial(palette, 0.5)), shape };
 }
 
-function buildHornedHead(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
+function buildHornedHead(
+  part: AssemblyPart,
+  dims: { x: number; y: number; z: number },
+  palette: DragonPalette,
+): THREE.Group {
   const group = new THREE.Group();
-  const style = getActiveDragonStyle().head;
+  const style = headStyleFor(part);
   const { skull, shape } = buildSkull(dims, palette, style);
   group.add(skull);
 
@@ -485,13 +499,19 @@ function buildHornedHead(dims: { x: number; y: number; z: number }, palette: Dra
     browSpike.rotation.set(side * 0.3, 0, 0.75);
     group.add(browSpike);
 
-    group.add(buildEye(dims, side, shape));
+    group.add(buildEye(part, dims, side, shape));
   }
+
+  addExpressiveHeadFeatures(group, part, dims, palette, shape);
 
   return group;
 }
 
-function buildSnoutHead(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
+function buildSnoutHead(
+  part: AssemblyPart,
+  dims: { x: number; y: number; z: number },
+  palette: DragonPalette,
+): THREE.Group {
   const group = new THREE.Group();
   const { skull, shape } = buildSkull(dims, palette, HEAD_SHAPE_BY_PROFILE['dragon-head-snout']);
   group.add(skull);
@@ -504,13 +524,19 @@ function buildSnoutHead(dims: { x: number; y: number; z: number }, palette: Drag
     nostril.position.set(at.x, at.y, at.z);
     group.add(nostril);
 
-    group.add(buildEye(dims, side, shape));
+    group.add(buildEye(part, dims, side, shape));
   }
+
+  addExpressiveHeadFeatures(group, part, dims, palette, shape);
 
   return group;
 }
 
-function buildArmoredHead(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
+function buildArmoredHead(
+  part: AssemblyPart,
+  dims: { x: number; y: number; z: number },
+  palette: DragonPalette,
+): THREE.Group {
   const group = new THREE.Group();
   const { skull, shape } = buildSkull(dims, palette, HEAD_SHAPE_BY_PROFILE['dragon-head-armored']);
   group.add(skull);
@@ -535,8 +561,10 @@ function buildArmoredHead(dims: { x: number; y: number; z: number }, palette: Dr
   }
 
   for (const side of [-1, 1] as const) {
-    group.add(buildEye(dims, side, shape));
+    group.add(buildEye(part, dims, side, shape));
   }
+
+  addExpressiveHeadFeatures(group, part, dims, palette, shape);
 
   return group;
 }
@@ -590,14 +618,189 @@ function buildHorn(
  * inside the bone or floating off the cheek.
  */
 function buildEye(
+  part: AssemblyPart,
   dims: { x: number; y: number; z: number },
   side: -1 | 1,
   shape: DragonHeadShape,
 ): THREE.Mesh {
-  const eye = mesh(new THREE.SphereGeometry(dims.y * 0.055, 12, 8), eyeMaterial());
+  const eye = mesh(
+    new THREE.SphereGeometry(dims.y * 0.055, 12, 8),
+    eyeMaterial(visualString(part, 'eyeColor', '#ff9f2e')),
+  );
+  eye.name = `dragon-eye-${side < 0 ? 'left' : 'right'}`;
   const socket = dragonHeadEyeSocket(dims, side, shape);
   eye.position.set(socket.x, socket.y, socket.z);
   return eye;
+}
+
+/** Adds genotype-specific anatomy to one head without changing the global Parts Lab style. */
+function addExpressiveHeadFeatures(
+  group: THREE.Group,
+  part: AssemblyPart,
+  dims: { x: number; y: number; z: number },
+  palette: DragonPalette,
+  shape: DragonHeadShape,
+): void {
+  const crestScale = visualNumber(part, 'crestScale', 0);
+  if (crestScale > 0) {
+    const material = hornMaterial(palette);
+    for (const [index, axial] of [-0.3, -0.08, 0.14].entries()) {
+      const crown = dragonHeadSurfacePoint(dims, axial, 0, shape);
+      const height = dims.y * [0.24, 0.34, 0.22][index] * crestScale;
+      const geometry = createTaperedBoxGeometry(height, dims.x * 0.18, dims.z * 0.055, 0.28, 0.52);
+      geometry.rotateZ(Math.PI / 2);
+      const fin = mesh(boxUv(geometry, HORN_TILE, palette), material);
+      fin.name = `dragon-genetic-crest-${index + 1}`;
+      fin.position.set(crown.x, crown.y + height * 0.06, 0);
+      fin.rotation.z = 0.14;
+      group.add(fin);
+    }
+  }
+
+  const earShape = visualString(part, 'earShape', '');
+  if (earShape === 'pointed' || earShape === 'rounded') {
+    const material = scaleMaterial(palette, 0.35);
+    for (const side of [-1, 1] as const) {
+      const mount = dragonHeadSurfacePoint(dims, -0.2, side * 0.72, shape);
+      const ear = earShape === 'pointed'
+        ? mesh(new THREE.ConeGeometry(dims.z * 0.1, dims.y * 0.34, 7), material)
+        : mesh(new THREE.SphereGeometry(dims.y * 0.13, 10, 7), material);
+      ear.name = `dragon-${earShape}-ear-${side < 0 ? 'left' : 'right'}`;
+      ear.position.set(mount.x - dims.x * 0.04, mount.y + dims.y * 0.08, mount.z);
+      if (earShape === 'pointed') {
+        ear.rotation.set(0, 0, side * -0.58);
+      } else {
+        ear.scale.set(0.65, 1.05, 0.45);
+      }
+      group.add(ear);
+    }
+  }
+
+  const sex = visualString(part, 'sex', '');
+  if (sex === 'male') {
+    const rearSection = dragonHeadSection(dims, -0.28, shape);
+    const skullFrillInnerRadius = Math.max(rearSection.halfHeight, rearSection.halfWidth) * 0.82;
+    const skullFrillOuterRadius = skullFrillInnerRadius + dims.y * 0.48;
+    const skullFrill = mesh(
+      new THREE.RingGeometry(
+        skullFrillInnerRadius,
+        skullFrillOuterRadius,
+        22,
+        1,
+        -Math.PI * 0.72,
+        Math.PI * 1.44,
+      ),
+      membraneMaterial(palette),
+    );
+    skullFrill.name = 'dragon-male-skull-frill';
+    skullFrill.position.set(-dims.x * 0.34, rearSection.centerY, 0);
+    skullFrill.rotation.y = Math.PI / 2;
+    skullFrill.scale.x = 0.82;
+    group.add(skullFrill);
+
+    const skullSpikeMaterial = hornMaterial(palette);
+    const skullSpikeCount = 11;
+    for (let index = 0; index < skullSpikeCount; index += 1) {
+      const fraction = index / (skullSpikeCount - 1);
+      const angle = -Math.PI * 0.7 + fraction * Math.PI * 1.4;
+      const direction = new THREE.Vector3(0, Math.cos(angle), Math.sin(angle)).normalize();
+      const spikeHeight = dims.y * (0.22 + 0.12 * Math.cos(angle * 0.72));
+      const spikeRadius = dims.z * 0.042;
+      const spike = mesh(
+        revolvedUv(
+          new THREE.ConeGeometry(spikeRadius, spikeHeight, 7),
+          spikeRadius,
+          spikeHeight,
+          HORN_TILE,
+          palette,
+        ),
+        skullSpikeMaterial,
+      );
+      spike.name = `dragon-male-skull-frill-spike-${index + 1}`;
+      spike.position.set(
+        -dims.x * 0.35,
+        rearSection.centerY + direction.y * skullFrillOuterRadius,
+        direction.z * skullFrillOuterRadius * 0.82,
+      );
+      spike.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+      group.add(spike);
+    }
+
+    const frillLength = dims.x * 0.58;
+    const frillDepth = dims.y * 0.52;
+    const dewlap = mesh(
+      createTaperedBoxGeometry(frillLength, frillDepth, dims.z * 0.045, 0.12, 0.78),
+      membraneMaterial(palette),
+    );
+    dewlap.name = 'dragon-male-spiked-frill';
+    dewlap.position.set(-dims.x * 0.12, -dims.y * 0.5, 0);
+    dewlap.rotation.z = -0.34;
+    group.add(dewlap);
+
+    const spikeMaterial = hornMaterial(palette);
+    const spikeCount = 7;
+    for (let index = 0; index < spikeCount; index += 1) {
+      const fraction = index / (spikeCount - 1);
+      const spikeHeight = dims.y * (0.16 + Math.sin(fraction * Math.PI) * 0.1);
+      const spikeRadius = dims.z * 0.035;
+      const spike = mesh(
+        revolvedUv(
+          new THREE.ConeGeometry(spikeRadius, spikeHeight, 6),
+          spikeRadius,
+          spikeHeight,
+          HORN_TILE,
+          palette,
+        ),
+        spikeMaterial,
+      );
+      spike.name = `dragon-male-frill-spike-${index + 1}`;
+      spike.position.set(
+        -dims.x * 0.36 + fraction * frillLength * 0.88,
+        -dims.y * (0.67 + Math.sin(fraction * Math.PI) * 0.11),
+        0,
+      );
+      spike.rotation.z = Math.PI + (fraction - 0.5) * 0.42;
+      group.add(spike);
+    }
+  } else if (sex === 'female') {
+    const material = membraneMaterial(palette);
+    for (const side of [-1, 1] as const) {
+      const frill = mesh(
+        new THREE.ConeGeometry(dims.z * 0.12, dims.y * 0.3, 7),
+        material,
+      );
+      frill.name = `dragon-female-frill-${side < 0 ? 'left' : 'right'}`;
+      frill.position.set(-dims.x * 0.3, dims.y * 0.04, side * dims.z * 0.44);
+      frill.rotation.set(Math.PI / 2, 0, side * 0.35);
+      group.add(frill);
+    }
+  }
+}
+
+function visualNumber(part: AssemblyPart, key: string, fallback: number): number {
+  const value = part.visualProfile?.parameters?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function visualString(part: AssemblyPart, key: string, fallback: string): string {
+  const value = part.visualProfile?.parameters?.[key];
+  return typeof value === 'string' ? value : fallback;
+}
+
+function headStyleFor(part: AssemblyPart): DragonHeadStyle {
+  const defaults = getActiveDragonStyle().head;
+  return {
+    cranium: visualNumber(part, 'cranium', defaults.cranium),
+    browRidge: visualNumber(part, 'browRidge', defaults.browRidge),
+    muzzleDepth: visualNumber(part, 'muzzleDepth', defaults.muzzleDepth),
+    muzzleWidth: visualNumber(part, 'muzzleWidth', defaults.muzzleWidth),
+    muzzleDrop: visualNumber(part, 'muzzleDrop', defaults.muzzleDrop),
+    cheek: visualNumber(part, 'cheek', defaults.cheek),
+    eyeAxial: visualNumber(part, 'eyeAxial', defaults.eyeAxial),
+    hornLength: visualNumber(part, 'hornLength', defaults.hornLength),
+    hornRadius: visualNumber(part, 'hornRadius', defaults.hornRadius),
+    browLength: visualNumber(part, 'browLength', defaults.browLength),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -605,11 +808,12 @@ function buildEye(
 // ---------------------------------------------------------------------------
 
 function buildJaw(
-  dims: { x: number; y: number; z: number },
+  part: AssemblyPart,
   palette: DragonPalette,
   variant: 'upper' | 'lower',
 ): THREE.Group {
   const group = new THREE.Group();
+  const dims = part.dimensions;
   const pointDown = variant === 'upper';
 
   group.add(mesh(
@@ -632,9 +836,15 @@ function buildJaw(
     }
   }
 
-  const style = getActiveDragonStyle().jaw;
+  const defaults = getActiveDragonStyle().jaw;
+  const style: DragonJawStyle = {
+    toothCount: visualNumber(part, 'toothCount', defaults.toothCount),
+    toothHeight: visualNumber(part, 'toothHeight', defaults.toothHeight),
+    toothRadius: visualNumber(part, 'toothRadius', defaults.toothRadius),
+  };
+  const fangScale = visualNumber(part, 'fangScale', 1);
   const enamel = toothMaterial(palette);
-  const toothHeight = dims.y * style.toothHeight;
+  const toothHeight = dims.y * style.toothHeight * fangScale;
   // Teeth march back from the snout tip; the range matches the jaw's taper.
   const toothRadius = dims.z * style.toothRadius;
   for (const along of spreadPositions(style.toothCount, 0.6, 0.08).reverse()) {
@@ -692,8 +902,9 @@ function buildLeg(dims: { x: number; y: number; z: number }, palette: DragonPale
   return group;
 }
 
-function buildFoot(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
+function buildFoot(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
+  const dims = part.dimensions;
 
   const pad = mesh(
     boxUv(createTaperedBoxGeometry(dims.x * 0.9, dims.y, dims.z, 0.72, 0.78), SCALE_TILE, palette),
@@ -702,10 +913,16 @@ function buildFoot(dims: { x: number; y: number; z: number }, palette: DragonPal
   pad.position.x = -dims.x * 0.05;
   group.add(pad);
 
-  const style = getActiveDragonStyle().foot;
+  const defaults = getActiveDragonStyle().foot;
+  const style: DragonFootStyle = {
+    talonCount: visualNumber(part, 'talonCount', defaults.talonCount),
+    talonLength: visualNumber(part, 'talonLength', defaults.talonLength),
+    talonRadius: visualNumber(part, 'talonRadius', defaults.talonRadius),
+  };
+  const clawScale = visualNumber(part, 'clawScale', 1);
   const keratin = clawMaterial(palette);
   const talonRadius = dims.y * style.talonRadius;
-  const talonLength = dims.x * style.talonLength;
+  const talonLength = dims.x * style.talonLength * clawScale;
   for (const side of spreadPositions(style.talonCount, 2)) {
     const talon = mesh(
       revolvedUv(
@@ -909,7 +1126,13 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const thickness = dims.y;
   const chord = wingChord(dims);
   const rootSign = wingRootSign(part);
-  const form = getActiveWingShape();
+  const defaults = getActiveWingShape();
+  const form: WingMembraneShape = {
+    camber: visualNumber(part, 'camber', defaults.camber),
+    fingerSag: visualNumber(part, 'fingerSag', defaults.fingerSag),
+    dihedral: visualNumber(part, 'dihedral', defaults.dihedral),
+    scallop: visualNumber(part, 'scallop', defaults.scallop),
+  };
 
   // Chordwise coordinates: +x is the dragon's forward, membrane trails backward.
   const leadingAt = (s: number): number => wingLeadingEdge(dims, s);
@@ -1091,8 +1314,9 @@ function buildTailSegment(dims: { x: number; y: number; z: number }, palette: Dr
   return group;
 }
 
-function buildTailClub(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
+function buildTailClub(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
+  const dims = part.dimensions;
 
   const shaft = new THREE.LatheGeometry(
     [[-0.36, 0.34], [0, 0.6], [0.5, 1.0]].map(([t, radius]) => new THREE.Vector2(radius * dims.x, t * dims.y)),
@@ -1110,11 +1334,17 @@ function buildTailClub(dims: { x: number; y: number; z: number }, palette: Drago
   knob.position.y = -dims.y * 0.42;
   group.add(knob);
 
-  const style = getActiveDragonStyle().tailClub;
+  const defaults = getActiveDragonStyle().tailClub;
+  const style: DragonTailClubStyle = {
+    spikeCount: visualNumber(part, 'spikeCount', defaults.spikeCount),
+    spikeLength: visualNumber(part, 'spikeLength', defaults.spikeLength),
+    spikeRadius: visualNumber(part, 'spikeRadius', defaults.spikeRadius),
+  };
   const spikeMaterial = hornMaterial(palette);
-  const spikeCount = Math.max(1, Math.round(style.spikeCount));
+  const spikeCount = Math.max(0, Math.round(visualNumber(part, 'tailClubSpikeCount', style.spikeCount)));
+  const spikeScale = visualNumber(part, 'tailClubSpikeScale', 1);
   const spikeRadius = dims.z * style.spikeRadius;
-  const spikeLength = dims.z * style.spikeLength;
+  const spikeLength = dims.z * style.spikeLength * spikeScale;
   for (let index = 0; index < spikeCount; index += 1) {
     const angle = (index / spikeCount) * Math.PI * 2;
     const spike = mesh(

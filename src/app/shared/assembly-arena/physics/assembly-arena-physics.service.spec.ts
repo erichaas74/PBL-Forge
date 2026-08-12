@@ -1,6 +1,6 @@
 import { createDefaultCombatProfile } from '../../assembly/combat/assembly-combat.models';
 import { rotateVectorByQuaternion } from '../../assembly/domain/vector-data';
-import { CLASSIC_DRAGON_TEST_PRESET } from '../../assembly-garage/data/presets/classic-dragon-test';
+import { PUBLISHED_CLASSIC_DRAGON_PRESET } from '../../../data/published-dragon-models';
 import {
   createFounderDragonGenome,
   generateDragonAssembly,
@@ -21,7 +21,7 @@ describe('AssemblyArenaPhysicsService', () => {
       'pigment-hue': 0.7,
       temperament: 0.8,
     });
-    const blueprint = generateDragonAssembly(CLASSIC_DRAGON_TEST_PRESET.state, genome).blueprint;
+    const blueprint = generateDragonAssembly(PUBLISHED_CLASSIC_DRAGON_PRESET.state, genome).blueprint;
     const asset = {
       id: 'physics-test-dragon',
       kind: 'assembly' as const,
@@ -384,7 +384,7 @@ function createScaledDragonAsset() {
     'pigment-hue': 0.7,
     temperament: 0.8,
   });
-  const blueprint = generateDragonAssembly(CLASSIC_DRAGON_TEST_PRESET.state, genome).blueprint;
+  const blueprint = generateDragonAssembly(PUBLISHED_CLASSIC_DRAGON_PRESET.state, genome).blueprint;
   return {
     id: 'self-righting-test-dragon',
     kind: 'assembly' as const,

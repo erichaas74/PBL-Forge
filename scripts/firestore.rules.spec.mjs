@@ -149,11 +149,28 @@ try {
     }));
   });
 
+  await test('a student can persist their genetics research chart', async () => {
+    const db = testEnv.authenticatedContext('student-1').firestore();
+    await assertSucceeds(updateDoc(doc(db, 'dragonLabProgress/student-1'), {
+      geneticsNotebook: {
+        schemaVersion: 1,
+        studentId: 'student-1',
+        assignmentId: 'default',
+        experiments: [],
+        discoveries: {},
+        updatedAtIso: new Date().toISOString()
+      }
+    }));
+  });
+
   const assignment = {
     ownerId: 'teacher-1',
     classId: 'class-1',
     title: 'Adaptive genetics',
     defaultLevel: 'grade-7',
+    alleleCatalog: {
+      availableGeneIds: ['wings', 'fire', 'horns', 'scales']
+    },
     simulationSettings: {},
     studentOverrides: {},
     assignmentVersion: 1

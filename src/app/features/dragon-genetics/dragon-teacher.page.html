@@ -32,6 +32,22 @@
         </article>
       }
     </div>
+    <section class="allele-release-settings">
+      <div><p>Allele workstation</p><h3>Released gene records</h3><span>Students can investigate only the checked gene and allele samples.</span></div>
+      <div class="gene-release-grid">
+        @for (gene of alleleGenes; track gene.id) {
+          <label [class.released]="alleleGeneReleased(gene.id)">
+            <input
+              type="checkbox"
+              [checked]="alleleGeneReleased(gene.id)"
+              (change)="toggleAlleleGene(gene.id)"
+            />
+            <b>{{ gene.name }}</b>
+            <small>{{ gene.chromosome }} · {{ gene.locus }} · {{ gene.symbol }}</small>
+          </label>
+        }
+      </div>
+    </section>
     @if (assignmentMessage()) { <p class="assignment-status" role="status">{{ assignmentMessage() }}</p> }
   </section>
 

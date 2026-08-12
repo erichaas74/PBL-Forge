@@ -2,7 +2,12 @@
 
 PBL Forge is an Angular and Firebase foundation for delivering project-based learning experiences to students. It includes a Firestore-backed project catalog, sequenced activity player, response saving, teacher dashboards, local demo data, and tested deny-by-default security rules. The featured Dragon Genetics experience is a complete three-week Grade 7 heredity PBL with genetics simulation, official breeding, and a physics arena.
 
-Active application code lives under `src/app`; reusable assembly, garage, arena, and creation-library code is under `src/app/shared`. Historical standalone and migration implementations remain outside `src` and are not compiled. See [Code organization](docs/CODE_ORGANIZATION.md), the [Dragon Genetics visual laboratory plan](docs/DRAGON_GENETICS_VISUAL_LAB_PLAN.md), and the [station simulation build guides](docs/dragon-genetics-simulations/README.md).
+Student application code lives under `src/app`. The private Parts Lab and Dragon Garage are a
+separate Angular application under `designer/`; they publish committed model data through
+`model-packs/` and are never included in the student app. See [Code organization](docs/CODE_ORGANIZATION.md),
+the [Dragon Designer asset pipeline](docs/DRAGON_DESIGNER_ASSET_PIPELINE_PLAN.md), the
+[Dragon Genetics visual laboratory plan](docs/DRAGON_GENETICS_VISUAL_LAB_PLAN.md), and the
+[station simulation build guides](docs/dragon-genetics-simulations/README.md).
 
 ## Start locally
 
@@ -43,8 +48,12 @@ npm run verify
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Start the complete local stack with demo content |
+| `npm run start:designer` | Start the local-only Dragon Designer on port 4300 |
 | `npm run seed` | Reseed a running Firestore emulator |
-| `npm run build` | Create an optimized production build |
+| `npm run build` | Validate model packs and build the student application |
+| `npm run build:designer` | Build Dragon Designer independently |
+| `npm run generate:dragon-pack` | Regenerate the baseline pack from the checked-in designer preset |
+| `npm run check:model-packs` | Validate published dragon models without a browser |
 | `npm run test:ci` | Run Angular tests in headless Chrome |
 | `npm run test:rules` | Run Firestore authorization tests |
 | `npm run firebase -- <command>` | Run the pinned Firebase CLI with credential-safe logging |

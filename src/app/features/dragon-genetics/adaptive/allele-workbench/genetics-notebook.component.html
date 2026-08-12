@@ -1,0 +1,84 @@
+<button
+  class="notebook-toggle"
+  type="button"
+  [class.complete]="complete()"
+  [attr.aria-expanded]="open()"
+  (click)="open.set(!open())"
+>
+  <span aria-hidden="true">▤</span>
+  Genetics chart
+  <b>{{ solvedCount() }}/{{ genes().length }}</b>
+</button>
+
+@if (open()) {
+  <aside class="notebook-drawer" aria-label="Student genetics research chart">
+    <header>
+      <div>
+        <small>STUDENT RESEARCH RECORD</small>
+        <h2>Genetics chart</h2>
+      </div>
+      <button type="button" aria-label="Close genetics chart" (click)="open.set(false)">×</button>
+    </header>
+
+    @if (complete()) {
+      <p class="chart-complete" role="status">All assigned gene records verified.</p>
+    }
+
+    <div class="gene-records">
+      @for (gene of genes(); track gene.id) {
+        @let solved = discovery(gene.id);
+        <article [class.solved]="!!solved">
+          <header>
+            <div>
+              <small>{{ gene.sampleCode }}</small
+              ><strong>{{ solved ? gene.name : 'Unidentified trait' }}</strong>
+            </div>
+            <span>{{
+              solved ? 'VERIFIED' : testCount(gene) + '/' + requiredTestCount(gene) + ' TESTED'
+            }}</span>
+          </header>
+
+          @if (experiments(gene.id).length) {
+            <table>
+              <thead>
+                <tr>
+                  <th>Pair</th>
+                  <th>Observed expression</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (experiment of experiments(gene.id); track experiment.id) {
+                  <tr>
+                    <td>{{ allelePairLabel(experiment.alleleIds) }}</td>
+                    <td>{{ experiment.phenotype }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <div class="empty-record" aria-label="No expression results recorded">—</div>
+          }
+
+          @if (solved) {
+            <dl>
+              <div>
+                <dt>Codes for</dt>
+                <dd>{{ traitName(solved.traitId) }}</dd>
+              </div>
+              <div>
+                <dt>Dominant allele</dt>
+                <dd>{{ alleleSampleCode(solved.dominantAlleleId) }}</dd>
+              </div>
+              <div>
+                <dt>Recessive allele</dt>
+                <dd>{{ alleleSampleCode(solved.recessiveAlleleId) }}</dd>
+              </div>
+            </dl>
+          }
+        </article>
+      } @empty {
+        <p class="no-genes">No gene samples are released for this assignment.</p>
+      }
+    </div>
+  </aside>
+}

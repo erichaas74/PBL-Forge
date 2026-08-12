@@ -42,6 +42,7 @@ export class AssemblyRendererService {
   private readonly partObjects = new Map<string, THREE.Object3D>();
   private readonly jointLines = new Map<string, THREE.Line>();
   private readonly snapPointMeshes = new Map<string, THREE.Mesh>();
+  private highlightedSnapKey: string | null = null;
   private currentJoints: AssemblyJoint[] = [];
 
   mount(host: HTMLElement): void {
@@ -189,6 +190,62 @@ export class AssemblyRendererService {
 
     const snapPoint = hit.userData['snapPoint'];
     return isSnapPoint(snapPoint) ? snapPoint : null;
+  }
+
+  /**
+   * Suspends orbiting. Dragging something in the scene and orbiting the camera
+   * are the same gesture, so whoever handles the drag has to claim it first.
+   */
+  setControlsEnabled(enabled: boolean): void {
+    if (this.controls) {
+      this.controls.enabled = enabled;
+    }
+  }
+
+  /**
+   * Marks one snap marker as the one being edited. Sockets sit close together
+   * on a part, so the Snap Workshop needs the one under the controls to be
+   * obvious without hovering each in turn. Null clears it.
+   */
+  highlightSnapPoint(partId: string | null, snapPointId: string | null): void {
+    this.highlightedSnapKey = partId && snapPointId ? `${partId}:${snapPointId}` : null;
+
+    for (const [key, marker] of this.snapPointMeshes) {
+      applySnapMarkerHighlight(marker, key === this.highlightedSnapKey);
+    }
+  }
+
+  /**
+   * Projects the pointer onto the plane facing the camera through `through`.
+   *
+   * A horizontal plane can only ever move two axes, and it shears badly once
+   * the camera is anywhere near level with it. Dragging against the screen
+   * plane instead keeps whatever is being dragged under the cursor from any
+   * orbit angle, which is what a free move is expected to do.
+   */
+  projectPointerToCameraPlane(
+    clientX: number,
+    clientY: number,
+    through: Vector3Data,
+  ): Vector3Data | null {
+    if (!this.camera) {
+      return null;
+    }
+
+    this.prepareRay(clientX, clientY);
+
+    const towardCamera = this.camera.getWorldDirection(new THREE.Vector3()).negate();
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+      towardCamera,
+      toThreeVector(through),
+    );
+    const hit = new THREE.Vector3();
+
+    if (!this.raycaster.ray.intersectPlane(plane, hit)) {
+      return null;
+    }
+
+    return { x: hit.x, y: hit.y, z: hit.z };
   }
 
   projectPointerToPlane(clientX: number, clientY: number, planeY: number): Vector3Data | null {
@@ -407,6 +464,7 @@ export class AssemblyRendererService {
         snapPoint.worldPosition.z,
       );
       marker.userData['snapPoint'] = snapPoint;
+      applySnapMarkerHighlight(marker, key === this.highlightedSnapKey);
     }
   }
 
@@ -470,6 +528,20 @@ function findPartId(hit: THREE.Object3D): string | null {
 
 function getSnapPointKey(snapPoint: AssemblySnapPoint): string {
   return `${snapPoint.partId}:${snapPoint.id}`;
+}
+
+/** Amber and larger, so the socket under the editor's controls reads instantly. */
+function applySnapMarkerHighlight(marker: THREE.Mesh, highlighted: boolean): void {
+  const scale = highlighted ? 1.65 : 1;
+  marker.scale.set(scale, scale, scale);
+
+  if (Array.isArray(marker.material)) {
+    return;
+  }
+
+  const material = marker.material as THREE.MeshBasicMaterial;
+  material.color.setHex(highlighted ? 0xf59e0b : 0x0f62fe);
+  material.opacity = highlighted ? 1 : 0.82;
 }
 
 function isSnapPoint(value: unknown): value is AssemblySnapPoint {

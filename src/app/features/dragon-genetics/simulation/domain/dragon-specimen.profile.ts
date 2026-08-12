@@ -21,7 +21,7 @@ import {
   expressDragonPhenotype,
   generateDragonAssembly,
 } from './dragon-phenotype-builder';
-import { CLASSIC_DRAGON_TEST_PRESET } from '../../../../shared/assembly-garage/data/presets/classic-dragon-test';
+import { PUBLISHED_CLASSIC_DRAGON_PRESET } from '../../../../data/published-dragon-models';
 import { DragonGeneLocus, DragonGenome, DragonPhenotype } from './dragon-genetics.models';
 import { DragonLabGenome, DragonOffspring, DragonParentProfile } from './dragon-lab.models';
 import {
@@ -31,6 +31,15 @@ import {
   createVisualGenome,
   showsDominantPhenotype,
 } from './dragon-inheritance';
+import {
+  EXPRESSIVE_DRAGON_TRAITS,
+  ExpressiveDragonProfile,
+  ExpressiveDragonTraitId,
+  expressivePhenotype,
+  sexChromosomes,
+  showsExpressiveDominant,
+  toCoreLabGenome,
+} from './dragon-expressive-genome';
 
 /**
  * Teaches the generic specimen viewer how to read dragons.
@@ -202,6 +211,119 @@ export function createDragonBenchBuild(
 }
 
 /**
+ * Full phenotype test-bed build used to validate traits before the Allele Vault consumes them.
+ * It still ends in the same assembly descriptor and renderer as every other real dragon.
+ */
+export function createExpressiveDragonBenchBuild(
+  id: string,
+  profile: ExpressiveDragonProfile,
+  options: { label?: string; generation?: number } = {},
+): DragonBenchBuild {
+  const generation = options.generation ?? 0;
+  const coreGenome = toCoreLabGenome(profile);
+  const bodyColor = showsExpressiveDominant(
+    profile,
+    EXPRESSIVE_DRAGON_TRAITS.find(trait => trait.id === 'body-color')!,
+  );
+  const identity: DragonIdentityPaint = bodyColor
+    ? { color: '#98552f', accentColor: '#e3a75d' }
+    : { color: '#287b78', accentColor: '#75d0c1' };
+  const engineGenome = createVisualGenome(id, coreGenome, generation, identity);
+  // Tail length stays fixed here: the K locus changes the club end, not the whole tail.
+  engineGenome.loci['tail-length'].maternal.value = 0.62;
+  engineGenome.loci['tail-length'].paternal.value = 0.62;
+
+  const build = createEducationalAssembly(coreGenome, engineGenome, identity, {
+    legPairs: dominant(profile, 'legs') ? 2 : 1,
+    clawScale: dominant(profile, 'claws') ? 1.5 : 0.62,
+    crestScale: dominant(profile, 'crest') ? 1.35 : 0.42,
+    earShape: dominant(profile, 'ears') ? 'pointed' : 'rounded',
+    fangScale: dominant(profile, 'fangs') ? 1.5 : 0.58,
+    backSpikeCount: dominant(profile, 'spikes') ? 10 : 3,
+    backSpikeScale: dominant(profile, 'spikes') ? 1.15 : 0.52,
+    eyeColor: dominant(profile, 'eye-color') ? '#ff9f2e' : '#46a9ff',
+    sex: profile.sex,
+    tailClubForm: tailClubForm(profile),
+  });
+
+  return {
+    source: {
+      kind: 'descriptor',
+      descriptor: describeSpecimen(id, build.assembly, {
+        label: options.label ?? id,
+        profileId: DRAGON_SPECIMEN_PROFILE_ID,
+        generation,
+        accentColor: identity.color,
+        traits: buildExpressiveTraitReadouts(profile),
+      }),
+    },
+    combatProfile: build.combatProfile,
+    fireBreathing: dominant(profile, 'fire'),
+  };
+}
+
+function buildExpressiveTraitReadouts(profile: ExpressiveDragonProfile): SpecimenTraitReadout[] {
+  return [
+    {
+      id: 'sex-chromosomes',
+      label: 'Modeled sex',
+      valueLabel: `${profile.sex === 'female' ? 'Female' : 'Male'} · ${sexChromosomes(profile.sex)}`,
+      detail: 'This fictional dragon population uses an XX/XY model; real species use many systems.',
+      roles: ['head'],
+    },
+    ...EXPRESSIVE_DRAGON_TRAITS.map(trait => ({
+      id: `trait:${trait.id}`,
+      label: trait.name,
+      valueLabel: `${displayExpressiveGenotype(profile, trait.id)} · ${expressivePhenotype(profile, trait)}`,
+      detail: `${trait.chromosome}${trait.inheritance === 'x-linked' ? ' · X-linked' : trait.inheritance === 'incomplete-dominance' ? ' · Incomplete dominance' : ''}. ${trait.description}`,
+      roles: expressiveTraitRoles(trait.id),
+      expressed: showsExpressiveDominant(profile, trait),
+    })),
+  ];
+}
+
+function dominant(profile: ExpressiveDragonProfile, traitId: ExpressiveDragonTraitId): boolean {
+  const trait = EXPRESSIVE_DRAGON_TRAITS.find(candidate => candidate.id === traitId);
+  return !!trait && showsExpressiveDominant(profile, trait);
+}
+
+function tailClubForm(profile: ExpressiveDragonProfile): 'large' | 'intermediate' | 'small' {
+  const [first, second] = profile.genome.tail;
+  if (first === 'K' && second === 'K') return 'large';
+  if (first === 'k' && second === 'k') return 'small';
+  return 'intermediate';
+}
+
+function displayExpressiveGenotype(
+  profile: ExpressiveDragonProfile,
+  traitId: ExpressiveDragonTraitId,
+): string {
+  const pair = profile.genome[traitId];
+  if (traitId === 'eye-color') {
+    return pair[1] === 'Y' ? `X${pair[0]}Y` : `X${pair[0]}X${pair[1]}`;
+  }
+  return pair.join('');
+}
+
+function expressiveTraitRoles(traitId: ExpressiveDragonTraitId): readonly AssemblyPartRole[] {
+  switch (traitId) {
+    case 'wings': return ['wing'];
+    case 'tail': return ['tail'];
+    case 'legs':
+    case 'claws': return ['leg'];
+    case 'fire':
+    case 'fangs': return ['jaw'];
+    case 'horns':
+    case 'crest':
+    case 'ears':
+    case 'eye-color': return ['head'];
+    case 'spikes': return ['core'];
+    case 'scales':
+    case 'body-color': return [];
+  }
+}
+
+/**
  * A hatched offspring. Its assembly was already built and its combat profile
  * already tuned, so this reuses that blueprint rather than re-expressing — the
  * student inspects the exact animal in their clutch.
@@ -240,7 +362,7 @@ function describeEngineGenome(
   genome: DragonGenome,
   options: SpecimenExpressOptions,
 ): SpecimenDescriptor {
-  const generated = generateDragonAssembly(CLASSIC_DRAGON_TEST_PRESET.state, genome);
+  const generated = generateDragonAssembly(PUBLISHED_CLASSIC_DRAGON_PRESET.state, genome);
   return describeSpecimen(options.id ?? genome.id, generated.blueprint, {
     label: options.label ?? genome.id,
     profileId: DRAGON_SPECIMEN_PROFILE_ID,

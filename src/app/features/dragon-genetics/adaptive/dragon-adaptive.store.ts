@@ -20,9 +20,24 @@ import {
 } from './dragon-question.generator';
 import { DragonAdaptiveRepository } from './dragon-adaptive.repository';
 import { resolveSimulationSettings } from './dragon-assignment.resolver';
+import {
+  ALLELE_VAULT_ALLELES,
+  ALLELE_VAULT_GENES,
+  normalizeAlleleVaultGeneIds,
+} from './allele-workbench/allele-vault.models';
+import {
+  createEmptyGeneticsNotebook,
+  DiscoveryClaimStatus,
+  evaluateDiscoveryClaim,
+  GeneticsNotebookSnapshot,
+  mergeGeneticsNotebooks,
+  normalizeGeneticsNotebook,
+  recordAlleleExperiment as addAlleleExperiment,
+} from './allele-workbench/genetics-notebook.models';
 
 const LOCAL_ASSIGNMENT_KEY = 'pbl-forge.dragon-genetics.assignment.v1';
 const LOCAL_RUNS_KEY_PREFIX = 'pbl-forge.dragon-genetics.runs.v1';
+const LOCAL_NOTEBOOK_KEY_PREFIX = 'pbl-forge.dragon-genetics.notebook.v1';
 
 @Injectable({ providedIn: 'root' })
 export class DragonAdaptiveStore {
@@ -30,6 +45,9 @@ export class DragonAdaptiveStore {
   private readonly session = inject(SessionService);
   private readonly assignmentSignal = signal<DragonAssignment>(loadLocalAssignment());
   private readonly runsSignal = signal<Partial<Record<DragonSimulationId, DragonSimulationRun>>>({});
+  private readonly geneticsNotebookSignal = signal<GeneticsNotebookSnapshot>(
+    loadLocalGeneticsNotebook('local-student'),
+  );
   private readonly teacherPreviewLevelSignal = signal<InstructionLevel | null>(null);
   private hydratedUserId: string | null = null;
   private hydrationRequest = 0;
@@ -37,6 +55,10 @@ export class DragonAdaptiveStore {
 
   readonly assignment = this.assignmentSignal.asReadonly();
   readonly runs = this.runsSignal.asReadonly();
+  readonly geneticsNotebook = this.geneticsNotebookSignal.asReadonly();
+  readonly availableAlleleGeneIds = computed(
+    () => this.assignmentSignal().alleleCatalog.availableGeneIds,
+  );
   readonly teacherPreviewLevel = this.teacherPreviewLevelSignal.asReadonly();
   readonly persistenceState = signal<'loading' | 'saved' | 'saving' | 'error'>('loading');
   readonly ready = signal(false);
@@ -212,15 +234,58 @@ export class DragonAdaptiveStore {
     }
   }
 
+  recordAlleleExperiment(
+    geneId: string,
+    pairIds: readonly [string, string],
+    phenotype: string,
+  ): void {
+    const gene = ALLELE_VAULT_GENES.find((candidate) => candidate.id === geneId);
+    if (!gene || !this.availableAlleleGeneIds().includes(geneId)) return;
+    const next = addAlleleExperiment(
+      this.geneticsNotebookSignal(),
+      gene,
+      ALLELE_VAULT_ALLELES,
+      pairIds,
+      phenotype,
+    );
+    this.putGeneticsNotebook(next);
+    void this.persistGeneticsNotebook(this.geneticsNotebookSignal());
+  }
+
+  submitAlleleDiscovery(
+    geneId: string,
+    traitId: string,
+    dominantAlleleId: string,
+    recessiveAlleleId: string,
+  ): DiscoveryClaimStatus {
+    const gene = ALLELE_VAULT_GENES.find((candidate) => candidate.id === geneId);
+    if (!gene || !this.availableAlleleGeneIds().includes(geneId)) return 'incorrect';
+    const result = evaluateDiscoveryClaim(
+      this.geneticsNotebookSignal(),
+      gene,
+      ALLELE_VAULT_ALLELES,
+      traitId,
+      dominantAlleleId,
+      recessiveAlleleId,
+    );
+    if (result.status === 'solved') {
+      this.putGeneticsNotebook(result.notebook);
+      this.completeAlleleWorkbenchIfReady(this.geneticsNotebookSignal());
+      void this.persistGeneticsNotebook(this.geneticsNotebookSignal());
+    }
+    return result.status;
+  }
+
   private async hydrate(): Promise<void> {
     const request = ++this.hydrationRequest;
     try {
       const user = await this.session.ensureUser();
       const userId = user?.uid ?? 'local-student';
       this.hydratedUserId = user?.uid ?? null;
-      const [assignment, remoteRuns] = await Promise.all([
+      const [assignment, remoteRuns, remoteNotebook] = await Promise.all([
         this.repository.loadAssignment(),
         this.repository.loadRuns(),
+        this.repository.loadGeneticsNotebook(),
       ]);
       if (request !== this.hydrationRequest || this.session.user()?.uid !== user?.uid) return;
       this.assignmentSignal.set(assignment);
@@ -231,6 +296,10 @@ export class DragonAdaptiveStore {
       }
       this.runsSignal.set(merged);
       saveLocalRuns(merged, userId);
+      const localNotebook = loadLocalGeneticsNotebook(userId, assignment.id);
+      const notebook = mergeGeneticsNotebooks(localNotebook, remoteNotebook);
+      this.geneticsNotebookSignal.set(notebook);
+      saveLocalGeneticsNotebook(notebook);
       this.persistenceState.set('saved');
     } catch (error) {
       if (request !== this.hydrationRequest) return;
@@ -260,6 +329,42 @@ export class DragonAdaptiveStore {
     }
   }
 
+  private putGeneticsNotebook(notebook: GeneticsNotebookSnapshot): void {
+    const next = {
+      ...notebook,
+      assignmentId: this.assignmentSignal().id,
+      studentId: this.session.user()?.uid ?? notebook.studentId,
+    };
+    this.geneticsNotebookSignal.set(next);
+    saveLocalGeneticsNotebook(next);
+  }
+
+  private completeAlleleWorkbenchIfReady(notebook: GeneticsNotebookSnapshot): void {
+    const available = this.availableAlleleGeneIds();
+    if (!available.length || !available.every((geneId) => !!notebook.discoveries[geneId])) return;
+    const run = this.runsSignal()['allele-workbench'];
+    if (!run || run.complete) return;
+    const next = {
+      ...run,
+      complete: true,
+      score: 100,
+      updatedAtIso: new Date().toISOString(),
+    };
+    this.putRun(next);
+    void this.persist(next);
+  }
+
+  private async persistGeneticsNotebook(notebook: GeneticsNotebookSnapshot): Promise<void> {
+    this.persistenceState.set('saving');
+    try {
+      await this.repository.saveGeneticsNotebook(notebook, this.assignmentSignal().ownerId);
+      this.persistenceState.set('saved');
+    } catch (error) {
+      console.error('Genetics research chart could not be saved.', error);
+      this.persistenceState.set('error');
+    }
+  }
+
   private async awaitCurrentHydration(): Promise<void> {
     let pending = this.hydrationPromise;
     while (pending) {
@@ -282,10 +387,59 @@ function newerRun(
 function loadLocalAssignment(): DragonAssignment {
   if (typeof localStorage === 'undefined') return DEFAULT_DRAGON_ASSIGNMENT;
   try {
-    return JSON.parse(localStorage.getItem(LOCAL_ASSIGNMENT_KEY) ?? 'null')
-      ?? DEFAULT_DRAGON_ASSIGNMENT;
+    const stored = JSON.parse(localStorage.getItem(LOCAL_ASSIGNMENT_KEY) ?? 'null') as
+      Partial<DragonAssignment> | null;
+    if (!stored) return DEFAULT_DRAGON_ASSIGNMENT;
+    const storedGeneIds = Array.isArray(stored.alleleCatalog?.availableGeneIds)
+      ? stored.alleleCatalog.availableGeneIds
+      : null;
+    const isLegacyMockCatalog = stored.assignmentVersion === 1
+      && storedGeneIds?.length === 4
+      && ['wings', 'fire', 'horns', 'scales'].every((geneId) => storedGeneIds.includes(geneId));
+    const storedVersion = stored.assignmentVersion ?? 0;
+    return {
+      ...DEFAULT_DRAGON_ASSIGNMENT,
+      ...stored,
+      assignmentVersion: isLegacyMockCatalog || storedVersion < DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
+        ? DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
+        : storedVersion,
+      alleleCatalog: {
+        availableGeneIds: storedGeneIds && !isLegacyMockCatalog
+          ? normalizeAlleleVaultGeneIds(storedGeneIds)
+          : [...DEFAULT_DRAGON_ASSIGNMENT.alleleCatalog.availableGeneIds],
+      },
+      simulationSettings: stored.simulationSettings ?? {},
+      studentOverrides: stored.studentOverrides ?? {},
+    };
   } catch {
     return DEFAULT_DRAGON_ASSIGNMENT;
+  }
+}
+
+function loadLocalGeneticsNotebook(
+  studentId: string,
+  assignmentId = 'default',
+): GeneticsNotebookSnapshot {
+  if (typeof localStorage === 'undefined') {
+    return createEmptyGeneticsNotebook(studentId, assignmentId);
+  }
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem(`${LOCAL_NOTEBOOK_KEY_PREFIX}.${studentId}`) ?? 'null',
+    );
+    return normalizeGeneticsNotebook(stored, studentId)
+      ?? createEmptyGeneticsNotebook(studentId, assignmentId);
+  } catch {
+    return createEmptyGeneticsNotebook(studentId, assignmentId);
+  }
+}
+
+function saveLocalGeneticsNotebook(notebook: GeneticsNotebookSnapshot): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(
+      `${LOCAL_NOTEBOOK_KEY_PREFIX}.${notebook.studentId}`,
+      JSON.stringify(notebook),
+    );
   }
 }
 

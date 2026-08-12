@@ -1,9 +1,6 @@
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
-  OnDestroy,
   ViewChild,
   computed,
   effect,
@@ -16,12 +13,10 @@ import { AssemblyAbilityId } from '../combat/assembly-abilities';
 import { AssemblyCombatProfile } from '../combat/assembly-combat.models';
 import { SpecimenDescriptor, SpecimenSource } from './specimen.models';
 import { SPECIMEN_PROFILES, SpecimenProfileRegistry } from './specimen-profile.registry';
-import {
-  SpecimenRendererService,
-  isSpecimenRenderingAvailable,
-} from './specimen-renderer.service';
+import { isSpecimenRenderingAvailable } from './specimen-renderer.service';
 import { SpecimenAssay, assaySpecimen } from './specimen-assay';
 import { SpecimenBenchCopy, resolveAbilityCopy } from './specimen-bench.content';
+import { SpecimenViewportComponent } from './specimen-viewport.component';
 
 interface AbilityRow {
   ability: AssemblyAbilityId;
@@ -57,12 +52,12 @@ interface DefenseRow {
  */
 @Component({
   selector: 'app-specimen-test-bench',
+  imports: [SpecimenViewportComponent],
   templateUrl: './specimen-test-bench.component.html',
   styleUrl: './specimen-test-bench.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [SpecimenRendererService],
 })
-export class SpecimenTestBenchComponent implements AfterViewInit, OnDestroy {
+export class SpecimenTestBenchComponent {
   readonly source = input.required<SpecimenSource>();
   /** Genome-tuned health and damage. Without it the defence panel reads zero. */
   readonly combatProfile = input<AssemblyCombatProfile | null>(null);
@@ -74,12 +69,10 @@ export class SpecimenTestBenchComponent implements AfterViewInit, OnDestroy {
   readonly abilityPlayed = output<AssemblyAbilityId>();
   readonly assayed = output<SpecimenAssay>();
 
-  @ViewChild('stage', { static: true })
-  private readonly stageRef!: ElementRef<HTMLElement>;
+  @ViewChild('viewport', { static: true })
+  private readonly viewport!: SpecimenViewportComponent;
 
-  private readonly renderer = inject(SpecimenRendererService);
   private readonly registry = inject(SpecimenProfileRegistry);
-  private readonly mounted = signal(false);
   private readonly playing = signal<AssemblyAbilityId | null>(null);
 
   readonly renderingAvailable = isSpecimenRenderingAvailable();
@@ -155,8 +148,7 @@ export class SpecimenTestBenchComponent implements AfterViewInit, OnDestroy {
 
     effect(() => {
       const descriptor = this.descriptor();
-      if (!this.mounted() || !descriptor) return;
-      this.renderer.show(descriptor);
+      if (!descriptor) return;
       this.playing.set(null);
     });
 
@@ -166,28 +158,12 @@ export class SpecimenTestBenchComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  ngAfterViewInit(): void {
-    if (!this.renderingAvailable) return;
-
-    this.renderer.mount(this.stageRef.nativeElement, {
-      quality: 'low',
-      interactive: true,
-      showGroundShadow: true,
-      pose: { droopRadians: TAIL_DROOP_RADIANS },
-    });
-    this.mounted.set(true);
-  }
-
-  ngOnDestroy(): void {
-    this.renderer.dispose();
-  }
-
   async play(row: AbilityRow): Promise<void> {
-    if (!row.available || !this.mounted()) return;
+    if (!row.available || !this.renderingAvailable) return;
 
     this.playing.set(row.ability);
     this.abilityPlayed.emit(row.ability);
-    await this.renderer.playAbility(row.ability);
+    await this.viewport.playAbility(row.ability);
     // A newer press may have taken over while this one finished.
     if (this.playing() === row.ability) this.playing.set(null);
   }
@@ -204,8 +180,6 @@ export class SpecimenTestBenchComponent implements AfterViewInit, OnDestroy {
     return row.ability;
   }
 }
-
-const TAIL_DROOP_RADIANS = 0.13;
 
 function round(value: number): number {
   return Math.round(value * 10) / 10;

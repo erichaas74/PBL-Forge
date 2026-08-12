@@ -1,4 +1,4 @@
-import { CLASSIC_DRAGON_TEST_PRESET } from '../../../../shared/assembly-garage/data/presets/classic-dragon-test';
+import { PUBLISHED_CLASSIC_DRAGON_PRESET } from '../../../../data/published-dragon-models';
 import { AssemblyBlueprint } from '../../../../shared/assembly/domain/assembly.models';
 import { AssemblyCombatProfile } from '../../../../shared/assembly/combat/assembly-combat.models';
 import { cloneAssemblyBlueprint } from '../../../../shared/assembly/domain/assembly-clone';
@@ -305,6 +305,20 @@ export interface EducationalDragonBuild {
   combatProfile: AssemblyCombatProfile;
 }
 
+/** Visible controls carried by one expressed dragon, never by the global Parts Lab style. */
+export interface DragonVisualExpression {
+  legPairs?: 1 | 2;
+  clawScale?: number;
+  crestScale?: number;
+  earShape?: 'pointed' | 'rounded';
+  fangScale?: number;
+  backSpikeCount?: number;
+  backSpikeScale?: number;
+  eyeColor?: string;
+  sex?: 'female' | 'male';
+  tailClubForm?: 'large' | 'intermediate' | 'small';
+}
+
 /**
  * Turns a four-gene lab genotype into the actual animal.
  *
@@ -325,8 +339,9 @@ export function createEducationalAssembly(
   genome: DragonLabGenome,
   engineGenome: ReturnType<typeof createFounderDragonGenome>,
   identity?: DragonIdentityPaint,
+  expression: DragonVisualExpression = {},
 ): EducationalDragonBuild {
-  const generated = generateDragonAssembly(CLASSIC_DRAGON_TEST_PRESET.state, engineGenome);
+  const generated = generateDragonAssembly(PUBLISHED_CLASSIC_DRAGON_PRESET.state, engineGenome);
   let blueprint = cloneAssemblyBlueprint(generated.blueprint);
 
   if (!showsDominantPhenotype(genome.wings, 'wings')) {
@@ -351,6 +366,71 @@ export function createEducationalAssembly(
       part.visualProfile?.profileId === 'dragon-head-horned'
         ? { ...part, visualProfile: { ...part.visualProfile, profileId: 'dragon-head-snout' } }
         : part);
+  }
+
+  blueprint.parts = blueprint.parts.map(part => {
+    const profileId = part.visualProfile?.profileId ?? '';
+    const parameters: Record<string, string | number | boolean> = {
+      ...(part.visualProfile?.parameters ?? {}),
+    };
+    if (profileId === 'dragon-body') {
+      if (expression.backSpikeCount !== undefined) parameters['backSpikeCount'] = expression.backSpikeCount;
+      if (expression.backSpikeScale !== undefined) parameters['backSpikeScale'] = expression.backSpikeScale;
+    }
+    if (profileId.startsWith('dragon-head-')) {
+      if (expression.crestScale !== undefined) parameters['crestScale'] = expression.crestScale;
+      if (expression.earShape) parameters['earShape'] = expression.earShape;
+      if (expression.eyeColor) parameters['eyeColor'] = expression.eyeColor;
+      if (expression.sex) parameters['sex'] = expression.sex;
+    }
+    if (profileId === 'dragon-upper-jaw' || profileId === 'dragon-lower-jaw') {
+      if (expression.fangScale !== undefined) parameters['fangScale'] = expression.fangScale;
+    }
+    if (profileId === 'dragon-foot' && expression.clawScale !== undefined) {
+      parameters['clawScale'] = expression.clawScale;
+    }
+    if (
+      expression.tailClubForm
+      && (profileId === 'dragon-tail-stinger' || profileId === 'dragon-tail-club')
+      && part.visualProfile
+    ) {
+      const form = expression.tailClubForm;
+      const size = form === 'large'
+        ? { x: 0.34, y: 0.46, z: 0.46, mass: 0.72 }
+        : form === 'intermediate'
+          ? { x: 0.26, y: 0.38, z: 0.32, mass: 0.52 }
+          : { x: 0.19, y: 0.3, z: 0.2, mass: 0.34 };
+      parameters['tailClubSpikeCount'] = form === 'large' ? 10 : form === 'intermediate' ? 5 : 0;
+      parameters['tailClubSpikeScale'] = form === 'large' ? 1.2 : form === 'intermediate' ? 0.78 : 0;
+      return {
+        ...part,
+        label: `${form[0].toUpperCase()}${form.slice(1)} tail club`,
+        shape: 'sphere',
+        dimensions: { x: size.x, y: size.y, z: size.z },
+        mass: size.mass,
+        visualProfile: {
+          ...part.visualProfile,
+          profileId: 'dragon-tail-club',
+          parameters,
+        },
+      };
+    }
+    return Object.keys(parameters).length && part.visualProfile
+      ? { ...part, visualProfile: { ...part.visualProfile, parameters } }
+      : part;
+  });
+
+  if (expression.legPairs === 1) {
+    const removedIds = new Set(
+      blueprint.parts
+        .filter(part => part.id.includes('front') && part.roles?.includes('leg'))
+        .map(part => part.id),
+    );
+    blueprint = {
+      parts: blueprint.parts.filter(part => !removedIds.has(part.id)),
+      joints: blueprint.joints.filter(joint =>
+        !removedIds.has(joint.parentPartId) && !removedIds.has(joint.childPartId)),
+    };
   }
 
   /*

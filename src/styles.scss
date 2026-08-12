@@ -147,6 +147,15 @@ input,
 select,
 textarea {
   font: inherit;
+  /*
+   * A control does not inherit colour by default — it takes the UA's
+   * `buttontext`, which follows the browser's theme rather than ours. Since
+   * every control here pins its background from the palette, leaving the text
+   * to the UA lets a dark-themed browser paint dark text on a light button and
+   * lose the label. This is read on managed Chromebooks whose theme we do not
+   * control, so it cannot be left to chance.
+   */
+  color: inherit;
 }
 
 button,

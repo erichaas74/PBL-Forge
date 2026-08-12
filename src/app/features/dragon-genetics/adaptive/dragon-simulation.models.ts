@@ -117,12 +117,18 @@ export interface DragonStudentOverride {
   simulationLevels?: Partial<Record<DragonSimulationId, InstructionLevel>>;
 }
 
+export interface AlleleCatalogSetting {
+  /** Gene records the teacher has released to this assignment. */
+  availableGeneIds: string[];
+}
+
 export interface DragonAssignment {
   id: string;
   ownerId: string;
   classId: string;
   title: string;
   defaultLevel: InstructionLevel;
+  alleleCatalog: AlleleCatalogSetting;
   simulationSettings: Partial<Record<DragonSimulationId, DragonSimulationSetting>>;
   studentOverrides: Record<string, DragonStudentOverride>;
   assignmentVersion: number;

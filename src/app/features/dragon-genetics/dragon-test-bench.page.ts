@@ -1,24 +1,27 @@
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { SpecimenTestBenchComponent } from '../../shared/assembly/preview/specimen-test-bench.component';
 import { DRAGON_BENCH_COPY } from './simulation/data/dragon-bench-content';
-import { createDragonBenchBuild } from './simulation/domain/dragon-specimen.profile';
-import { DRAGON_TRAITS, genotypeLabel } from './simulation/domain/dragon-inheritance';
-import { DragonLabGenome, DragonTraitGenotype, DragonTraitId } from './simulation/domain/dragon-lab.models';
+import {
+  DEFAULT_EXPRESSIVE_DRAGON,
+  EXPRESSIVE_DRAGON_TRAITS,
+  DragonSex,
+  ExpressiveDragonProfile,
+  ExpressiveDragonTraitDefinition,
+  ExpressiveDragonTraitId,
+  expressivePhenotype,
+  genotypeChoices,
+  normalizeGenomeForSex,
+  sexChromosomes,
+} from './simulation/domain/dragon-expressive-genome';
+import { DragonTraitGenotype } from './simulation/domain/dragon-lab.models';
+import { createExpressiveDragonBenchBuild } from './simulation/domain/dragon-specimen.profile';
 
 interface GenotypeChoice {
   genotype: DragonTraitGenotype;
   label: string;
 }
 
-/**
- * Build a dragon, then test it — without an opponent.
- *
- * The arena answers "did it win". This page answers the questions that come
- * before that: which attacks does this genotype actually give me, what protects
- * the dragon, and how do those add up. Because it runs no physics, a student can
- * flip one allele and see the consequence immediately, which is the loop that
- * teaches genotype-to-phenotype.
- */
+/** Builds and tests the same procedural dragon assembly used by the lab and arena. */
 @Component({
   selector: 'app-dragon-test-bench-page',
   imports: [SpecimenTestBenchComponent],
@@ -27,51 +30,67 @@ interface GenotypeChoice {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonTestBenchPage {
-  readonly traits = DRAGON_TRAITS;
+  readonly traits = EXPRESSIVE_DRAGON_TRAITS;
   readonly copy = DRAGON_BENCH_COPY;
-
-  readonly genome = signal<DragonLabGenome>({
-    wings: ['W', 'w'],
-    fire: ['F', 'f'],
-    scales: ['S', 's'],
-    horns: ['H', 'h'],
-  });
+  readonly profile = signal<ExpressiveDragonProfile>(cloneProfile(DEFAULT_EXPRESSIVE_DRAGON));
 
   readonly build = computed(() =>
-    createDragonBenchBuild('bench-dragon', this.genome(), { label: 'Your dragon' }));
+    createExpressiveDragonBenchBuild('bench-dragon', this.profile(), {
+      label: `${this.profile().sex === 'female' ? 'Female' : 'Male'} test dragon`,
+    }));
 
   readonly genotypeSummary = computed(() => this.traits
-    .map(trait => `${trait.name} ${genotypeLabel(this.genome()[trait.id])}`)
+    .map(trait => `${trait.name} ${this.genotypeLabel(trait.id)}`)
     .join(' · '));
 
-  /** Homozygous dominant, heterozygous, homozygous recessive — the three cases. */
-  choicesFor(traitId: DragonTraitId): GenotypeChoice[] {
+  choicesFor(trait: ExpressiveDragonTraitDefinition): GenotypeChoice[] {
+    return genotypeChoices(trait, this.profile().sex).map(genotype => ({
+      genotype,
+      label: trait.inheritance === 'x-linked'
+        ? genotype[1] === 'Y'
+          ? `X${genotype[0]}Y`
+          : `X${genotype[0]}X${genotype[1]}`
+        : genotype.join(''),
+    }));
+  }
+
+  isSelected(traitId: ExpressiveDragonTraitId, choice: GenotypeChoice): boolean {
+    return this.profile().genome[traitId].join('|') === choice.genotype.join('|');
+  }
+
+  phenotypeOf(traitId: ExpressiveDragonTraitId): string {
     const trait = this.traits.find(entry => entry.id === traitId);
-    if (!trait) return [];
-
-    const dominant = trait.dominantAllele;
-    const recessive = trait.recessiveAllele;
-    return [
-      { genotype: [dominant, dominant], label: `${dominant}${dominant}` },
-      { genotype: [dominant, recessive], label: `${dominant}${recessive}` },
-      { genotype: [recessive, recessive], label: `${recessive}${recessive}` },
-    ];
+    return trait ? expressivePhenotype(this.profile(), trait) : '';
   }
 
-  isSelected(traitId: DragonTraitId, choice: GenotypeChoice): boolean {
-    return genotypeLabel(this.genome()[traitId]) === choice.label;
+  select(traitId: ExpressiveDragonTraitId, choice: GenotypeChoice): void {
+    this.profile.update(current => ({
+      ...current,
+      genome: { ...current.genome, [traitId]: choice.genotype },
+    }));
   }
 
-  phenotypeOf(traitId: DragonTraitId): string {
-    const trait = this.traits.find(entry => entry.id === traitId);
-    if (!trait) return '';
-    const genotype = this.genome()[traitId];
-    return genotype.includes(trait.dominantAllele)
-      ? trait.dominantPhenotype
-      : trait.recessivePhenotype;
+  selectSex(sex: DragonSex): void {
+    this.profile.update(current => normalizeGenomeForSex(current, sex));
   }
 
-  select(traitId: DragonTraitId, choice: GenotypeChoice): void {
-    this.genome.update(current => ({ ...current, [traitId]: choice.genotype }));
+  sexChromosomes(): 'XX' | 'XY' {
+    return sexChromosomes(this.profile().sex);
   }
+
+  genotypeLabel(traitId: ExpressiveDragonTraitId): string {
+    const pair = this.profile().genome[traitId];
+    return traitId === 'eye-color'
+      ? pair[1] === 'Y' ? `X${pair[0]}Y` : `X${pair[0]}X${pair[1]}`
+      : pair.join('');
+  }
+}
+
+function cloneProfile(profile: ExpressiveDragonProfile): ExpressiveDragonProfile {
+  return {
+    sex: profile.sex,
+    genome: Object.fromEntries(
+      Object.entries(profile.genome).map(([traitId, pair]) => [traitId, [...pair]]),
+    ) as ExpressiveDragonProfile['genome'],
+  };
 }

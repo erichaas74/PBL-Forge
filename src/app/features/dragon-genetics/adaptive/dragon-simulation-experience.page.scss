@@ -18,7 +18,7 @@
 }
 .experience-header {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
   align-items: center;
   gap: 1rem;
   min-height: 4.3rem;
@@ -116,6 +116,54 @@
   border-radius: 0.45rem;
   background: #102632;
   color: white;
+}
+.guide-toggle {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 0.75rem;
+  background: #102632;
+  color: white;
+  font-size: var(--text-sm);
+  font-weight: 850;
+  cursor: pointer;
+}
+.guide-panel {
+  position: fixed;
+  z-index: 90;
+  top: 5.2rem;
+  right: clamp(1rem, 2.4vw, 2.4rem);
+  width: min(28rem, calc(100vw - 2rem));
+  padding: 1rem;
+  border: 1px solid #395965;
+  border-radius: 1rem;
+  background: rgb(9 29 39 / 97%);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 42%);
+  color: #d6e0e4;
+}
+.guide-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.guide-panel header strong {
+  color: white;
+  font-family: var(--font-display);
+}
+.guide-panel header button {
+  border: 0;
+  background: transparent;
+  color: white;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+.guide-panel p,
+.guide-panel li {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.guide-panel ul {
+  margin-bottom: 0;
+  padding-left: 1.2rem;
 }
 .phase-rail {
   display: flex;
@@ -452,6 +500,13 @@
   .experience-header {
     grid-template-columns: auto 1fr auto;
   }
+  .experience-header app-genetics-notebook {
+    justify-self: end;
+  }
+  .guide-toggle {
+    grid-column: 2;
+    justify-self: end;
+  }
   .level-chip {
     padding: 0.25rem;
   }
@@ -497,9 +552,54 @@
   .completion-actions > * {
     text-align: center;
   }
+  .experience-workspace.allele-workspace {
+    height: auto;
+    min-height: 48rem;
+  }
 }
 .visual-stage.allele-stage {
   min-height: 37rem;
+}
+.experience-workspace.allele-workspace {
+  position: relative;
+  display: block;
+  height: calc(100dvh - 7rem);
+  min-height: 43rem;
+}
+.allele-workspace .allele-stage {
+  height: 100%;
+}
+.research-complete {
+  position: absolute;
+  z-index: 12;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: 0.3rem;
+  max-width: 24rem;
+  padding: 0.85rem;
+  border: 1px solid rgb(99 201 150 / 55%);
+  border-radius: 0.8rem;
+  background: rgb(7 28 36 / 94%);
+  box-shadow: 0 16px 44px rgb(0 0 0 / 34%);
+}
+.research-complete span {
+  color: #a8bdc5;
+  font-size: var(--text-sm);
+}
+.research-complete a {
+  color: #83dbad;
+  font-size: var(--text-sm);
+  font-weight: 900;
+  text-decoration: none;
+}
+.empty-allele-catalog {
+  display: grid;
+  min-height: 28rem;
+  place-items: center;
+  border: 1px dashed #39505b;
+  border-radius: 1rem;
+  color: #9db1ba;
 }
 /*
  * The arena is the one stage taller than its grid cell, so it scrolls inside

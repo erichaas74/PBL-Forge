@@ -15,3 +15,8 @@ This folder owns the game-neutral assembly runtime. Features and games may depen
 `AssemblyBlueprint` is the serialized asset. `AssemblyState` adds Garage-only simulation state and must not be stored in the Creation Library.
 
 Games obtain blueprints, moves, and scenarios through `CreationLibraryService`. The Arena is a reusable combat lab; its first registered game-facing consumer is `robot-battle`.
+
+Dragon models cross from the separate Dragon Designer application through a validated,
+versioned `DragonModelPack`. The shared `model-pack/` folder owns that contract and parser; it does
+not own any particular published pack. PBL Forge imports committed JSON from the workspace-level
+`model-packs/` directory at build time.

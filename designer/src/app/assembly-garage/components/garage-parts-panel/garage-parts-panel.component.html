@@ -1,0 +1,169 @@
+@if (showPrimitives()) {
+  <app-garage-accordion heading="Primitive Parts">
+    <div class="button-grid">
+      @for (shape of shapeTypes; track shape) {
+        <button type="button" class="tool-button" (click)="addPart(shape)">
+          <span class="tool-button__label">{{ shape }}</span>
+        </button>
+      }
+    </div>
+  </app-garage-accordion>
+}
+
+@if (carParts().length) {
+  <app-garage-accordion heading="Car Parts" [count]="carParts().length">
+    <div class="button-grid">
+      @for (part of carParts(); track part.id) {
+        <button type="button" class="tool-button" (click)="addCatalogPart(part)">
+          <span class="tool-button__label">{{ part.label }}</span>
+        </button>
+      }
+    </div>
+  </app-garage-accordion>
+}
+
+@if (robotParts().length) {
+  <app-garage-accordion heading="Robot Parts" [count]="robotParts().length">
+    <div class="button-grid">
+      @for (part of robotParts(); track part.id) {
+        <button type="button" class="tool-button" (click)="addCatalogPart(part)">
+          <span class="tool-button__label">{{ part.label }}</span>
+        </button>
+      }
+    </div>
+  </app-garage-accordion>
+}
+
+@if (dragonParts().length) {
+  <app-garage-accordion heading="Dragon Parts" [count]="dragonParts().length">
+    <div class="button-grid">
+      @for (part of dragonParts(); track part.id) {
+        <button type="button" class="tool-button" (click)="addCatalogPart(part)">
+          <span class="tool-button__label">{{ part.label }}</span>
+        </button>
+      }
+    </div>
+  </app-garage-accordion>
+}
+
+<app-garage-accordion
+  heading="Mechanical Joints"
+  [count]="store.jointCount()"
+  [startOpen]="false">
+  <div class="button-grid">
+    @for (joint of jointTypes; track joint) {
+      <button
+        type="button"
+        class="tool-button"
+        [disabled]="!store.canCreateJoint()"
+        (click)="addJoint(joint)">
+        <span class="tool-button__label">{{ joint }}</span>
+      </button>
+    }
+  </div>
+</app-garage-accordion>
+
+<app-garage-accordion heading="Joint Builder" [startOpen]="false">
+  <label class="builder-field">
+    <span>Type</span>
+    <select [value]="store.jointDraft().type" (change)="setDraftType($event)">
+      @for (joint of jointTypes; track joint) {
+        <option [value]="joint">{{ joint }}</option>
+      }
+    </select>
+  </label>
+
+  <label class="builder-field">
+    <span>Parent</span>
+    <select [value]="store.jointDraft().parentPartId ?? ''" (change)="setDraftPart('parent', $event)">
+      @for (part of store.state().parts; track part.id) {
+        <option [value]="part.id">{{ part.shape }} {{ $index + 1 }}</option>
+      }
+    </select>
+  </label>
+
+  <label class="builder-field">
+    <span>Parent snap</span>
+    <select [value]="store.jointDraft().parentSnapId" (change)="setDraftSnap('parent', $event)">
+      @for (snap of store.draftParentSnapPoints(); track snap.id) {
+        <option [value]="snap.id">{{ snap.label }}</option>
+      }
+    </select>
+  </label>
+
+  <label class="builder-field">
+    <span>Child</span>
+    <select [value]="store.jointDraft().childPartId ?? ''" (change)="setDraftPart('child', $event)">
+      @for (part of store.state().parts; track part.id) {
+        <option [value]="part.id" [disabled]="part.id === store.jointDraft().parentPartId">
+          {{ part.shape }} {{ $index + 1 }}
+        </option>
+      }
+    </select>
+  </label>
+
+  <label class="builder-field">
+    <span>Child snap</span>
+    <select [value]="store.jointDraft().childSnapId" (change)="setDraftSnap('child', $event)">
+      @for (snap of store.draftChildSnapPoints(); track snap.id) {
+        <option [value]="snap.id">{{ snap.label }}</option>
+      }
+    </select>
+  </label>
+
+  <div class="axis-grid" aria-label="Joint axis">
+    @for (axis of axes; track axis) {
+      <label>
+        <span>{{ axis }}</span>
+        <input
+          type="number"
+          step="0.1"
+          [value]="store.jointDraft().axis[axis]"
+          (input)="setDraftAxis(axis, $event)" />
+      </label>
+    }
+  </div>
+
+  <button
+    type="button"
+    class="create-button"
+    [disabled]="!store.canCreateJoint()"
+    (click)="store.createJointFromDraft()">
+    Create joint from snaps
+  </button>
+</app-garage-accordion>
+
+<!-- Not an accordion: the tree is how you navigate the build, and it takes the
+     panel's leftover height so it scrolls on its own rather than lengthening it. -->
+<section class="panel-section panel-section--grow" aria-labelledby="tree-heading">
+  <div class="section-title-row">
+    <h2 id="tree-heading">Assembly Tree</h2>
+    <span class="count-pill">{{ store.partCount() }}</span>
+  </div>
+
+  <div class="tree-list">
+    @for (part of store.state().parts; track part.id) {
+      <button
+        type="button"
+        class="tree-item"
+        [class.tree-item--selected]="store.selection().partId === part.id"
+        (click)="store.selectPart(part.id)">
+        <span class="color-swatch" [style.background]="part.color"></span>
+        <span class="tree-item__main">{{ part.label ?? part.shape }}</span>
+        <span class="tree-item__meta">{{ part.mass }} kg</span>
+      </button>
+    }
+
+    @for (joint of store.state().joints; track joint.id) {
+      <button
+        type="button"
+        class="tree-item tree-item--joint"
+        [class.tree-item--selected]="store.selection().jointId === joint.id"
+        (click)="store.selectJoint(joint.id)">
+        <span class="joint-mark"></span>
+        <span class="tree-item__main">{{ joint.type }}</span>
+        <span class="tree-item__meta">joint</span>
+      </button>
+    }
+  </div>
+</section>

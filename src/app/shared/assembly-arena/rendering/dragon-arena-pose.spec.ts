@@ -1,10 +1,10 @@
-import { CLASSIC_DRAGON_TEST_PRESET } from '../../assembly-garage/data/presets/classic-dragon-test';
+import { PUBLISHED_CLASSIC_DRAGON_PRESET } from '../../../data/published-dragon-models';
 import { quaternionFromEuler } from '../../assembly/domain/vector-data';
 import { BattleBodySnapshot } from '../models/arena.models';
 import { buildDragonArenaPose } from './dragon-arena-pose';
 
 describe('buildDragonArenaPose', () => {
-  const blueprint = CLASSIC_DRAGON_TEST_PRESET.state;
+  const blueprint = PUBLISHED_CLASSIC_DRAGON_PRESET.state;
   const corePartId = 'classic-dragon-body';
   const core: BattleBodySnapshot = {
     bodyKey: `red-1:${corePartId}`,

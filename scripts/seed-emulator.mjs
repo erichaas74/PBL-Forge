@@ -186,9 +186,17 @@ try {
         classId: 'default',
         title: 'Dragon Genetics adaptive laboratory',
         defaultLevel: 'grade-7',
+        alleleCatalog: {
+          availableGeneIds: [
+            'wings', 'tail', 'legs',
+            'fire', 'horns', 'claws',
+            'scales', 'body-color', 'crest',
+            'ears', 'fangs', 'spikes'
+          ]
+        },
         simulationSettings: {},
         studentOverrides: {},
-        assignmentVersion: 1,
+        assignmentVersion: 3,
         updatedAtIso: new Date().toISOString(),
         updatedAt: new Date()
       })

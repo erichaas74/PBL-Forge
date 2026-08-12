@@ -51,3 +51,9 @@ Thumbs.db
 
 # Parts-lab working renders (not assets)
 /.parts-bake
+
+# Browser-driver screenshots (working images, not assets)
+/.browse
+
+# Generated mesh briefings (assembled from source on demand)
+/.briefing

@@ -16,6 +16,9 @@ export function cloneAssemblyBlueprint(blueprint: AssemblyBlueprint): AssemblyBl
       visualProfile: part.visualProfile
         ? {
             ...part.visualProfile,
+            parameters: part.visualProfile.parameters
+              ? { ...part.visualProfile.parameters }
+              : undefined,
             scale: part.visualProfile.scale ? cloneVector3(part.visualProfile.scale) : undefined,
             offset: part.visualProfile.offset ? cloneVector3(part.visualProfile.offset) : undefined,
             rotation: part.visualProfile.rotation ? cloneQuaternion(part.visualProfile.rotation) : undefined,

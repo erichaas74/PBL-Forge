@@ -1,16 +1,23 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, isDevMode } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
 import { SessionService } from './core/firebase/session.service';
+import { SpecimenRenderToggleComponent } from './shared/assembly/preview';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, SpecimenRenderToggleComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
 export class App {
+  /**
+   * Specimen plate/render comparison control. Dev builds only — it is an
+   * authoring instrument, not a student setting. Make this `true` to keep it in
+   * a deployed build.
+   */
+  readonly showSpecimenModeToggle = isDevMode();
   readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly currentUrl = toSignal(this.router.events.pipe(

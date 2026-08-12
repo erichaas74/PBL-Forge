@@ -13,7 +13,9 @@
   --vault-ink: #15110d;
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(18rem, 0.72fr) minmax(32rem, 1.28fr);
+  /* Four equal work tracks let each column use its own vertical proportions. */
+  grid-template-rows: auto repeat(4, minmax(0, 1fr));
   gap: 0.65rem;
   height: 100%;
   min-height: 37rem;
@@ -62,16 +64,86 @@ button {
 .gene-selector {
   display: grid;
   grid-template-columns: 1fr;
-  grid-template-rows: repeat(4, minmax(3rem, 1fr)) auto;
+  align-content: start;
   gap: 0.4rem;
   min-height: 0;
   padding: 0.45rem;
+  overflow-y: auto;
   border: 1px solid rgb(240 164 78 / 14%);
   border-radius: 0.85rem;
   background: linear-gradient(165deg, rgb(46 37 28 / 82%), rgb(18 14 11 / 88%));
+  grid-column: 1;
+  grid-row: 2 / span 3;
 }
 
-.gene-selector > button {
+.gene-selector > header {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.3rem 0.3rem 0.45rem;
+  border-bottom: 1px solid rgb(255 255 255 / 9%);
+}
+
+.gene-selector-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.gene-selector-chromosome {
+  width: 100%;
+  min-width: 0;
+}
+
+.gene-selector > header small {
+  color: var(--vault-flame);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.gene-selector > header b {
+  color: #fdf4e6;
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+}
+
+.gene-drawer {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.gene-button-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.gene-button-row .gene-button {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 0.08rem;
+  padding: 0.45rem 0.25rem;
+  text-align: center;
+}
+
+.gene-button-row .gene-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.gene-button-row .gene-button b {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gene-button-row .gene-button b {
+  font-size: var(--text-xs);
+}
+
+.gene-button {
   display: grid;
   grid-template-columns: 1.5rem 1fr auto;
   align-items: center;
@@ -90,13 +162,13 @@ button {
     transform 0.2s ease;
 }
 
-.gene-selector > button:hover:not(:disabled) {
+.gene-button:hover:not(:disabled) {
   border-color: rgb(240 164 78 / 48%);
   color: var(--surface-raised);
   transform: translateX(2px);
 }
 
-.gene-selector > button.active {
+.gene-button.active {
   border-color: var(--vault-flame);
   background: linear-gradient(110deg, rgb(240 164 78 / 16%), rgb(240 164 78 / 4%));
   color: #fdf4e6;
@@ -105,7 +177,7 @@ button {
     0 0 18px rgb(240 164 78 / 8%);
 }
 
-.gene-selector button i {
+.gene-button i {
   display: grid;
   width: 1.45rem;
   height: 1.45rem;
@@ -117,7 +189,7 @@ button {
   font-style: normal;
 }
 
-.gene-selector button span {
+.gene-button span {
   overflow: hidden;
   font-size: var(--text-sm);
   font-weight: 850;
@@ -127,34 +199,23 @@ button {
   white-space: nowrap;
 }
 
-.gene-selector button b {
+.gene-button b {
   font-size: var(--text-base);
 }
 
-.locus-readout {
+.gene-alleles {
   display: grid;
-  align-content: center;
-  min-width: 0;
-  padding: 0.55rem 0.2rem 0.1rem;
-  border-top: 1px solid rgb(255 255 255 / 11%);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.35rem;
+  padding: 0 0.1rem 0.15rem;
 }
 
-.locus-readout small {
-  color: #8e8478;
-  font-size: var(--text-xs);
-  letter-spacing: 0.08em;
-}
-.locus-readout b {
-  color: var(--vault-flame);
-  font-size: var(--text-sm);
-  letter-spacing: 0.09em;
+.gene-alleles .allele-token {
+  min-height: 3.25rem;
 }
 
 .instrument-body {
-  display: grid;
-  grid-template-columns: minmax(8.7rem, 10.5rem) minmax(0, 1fr);
-  gap: 0.65rem;
-  min-height: 0;
+  display: contents;
 }
 
 .allele-vault {
@@ -172,6 +233,8 @@ button {
   transition:
     box-shadow 0.25s ease,
     border-color 0.25s ease;
+  grid-column: 1 / -1;
+  grid-row: 1;
 }
 
 .allele-vault::before,
@@ -243,44 +306,98 @@ button {
   font-style: normal;
 }
 
-.vault-rack {
+.chromosome-rack {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr));
   gap: 0.35rem;
   align-content: center;
   min-height: 0;
 }
 
-.vault-gene {
+.chromosome-selector {
   display: grid;
-  grid-template-columns: 1.35rem repeat(2, minmax(0, 1fr));
-  gap: 0.3rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.55rem;
   align-items: center;
-  opacity: 0.42;
+  min-height: 3.2rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 0.65rem;
+  background: linear-gradient(145deg, #241d16, #15110d 72%);
+  color: #a1978a;
+  cursor: pointer;
   transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.vault-gene.active {
-  opacity: 1;
+.chromosome-selector:hover:not(:disabled) {
+  border-color: rgb(240 164 78 / 50%);
+  color: #fdf4e6;
   transform: translateY(-0.1rem);
 }
-.vault-gene > span {
-  color: #7d7468;
+
+.chromosome-selector.active {
+  border-color: var(--vault-flame);
+  color: #fdf4e6;
+  box-shadow: 0 0 18px rgb(240 164 78 / 14%);
+}
+
+.chromosome-selector > span:last-child {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.chromosome-selector small {
+  color: #8e8478;
   font-size: var(--text-xs);
-  font-weight: 850;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
+  letter-spacing: 0.08em;
+}
+
+.chromosome-selector b {
+  overflow: hidden;
+  color: currentcolor;
+  font-size: var(--text-sm);
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chromosome-icon {
+  position: relative;
+  display: block;
+  width: 1.35rem;
+  height: 2rem;
+}
+
+.chromosome-icon::before,
+.chromosome-icon::after {
+  position: absolute;
+  top: 0;
+  left: 0.48rem;
+  width: 0.38rem;
+  height: 2rem;
+  border: 1px solid rgb(240 164 78 / 65%);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 5%);
+  content: '';
+  transform: rotate(28deg);
+}
+
+.chromosome-icon::after {
+  transform: rotate(-28deg);
 }
 
 .allele-token {
   position: relative;
   display: grid;
-  grid-template-columns: 1.15rem 1fr;
+  grid-template-columns: minmax(6rem, 1fr) auto;
   gap: 0.35rem;
   min-width: 0;
-  min-height: 3.15rem;
+  min-height: 4rem;
   place-items: center;
   padding: 0.3rem 0.35rem;
   overflow: hidden;
@@ -293,6 +410,14 @@ button {
     transform 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
+}
+
+.allele-token-chromosome {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 12rem;
+  justify-self: stretch;
 }
 
 .allele-token:hover:not(:disabled) {
@@ -414,6 +539,112 @@ button {
   --locus-y: 85%;
 }
 
+/* Genome samples run horizontally so A and B stay compact above the canvas. */
+.chromosome-cap {
+  top: 50%;
+  right: 0.5rem;
+  bottom: auto;
+  left: 0.5rem;
+  width: auto;
+  height: 1.15rem;
+  transform: translateY(-50%);
+}
+
+.chromosome-band {
+  top: 1px !important;
+  right: auto;
+  bottom: 1px;
+  height: auto !important;
+  width: 7%;
+}
+
+.chromosome-band.band-one {
+  left: 6%;
+}
+.chromosome-band.band-two {
+  left: 25%;
+  width: 11%;
+}
+.chromosome-band.band-three {
+  left: 45%;
+  width: 8%;
+}
+.chromosome-band.band-four {
+  left: 64%;
+  width: 12%;
+}
+.chromosome-band.band-five {
+  left: 88%;
+}
+
+.centromere {
+  top: -1px;
+  right: auto;
+  bottom: -1px;
+  left: 50%;
+  width: 3px;
+  height: auto;
+  border: 0;
+  border-right: 1px solid #8a5a25;
+  border-left: 1px solid #8a5a25;
+  transform: translateX(-50%);
+}
+
+.chromosome-locus {
+  --locus-x: 20%;
+  top: 0;
+  right: auto;
+  bottom: 0;
+  left: var(--locus-x);
+  width: 1px;
+  height: auto;
+  transform: translateX(-50%);
+}
+
+.chromosome-locus:nth-of-type(3) {
+  --locus-x: 50%;
+}
+.chromosome-locus:nth-of-type(4) {
+  --locus-x: 80%;
+}
+
+.reference-map .chromosome-locus > i,
+.variant-map .chromosome-locus > i {
+  top: 1.45rem;
+  left: 0;
+  width: 1px;
+  height: 1.9rem;
+}
+
+.reference-map .chromosome-locus > i::after,
+.variant-map .chromosome-locus > i::after {
+  top: auto;
+  right: auto;
+  bottom: 0;
+  left: -2px;
+}
+
+.reference-map .chromosome-locus > b,
+.variant-map .chromosome-locus > b {
+  top: 0;
+  left: 0;
+  transform: translateX(-50%);
+}
+
+.reference-map .chromosome-locus > small,
+.variant-map .chromosome-locus > small {
+  top: auto;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.chromosome-locus.active > i {
+  width: 4px;
+  height: 1.9rem;
+}
+
 .allele-vault > footer {
   display: grid;
   grid-template-columns: auto auto 1fr;
@@ -456,6 +687,8 @@ button {
   transition:
     box-shadow 0.25s ease,
     border-color 0.25s ease;
+  grid-column: 2;
+  grid-row: 2 / span 2;
 }
 
 .comparison-header {
@@ -497,7 +730,7 @@ button {
 .genome-pane {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(10.5rem, 1fr) auto;
+  grid-template-rows: auto minmax(4.8rem, 1fr) auto;
   min-width: 0;
   min-height: 0;
   padding: 0.55rem;
@@ -520,6 +753,10 @@ button {
   border: 1px solid rgb(168 145 201 / 12%);
   content: '';
   pointer-events: none;
+}
+
+.genome-pane.sample-loaded {
+  border-color: rgb(240 164 78 / 42%);
 }
 
 .genome-pane > header {
@@ -553,7 +790,7 @@ button {
 
 .pane-visuals {
   display: grid;
-  grid-template-columns: minmax(4.8rem, 0.72fr) minmax(8rem, 1fr);
+  grid-template-columns: minmax(8rem, 1fr);
   align-items: stretch;
   gap: 0.35rem;
   min-width: 0;
@@ -561,7 +798,7 @@ button {
 }
 
 .variant-pane .pane-visuals {
-  grid-template-columns: minmax(8rem, 1fr) minmax(4.8rem, 0.72fr);
+  grid-template-columns: minmax(8rem, 1fr);
 }
 
 .phenotype-preview {
@@ -652,7 +889,7 @@ button {
 .chromosome-view {
   position: relative;
   display: grid;
-  min-height: 5rem;
+  min-height: 4.8rem;
   place-items: center;
 }
 
@@ -712,8 +949,8 @@ button {
 
 .chromosome-map {
   position: relative;
-  width: min(100%, 13.5rem);
-  height: 11.3rem;
+  width: min(100%, 22rem);
+  height: 4.8rem;
 }
 
 .chromosome-cap {
@@ -991,97 +1228,229 @@ button {
 }
 
 .expression-rig {
-  display: grid;
-  grid-template-columns: minmax(9rem, 1.15fr) minmax(2rem, 0.55fr) auto minmax(2rem, 0.55fr) minmax(
-      8rem,
-      1fr
-    );
-  align-items: center;
-  gap: 0.55rem;
-  min-height: 6.35rem;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid rgb(255 255 255 / 9%);
-  border-radius: 0.85rem;
-  background: linear-gradient(90deg, rgb(32 26 20 / 88%), rgb(30 24 19 / 88%));
-  transition:
-    box-shadow 0.25s ease,
-    border-color 0.25s ease;
+  display: contents;
 }
 
-.pair-builder {
+.gene-chart-builder {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border-right: 1px solid rgb(255 255 255 / 9%);
+  grid-column: 1;
+  grid-row: 5;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 0.85rem;
+  background: linear-gradient(145deg, rgb(32 26 20 / 92%), rgb(20 16 12 / 92%));
+}
+
+.gene-chart-builder header {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.35rem 0.65rem;
-  align-items: center;
+  gap: 0.12rem 0.5rem;
 }
-.pair-builder header {
-  display: grid;
-  gap: 0.14rem;
-}
-.pair-builder header small {
+.gene-chart-builder header small {
   color: #8e8478;
   font-size: var(--text-xs);
   letter-spacing: 0.13em;
 }
-.pair-builder header span {
+.gene-chart-builder header strong {
   color: var(--vault-gold);
-  font-size: var(--text-xs);
-  font-weight: 850;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
   letter-spacing: 0.08em;
 }
-.pair-builder header span.complete {
-  color: #74d9a5;
-}
-.allele-sockets {
-  display: flex;
-  gap: 0.4rem;
+
+.gene-chart-builder header span {
+  grid-column: 1 / -1;
+  color: #8e8478;
+  font-size: var(--text-xs);
 }
 
-.allele-socket {
-  position: relative;
+.trait-assignment {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.35rem;
-  width: 3.75rem;
-  height: 4.2rem;
+  gap: 0.3rem;
+  color: #a1978a;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+}
+
+.trait-assignment select {
+  min-width: 0;
+  min-height: 2.35rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 0.5rem;
+  background: #17130f;
+  color: #fdf4e6;
+  font: inherit;
+}
+
+.trait-assignment select:focus-visible,
+.claim-allele-zone:focus-visible,
+.save-gene-record:focus-visible {
+  outline: 2px solid var(--vault-gold);
+  outline-offset: 2px;
+}
+
+.claim-allele-zones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.claim-allele-zone {
+  display: grid;
+  min-height: 4.2rem;
   place-items: center;
-  padding: 0.3rem;
+  padding: 0.4rem;
   border: 1px dashed rgb(168 145 201 / 45%);
   border-radius: 0.55rem;
-  background: linear-gradient(145deg, rgb(168 145 201 / 12%), rgb(21 17 13 / 80%) 70%);
-  color: #ece5f2;
+  background: rgb(168 145 201 / 6%);
+  color: #a1978a;
   cursor: pointer;
 }
 
-.allele-socket::before {
-  position: absolute;
-  inset: -0.26rem;
-  border: 1px solid rgb(168 145 201 / 15%);
-  border-radius: 0.7rem;
-  content: '';
+.claim-allele-zone.filled {
+  border-style: solid;
+  border-color: var(--vault-flame);
+  background: rgb(240 164 78 / 10%);
 }
 
-.allele-socket.dominant {
-  border-color: rgb(240 164 78 / 62%);
-  background: radial-gradient(circle, rgb(240 164 78 / 12%), rgb(21 17 13 / 80%) 65%);
+.claim-allele-zone small {
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+}
+
+.claim-allele-zone strong {
   color: #fdf4e6;
-}
-.allele-socket > b {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1.15rem;
 }
-.allele-socket > small {
-  position: absolute;
-  bottom: 0.2rem;
+
+.save-gene-record {
+  min-height: 2.45rem;
+  border: 1px solid var(--vault-flame);
+  border-radius: 0.52rem;
+  background: rgb(240 164 78 / 13%);
+  color: #fbeed2;
+  font-size: var(--text-xs);
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+}
+
+.save-gene-record:disabled,
+.claim-allele-zone:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.claim-status {
+  margin: 0;
+  color: #e8c27a;
+  font-size: var(--text-xs);
+  line-height: 1.35;
+}
+
+.claim-status.saved {
+  color: #74d9a5;
+}
+
+.phenotype-chamber {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  padding: 0.65rem;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 0.85rem;
+  background: linear-gradient(145deg, rgb(32 26 20 / 92%), rgb(20 16 12 / 92%));
+  grid-column: 2;
+  grid-row: 4 / span 2;
+}
+
+.phenotype-side-header {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.phenotype-side-header > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.phenotype-side-header small {
+  color: #8e8478;
+  font-size: var(--text-xs);
+  letter-spacing: 0.13em;
+}
+
+.phenotype-side-header strong {
+  color: var(--vault-flame);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.sex-selector {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem;
+}
+
+.sex-selector button {
+  min-height: 2rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 0.48rem;
+  background: rgb(21 17 13 / 74%);
+  color: #a1978a;
+  cursor: pointer;
+}
+
+.sex-selector button span {
   color: #7d7468;
   font-size: var(--text-xs);
 }
-.allele-socket.charged {
-  animation: socket-charge 0.55s ease-out;
+
+.sex-selector button:hover:not(:disabled),
+.sex-selector button.active {
+  border-color: var(--vault-flame);
+  color: #fdf4e6;
 }
 
-.socket-chromosome {
-  height: 2.8rem;
+.sex-selector button:focus-visible {
+  outline: 2px solid var(--vault-gold);
+  outline-offset: 2px;
+}
+
+.phenotype-stage {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  min-width: 0;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.phenotype-stage app-specimen-viewport {
+  --viewport-edge: rgb(240 164 78 / 25%);
+  --viewport-surface: #17130f;
+  --viewport-ink: #fdf4e6;
+  --viewport-muted: #a1978a;
+  --viewport-accent: var(--vault-flame);
+  --viewport-min-height: 0;
+  --viewport-aspect-ratio: auto;
+  --viewport-height: 100%;
+  --viewport-stage-background:
+    radial-gradient(circle at 50% 46%, rgb(168 145 201 / 10%), transparent 42%),
+    linear-gradient(165deg, #211a14, #110e0b);
+
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
 }
 
 .expression-conduit {
@@ -1324,28 +1693,9 @@ button {
 @media (max-width: 1050px) {
   .gene-selector {
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(4, minmax(3rem, 1fr));
   }
-  .locus-readout {
-    display: none;
-  }
-  .gene-selector button span {
-    display: none;
-  }
-  .gene-selector > button {
-    grid-template-columns: auto 1fr;
-  }
-  .pair-builder {
-    grid-template-columns: auto 1fr;
-  }
-  .pair-builder header span {
-    display: none;
-  }
-  .expression-rig {
-    grid-template-columns: minmax(8rem, 1fr) minmax(1rem, 0.35fr) auto minmax(1rem, 0.35fr) minmax(
-        7rem,
-        0.8fr
-      );
+  .gene-button {
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 }
 
@@ -1356,10 +1706,8 @@ button {
     min-height: 48rem;
   }
   .allele-instrument {
-    grid-template-rows: auto auto auto auto;
-  }
-  .instrument-body {
-    grid-template-columns: minmax(4.75rem, 5.5rem) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto;
   }
   .allele-vault {
     grid-template-columns: auto 1fr auto;
@@ -1372,15 +1720,9 @@ button {
     border: 0;
     border-right: 1px solid rgb(255 255 255 / 7%);
   }
-  .vault-rack {
+  .chromosome-rack {
     grid-template-columns: repeat(4, minmax(4rem, 1fr));
     padding: 0 0.35rem;
-  }
-  .vault-gene {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .vault-gene > span {
-    display: none;
   }
   .allele-token {
     aspect-ratio: auto;
@@ -1390,13 +1732,43 @@ button {
     display: none;
   }
   .comparison-deck {
+    grid-column: 1;
+    grid-row: 4;
+    min-height: 0;
+  }
+  .gene-selector {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .gene-chart-builder {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .phenotype-chamber {
+    grid-column: 1;
+    grid-row: 5;
     min-height: 22rem;
   }
-  .expression-rig {
-    grid-template-columns: minmax(7.5rem, 1fr) 1.2rem auto 1.2rem minmax(6.5rem, 1fr);
+  .split-screen {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.45rem;
   }
-  .phenotype-result > span {
-    display: none;
+  .reference-pane,
+  .variant-pane {
+    border-radius: 0.65rem;
+  }
+  .swap-comparison {
+    width: 2rem;
+    height: 2rem;
+    transform: rotate(90deg);
+  }
+  .swap-comparison:hover:not(:disabled) {
+    transform: rotate(270deg);
+  }
+  .phenotype-stage app-specimen-viewport {
+    --viewport-aspect-ratio: 16 / 11;
+    --viewport-height: auto;
+    height: auto;
   }
 }
 
@@ -1407,18 +1779,19 @@ button {
   }
   .gene-selector {
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(4, minmax(3rem, 1fr));
   }
-  .gene-selector > button {
-    display: grid;
-    grid-template-columns: 1fr;
-    padding: 0.4rem;
-  }
-  .gene-selector button i {
+  .gene-selector > header strong {
     display: none;
   }
-  .instrument-body {
-    grid-template-columns: 3.2rem minmax(0, 1fr);
+  .gene-alleles {
+    grid-template-columns: 1fr;
+  }
+  .gene-alleles .allele-token {
+    grid-template-columns: 1fr;
+    min-height: 3.4rem;
+  }
+  .gene-alleles .allele-token > b {
+    justify-self: center;
   }
   .allele-vault {
     grid-template-columns: 1fr;
@@ -1429,25 +1802,29 @@ button {
     border: 0;
     border-bottom: 1px solid rgb(255 255 255 / 7%);
   }
-  .vault-rack {
+  .chromosome-rack {
     grid-template-columns: repeat(4, 1fr);
   }
-  .vault-gene {
+  .chromosome-selector {
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(2, minmax(2.65rem, 1fr));
+    justify-items: center;
+    padding: 0.35rem;
+  }
+  .chromosome-selector > span:last-child {
+    justify-items: center;
   }
   .split-screen {
-    grid-template-columns: minmax(0, 1fr) 1.7rem minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
   .genome-pane {
     padding: 0.4rem;
   }
   .pane-visuals {
-    grid-template-columns: minmax(2.8rem, 0.55fr) minmax(5.5rem, 1fr);
+    grid-template-columns: minmax(5.5rem, 1fr);
     gap: 0.1rem;
   }
   .variant-pane .pane-visuals {
-    grid-template-columns: minmax(5.5rem, 1fr) minmax(2.8rem, 0.55fr);
+    grid-template-columns: minmax(5.5rem, 1fr);
   }
   .phenotype-preview {
     grid-template-rows: minmax(3.2rem, 1fr) auto;
@@ -1469,22 +1846,17 @@ button {
   .sequence-strip {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
-  .expression-rig {
-    grid-template-columns: 1fr auto 1fr;
+  .gene-chart-builder {
+    padding-bottom: 0.65rem;
+    border-right: 0;
+    border-bottom: 1px solid rgb(255 255 255 / 9%);
   }
-  .expression-conduit {
-    display: none;
+  .phenotype-side-header {
+    grid-template-columns: auto 1fr;
+    align-items: center;
   }
-  .pair-builder {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-  .pair-builder header {
-    text-align: center;
-  }
-  .phenotype-result {
-    justify-items: center;
-    text-align: center;
+  .sex-selector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

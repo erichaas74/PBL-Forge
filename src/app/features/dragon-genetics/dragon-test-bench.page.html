@@ -11,13 +11,32 @@
   <section class="bench-page__genome" aria-labelledby="genome-heading">
     <h2 class="bench-page__section-title" id="genome-heading">Genotype</h2>
 
+    <section class="sex-model" aria-labelledby="sex-model-heading">
+      <div>
+        <span>Modeled sex chromosomes</span>
+        <strong id="sex-model-heading">{{ profile().sex === 'female' ? 'Female dragon' : 'Male dragon' }} · {{ sexChromosomes() }}</strong>
+        <small>This fictional dragon population uses an XX/XY model. Real organisms use many different sex-determination systems.</small>
+      </div>
+      <div class="sex-model__choices" role="group" aria-label="Dragon sex">
+        <button type="button" [class.active]="profile().sex === 'female'" [attr.aria-pressed]="profile().sex === 'female'" (click)="selectSex('female')">Female · XX</button>
+        <button type="button" [class.active]="profile().sex === 'male'" [attr.aria-pressed]="profile().sex === 'male'" (click)="selectSex('male')">Male · XY</button>
+      </div>
+    </section>
+
     <div class="bench-page__genes">
       @for (trait of traits; track trait.id) {
-        <fieldset class="gene">
+        <fieldset
+          class="gene"
+          [class.gene--sex-linked]="trait.inheritance === 'x-linked'"
+          [class.gene--incomplete]="trait.inheritance === 'incomplete-dominance'"
+        >
           <legend class="gene__name">{{ trait.name }}</legend>
+          <small class="gene__chromosome">
+            {{ trait.chromosome }}{{ trait.inheritance === 'x-linked' ? ' · SEX-LINKED' : trait.inheritance === 'incomplete-dominance' ? ' · INCOMPLETE DOMINANCE' : '' }}
+          </small>
 
           <div class="gene__choices" role="group" [attr.aria-label]="trait.name + ' genotype'">
-            @for (choice of choicesFor(trait.id); track choice.label) {
+            @for (choice of choicesFor(trait); track choice.label) {
               <button
                 type="button"
                 class="gene__choice"

@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out-tsc/dragon-designer",
+    "types": []
+  },
+  "include": [
+    "src/**/*.ts",
+    "../src/app/shared/assembly/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "../src/**/*.spec.ts"
+  ]
+}
+

@@ -12,12 +12,11 @@
 
   <div class="bench__body">
     <div class="bench__stage-column">
-      <div
-        #stage
-        class="bench__stage"
-        role="img"
-        [attr.aria-label]="(descriptor()?.label ?? 'Creation') + ' — drag to turn'"
-      ></div>
+      <app-specimen-viewport
+        #viewport
+        [source]="source()"
+        [ariaLabel]="descriptor()?.label ?? 'Creation'"
+      />
 
       @if (!renderingAvailable) {
         <p class="bench__note">
@@ -28,7 +27,7 @@
           @if (activeAbility()) {
             Playing the move on the model.
           } @else {
-            Pick a move to see it performed. Drag the model to turn it.
+            Drag to turn the model. Use zoom to inspect details such as the frill membrane.
           }
         </p>
       }

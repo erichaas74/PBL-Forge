@@ -1,4 +1,4 @@
-import { PINEWOOD_DERBY_CAR_PRESET } from '../../assembly-garage/data/presets/pinewood-derby-car';
+import { PINEWOOD_DERBY_CAR_PRESET } from '../../assembly/assets/pinewood-derby-car';
 import { TEST_SCENARIO_CATALOG } from './test-scenario-catalog';
 
 describe('TEST_SCENARIO_CATALOG', () => {

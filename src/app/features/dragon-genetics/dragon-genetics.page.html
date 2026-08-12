@@ -22,23 +22,17 @@
         <i [style.width.%]="progressPercent()"></i>
       </div>
       <small>{{ store.assignment().title }}</small>
-      <!--
-        Authoring control, not a student setting: flips every specimen tile in
-        the lab between the drawn plate and the baked 3D render so the two can
-        be compared. Move or remove it once the plate is settled.
-      -->
-      <app-specimen-render-toggle class="specimen-mode" />
     </aside>
   </header>
 
   <main>
     <section class="reference-workstation" aria-labelledby="reference-workstation-heading">
       <div>
-        <span class="eyebrow">Reference laboratory workstation</span>
-        <h2 id="reference-workstation-heading">Operate the rebuilt Allele Workbench</h2>
-        <p>Select and secure sample EX-W-104, locate gene W on chromosome 5, configure Ww, run the expression analyzer, interpret its data, and save the evidence record.</p>
+        <span class="eyebrow">Student investigation workstation</span>
+        <h2 id="reference-workstation-heading">Build the genetics database</h2>
+        <p>Test released allele samples in any order, record expression evidence, and verify what each gene codes for.</p>
       </div>
-      <a routerLink="/dragon-genetics/allele-workbench-reference">Launch reference workstation →</a>
+      <a routerLink="/dragon-genetics/allele-workbench">Launch Allele Workstation →</a>
     </section>
 
     <div class="map-heading">

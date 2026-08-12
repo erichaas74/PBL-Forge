@@ -17,10 +17,12 @@ import { DragonBattleResult, StudentDragonRecord } from '../dragon-genetics.mode
 import { DRAGON_TRAITS, genotypeLabel } from '../simulation/domain/dragon-inheritance';
 import { AlleleVaultWorkbenchComponent } from './allele-workbench/allele-vault-workbench.component';
 import {
+  ALLELE_VAULT_ALLELES,
   ALLELE_VAULT_GENES,
+  AlleleClaimFeedback,
   AlleleWorkbenchInteraction,
-  AlleleWorkbenchQuestionInput,
 } from './allele-workbench/allele-vault.models';
+import { GeneticsNotebookComponent } from './allele-workbench/genetics-notebook.component';
 import { DragonAdaptiveStore } from './dragon-adaptive.store';
 import {
   GeneratedSimulationQuestion,
@@ -42,6 +44,7 @@ import { DragonSimulationVisualComponent } from './dragon-simulation-visual.comp
     RouterLink,
     DragonSimulationVisualComponent,
     AlleleVaultWorkbenchComponent,
+    GeneticsNotebookComponent,
     DragonDnaRepairLabComponent,
     DragonArenaComponent,
   ],
@@ -92,34 +95,13 @@ export class DragonSimulationExperiencePage {
       null
     );
   });
-  readonly alleleWorkbenchQuestion = computed<AlleleWorkbenchQuestionInput | null>(() => {
-    const definition = this.definition();
-    const currentQuestion = this.question();
-    const currentRun = this.run();
-    if (definition?.id !== 'allele-workbench' || !currentQuestion || !currentRun) return null;
-    const gene = ALLELE_VAULT_GENES[currentRun.currentQuestionIndex % ALLELE_VAULT_GENES.length];
-    const [dominantId, recessiveId] = gene.alleleIds;
-    const highlightByPhase: Record<
-      typeof currentQuestion.phase,
-      AlleleWorkbenchQuestionInput['highlight']
-    > = {
-      observe: 'vault',
-      predict: 'comparison',
-      manipulate: 'pair',
-      explain: 'expression',
-    };
-    const requestedPairIds: readonly [string, string] =
-      currentQuestion.phase === 'manipulate'
-        ? [recessiveId, recessiveId]
-        : [dominantId, recessiveId];
-    return {
-      id: currentQuestion.id,
-      focusGeneId: gene.id,
-      startingPairIds: [dominantId, recessiveId],
-      requestedPairIds,
-      comparisonAlleleIds: [dominantId, recessiveId],
-      highlight: highlightByPhase[currentQuestion.phase],
-    };
+  readonly availableAlleleGenes = computed(() => {
+    const available = new Set(this.store.availableAlleleGeneIds());
+    return ALLELE_VAULT_GENES.filter((gene) => available.has(gene.id));
+  });
+  readonly availableAlleles = computed(() => {
+    const available = new Set(this.availableAlleleGenes().map((gene) => gene.id));
+    return ALLELE_VAULT_ALLELES.filter((allele) => available.has(allele.geneId));
   });
   readonly dnaLabFocusQuestionId = computed(() => {
     const definition = this.definition();
@@ -199,6 +181,8 @@ export class DragonSimulationExperiencePage {
   });
   readonly selectedNodeId = signal<string | null>(null);
   readonly hintOpen = signal(false);
+  readonly guideOpen = signal(false);
+  readonly alleleClaimFeedback = signal<AlleleClaimFeedback | null>(null);
   readonly levels = INSTRUCTION_LEVELS;
   readonly levelLabels = INSTRUCTION_LEVEL_LABELS;
   readonly levelProfiles = LEVEL_PROFILES;
@@ -212,7 +196,9 @@ export class DragonSimulationExperiencePage {
       }
       this.selectedNodeId.set(null);
       this.hintOpen.set(false);
+      this.guideOpen.set(false);
       this.arenaTrial.set(null);
+      this.alleleClaimFeedback.set(null);
       void this.store.prepareRun(definition);
     });
   }
@@ -239,7 +225,28 @@ export class DragonSimulationExperiencePage {
   }
 
   handleAlleleWorkbenchInteraction(event: AlleleWorkbenchInteraction): void {
-    if (event.semanticTargetId) this.selectNode(event.semanticTargetId);
+    if (event.type === 'expression-run' && event.pairIds && event.phenotype) {
+      this.store.recordAlleleExperiment(event.geneId, event.pairIds, event.phenotype);
+      return;
+    }
+    if (
+      event.type === 'discovery-claim'
+      && event.traitId
+      && event.dominantAlleleId
+      && event.recessiveAlleleId
+    ) {
+      const status = this.store.submitAlleleDiscovery(
+        event.geneId,
+        event.traitId,
+        event.dominantAlleleId,
+        event.recessiveAlleleId,
+      );
+      this.alleleClaimFeedback.set({
+        geneId: event.geneId,
+        status,
+        revision: (this.alleleClaimFeedback()?.revision ?? 0) + 1,
+      });
+    }
   }
 
   answer(question: GeneratedSimulationQuestion, optionId: string): void {

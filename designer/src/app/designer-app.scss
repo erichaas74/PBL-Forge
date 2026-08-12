@@ -1,0 +1,60 @@
+// The Garage pins its workspace to the space below this header, so the header
+// has to be the height it claims to be rather than leaving the page a few
+// stray pixels of scroll. Below 540px the header stacks and grows past this,
+// and the Garage drops back to normal page flow well before that width.
+:host { display: block; min-height: 100vh; --navbar-height: 64px; }
+
+.designer-shell__header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: var(--navbar-height);
+  box-sizing: border-box;
+  padding: 0.7rem clamp(1rem, 3vw, 2rem);
+  border-bottom: 1px solid var(--line-dark);
+  background: rgb(26 37 44 / 96%);
+  color: var(--on-dark);
+  backdrop-filter: blur(10px);
+}
+
+.designer-shell__brand {
+  display: grid;
+  color: inherit;
+  text-decoration: none;
+
+  span {
+    color: var(--on-dark-muted);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  strong { font-family: var(--font-display); font-size: 1.15rem; }
+}
+
+nav { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+nav a {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  color: var(--on-dark-muted);
+  text-decoration: none;
+  font-weight: 700;
+
+  &:hover, &.active {
+    border-color: var(--stone);
+    color: var(--on-dark);
+  }
+}
+
+main { min-width: 0; }
+
+@media (max-width: 540px) {
+  .designer-shell__header { align-items: flex-start; flex-direction: column; }
+}
+

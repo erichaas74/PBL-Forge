@@ -9,14 +9,14 @@
  * that stops it happening again.
  *
  * The rule: no literal font-size below --text-xs (0.75rem / 12px). Use the
- * scale tokens in src/styles.scss instead. If a layout seems to need smaller
+ * scale tokens in the owning application's global stylesheet instead. If a layout seems to need smaller
  * type, the layout is too dense — fix the layout.
  *
  * SVG `font-size` in user units is deliberately NOT checked: it scales with the
  * viewBox, so the rendered size depends on the container and no static
  * threshold is meaningful. Those carry a comment recording the effective size.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 /** Matches literal rem/px font sizes; var(--token) and clamp() pass through. */
@@ -26,12 +26,12 @@ const PX = /font-size:\s*(\d+(?:\.\d+)?)px/g;
 const MIN_REM = 0.75;
 const MIN_PX = 12;
 
-const files = execSync('git ls-files "src/*.scss" "src/*.css" "src/**/*.scss" "src/**/*.css"', {
+const files = execSync('git ls-files --cached --others --exclude-standard "src/*.scss" "src/*.css" "src/**/*.scss" "src/**/*.css" "designer/*.scss" "designer/*.css" "designer/**/*.scss" "designer/**/*.css"', {
   encoding: 'utf8',
 })
   .split('\n')
   .map(line => line.trim())
-  .filter(Boolean);
+  .filter(file => Boolean(file) && existsSync(file));
 
 const violations = [];
 

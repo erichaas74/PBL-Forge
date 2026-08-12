@@ -83,6 +83,8 @@ export interface AssemblyVisualProfile {
   meshType: AssemblyVisualMeshType;
   materialId?: string;
   assetId?: string;
+  /** Per-specimen procedural controls. Unlike the Parts Lab style override, these travel with one dragon. */
+  parameters?: Record<string, string | number | boolean>;
   scale?: Vector3Data;
   offset?: Vector3Data;
   rotation?: QuaternionData;
@@ -91,6 +93,12 @@ export interface AssemblyVisualProfile {
 /** A persistent physical part. Runtime health and damage belong in a game session. */
 export interface AssemblyPart {
   id: string;
+  /**
+   * Catalog part this was stamped from. Authoring metadata: it lets the Garage
+   * write a tuned size back to the definition it came from. Published model
+   * packs drop it, because a pack is read by the renderer, not the designer.
+   */
+  definitionId?: string;
   label?: string;
   roles?: AssemblyPartRole[];
   shape: ShapeType;

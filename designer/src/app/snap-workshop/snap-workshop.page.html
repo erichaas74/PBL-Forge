@@ -1,0 +1,188 @@
+<section class="shop" aria-labelledby="shop-title">
+  <header class="shop__header">
+    <div class="shop__title-group">
+      <span class="shop__eyebrow">Independent Lab</span>
+      <h1 id="shop-title">Snap Workshop</h1>
+    </div>
+
+    <div class="shop__families" role="group" aria-label="Part family">
+      @for (option of families; track option) {
+        <button
+          type="button"
+          class="shop__chip"
+          [class.shop__chip--active]="family() === option"
+          (click)="setFamily(option)">
+          {{ option }}
+        </button>
+      }
+    </div>
+
+    <p class="shop__lede">
+      Sockets decide where parts meet. Drag one, or dial it in per axis. Saved to the local
+      designer draft, so the <a routerLink="/dragon-garage">Assembly Garage</a> stamps and
+      rebuilds with it.
+    </p>
+  </header>
+
+  <div class="shop__body">
+    <aside class="shop__panel" aria-label="Parts with sockets">
+      <h2 class="shop__panel-title">Parts</h2>
+
+      @if (definitions().length) {
+        <ul class="part-list">
+          @for (definition of definitions(); track definition.id) {
+            <li>
+              <button
+                type="button"
+                class="part-list__item"
+                [class.part-list__item--active]="authored()?.id === definition.id"
+                (click)="selectPart(definition)">
+                <span class="part-list__label">{{ definition.label }}</span>
+                <span class="part-list__count">{{ definition.snapPoints.length }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="shop__empty">No parts in this family author sockets.</p>
+      }
+    </aside>
+
+    <div class="shop__stage-wrap">
+      <div
+        #stage
+        class="shop__stage"
+        aria-label="Snap point workshop 3D viewport"
+        (pointerdown)="onPointerDown($event)"
+        (pointermove)="onPointerMove($event)"
+        (pointerup)="onPointerUp($event)"
+        (pointercancel)="onPointerUp($event)"></div>
+
+      <div class="shop__stage-bar">
+        <div class="shop__drag-axis" role="group" aria-label="Constrain drag to an axis">
+          <span class="shop__drag-label">Drag</span>
+          @for (axis of dragAxes; track axis) {
+            <button
+              type="button"
+              class="shop__chip"
+              [class.shop__chip--active]="dragAxis() === axis"
+              [attr.aria-pressed]="dragAxis() === axis"
+              (click)="setDragAxis(axis)">
+              {{ axis }}
+            </button>
+          }
+        </div>
+
+        <p class="shop__stage-hint">
+          A marker follows the cursor in the screen plane, so it moves the same way from any
+          angle. Pick an axis to pin the other two. Drag the background to orbit.
+        </p>
+      </div>
+    </div>
+
+    <aside class="shop__panel" aria-label="Socket inspector">
+      @if (tuned(); as part) {
+        <div class="shop__panel-head">
+          <h2 class="shop__panel-title">{{ part.label }}</h2>
+          @if (movedCount()) {
+            <button type="button" class="shop__reset" (click)="resetAll()">
+              Reset {{ movedCount() }}
+            </button>
+          }
+        </div>
+
+        <ul class="socket-list">
+          @for (socket of sockets(); track socket.definition.id) {
+            <li>
+              <button
+                type="button"
+                class="socket-list__item"
+                [class.socket-list__item--active]="selectedSocket()?.definition?.id === socket.definition.id"
+                (click)="selectSocket(socket.definition.id)">
+                <span class="socket-list__label">{{ socket.definition.label }}</span>
+                @if (socket.moved) {
+                  <span class="socket-list__badge">moved</span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+
+        @if (selectedSocket(); as socket) {
+          <div class="socket-editor">
+            <div class="socket-editor__head">
+              <h3>{{ socket.definition.label }}</h3>
+              <button
+                type="button"
+                class="shop__reset"
+                [disabled]="!socket.moved"
+                (click)="resetSocket()">
+                Reset
+              </button>
+            </div>
+
+            <dl class="socket-editor__meta">
+              <div><dt>Id</dt><dd>{{ socket.definition.id }}</dd></div>
+              <div><dt>Mates</dt><dd>{{ mateLabel(socket) }}</dd></div>
+            </dl>
+
+            @for (axis of axes; track axis) {
+              <div class="socket-editor__axis">
+                <label class="socket-editor__slider">
+                  <span>{{ axis }}</span>
+                  <input
+                    type="range"
+                    [min]="-axisLimit()"
+                    [max]="axisLimit()"
+                    step="0.005"
+                    [value]="axisValue(axis)"
+                    (input)="setAxis(axis, $event)" />
+                </label>
+
+                <div class="socket-editor__exact">
+                  <button
+                    type="button"
+                    class="socket-editor__nudge"
+                    [attr.aria-label]="'Nudge ' + axis + ' down'"
+                    (click)="nudge(axis, -1)">−</button>
+                  <input
+                    type="number"
+                    step="0.005"
+                    [value]="axisValue(axis)"
+                    (input)="setAxis(axis, $event)" />
+                  <button
+                    type="button"
+                    class="socket-editor__nudge"
+                    [attr.aria-label]="'Nudge ' + axis + ' up'"
+                    (click)="nudge(axis, 1)">+</button>
+                </div>
+              </div>
+            }
+
+            <p class="shop__hint">
+              Part-local metres from the part's centre, unrotated — the same numbers the
+              definition holds. Authored: {{ socket.authored.x }}, {{ socket.authored.y }},
+              {{ socket.authored.z }}.
+            </p>
+          </div>
+        }
+
+        <div class="snippet">
+          <div class="snippet__head">
+            <h3>Back into source</h3>
+            <button type="button" class="shop__reset" (click)="copySnippet()">
+              {{ copied() ? 'Copied' : 'Copy' }}
+            </button>
+          </div>
+          <pre class="snippet__code">{{ snippet() }}</pre>
+          <p class="shop__hint">
+            The draft is local to this browser. Paste this into
+            <code>assembly-part-definitions.ts</code> to make it the authored part.
+          </p>
+        </div>
+      } @else {
+        <p class="shop__empty">Select a part to edit its sockets.</p>
+      }
+    </aside>
+  </div>
+</section>

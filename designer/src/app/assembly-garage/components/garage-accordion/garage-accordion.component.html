@@ -1,0 +1,20 @@
+<div class="accordion" [class.accordion--open]="open()">
+  <div class="accordion__heading" role="heading" [attr.aria-level]="level()">
+    <button
+      type="button"
+      class="accordion__trigger"
+      [attr.aria-expanded]="open()"
+      [attr.aria-controls]="bodyId"
+      (click)="toggle()">
+      <span class="accordion__chevron" aria-hidden="true"></span>
+      <span class="accordion__label">{{ heading() }}</span>
+      @if (count() !== null) {
+        <span class="count-pill">{{ count() }}</span>
+      }
+    </button>
+  </div>
+
+  <div class="accordion__body" [id]="bodyId" [hidden]="!open()">
+    <ng-content />
+  </div>
+</div>

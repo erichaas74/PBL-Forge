@@ -1,4 +1,7 @@
-import { ASSEMBLY_PRESETS } from '../../assembly-garage/data/presets/assembly-presets';
+import { PUBLISHED_CLASSIC_DRAGON_PRESET } from '../../../data/published-dragon-models';
+import { CAR_LOAD_PRESET } from '../../assembly/assets/car-load';
+import { PINEWOOD_DERBY_CAR_PRESET } from '../../assembly/assets/pinewood-derby-car';
+import { ROBOT_LOAD_PRESET } from '../../assembly/assets/robot-load';
 import { AssemblyPreset } from '../../assembly/domain/assembly.models';
 import { normalizeAssemblyRoles } from '../../assembly/domain/assembly-clone';
 import { createDefaultCombatProfile } from '../../assembly/combat/assembly-combat.models';
@@ -14,7 +17,14 @@ import { CreationTestScenarioDefinition } from '../models/test-scenario.models';
 
 const BUILT_IN_TIMESTAMP = '2026-05-24T00:00:00.000Z';
 
-export const BUILT_IN_ASSEMBLY_ASSETS = ASSEMBLY_PRESETS.map(toBuiltInAssemblyAsset);
+const BUILT_IN_ASSEMBLY_PRESETS = [
+  ROBOT_LOAD_PRESET,
+  CAR_LOAD_PRESET,
+  PINEWOOD_DERBY_CAR_PRESET,
+  PUBLISHED_CLASSIC_DRAGON_PRESET,
+];
+
+export const BUILT_IN_ASSEMBLY_ASSETS = BUILT_IN_ASSEMBLY_PRESETS.map(toBuiltInAssemblyAsset);
 export const BUILT_IN_ATTACK_MOVE_ASSETS = ATTACK_MOVE_CATALOG.map(toBuiltInAttackMoveAsset);
 export const BUILT_IN_TEST_SCENARIO_ASSETS = TEST_SCENARIO_CATALOG.map(toBuiltInTestScenarioAsset);
 

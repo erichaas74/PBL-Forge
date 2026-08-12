@@ -15,72 +15,92 @@
     <header>
       <span class="vault-mark" aria-hidden="true"></span>
       <div><small>DRAGON</small><b>ALLELE VAULT</b></div>
-      <i>{{ alleles().length }}</i>
+      <i>{{ availableChromosomes().length }}</i>
     </header>
 
-    <div class="vault-rack">
-      @for (gene of genes(); track gene.id) {
-        <div class="vault-gene" [class.active]="gene.id === activeGeneId()">
-          <span>{{ gene.symbol }}</span>
-          @for (allele of allelesForGene(gene.id); track allele.id) {
-            <button
-              type="button"
-              class="allele-token"
-              [class.selected]="allele.id === selectedAlleleId()"
-              [class.dominant]="allele.dominance === 'dominant'"
-              [class.locked]="!isAllowed(allele.id)"
-              [attr.aria-pressed]="allele.id === selectedAlleleId()"
-              [attr.aria-label]="allele.name + ', ' + allele.dominance"
-              [attr.draggable]="isAllowed(allele.id) && !disabled()"
-              [disabled]="disabled() || !isAllowed(allele.id)"
-              (click)="selectAllele(allele.id)"
-              (dragstart)="startDrag($event, allele.id)"
-            >
-              <span
-                class="vault-chromosome"
-                [class]="'vault-chromosome locus-' + allele.geneId"
-                aria-hidden="true"
-              >
-                <i class="band band-one"></i>
-                <i class="band band-two"></i>
-                <i class="band band-three"></i>
-                <i class="band band-four"></i>
-                <i class="allele-band"></i>
-              </span>
-              <b>{{ allele.symbol }}</b>
-              <small>{{ allele.dominance === 'dominant' ? 'DOM' : 'REC' }}</small>
-            </button>
-          }
-        </div>
+    <div class="chromosome-rack" role="group" aria-label="Available chromosomes">
+      @for (chromosome of availableChromosomes(); track chromosome) {
+        <button
+          type="button"
+          class="chromosome-selector"
+          [class.active]="chromosome === activeChromosome()"
+          [attr.aria-pressed]="chromosome === activeChromosome()"
+          [disabled]="disabled()"
+          (click)="selectChromosome(chromosome)"
+        >
+          <span class="chromosome-icon" aria-hidden="true"></span>
+          <span
+            ><small>CHROMOSOME</small><b>{{ chromosomeNumber(chromosome) }}</b></span
+          >
+        </button>
       }
     </div>
 
     <footer>
       <span class="vault-light"></span>
-      <b>{{ selectedAllele()?.symbol ?? '—' }}</b>
-      <small>{{ selectedAllele()?.phenotype ?? 'Select allele' }}</small>
+      <b>{{ activeChromosome() }}</b>
+      <small
+        >{{ genesForActiveChromosome().length }} gene{{
+          genesForActiveChromosome().length === 1 ? '' : 's'
+        }}
+        released</small
+      >
     </footer>
   </aside>
 
   <div class="instrument-body">
     <nav class="gene-selector" aria-label="Choose a dragon gene">
-      @for (gene of genes(); track gene.id) {
-        <button
-          type="button"
-          [class.active]="gene.id === activeGeneId()"
-          [attr.aria-pressed]="gene.id === activeGeneId()"
-          [disabled]="disabled()"
-          (click)="selectGene(gene.id)"
-        >
-          <i aria-hidden="true">{{ gene.icon }}</i>
-          <span>{{ gene.name }}</span>
-          <b>{{ gene.symbol }}</b>
-        </button>
-      }
-      <span class="locus-readout">
-        <small>{{ activeGene().chromosome }}</small>
-        <b>{{ activeGene().locus }}</b>
-      </span>
+      <header>
+        <div class="gene-selector-title">
+          <small>{{ activeChromosome() }}</small>
+          <strong>CHOOSE YOUR GENE</strong>
+        </div>
+        <div class="gene-button-row" role="group" aria-label="Genes on selected chromosome">
+          @for (gene of genesForActiveChromosome(); track gene.id) {
+            <button
+              type="button"
+              class="gene-button"
+              [class.active]="gene.id === activeGeneId()"
+              [attr.aria-pressed]="gene.id === activeGeneId()"
+              [disabled]="disabled()"
+              (click)="selectGene(gene.id)"
+            >
+              <b>{{ gene.sampleCode }}</b>
+            </button>
+          }
+        </div>
+        <app-chromosome-svg
+          class="gene-selector-chromosome"
+          [chromosome]="selectorChromosomeModel()"
+          [selectedLocus]="activeGene().sampleCode"
+          [interactive]="true"
+          (locusSelected)="selectGeneByLocus($event)"
+        />
+      </header>
+      <div class="gene-alleles" aria-label="Allele samples for selected gene">
+        @for (allele of allelesForGene(activeGeneId()); track allele.id) {
+          <button
+            type="button"
+            class="allele-token"
+            [class.selected]="allele.id === selectedAlleleId()"
+            [class.locked]="!isAllowed(allele.id)"
+            [attr.aria-pressed]="allele.id === selectedAlleleId()"
+            [attr.aria-label]="'Allele sample ' + allele.sampleCode"
+            [attr.draggable]="isAllowed(allele.id) && !disabled()"
+            [disabled]="disabled() || !isAllowed(allele.id)"
+            (click)="selectAllele(allele.id)"
+            (dragstart)="startDrag($event, allele.id)"
+          >
+            <app-chromosome-svg
+              class="allele-token-chromosome"
+              [chromosome]="alleleTokenChromosomeModel(allele)"
+              [compact]="true"
+            />
+            <b>{{ allele.sampleCode }}</b>
+            <small>SAMPLE {{ $index + 1 }}</small>
+          </button>
+        }
+      </div>
     </nav>
 
     <section class="comparison-deck" aria-label="Split-screen genome comparison">
@@ -94,63 +114,23 @@
       <div class="split-screen">
         <article
           class="genome-pane reference-pane"
+          [class.sample-loaded]="!!leftAllele()"
           (dragover)="allowDrop($event)"
           (drop)="dropInComparison($event, 'left')"
         >
           <header>
-            <span>REFERENCE</span>
-            <b>{{ leftAllele()?.symbol }}</b>
-            <small>{{ leftAllele()?.phenotype }}</small>
+            <span>REFERENCE SAMPLE A</span>
+            <b>{{ leftAllele()?.sampleCode ?? '+' }}</b>
+            <small>{{ leftAllele() ? 'ALLELE LOADED' : 'DROP ALLELE HERE' }}</small>
           </header>
           <div class="pane-visuals">
-            <!-- TODO(dragon-parts): Replace this placeholder with the dragon-part renderer keyed by gene and allele ID. -->
-            <figure class="phenotype-preview reference-phenotype">
-              <div
-                class="dragon-part-slot"
-                [attr.data-gene-id]="activeGene().id"
-                [attr.data-allele-id]="leftAllele()?.id"
-                role="img"
-                [attr.aria-label]="leftAllele()?.phenotype + ' dragon part preview placeholder'"
-              >
-                <span aria-hidden="true">{{ activeGene().icon }}</span>
-                <i aria-hidden="true"></i>
-              </div>
-              <figcaption>
-                <small>PHENOTYPE</small>
-                <b>{{ leftAllele()?.phenotype }}</b>
-              </figcaption>
-            </figure>
-
             <div class="chromosome-view">
-              <div
-                class="chromosome-map reference-map"
-                role="img"
-                [attr.aria-label]="'Reference chromosome with ' + leftAllele()?.name"
-              >
-                <span class="chromosome-cap" aria-hidden="true">
-                  <i class="chromosome-band band-one"></i>
-                  <i class="chromosome-band band-two"></i>
-                  <i class="chromosome-band band-three"></i>
-                  <i class="chromosome-band band-four"></i>
-                  <i class="chromosome-band band-five"></i>
-                  <i class="centromere"></i>
-                </span>
-                @for (gene of genes(); track gene.id) {
-                  <span
-                    class="chromosome-locus"
-                    [class]="
-                      'chromosome-locus locus-' +
-                      gene.id +
-                      (gene.id === activeGeneId() ? ' active' : '')
-                    "
-                  >
-                    <i aria-hidden="true"></i>
-                    <b>{{ chromosomeSymbol(gene.id, 'left') }}</b>
-                    <small>{{ gene.name }}</small>
-                  </span>
-                }
-              </div>
-              <span class="chromosome-id">ALLELE 1 · {{ activeGene().locus }}</span>
+              <app-chromosome-svg
+                [chromosome]="leftChromosomeModel()"
+                [selectedLocus]="activeGene().sampleCode"
+                [placeholder]="!leftAllele()"
+              />
+              <span class="chromosome-id">ALLELE 1 · {{ activeGene().sampleCode }}</span>
             </div>
           </div>
           <div class="sequence-strip" aria-label="Reference model sequence">
@@ -164,7 +144,7 @@
           type="button"
           class="swap-comparison"
           aria-label="Swap the reference and comparison alleles"
-          [disabled]="disabled()"
+          [disabled]="disabled() || !leftAllele() || !rightAllele()"
           (click)="swapComparison()"
         >
           <span aria-hidden="true">⇄</span>
@@ -172,64 +152,24 @@
 
         <article
           class="genome-pane variant-pane"
+          [class.sample-loaded]="!!rightAllele()"
           (dragover)="allowDrop($event)"
           (drop)="dropInComparison($event, 'right')"
         >
           <header>
-            <span>COMPARE</span>
-            <b>{{ rightAllele()?.symbol }}</b>
-            <small>{{ rightAllele()?.phenotype }}</small>
+            <span>REFERENCE SAMPLE B</span>
+            <b>{{ rightAllele()?.sampleCode ?? '+' }}</b>
+            <small>{{ rightAllele() ? 'ALLELE LOADED' : 'DROP ALLELE HERE' }}</small>
           </header>
           <div class="pane-visuals">
             <div class="chromosome-view">
-              <div
-                class="chromosome-map variant-map"
-                role="img"
-                [attr.aria-label]="'Comparison chromosome with ' + rightAllele()?.name"
-              >
-                <span class="chromosome-cap" aria-hidden="true">
-                  <i class="chromosome-band band-one"></i>
-                  <i class="chromosome-band band-two"></i>
-                  <i class="chromosome-band band-three"></i>
-                  <i class="chromosome-band band-four"></i>
-                  <i class="chromosome-band band-five"></i>
-                  <i class="centromere"></i>
-                </span>
-                @for (gene of genes(); track gene.id) {
-                  <span
-                    class="chromosome-locus"
-                    [class]="
-                      'chromosome-locus locus-' +
-                      gene.id +
-                      (gene.id === activeGeneId() ? ' active' : '')
-                    "
-                  >
-                    <i aria-hidden="true"></i>
-                    <b>{{ chromosomeSymbol(gene.id, 'right') }}</b>
-                    <small>{{ gene.name }}</small>
-                  </span>
-                }
-              </div>
-              <span class="chromosome-id">ALLELE 2 · {{ activeGene().locus }}</span>
+              <app-chromosome-svg
+                [chromosome]="rightChromosomeModel()"
+                [selectedLocus]="activeGene().sampleCode"
+                [placeholder]="!rightAllele()"
+              />
+              <span class="chromosome-id">ALLELE 2 · {{ activeGene().sampleCode }}</span>
             </div>
-
-            <!-- TODO(dragon-parts): Replace this placeholder with the dragon-part renderer keyed by gene and allele ID. -->
-            <figure class="phenotype-preview variant-phenotype">
-              <div
-                class="dragon-part-slot"
-                [attr.data-gene-id]="activeGene().id"
-                [attr.data-allele-id]="rightAllele()?.id"
-                role="img"
-                [attr.aria-label]="rightAllele()?.phenotype + ' dragon part preview placeholder'"
-              >
-                <span aria-hidden="true">{{ activeGene().icon }}</span>
-                <i aria-hidden="true"></i>
-              </div>
-              <figcaption>
-                <small>PHENOTYPE</small>
-                <b>{{ rightAllele()?.phenotype }}</b>
-              </figcaption>
-            </figure>
           </div>
           <div class="sequence-strip" aria-label="Comparison model sequence">
             @for (base of rightAllele()?.modelSequence ?? []; track $index) {
@@ -241,68 +181,113 @@
     </section>
   </div>
 
-  <section class="expression-rig" aria-label="Build an allele pair and test expression">
-    <div class="pair-builder">
+  <section class="expression-rig" aria-label="Genetics Chart builder and phenotype chamber">
+    <section class="gene-chart-builder" aria-label="Build this gene's Genetics Chart record">
       <header>
-        <small>ALLELE PAIR</small>
-        @if (question()?.requestedPairIds; as target) {
-          <span [class.complete]="requestedPairComplete()">
-            TARGET {{ alleleById(target[0])?.symbol }}{{ alleleById(target[1])?.symbol }}
-          </span>
-        }
+        <small>GENETICS CHART BUILDER</small>
+        <strong>{{ activeGene().sampleCode }}</strong>
+        <span>{{ activeTestCount() }}/{{ requiredTestCount() }} combinations observed</span>
       </header>
-      <div class="allele-sockets">
-        @for (allele of pair(); track $index; let slot = $index) {
-          <button
-            type="button"
-            class="allele-socket"
-            [class.charged]="chargedSlot() === slot"
-            [class.dominant]="allele?.dominance === 'dominant'"
-            [attr.aria-label]="'Install selected allele in slot ' + (slot + 1)"
-            [disabled]="disabled()"
-            (click)="installSelected(slot === 0 ? 0 : 1)"
-            (dragover)="allowDrop($event)"
-            (drop)="dropInSlot($event, slot === 0 ? 0 : 1)"
-          >
-            <span [class]="'socket-chromosome locus-' + activeGene().id" aria-hidden="true">
-              <i class="band band-one"></i>
-              <i class="band band-two"></i>
-              <i class="band band-three"></i>
-              <i class="band band-four"></i>
-              <i class="allele-band"></i>
-            </span>
-            <b>{{ allele?.symbol ?? '+' }}</b>
-            <small>{{ slot === 0 ? 'A' : 'B' }}</small>
-          </button>
-        }
+
+      <label class="trait-assignment">
+        <span>Trait coded by this gene</span>
+        <select
+          [value]="displayedClaimTraitId()"
+          [disabled]="disabled() || !!activeDiscovery()"
+          (change)="selectClaimTrait($event)"
+        >
+          <option value="">Choose trait</option>
+          @for (trait of genes(); track trait.id) {
+            <option [value]="trait.id">{{ trait.name }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="claim-allele-zones">
+        <button
+          type="button"
+          class="claim-allele-zone"
+          [class.filled]="!!displayedDominantAlleleId()"
+          [disabled]="disabled() || !!activeDiscovery()"
+          (click)="assignSelectedToClaim('dominant')"
+          (dragover)="allowDrop($event)"
+          (drop)="dropInClaim($event, 'dominant')"
+        >
+          <small>DOMINANT</small>
+          <strong>{{ alleleById(displayedDominantAlleleId())?.sampleCode ?? '+' }}</strong>
+        </button>
+        <button
+          type="button"
+          class="claim-allele-zone"
+          [class.filled]="!!displayedRecessiveAlleleId()"
+          [disabled]="disabled() || !!activeDiscovery()"
+          (click)="assignSelectedToClaim('recessive')"
+          (dragover)="allowDrop($event)"
+          (drop)="dropInClaim($event, 'recessive')"
+        >
+          <small>RECESSIVE</small>
+          <strong>{{ alleleById(displayedRecessiveAlleleId())?.sampleCode ?? '+' }}</strong>
+        </button>
       </div>
-    </div>
 
-    <div class="expression-conduit" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <button
+        type="button"
+        class="save-gene-record"
+        [disabled]="
+          disabled() ||
+          !!activeDiscovery() ||
+          !claimComplete() ||
+          claimDominantAlleleId() === claimRecessiveAlleleId()
+        "
+        (click)="submitDiscoveryClaim()"
+      >
+        {{ activeDiscovery() ? 'GENE RECORD SAVED' : 'SAVE TO GENETICS CHART' }}
+      </button>
 
-    <button
-      type="button"
-      class="express-trigger"
-      [disabled]="disabled() || !pair()[0] || !pair()[1] || expressionState() === 'running'"
-      (click)="runExpression()"
-    >
-      <span aria-hidden="true"></span>
-      <b>{{ expressionState() === 'running' ? 'READING' : 'EXPRESS' }}</b>
-      <small>{{ genotype() }}</small>
-    </button>
+      @if (claimStatusMessage()) {
+        <p class="claim-status" [class.saved]="!!activeDiscovery()" role="status">
+          {{ claimStatusMessage() }}
+        </p>
+      }
+    </section>
 
-    <div class="expression-conduit output-conduit" aria-hidden="true">
-      <i></i><i></i><i></i><i></i><i></i>
-    </div>
-
-    <output class="phenotype-result" aria-live="polite">
-      <span aria-hidden="true">{{ activeGene().icon }}</span>
-      <div>
-        <small>{{ expressionState() === 'revealed' ? genotypeClass() : 'PHENOTYPE' }}</small>
-        <b>{{ expressionState() === 'revealed' ? expressedPhenotype() : '—' }}</b>
+    <section class="phenotype-chamber" aria-label="Phenotype chamber">
+      <div class="phenotype-stage" [class.empty]="!phenotypeSource()">
+        <app-specimen-viewport
+          [source]="phenotypeSource()"
+          [ariaLabel]="phenotypeAriaLabel()"
+          [controls]="!!phenotypeSource()"
+          controlsPlacement="side"
+          [framePadding]="1.18"
+        >
+          <header viewport-side-header class="phenotype-side-header">
+            <div>
+              <small>PHENOTYPE CHAMBER</small>
+              <strong>{{ pair()[0] && pair()[1] ? genotype() : '—' }}</strong>
+            </div>
+            <div class="sex-selector" role="group" aria-label="Specimen sex">
+              <button
+                type="button"
+                [class.active]="specimenSex() === 'female'"
+                [attr.aria-pressed]="specimenSex() === 'female'"
+                [disabled]="disabled()"
+                (click)="selectSpecimenSex('female')"
+              >
+                Female <span>XX</span>
+              </button>
+              <button
+                type="button"
+                [class.active]="specimenSex() === 'male'"
+                [attr.aria-pressed]="specimenSex() === 'male'"
+                [disabled]="disabled()"
+                (click)="selectSpecimenSex('male')"
+              >
+                Male <span>XY</span>
+              </button>
+            </div>
+          </header>
+        </app-specimen-viewport>
       </div>
-    </output>
+    </section>
   </section>
-
-  <p class="interaction-hint">Drag an allele to either genome or socket. Click also works.</p>
 </section>

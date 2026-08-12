@@ -78,6 +78,8 @@ const DEFAULT_VIEW_DIRECTION = new THREE.Vector3(0.86, 0.42, 1).normalize();
  * would clip wingtips.
  */
 const DEFAULT_FRAME_PADDING = 1.12;
+const MIN_ZOOM_LEVEL = 0.65;
+const MAX_ZOOM_LEVEL = 2;
 
 @Injectable()
 export class SpecimenRendererService {
@@ -101,6 +103,8 @@ export class SpecimenRendererService {
   private demoFrameId: number | null = null;
   private fireCone: THREE.Mesh | null = null;
   private viewDirection = DEFAULT_VIEW_DIRECTION.clone();
+  /** 1 fits the whole specimen; larger values move the camera closer. */
+  private zoomLevel = 1;
   /** Resting pose for the current specimen; a show() override beats the mount default. */
   private activePose: SpecimenPoseOptions | undefined;
   private readonly partObjects = new Map<string, THREE.Object3D>();
@@ -163,7 +167,11 @@ export class SpecimenRendererService {
       controls.enableDamping = false;
       controls.enablePan = false;
       controls.enableZoom = false;
-      controls.addEventListener('change', () => this.requestRender());
+      controls.addEventListener('change', () => {
+        const orbitDirection = camera.position.clone().sub(controls.target);
+        if (orbitDirection.lengthSq() >= 1e-8) this.viewDirection.copy(orbitDirection.normalize());
+        this.requestRender();
+      });
       this.controls = controls;
     }
 
@@ -525,6 +533,31 @@ export class SpecimenRendererService {
     this.requestRender();
   }
 
+  /**
+   * Changes camera magnification without rebuilding or scaling the specimen.
+   * Returns the clamped level so view controls can display the real value.
+   */
+  setZoomLevel(level: number): number {
+    this.zoomLevel = THREE.MathUtils.clamp(level, MIN_ZOOM_LEVEL, MAX_ZOOM_LEVEL);
+    this.applyFrame();
+    this.requestRender();
+    return this.zoomLevel;
+  }
+
+  resetZoom(): number {
+    return this.setZoomLevel(1);
+  }
+
+  /** Removes the current specimen while keeping the WebGL context and camera available. */
+  clear(): void {
+    this.clearSpecimen();
+    this.descriptor = null;
+    this.activeFrame = null;
+    this.baseFrame = null;
+    if (this.groundShadow) this.groundShadow.visible = false;
+    this.requestRender();
+  }
+
   private setViewDirectionVector(direction: Vector3Data | undefined): void {
     if (!direction) {
       this.viewDirection = DEFAULT_VIEW_DIRECTION.clone();
@@ -588,6 +621,7 @@ export class SpecimenRendererService {
     this.host = null;
     this.descriptor = null;
     this.activeFrame = null;
+    this.zoomLevel = 1;
   }
 
   private clearSpecimen(): void {
@@ -626,8 +660,9 @@ export class SpecimenRendererService {
     const elevationCos = Math.sqrt(Math.max(1 - elevationSin * elevationSin, 0));
     const projectedHalfHeight = frame.halfHeight * elevationCos + frame.radius * elevationSin;
 
-    const distance = Math.max(projectedHalfHeight / tanY, frame.radius / tanX)
+    const fittedDistance = Math.max(projectedHalfHeight / tanY, frame.radius / tanX)
       * (this.options.framePadding ?? DEFAULT_FRAME_PADDING);
+    const distance = fittedDistance / this.zoomLevel;
 
     const target = new THREE.Vector3(frame.center.x, frame.center.y, frame.center.z);
     camera.position.copy(target).addScaledVector(this.viewDirection, distance);
@@ -656,6 +691,8 @@ export class SpecimenRendererService {
       this.scene.add(mesh);
       this.groundShadow = mesh;
     }
+
+    this.groundShadow.visible = true;
 
     const radius = this.activeFrame?.radius ?? 1;
     this.groundShadow.scale.setScalar(radius * 1.4);

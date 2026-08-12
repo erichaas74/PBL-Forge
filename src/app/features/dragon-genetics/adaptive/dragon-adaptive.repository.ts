@@ -16,6 +16,11 @@ import {
   DragonSimulationRun,
 } from './dragon-simulation.models';
 import { DEFAULT_DRAGON_ASSIGNMENT } from './dragon-simulation.registry';
+import {
+  GeneticsNotebookSnapshot,
+  normalizeGeneticsNotebook,
+} from './allele-workbench/genetics-notebook.models';
+import { normalizeAlleleVaultGeneIds } from './allele-workbench/allele-vault.models';
 
 export const DEFAULT_DRAGON_ASSIGNMENT_ID = 'default';
 
@@ -40,6 +45,31 @@ export class DragonAdaptiveRepository {
       setDoc(doc(this.firestore, `dragonGeneticsAssignments/${assignment.id}`), {
         ...assignment,
         ownerId: user.uid,
+        updatedAt: serverTimestamp(),
+      }, { merge: true }));
+  }
+
+  async loadGeneticsNotebook(): Promise<GeneticsNotebookSnapshot | null> {
+    const user = await this.session.ensureUser();
+    if (!user) return null;
+    const snapshot = await runInFirebaseContext(this.injector, () =>
+      getDoc(doc(this.firestore, `dragonLabProgress/${user.uid}`)));
+    return normalizeGeneticsNotebook(snapshot.data()?.['geneticsNotebook'], user.uid);
+  }
+
+  async saveGeneticsNotebook(
+    notebook: GeneticsNotebookSnapshot,
+    teacherId: string,
+  ): Promise<void> {
+    const user = await this.session.ensureUser();
+    if (!user) return;
+    await runInFirebaseContext(this.injector, () =>
+      setDoc(doc(this.firestore, `dragonLabProgress/${user.uid}`), {
+        studentId: user.uid,
+        projectId: 'dragon-genetics-lab',
+        assignmentId: notebook.assignmentId,
+        teacherId,
+        geneticsNotebook: notebook,
         updatedAt: serverTimestamp(),
       }, { merge: true }));
   }
@@ -108,10 +138,29 @@ export class DragonAdaptiveRepository {
 }
 
 function normalizeAssignment(id: string, value: Record<string, unknown>): DragonAssignment {
+  const alleleCatalog = value['alleleCatalog'] as Partial<DragonAssignment['alleleCatalog']> | undefined;
+  const storedGeneIds = Array.isArray(alleleCatalog?.availableGeneIds)
+    ? alleleCatalog.availableGeneIds.filter((geneId): geneId is string => typeof geneId === 'string')
+    : null;
+  const isLegacyMockCatalog = value['assignmentVersion'] === 1
+    && storedGeneIds?.length === 4
+    && ['wings', 'fire', 'horns', 'scales'].every((geneId) => storedGeneIds.includes(geneId));
+  const storedVersion = typeof value['assignmentVersion'] === 'number'
+    ? value['assignmentVersion']
+    : 0;
+  const availableGeneIds = storedGeneIds && !isLegacyMockCatalog
+    ? normalizeAlleleVaultGeneIds(storedGeneIds)
+    : [...DEFAULT_DRAGON_ASSIGNMENT.alleleCatalog.availableGeneIds];
   return {
     ...DEFAULT_DRAGON_ASSIGNMENT,
     ...value,
     id,
+    assignmentVersion: isLegacyMockCatalog || storedVersion < DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
+      ? DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
+      : storedVersion,
+    alleleCatalog: {
+      availableGeneIds,
+    },
     simulationSettings: (value['simulationSettings'] ?? {}) as DragonAssignment['simulationSettings'],
     studentOverrides: (value['studentOverrides'] ?? {}) as DragonAssignment['studentOverrides'],
     updatedAtIso: typeof value['updatedAtIso'] === 'string'

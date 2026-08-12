@@ -8,6 +8,7 @@ import {
   LevelChallenge,
   SimulationSectionDefinition,
 } from './dragon-simulation.models';
+import { ALLELE_VAULT_GENES } from './allele-workbench/allele-vault.models';
 
 export const DRAGON_SIMULATION_CONTENT_VERSION = 1;
 
@@ -922,9 +923,12 @@ export const DEFAULT_DRAGON_ASSIGNMENT: DragonAssignment = {
   classId: 'default',
   title: 'Dragon Genetics adaptive laboratory',
   defaultLevel: 'grade-7',
+  alleleCatalog: {
+    availableGeneIds: ALLELE_VAULT_GENES.map((gene) => gene.id),
+  },
   simulationSettings: {},
   studentOverrides: {},
-  assignmentVersion: 1,
+  assignmentVersion: 3,
   updatedAtIso: new Date(0).toISOString(),
 };
 

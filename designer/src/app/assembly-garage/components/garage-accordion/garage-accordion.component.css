@@ -1,0 +1,97 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.accordion {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.accordion__heading {
+  margin: 0;
+}
+
+.accordion__trigger {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 32px;
+  border: 0;
+  border-bottom: 1px solid #e4ebf3;
+  border-radius: 0;
+  background: transparent;
+  color: #152033;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 0 0 6px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.accordion__trigger:hover {
+  border-bottom-color: #2f80ed;
+  color: #2f80ed;
+}
+
+.accordion__trigger:focus-visible {
+  outline: 2px solid #2f80ed;
+  outline-offset: 2px;
+}
+
+.accordion__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accordion__chevron {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid #94a3b8;
+  transition: transform 140ms ease;
+}
+
+.accordion--open .accordion__chevron {
+  transform: rotate(90deg);
+}
+
+.accordion__trigger:hover .accordion__chevron {
+  border-left-color: #2f80ed;
+}
+
+.accordion__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* `hidden` alone loses to the display above, so the collapsed body says so itself. */
+.accordion__body[hidden] {
+  display: none;
+}
+
+.count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid #d8e0ea;
+  border-radius: 999px;
+  background: #f7fafc;
+  color: #526173;
+  font-size: var(--text-base);
+  font-weight: 700;
+}

@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Nunito+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --paper: #f4efe4;
+  --surface: #e8e0d0;
+  --surface-raised: #fdfaf2;
+  --surface-sunken: #ded4c0;
+  --timber: #7a5c3e;
+  --timber-dark: #4b3826;
+  --stone: #8d949b;
+  --slate: #2b3a43;
+  --slate-deep: #1a252c;
+  --ink: #1f2a30;
+  --ink-soft: #38474f;
+  --muted: #6d7a80;
+  --on-dark: #f1ece1;
+  --on-dark-muted: #a9b4b8;
+  --line: #cdc2ad;
+  --line-strong: #a89074;
+  --line-dark: #3c4a52;
+  --ember: #e2622a;
+  --ember-soft: #f2a15c;
+  --ember-deep: #a83d16;
+  --fury: #86c232;
+  --gold: #d9a441;
+  --sea: #2f6a86;
+  --moss: #4a7a2e;
+  --rune: #6b5a86;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Nunito Sans', system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.85rem;
+  --text-base: 0.95rem;
+  --text-md: 1.05rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  color-scheme: light;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--paper);
+}
+
+* { box-sizing: border-box; }
+
+html, body { min-width: 320px; min-height: 100%; }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 12% 88%, rgb(226 98 42 / 9%), transparent 30rem),
+    radial-gradient(circle at 88% 4%, rgb(47 106 134 / 8%), transparent 32rem),
+    var(--paper);
+}
+
+/*
+ * `color: inherit` matters as much as the font here. A control does not inherit
+ * colour by default — it takes the UA's `buttontext`, which follows the
+ * browser's own theme. Every control in this app pins its background from the
+ * palette, so leaving the text to the UA meant a dark-themed browser painted
+ * dark text on our light buttons and the labels disappeared. `color-scheme` on
+ * `:root` is not enough on its own.
+ */
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Range and checkbox fills, so controls stop rendering in the UA's blue. */
+input, select, textarea { accent-color: var(--sea); }
+h1, h2, h3 { font-family: var(--font-display); }
+

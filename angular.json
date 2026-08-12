@@ -114,6 +114,96 @@
           }
         }
       }
+    },
+    "dragon-designer": {
+      "projectType": "application",
+      "root": "designer",
+      "sourceRoot": "designer/src",
+      "prefix": "app",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "designer/src/main.ts",
+            "index": "designer/src/index.html",
+            "polyfills": ["zone.js"],
+            "tsConfig": "designer/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "outputPath": "dist/dragon-designer",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": ["designer/src/styles.scss"]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "3.6MB",
+                  "maximumError": "4.5MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "84kB",
+                  "maximumError": "96kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "dragon-designer:build:production"
+            },
+            "development": {
+              "buildTarget": "dragon-designer:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "polyfills": ["zone.js", "zone.js/testing"],
+            "tsConfig": "designer/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": ["designer/src/styles.scss"]
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "designer/src/**/*.ts",
+              "designer/src/**/*.html"
+            ]
+          }
+        }
+      }
     }
   }
 }

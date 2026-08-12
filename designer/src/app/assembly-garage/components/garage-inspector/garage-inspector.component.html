@@ -1,0 +1,295 @@
+<section class="inspector-section" aria-labelledby="selection-heading">
+  <h2 id="selection-heading">Inspector</h2>
+
+  @if (store.selectedPart(); as part) {
+    <app-garage-accordion heading="Part" [level]="3">
+      <div class="field-group">
+        <label>
+          <span>Mass</span>
+          <input type="number" min="0" step="0.1" [value]="part.mass" (input)="setMass($event)" />
+        </label>
+
+        <label>
+          <span>Color</span>
+          <input type="color" [value]="part.color" (input)="setColor($event)" />
+        </label>
+
+        <label>
+          <span>Gameplay roles</span>
+          <input
+            type="text"
+            [value]="(part.roles ?? []).join(', ')"
+            placeholder="core, weapon, sensor"
+            (change)="setRoles($event)" />
+        </label>
+      </div>
+
+      @if (catalogDefinition(); as definition) {
+        <a
+          class="link-button"
+          routerLink="/snap-workshop"
+          [queryParams]="{ part: definition.id, family: definition.family }">
+          Edit sockets in the Snap Workshop
+        </a>
+        <p class="hint">
+          Moves where this part connects — {{ definition.snapPoints.length }} authored
+          {{ definition.snapPoints.length === 1 ? 'socket' : 'sockets' }}.
+        </p>
+      }
+    </app-garage-accordion>
+
+    <app-garage-accordion heading="Size" [level]="3">
+      <div class="size-editor">
+        <div class="section-row section-row--actions">
+          <button type="button" class="small-button" (click)="resetSize()">Reset</button>
+        </div>
+
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [checked]="lockProportions()"
+          (change)="toggleLockProportions($event)" />
+        <span>Lock proportions</span>
+      </label>
+
+      @if (lockProportions()) {
+        <label class="slider">
+          <span>Scale ×{{ scaleFor('x') }}</span>
+          <input
+            type="range"
+            [min]="scaleMin"
+            [max]="scaleMax"
+            [step]="scaleStep"
+            [value]="scaleFor('x')"
+            (input)="setUniformScale($event)" />
+        </label>
+      } @else {
+        @for (axis of axes; track axis) {
+          <label class="slider">
+            <span>{{ axis }} ×{{ scaleFor(axis) }}</span>
+            <input
+              type="range"
+              [min]="scaleMin"
+              [max]="scaleMax"
+              [step]="scaleStep"
+              [value]="scaleFor(axis)"
+              (input)="setAxisScale(axis, $event)" />
+          </label>
+        }
+      }
+
+      <div class="exact-grid">
+        @for (axis of axes; track axis) {
+          <label>
+            <span>{{ axis }}</span>
+            <input
+              type="number"
+              min="0.05"
+              step="0.05"
+              [value]="dimensionFor(axis)"
+              (input)="setVector('dimensions', axis, $event)" />
+          </label>
+        }
+      </div>
+
+      <p class="hint">
+        ×1 is the catalog size, so every drag stays reversible; the boxes take exact metres.
+        Resizing carries the part's snap points and joint pivots with it.
+      </p>
+
+      @if (catalogDefinitionId(); as definitionId) {
+        <button type="button" class="small-button" (click)="saveSizeToCatalog()">
+          Save size to catalog part
+        </button>
+        <p class="hint">
+          Writes this size to <code>{{ definitionId }}</code> for newly added parts and rebuilt
+          presets. Parts already in this assembly keep their current size.
+        </p>
+        @if (saveMessage(); as message) {
+          <p class="hint hint--saved">{{ message }}</p>
+        }
+      }
+      </div>
+    </app-garage-accordion>
+
+    <app-garage-accordion heading="Position" [level]="3" [startOpen]="false">
+      <div class="vector-editor">
+        @for (axis of axes; track axis) {
+          <label>
+            <span>{{ axis }}</span>
+            <input
+              type="number"
+              step="0.1"
+              [value]="part.position[axis]"
+              (input)="setVector('position', axis, $event)" />
+          </label>
+        }
+      </div>
+    </app-garage-accordion>
+
+    @if (store.selectedPartJoints().length) {
+      <app-garage-accordion
+        heading="Connected Joints"
+        [level]="3"
+        [count]="store.selectedPartJoints().length"
+        [startOpen]="false">
+      <div class="connected-joints">
+        <div class="section-row section-row--actions">
+          <button type="button" class="small-button" (click)="store.resetSelectedPartJointMotion()">
+            Reset all
+          </button>
+        </div>
+
+        @for (joint of store.selectedPartJoints(); track joint.id) {
+          <article class="joint-motion">
+            <div class="joint-motion__header">
+              <div>
+                <strong>{{ jointOtherPartLabel(joint, part.id) }}</strong>
+                <span>{{ jointRole(joint, part.id) }} {{ joint.type }}</span>
+              </div>
+              <button type="button" class="small-button" (click)="store.selectJoint(joint.id)">
+                Edit
+              </button>
+            </div>
+
+            <label>
+              <span>Behavior</span>
+              <select [value]="behaviorProfile(joint)" (change)="setJointBehaviorProfile(joint.id, $event)">
+                @for (profile of behaviorProfiles; track profile) {
+                  <option [value]="profile">{{ profile }}</option>
+                }
+              </select>
+            </label>
+
+            <div class="behavior-grid">
+              @for (field of behaviorNumberFields; track field) {
+                <label>
+                  <span>{{ field }}</span>
+                  <input
+                    type="number"
+                    step="0.1"
+                    [value]="behaviorNumberValue(joint, field) ?? ''"
+                    (input)="setJointBehaviorNumber(joint.id, field, $event)" />
+                </label>
+              }
+            </div>
+
+            <button type="button" class="small-button" (click)="store.resetJointMotion(joint.id)">
+              Reset motion
+            </button>
+          </article>
+        }
+      </div>
+      </app-garage-accordion>
+    }
+
+    <button type="button" class="danger-button" (click)="store.removeSelectedPart()">
+      Remove selected part
+    </button>
+  } @else if (store.selectedJoint(); as joint) {
+    <app-garage-accordion heading="Joint" [level]="3">
+      <div class="field-group">
+        <label>
+          <span>Type</span>
+          <select [value]="joint.type" (change)="setJointType($event)">
+            @for (type of jointTypes; track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </select>
+        </label>
+
+        <label>
+          <span>Parent</span>
+          <select [value]="joint.parentPartId" (change)="setJointPart('parent', $event)">
+            @for (part of store.state().parts; track part.id) {
+              <option [value]="part.id" [disabled]="part.id === joint.childPartId">
+                {{ part.shape }} {{ $index + 1 }}
+              </option>
+            }
+          </select>
+        </label>
+
+        <label>
+          <span>Child</span>
+          <select [value]="joint.childPartId" (change)="setJointPart('child', $event)">
+            @for (part of store.state().parts; track part.id) {
+              <option [value]="part.id" [disabled]="part.id === joint.parentPartId">
+                {{ part.shape }} {{ $index + 1 }}
+              </option>
+            }
+          </select>
+        </label>
+      </div>
+    </app-garage-accordion>
+
+    <app-garage-accordion heading="Parent Pivot" [level]="3" [startOpen]="false">
+      <div class="vector-editor">
+        @for (axis of axes; track axis) {
+          <label>
+            <span>{{ axis }}</span>
+            <input
+              type="number"
+              step="0.05"
+              [value]="joint.pivotOnParent[axis]"
+              (input)="setJointVector('pivotOnParent', axis, $event)" />
+          </label>
+        }
+      </div>
+    </app-garage-accordion>
+
+    <app-garage-accordion heading="Child Pivot" [level]="3" [startOpen]="false">
+      <div class="vector-editor">
+        @for (axis of axes; track axis) {
+          <label>
+            <span>{{ axis }}</span>
+            <input
+              type="number"
+              step="0.05"
+              [value]="joint.pivotOnChild[axis]"
+              (input)="setJointVector('pivotOnChild', axis, $event)" />
+          </label>
+        }
+      </div>
+    </app-garage-accordion>
+
+    <app-garage-accordion heading="Axis" [level]="3" [startOpen]="false">
+      <div class="vector-editor">
+        @for (axis of axes; track axis) {
+          <label>
+            <span>{{ axis }}</span>
+            <input
+              type="number"
+              step="0.1"
+              [value]="joint.axis[axis]"
+              (input)="setJointVector('axis', axis, $event)" />
+          </label>
+        }
+      </div>
+    </app-garage-accordion>
+
+    <button type="button" class="danger-button" (click)="store.removeSelectedJoint()">
+      Remove selected joint
+    </button>
+  } @else {
+    <p class="empty-state">Select a part or joint to edit its properties.</p>
+  }
+</section>
+
+<section class="inspector-section" aria-label="Assembly state boundary">
+  <app-garage-accordion heading="State Boundary" [startOpen]="false">
+    <dl class="joint-details">
+      <div>
+        <dt>Parts</dt>
+        <dd>{{ store.partCount() }}</dd>
+      </div>
+      <div>
+        <dt>Joints</dt>
+        <dd>{{ store.jointCount() }}</dd>
+      </div>
+      <div>
+        <dt>Runtime</dt>
+        <dd>{{ store.state().isSimulating ? 'Physics' : 'Editor' }}</dd>
+      </div>
+    </dl>
+  </app-garage-accordion>
+</section>

@@ -1,5 +1,5 @@
 .bench-page {
-  max-width: 76rem;
+  max-width: 92rem;
   margin: 0 auto;
   padding: 1.6rem 1.2rem 2.4rem;
   display: grid;
@@ -40,12 +40,62 @@
   border: 1px solid var(--line);
   border-radius: 0.9rem;
   background: var(--surface-raised);
+  color: var(--ink);
 }
 
 .bench-page__genes {
   display: grid;
   gap: 0.7rem;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.sex-model {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+}
+
+.sex-model > div:first-child {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.sex-model span,
+.gene__chromosome {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sex-model small {
+  max-width: 42rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.sex-model__choices {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.sex-model__choices button {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+
+.sex-model__choices button.active {
+  border-color: var(--sea);
+  background: var(--sea);
+  color: white;
 }
 
 .gene {
@@ -58,10 +108,27 @@
   background: var(--surface-raised);
 }
 
+.gene--sex-linked {
+  border-color: var(--sea);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sea) 20%, transparent);
+}
+
+.gene--incomplete {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 28%, transparent);
+}
+
+.gene__chromosome {
+  display: block;
+  margin-top: -0.2rem;
+}
+
 .gene__name {
-  padding: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
+  padding: 0 0.25rem;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1.25;
 }
 
 .gene__choices {
@@ -98,6 +165,7 @@
 
 .gene__phenotype {
   margin: 0;
+  color: var(--ink-soft);
   font-size: var(--text-base);
   opacity: 0.75;
   min-height: 1.2em;
@@ -113,11 +181,25 @@
   .bench-page__genome {
     background: var(--slate-deep);
     border-color: var(--slate);
+    color: #f7f1e5;
   }
 
   .gene {
     background: var(--slate-deep);
     border-color: var(--slate);
+  }
+
+  .gene__name {
+    color: #fff8e9;
+  }
+
+  .gene__phenotype {
+    color: #d8e1df;
+  }
+
+  .sex-model__choices button {
+    background: var(--slate-deep);
+    color: #f7f1e5;
   }
 
   .gene__choice {
@@ -132,5 +214,16 @@
     background: var(--stone);
     border-color: var(--stone);
     color: #0b1220;
+  }
+}
+
+@media (max-width: 640px) {
+  .sex-model {
+    grid-template-columns: 1fr;
+  }
+
+  .sex-model__choices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

@@ -1,20 +1,35 @@
+import {
+  EXPRESSIVE_DRAGON_TRAITS,
+  ExpressiveDragonTraitDefinition,
+  ExpressiveDragonTraitId,
+} from '../../simulation/domain/dragon-expressive-genome';
+
 export type AlleleDominance = 'dominant' | 'recessive';
 
 export interface AlleleVaultGene {
-  id: string;
+  /** Stable ID shared with the expressive-dragon renderer. */
+  id: ExpressiveDragonTraitId;
+  /** Explicit renderer link so future catalog adapters cannot silently drift. */
+  renderTraitId: ExpressiveDragonTraitId;
   name: string;
   symbol: string;
-  chromosome: string;
+  /** Student-facing locus identifier that does not reveal the trait or allele notation. */
+  sampleCode: string;
+  chromosome: ExpressiveDragonTraitDefinition['chromosome'];
+  inheritance: ExpressiveDragonTraitDefinition['inheritance'];
   locus: string;
   icon: string;
   dominantPhenotype: string;
   recessivePhenotype: string;
-  alleleIds: readonly string[];
+  heterozygousPhenotype?: string;
+  alleleIds: readonly [string, string];
 }
 
 export interface AlleleVaultAllele {
   id: string;
-  geneId: string;
+  geneId: ExpressiveDragonTraitId;
+  /** Student-facing neutral identifier; it does not reveal allele notation. */
+  sampleCode: string;
   symbol: string;
   name: string;
   dominance: AlleleDominance;
@@ -37,134 +52,150 @@ export type AlleleWorkbenchInteractionType =
   | 'allele-selected'
   | 'comparison-swapped'
   | 'allele-installed'
-  | 'expression-run';
+  | 'expression-run'
+  | 'discovery-claim';
 
 export interface AlleleWorkbenchInteraction {
   type: AlleleWorkbenchInteractionType;
   geneId: string;
   alleleId?: string;
   pairIds?: readonly [string, string];
+  genotype?: string;
+  phenotype?: string;
+  traitId?: string;
+  dominantAlleleId?: string;
+  recessiveAlleleId?: string;
   semanticTargetId?: 'slot-a' | 'slot-b' | 'carrier' | 'expression';
 }
 
-export const ALLELE_VAULT_GENES: readonly AlleleVaultGene[] = [
-  {
-    id: 'wings',
-    name: 'Wings',
-    symbol: 'W/w',
-    chromosome: 'Chr 1',
-    locus: 'WNG-04',
-    icon: 'W',
-    dominantPhenotype: 'Winged',
-    recessivePhenotype: 'Wingless',
-    alleleIds: ['wings-W', 'wings-w'],
-  },
-  {
-    id: 'fire',
-    name: 'Fire',
-    symbol: 'F/f',
-    chromosome: 'Chr 2',
-    locus: 'FIR-11',
-    icon: 'F',
-    dominantPhenotype: 'Fire breath',
-    recessivePhenotype: 'No fire',
-    alleleIds: ['fire-F', 'fire-f'],
-  },
-  {
-    id: 'horns',
-    name: 'Horns',
-    symbol: 'H/h',
-    chromosome: 'Chr 3',
-    locus: 'HRN-08',
-    icon: 'H',
-    dominantPhenotype: 'Horned',
-    recessivePhenotype: 'Hornless',
-    alleleIds: ['horns-H', 'horns-h'],
-  },
-  {
-    id: 'scales',
-    name: 'Scales',
-    symbol: 'S/s',
-    chromosome: 'Chr 4',
-    locus: 'SCL-17',
-    icon: 'S',
-    dominantPhenotype: 'Spotted',
-    recessivePhenotype: 'Solid',
-    alleleIds: ['scales-S', 'scales-s'],
-  },
+export interface AlleleClaimFeedback {
+  geneId: string;
+  status: 'solved' | 'incorrect' | 'incomplete-evidence';
+  revision: number;
+}
+
+interface VaultGeneMetadata {
+  id: Exclude<ExpressiveDragonTraitId, 'eye-color'>;
+  locus: string;
+  icon: string;
+}
+
+/**
+ * The teacher's initial catalog is exactly twelve autosomal loci: three on
+ * each of chromosomes 1-4. Trait science comes from EXPRESSIVE_DRAGON_TRAITS;
+ * this table owns only instrument-specific locus labels and icons.
+ *
+ * Eye glow remains an expressive Chr X trait, but is intentionally not placed
+ * on an autosome. It can be released as a separate sex-linked investigation.
+ */
+const VAULT_GENE_METADATA: readonly VaultGeneMetadata[] = [
+  { id: 'wings', locus: 'WNG-04', icon: 'W' },
+  { id: 'tail', locus: 'TCL-09', icon: 'K' },
+  { id: 'legs', locus: 'LEG-16', icon: 'L' },
+  { id: 'fire', locus: 'FIR-11', icon: 'F' },
+  { id: 'horns', locus: 'HRN-08', icon: 'H' },
+  { id: 'claws', locus: 'CLW-18', icon: 'C' },
+  { id: 'scales', locus: 'SCL-17', icon: 'S' },
+  { id: 'body-color', locus: 'CLR-12', icon: 'B' },
+  { id: 'crest', locus: 'CRS-21', icon: 'R' },
+  { id: 'ears', locus: 'EAR-05', icon: 'A' },
+  { id: 'fangs', locus: 'FNG-13', icon: 'G' },
+  { id: 'spikes', locus: 'SPK-22', icon: 'P' },
 ];
 
-export const ALLELE_VAULT_ALLELES: readonly AlleleVaultAllele[] = [
-  {
-    id: 'wings-W',
-    geneId: 'wings',
-    symbol: 'W',
-    name: 'Wing allele',
-    dominance: 'dominant',
-    phenotype: 'Winged',
-    modelSequence: ['A', 'T', 'G', 'C', 'C', 'A', 'T', 'G', 'A', 'C', 'T', 'G'],
+export const ALLELE_VAULT_GENES: readonly AlleleVaultGene[] = VAULT_GENE_METADATA.map(
+  (metadata, index) => {
+    const trait = expressiveTrait(metadata.id);
+    const geneNumber =
+      VAULT_GENE_METADATA.slice(0, index).filter(
+        (previous) => expressiveTrait(previous.id).chromosome === trait.chromosome,
+      ).length + 1;
+    return {
+      id: trait.id,
+      renderTraitId: trait.id,
+      name: trait.name,
+      symbol: `${trait.dominantAllele}/${trait.recessiveAllele}`,
+      sampleCode: `CH${trait.chromosome.replace(/^Chr\s*/i, '')}-G${geneNumber}`,
+      chromosome: trait.chromosome,
+      inheritance: trait.inheritance,
+      locus: metadata.locus,
+      icon: metadata.icon,
+      dominantPhenotype: trait.dominantPhenotype,
+      recessivePhenotype: trait.recessivePhenotype,
+      heterozygousPhenotype: trait.heterozygousPhenotype,
+      alleleIds: [`${trait.id}-${trait.dominantAllele}`, `${trait.id}-${trait.recessiveAllele}`],
+    } satisfies AlleleVaultGene;
   },
-  {
-    id: 'wings-w',
-    geneId: 'wings',
-    symbol: 'w',
-    name: 'Wingless allele',
-    dominance: 'recessive',
-    phenotype: 'Wingless',
-    modelSequence: ['A', 'T', 'G', 'T', 'C', 'A', 'T', 'G', 'A', 'A', 'T', 'G'],
-  },
-  {
-    id: 'fire-F',
-    geneId: 'fire',
-    symbol: 'F',
-    name: 'Fire allele',
-    dominance: 'dominant',
-    phenotype: 'Fire breath',
-    modelSequence: ['C', 'G', 'A', 'A', 'T', 'C', 'G', 'T', 'C', 'A', 'G', 'A'],
-  },
-  {
-    id: 'fire-f',
-    geneId: 'fire',
-    symbol: 'f',
-    name: 'No-fire allele',
-    dominance: 'recessive',
-    phenotype: 'No fire',
-    modelSequence: ['C', 'G', 'A', 'A', 'T', 'T', 'G', 'T', 'C', 'A', 'A', 'A'],
-  },
-  {
-    id: 'horns-H',
-    geneId: 'horns',
-    symbol: 'H',
-    name: 'Horn allele',
-    dominance: 'dominant',
-    phenotype: 'Horned',
-    modelSequence: ['T', 'A', 'C', 'G', 'A', 'G', 'C', 'C', 'T', 'A', 'G', 'C'],
-  },
-  {
-    id: 'horns-h',
-    geneId: 'horns',
-    symbol: 'h',
-    name: 'Hornless allele',
-    dominance: 'recessive',
-    phenotype: 'Hornless',
-    modelSequence: ['T', 'A', 'C', 'G', 'T', 'G', 'C', 'C', 'T', 'T', 'G', 'C'],
-  },
-  {
-    id: 'scales-S',
-    geneId: 'scales',
-    symbol: 'S',
-    name: 'Spotted allele',
-    dominance: 'dominant',
-    phenotype: 'Spotted',
-    modelSequence: ['G', 'C', 'T', 'T', 'A', 'C', 'G', 'A', 'A', 'T', 'C', 'G'],
-  },
-  {
-    id: 'scales-s',
-    geneId: 'scales',
-    symbol: 's',
-    name: 'Solid allele',
-    dominance: 'recessive',
-    phenotype: 'Solid',
-    modelSequence: ['G', 'C', 'T', 'C', 'A', 'C', 'G', 'A', 'G', 'T', 'C', 'G'],
-  },
-];
+);
+
+export const ALLELE_VAULT_ALLELES: readonly AlleleVaultAllele[] = ALLELE_VAULT_GENES.flatMap(
+  (gene, index) => makeAllelePair(gene, index),
+);
+
+/**
+ * Normalizes persisted teacher catalogs after the original mock catalog put
+ * eye color on chromosome 1. Unknown IDs are dropped and the former `eyes`
+ * slot becomes the real chromosome-1 leg-arrangement locus.
+ */
+export function normalizeAlleleVaultGeneIds(geneIds: readonly string[]): string[] {
+  const valid = new Set(ALLELE_VAULT_GENES.map((gene) => gene.id));
+  const normalized = geneIds.map((geneId) => (geneId === 'eyes' ? 'legs' : geneId));
+  return [...new Set(normalized.filter((geneId) => valid.has(geneId as ExpressiveDragonTraitId)))];
+}
+
+export function expressedAllelePairPhenotype(
+  gene: AlleleVaultGene,
+  pair: readonly [AlleleVaultAllele, AlleleVaultAllele],
+): string {
+  if (
+    gene.inheritance === 'incomplete-dominance' &&
+    gene.heterozygousPhenotype &&
+    pair[0].symbol !== pair[1].symbol
+  ) {
+    return gene.heterozygousPhenotype;
+  }
+  return pair.some((allele) => allele.dominance === 'dominant')
+    ? gene.dominantPhenotype
+    : gene.recessivePhenotype;
+}
+
+function expressiveTrait(id: ExpressiveDragonTraitId): ExpressiveDragonTraitDefinition {
+  const trait = EXPRESSIVE_DRAGON_TRAITS.find((candidate) => candidate.id === id);
+  if (!trait) throw new Error(`Expressive dragon trait ${id} is not registered.`);
+  return trait;
+}
+
+function makeAllelePair(
+  gene: AlleleVaultGene,
+  offset: number,
+): readonly [AlleleVaultAllele, AlleleVaultAllele] {
+  const [dominantSymbol, recessiveSymbol] = gene.symbol.split('/');
+  const sampleRoot = gene.sampleCode;
+  const bases = ['A', 'T', 'G', 'C'] as const;
+  const dominantSequence = Array.from({ length: 12 }, (_, index) => bases[(index + offset) % 4]);
+  const recessiveSequence = dominantSequence.map((base, index) =>
+    index === 3 || index === 9 ? bases[(bases.indexOf(base) + 1) % 4] : base,
+  );
+  return [
+    {
+      id: gene.alleleIds[0],
+      geneId: gene.id,
+      sampleCode: `${sampleRoot}a`,
+      symbol: dominantSymbol,
+      name: `${sampleRoot}a allele sample`,
+      dominance: 'dominant',
+      phenotype: gene.dominantPhenotype,
+      modelSequence: dominantSequence,
+    },
+    {
+      id: gene.alleleIds[1],
+      geneId: gene.id,
+      sampleCode: `${sampleRoot}b`,
+      symbol: recessiveSymbol,
+      name: `${sampleRoot}b allele sample`,
+      dominance: 'recessive',
+      phenotype: gene.recessivePhenotype,
+      modelSequence: recessiveSequence,
+    },
+  ];
+}

@@ -21,6 +21,7 @@ import {
   INSTRUCTION_LEVELS,
 } from './adaptive/dragon-simulation.models';
 import { DRAGON_SIMULATIONS } from './adaptive/dragon-simulation.registry';
+import { ALLELE_VAULT_GENES } from './adaptive/allele-workbench/allele-vault.models';
 
 interface ProgressDocument {
   id: string;
@@ -47,6 +48,7 @@ export class DragonTeacherPage {
   readonly simulations = DRAGON_SIMULATIONS;
   readonly instructionLevels = INSTRUCTION_LEVELS;
   readonly instructionLevelLabels = INSTRUCTION_LEVEL_LABELS;
+  readonly alleleGenes = ALLELE_VAULT_GENES;
   readonly progress$ = toObservable(this.session.user).pipe(
     switchMap((user) => {
       this.error.set(null);
@@ -148,6 +150,26 @@ export class DragonTeacherPage {
         },
       };
     });
+  }
+
+  alleleGeneReleased(geneId: string): boolean {
+    return this.adaptiveStore.assignment().alleleCatalog.availableGeneIds.includes(geneId);
+  }
+
+  async toggleAlleleGene(geneId: string): Promise<void> {
+    const current = this.adaptiveStore.assignment().alleleCatalog.availableGeneIds;
+    if (current.includes(geneId) && current.length === 1) {
+      this.assignmentMessage.set('At least one gene record must remain available.');
+      return;
+    }
+    await this.changeAssignment((assignment) => ({
+      ...assignment,
+      alleleCatalog: {
+        availableGeneIds: current.includes(geneId)
+          ? current.filter((id) => id !== geneId)
+          : [...current, geneId],
+      },
+    }));
   }
 
   async setStudentSimulationLevel(

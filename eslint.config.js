@@ -33,6 +33,22 @@ module.exports = tseslint.config(
     },
   },
   {
+    files: ["src/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/designer/**", "**/assembly-garage/**"],
+              message: "Student code may consume only committed model packs, never designer source."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     files: ["**/*.html"],
     extends: [
       ...angular.configs.templateRecommended,

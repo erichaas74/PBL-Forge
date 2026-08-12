@@ -1,0 +1,2641 @@
+{
+  "schemaVersion": 1,
+  "packId": "pbl-forge-dragons",
+  "packVersion": "1.0.0",
+  "rendererContractVersion": 1,
+  "defaultModelId": "classic-dragon",
+  "models": [
+    {
+      "id": "classic-dragon",
+      "label": "Classic Dragon Test",
+      "description": "A catalog-built dragon with clawed feet, wing claws, snapping jaws, flapping wings, and a segmented tail chain.",
+      "blueprint": {
+        "parts": [
+          {
+            "id": "classic-dragon-body",
+            "label": "Classic Dragon Body",
+            "roles": [
+              "core"
+            ],
+            "shape": "box",
+            "mass": 4.4,
+            "dimensions": {
+              "x": 3.075,
+              "y": 0.99,
+              "z": 1.425
+            },
+            "position": {
+              "x": 0,
+              "y": 1.32,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "color": "#dc2626",
+            "visualProfile": {
+              "profileId": "dragon-body",
+              "meshType": "procedural",
+              "materialId": "dragon-scales",
+              "parameters": {
+                "spikeCount": 6,
+                "spikeSpread": 0.73,
+                "spikeHeight": 0.2,
+                "spikeRadius": 0.051,
+                "spikeLean": 0.56
+              }
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-head-socket",
+                "label": "Head socket",
+                "localPosition": {
+                  "x": 1.50675,
+                  "y": 0.059399999999999994,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-neck"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-tail-socket",
+                "label": "Tail socket",
+                "localPosition": {
+                  "x": -1.50675,
+                  "y": 0,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-tail-root"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-front-left-leg-socket",
+                "label": "Front left leg",
+                "localPosition": {
+                  "x": 0.8302500000000002,
+                  "y": -0.3343444621754723,
+                  "z": -0.37350312226156623
+                },
+                "mateIds": [
+                  "dragon-leg-hip"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-front-right-leg-socket",
+                "label": "Front right leg",
+                "localPosition": {
+                  "x": 0.8302500000000002,
+                  "y": -0.3343444621754723,
+                  "z": 0.37350312226156623
+                },
+                "mateIds": [
+                  "dragon-leg-hip"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-rear-left-leg-socket",
+                "label": "Rear left leg",
+                "localPosition": {
+                  "x": -0.89175,
+                  "y": -0.2707994620544031,
+                  "z": -0.30251568674401713
+                },
+                "mateIds": [
+                  "dragon-leg-hip"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-rear-right-leg-socket",
+                "label": "Rear right leg",
+                "localPosition": {
+                  "x": -0.89175,
+                  "y": -0.2707994620544031,
+                  "z": 0.30251568674401713
+                },
+                "mateIds": [
+                  "dragon-leg-hip"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-left-wing-socket",
+                "label": "Left wing socket",
+                "localPosition": {
+                  "x": 0.39975000000000005,
+                  "y": 0.227627399695981,
+                  "z": -0.6154519377251734
+                },
+                "mateIds": [
+                  "dragon-wing-root"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-right-wing-socket",
+                "label": "Right wing socket",
+                "localPosition": {
+                  "x": 0.39975000000000005,
+                  "y": 0.227627399695981,
+                  "z": 0.6154519377251734
+                },
+                "mateIds": [
+                  "dragon-wing-root"
+                ],
+                "singleUse": true
+              }
+            ]
+          },
+          {
+            "id": "classic-dragon-horned-head",
+            "label": "Horned Head",
+            "roles": [
+              "head",
+              "sensor",
+              "weapon"
+            ],
+            "shape": "sphere",
+            "mass": 0.75,
+            "dimensions": {
+              "x": 0.42,
+              "y": 0.32,
+              "z": 0.3
+            },
+            "position": {
+              "x": 1.8667500000000001,
+              "y": 1.3794,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "color": "#f97316",
+            "visualProfile": {
+              "profileId": "dragon-head-horned",
+              "meshType": "procedural",
+              "materialId": "dragon-horn",
+              "parameters": {
+                "cranium": 1,
+                "browRidge": 0.1,
+                "muzzleDepth": 1,
+                "muzzleWidth": 1,
+                "muzzleDrop": 1,
+                "cheek": 1,
+                "eyeAxial": 0.06,
+                "hornLength": 1.35,
+                "hornRadius": 0.16,
+                "browLength": 0.45
+              }
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-neck",
+                "label": "Horned Head mount",
+                "localPosition": {
+                  "x": -0.36,
+                  "y": 0,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-head-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-upper-jaw-head-socket",
+                "label": "Upper jaw mount",
+                "localPosition": {
+                  "x": 0.2856,
+                  "y": -0.14518064043021267,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-upper-jaw-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-head-socket",
+              "childSnapId": "dragon-neck",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "passive",
+                "breakForce": 360,
+                "breakDamage": 14
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-upper-jaw",
+            "label": "Upper Jaw",
+            "roles": [
+              "jaw",
+              "weapon"
+            ],
+            "shape": "box",
+            "mass": 0.28,
+            "dimensions": {
+              "x": 0.52,
+              "y": 0.2,
+              "z": 0.3
+            },
+            "position": {
+              "x": 2.3523500000000004,
+              "y": 1.2342193595697872,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "color": "#fbbf24",
+            "visualProfile": {
+              "profileId": "dragon-upper-jaw",
+              "meshType": "procedural",
+              "materialId": "dragon-horn",
+              "parameters": {
+                "toothCount": 4,
+                "toothHeight": 1.15,
+                "toothRadius": 0.1
+              }
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-upper-jaw-root",
+                "label": "Upper Jaw mount",
+                "localPosition": {
+                  "x": -0.2,
+                  "y": 0,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-upper-jaw-head-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-lower-jaw-socket",
+                "label": "Lower jaw hinge",
+                "localPosition": {
+                  "x": -0.01,
+                  "y": -0.11,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-lower-jaw-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-upper-jaw-head-socket",
+              "childSnapId": "dragon-upper-jaw-root",
+              "jointType": "fixed",
+              "axis": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "passive",
+                "breakForce": 240,
+                "breakDamage": 10
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-lower-jaw",
+            "label": "Lower Jaw",
+            "roles": [
+              "jaw",
+              "weapon"
+            ],
+            "shape": "box",
+            "mass": 0.15,
+            "dimensions": {
+              "x": 0.4,
+              "y": 0.09,
+              "z": 0.24
+            },
+            "position": {
+              "x": 2.4223500000000007,
+              "y": 1.084219359569787,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "color": "#f59e0b",
+            "visualProfile": {
+              "profileId": "dragon-lower-jaw",
+              "meshType": "procedural",
+              "materialId": "dragon-horn",
+              "parameters": {
+                "toothCount": 4,
+                "toothHeight": 1.15,
+                "toothRadius": 0.1
+              }
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-lower-jaw-root",
+                "label": "Lower Jaw mount",
+                "localPosition": {
+                  "x": -0.08,
+                  "y": 0.04,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-lower-jaw-socket"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-lower-jaw-socket",
+              "childSnapId": "dragon-lower-jaw-root",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "oscillatingMotor",
+                "motorForce": 22,
+                "oscillationSpeed": 6,
+                "oscillationAmplitude": 0.65,
+                "breakForce": 120,
+                "breakDamage": 8
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-front-left-leg",
+            "label": "Front Left Leg",
+            "roles": [
+              "leg",
+              "locomotion"
+            ],
+            "shape": "cylinder",
+            "mass": 0.4,
+            "dimensions": {
+              "x": 0.24,
+              "y": 0.6,
+              "z": 0.24
+            },
+            "position": {
+              "x": 0.8302500000000002,
+              "y": 0.7456555378245278,
+              "z": -0.37350312226156623
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "color": "#166534",
+            "visualProfile": {
+              "profileId": "dragon-leg",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-leg-hip",
+                "label": "Front Left Upper Leg mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.24,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-front-left-leg-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-front-knee-socket",
+                "label": "Front knee socket",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.3,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-knee-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-front-left-leg-socket",
+              "childSnapId": "dragon-leg-hip",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 130,
+                "springDamping": 9,
+                "breakForce": 520,
+                "breakDamage": 12
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-front-right-leg",
+            "label": "Front Right Leg",
+            "roles": [
+              "leg",
+              "locomotion"
+            ],
+            "shape": "cylinder",
+            "mass": 0.4,
+            "dimensions": {
+              "x": 0.24,
+              "y": 0.6,
+              "z": 0.24
+            },
+            "position": {
+              "x": 0.8302500000000002,
+              "y": 0.7456555378245278,
+              "z": 0.37350312226156623
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "color": "#166534",
+            "visualProfile": {
+              "profileId": "dragon-leg",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-leg-hip",
+                "label": "Front Right Upper Leg mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.24,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-front-right-leg-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-front-knee-socket",
+                "label": "Front knee socket",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.3,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-knee-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-front-right-leg-socket",
+              "childSnapId": "dragon-leg-hip",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 130,
+                "springDamping": 9,
+                "breakForce": 520,
+                "breakDamage": 12
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-rear-left-leg",
+            "label": "Rear Left Leg",
+            "roles": [
+              "leg",
+              "locomotion"
+            ],
+            "shape": "cylinder",
+            "mass": 0.48,
+            "dimensions": {
+              "x": 0.288,
+              "y": 0.66,
+              "z": 0.288
+            },
+            "position": {
+              "x": -0.89175,
+              "y": 0.7852005379455969,
+              "z": -0.30251568674401713
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "color": "#14532d",
+            "visualProfile": {
+              "profileId": "dragon-leg",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-leg-hip",
+                "label": "Rear Left Upper Leg mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.264,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-rear-left-leg-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-rear-knee-socket",
+                "label": "Rear knee socket",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.33,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-knee-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-rear-left-leg-socket",
+              "childSnapId": "dragon-leg-hip",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 130,
+                "springDamping": 9,
+                "breakForce": 520,
+                "breakDamage": 12
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-rear-right-leg",
+            "label": "Rear Right Leg",
+            "roles": [
+              "leg",
+              "locomotion"
+            ],
+            "shape": "cylinder",
+            "mass": 0.48,
+            "dimensions": {
+              "x": 0.288,
+              "y": 0.66,
+              "z": 0.288
+            },
+            "position": {
+              "x": -0.89175,
+              "y": 0.7852005379455969,
+              "z": 0.30251568674401713
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "color": "#14532d",
+            "visualProfile": {
+              "profileId": "dragon-leg",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-leg-hip",
+                "label": "Rear Right Upper Leg mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.264,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-rear-right-leg-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-rear-knee-socket",
+                "label": "Rear knee socket",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.33,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-knee-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-rear-right-leg-socket",
+              "childSnapId": "dragon-leg-hip",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 130,
+                "springDamping": 9,
+                "breakForce": 520,
+                "breakDamage": 12
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-front-left-lower-leg",
+            "label": "Front Left Lower Leg",
+            "roles": [
+              "leg",
+              "locomotion"
+            ],
+            "shape": "cylinder",
+            "mass": 0.3,
+            "dimensions": {
+              "x": 0.192,
+              "y": 0.576,
+              "z": 0.192
+            },
+            "position": {
+              "x": 0.9185290717202901,
+              "y": 0.22463335455731834,
+              "z": -0.37350312226156623
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0.1888588949765006,
+              "w": 0.9820042351172704
+            },
+            "color": "#15803d",
+            "visualProfile": {
+              "profileId": "dragon-leg",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-knee-root",
+                "label": "Front Lower Leg mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.238,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-front-knee-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-foot-socket",
+                "label": "Foot socket",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.288,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-foot-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-front-knee-socket",
+              "childSnapId": "dragon-knee-root",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1888588949765006,
+                "w": 0.9820042351172704
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 130,
+                "springDamping": 9,
+                "breakForce": 520,
+                "breakDamage": 12
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-front-right-lower-leg",
+            "label": "Front Right Lower Leg",
+            "roles": [
+              "leg",
+              "locomotion"
+            ],
+            "shape": "cylinder",
+            "mass": 0.3,
+            "dimensions": {
+              "x": 0.192,
+              "y": 0.576,
+              "z": 0.192
+            },
+            "position": {
+              "x": 0.9185290717202901,
+              "y": 0.22463335455731834,
+              "z": 0.37350312226156623
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0.1888588949765006,
+              "w": 0.9820042351172704
+            },
+            "color": "#15803d",
+            "visualProfile": {
+              "profileId": "dragon-leg",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-knee-root",
+                "label": "Front Lower Leg mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.238,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-front-knee-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-foot-socket",
+                "label": "Foot socket",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.288,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-foot-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-front-knee-socket",
+              "childSnapId": "dragon-knee-root",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1888588949765006,
+                "w": 0.9820042351172704
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 130,
+                "springDamping": 9,
+                "breakForce": 520,
+                "breakDamage": 12
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-rear-left-lower-leg",
+            "label": "Rear Left Lower Leg",
+            "roles": [
+              "leg",
+              "locomotion"
+            ],
+            "shape": "cylinder",
+            "mass": 0.38,
+            "dimensions": {
+              "x": 0.228,
+              "y": 0.6,
+              "z": 0.228
+            },
+            "position": {
+              "x": -1.0071947938853707,
+              "y": 0.23345180725077577,
+              "z": -0.30251568674401713
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": -0.23770262642713455,
+              "w": 0.9713379748520296
+            },
+            "color": "#166534",
+            "visualProfile": {
+              "profileId": "dragon-leg",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-knee-root",
+                "label": "Rear Lower Leg mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.25,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-rear-knee-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-foot-socket",
+                "label": "Foot socket",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.3,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-foot-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-rear-knee-socket",
+              "childSnapId": "dragon-knee-root",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": -0.23770262642713452,
+                "w": 0.9713379748520294
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 130,
+                "springDamping": 9,
+                "breakForce": 520,
+                "breakDamage": 12
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-rear-right-lower-leg",
+            "label": "Rear Right Lower Leg",
+            "roles": [
+              "leg",
+              "locomotion"
+            ],
+            "shape": "cylinder",
+            "mass": 0.38,
+            "dimensions": {
+              "x": 0.228,
+              "y": 0.6,
+              "z": 0.228
+            },
+            "position": {
+              "x": -1.0071947938853707,
+              "y": 0.23345180725077577,
+              "z": 0.30251568674401713
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": -0.23770262642713455,
+              "w": 0.9713379748520296
+            },
+            "color": "#166534",
+            "visualProfile": {
+              "profileId": "dragon-leg",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-knee-root",
+                "label": "Rear Lower Leg mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.25,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-rear-knee-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-foot-socket",
+                "label": "Foot socket",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.3,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-foot-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-rear-knee-socket",
+              "childSnapId": "dragon-knee-root",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": -0.23770262642713452,
+                "w": 0.9713379748520294
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 130,
+                "springDamping": 9,
+                "breakForce": 520,
+                "breakDamage": 12
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-front-left-foot",
+            "label": "Front Left Foot",
+            "roles": [
+              "leg",
+              "locomotion",
+              "weapon"
+            ],
+            "shape": "box",
+            "mass": 0.22,
+            "dimensions": {
+              "x": 0.408,
+              "y": 0.168,
+              "z": 0.336
+            },
+            "position": {
+              "x": 1.0810413219567625,
+              "y": -0.08518880172443982,
+              "z": -0.37350312226156623
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0.1888588949765006,
+              "w": 0.9820042351172704
+            },
+            "color": "#365314",
+            "visualProfile": {
+              "profileId": "dragon-foot",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "talonCount": 3,
+                "talonLength": 0.6,
+                "talonRadius": 0.42
+              }
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-foot-root",
+                "label": "Clawed Foot mount",
+                "localPosition": {
+                  "x": -0.036,
+                  "y": 0.06,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-foot-socket"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-foot-socket",
+              "childSnapId": "dragon-foot-root",
+              "jointType": "fixed",
+              "axis": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "passive",
+                "breakForce": 240,
+                "breakDamage": 10
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-front-right-foot",
+            "label": "Front Right Foot",
+            "roles": [
+              "leg",
+              "locomotion",
+              "weapon"
+            ],
+            "shape": "box",
+            "mass": 0.22,
+            "dimensions": {
+              "x": 0.408,
+              "y": 0.168,
+              "z": 0.336
+            },
+            "position": {
+              "x": 1.0810413219567625,
+              "y": -0.08518880172443982,
+              "z": 0.37350312226156623
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0.1888588949765006,
+              "w": 0.9820042351172704
+            },
+            "color": "#365314",
+            "visualProfile": {
+              "profileId": "dragon-foot",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "talonCount": 3,
+                "talonLength": 0.6,
+                "talonRadius": 0.42
+              }
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-foot-root",
+                "label": "Clawed Foot mount",
+                "localPosition": {
+                  "x": -0.036,
+                  "y": 0.06,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-foot-socket"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-foot-socket",
+              "childSnapId": "dragon-foot-root",
+              "jointType": "fixed",
+              "axis": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "passive",
+                "breakForce": 240,
+                "breakDamage": 10
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-rear-left-foot",
+            "label": "Rear Left Foot",
+            "roles": [
+              "leg",
+              "locomotion",
+              "weapon"
+            ],
+            "shape": "box",
+            "mass": 0.22,
+            "dimensions": {
+              "x": 0.408,
+              "y": 0.168,
+              "z": 0.336
+            },
+            "position": {
+              "x": -1.1415034798602504,
+              "y": -0.10249041526925995,
+              "z": -0.30251568674401713
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": -0.23770262642713455,
+              "w": 0.9713379748520296
+            },
+            "color": "#365314",
+            "visualProfile": {
+              "profileId": "dragon-foot",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "talonCount": 3,
+                "talonLength": 0.6,
+                "talonRadius": 0.42
+              }
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-foot-root",
+                "label": "Clawed Foot mount",
+                "localPosition": {
+                  "x": -0.036,
+                  "y": 0.06,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-foot-socket"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-foot-socket",
+              "childSnapId": "dragon-foot-root",
+              "jointType": "fixed",
+              "axis": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "passive",
+                "breakForce": 240,
+                "breakDamage": 10
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-rear-right-foot",
+            "label": "Rear Right Foot",
+            "roles": [
+              "leg",
+              "locomotion",
+              "weapon"
+            ],
+            "shape": "box",
+            "mass": 0.22,
+            "dimensions": {
+              "x": 0.408,
+              "y": 0.168,
+              "z": 0.336
+            },
+            "position": {
+              "x": -1.1415034798602504,
+              "y": -0.10249041526925995,
+              "z": 0.30251568674401713
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": -0.23770262642713455,
+              "w": 0.9713379748520296
+            },
+            "color": "#365314",
+            "visualProfile": {
+              "profileId": "dragon-foot",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "talonCount": 3,
+                "talonLength": 0.6,
+                "talonRadius": 0.42
+              }
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-foot-root",
+                "label": "Clawed Foot mount",
+                "localPosition": {
+                  "x": -0.036,
+                  "y": 0.06,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-foot-socket"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-foot-socket",
+              "childSnapId": "dragon-foot-root",
+              "jointType": "fixed",
+              "axis": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "passive",
+                "breakForce": 240,
+                "breakDamage": 10
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-left-wing",
+            "label": "Left Wing",
+            "roles": [
+              "wing",
+              "locomotion"
+            ],
+            "shape": "box",
+            "mass": 0.55,
+            "dimensions": {
+              "x": 0.39,
+              "y": 0.12,
+              "z": 2.025
+            },
+            "position": {
+              "x": 0.39975000000000005,
+              "y": 1.547627399695981,
+              "z": -1.5469519377251735
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "color": "#a855f7",
+            "visualProfile": {
+              "profileId": "dragon-wing",
+              "meshType": "procedural",
+              "materialId": "dragon-wing-membrane",
+              "parameters": {
+                "camber": 0.12,
+                "fingerSag": 0.06,
+                "dihedral": 0.04,
+                "scallop": 0.13
+              }
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-wing-root",
+                "label": "Left Wing mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 0.9315
+                },
+                "mateIds": [
+                  "dragon-left-wing-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-wing-claw-socket",
+                "label": "Wing claw socket",
+                "localPosition": {
+                  "x": 0.012480000000000012,
+                  "y": 0.081,
+                  "z": -0.9517499999999999
+                },
+                "mateIds": [
+                  "dragon-wing-claw-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-left-wing-socket",
+              "childSnapId": "dragon-wing-root",
+              "jointType": "hinge",
+              "axis": {
+                "x": 1,
+                "y": 0,
+                "z": 0
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "oscillatingMotor",
+                "motorForce": 60,
+                "oscillationSpeed": 4.2,
+                "oscillationAmplitude": 5.5,
+                "breakForce": 320,
+                "breakDamage": 12
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-right-wing",
+            "label": "Right Wing",
+            "roles": [
+              "wing",
+              "locomotion"
+            ],
+            "shape": "box",
+            "mass": 0.55,
+            "dimensions": {
+              "x": 0.39,
+              "y": 0.12,
+              "z": 2.025
+            },
+            "position": {
+              "x": 0.39975000000000005,
+              "y": 1.547627399695981,
+              "z": 1.5469519377251735
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "color": "#a855f7",
+            "visualProfile": {
+              "profileId": "dragon-wing",
+              "meshType": "procedural",
+              "materialId": "dragon-wing-membrane",
+              "parameters": {
+                "camber": 0.12,
+                "fingerSag": 0.06,
+                "dihedral": 0.04,
+                "scallop": 0.13
+              }
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-wing-root",
+                "label": "Right Wing mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0,
+                  "z": -0.9315
+                },
+                "mateIds": [
+                  "dragon-right-wing-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-wing-claw-socket",
+                "label": "Wing claw socket",
+                "localPosition": {
+                  "x": 0.012480000000000012,
+                  "y": 0.081,
+                  "z": 0.9517499999999999
+                },
+                "mateIds": [
+                  "dragon-wing-claw-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-right-wing-socket",
+              "childSnapId": "dragon-wing-root",
+              "jointType": "hinge",
+              "axis": {
+                "x": -1,
+                "y": 0,
+                "z": 0
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "oscillatingMotor",
+                "motorForce": 60,
+                "oscillationSpeed": 4.2,
+                "oscillationAmplitude": 5.5,
+                "breakForce": 320,
+                "breakDamage": 12
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-left-wing-claw",
+            "label": "Left Wing Claw",
+            "roles": [
+              "wing",
+              "locomotion",
+              "weapon"
+            ],
+            "shape": "cylinder",
+            "mass": 0.12,
+            "dimensions": {
+              "x": 0.08,
+              "y": 0.32,
+              "z": 0.08
+            },
+            "position": {
+              "x": 0.57223,
+              "y": 1.628627399695981,
+              "z": -2.4987019377251736
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0.7071067811865475,
+              "w": 0.7071067811865476
+            },
+            "color": "#facc15",
+            "visualProfile": {
+              "profileId": "dragon-wing-claw",
+              "meshType": "procedural",
+              "materialId": "dragon-horn"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-wing-claw-root",
+                "label": "Wing Hand Claw mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.16,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-wing-claw-socket"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-wing-claw-socket",
+              "childSnapId": "dragon-wing-claw-root",
+              "jointType": "fixed",
+              "axis": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.7071067811865475,
+                "w": 0.7071067811865476
+              },
+              "behavior": {
+                "profile": "passive",
+                "breakForce": 240,
+                "breakDamage": 10
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-right-wing-claw",
+            "label": "Right Wing Claw",
+            "roles": [
+              "wing",
+              "locomotion",
+              "weapon"
+            ],
+            "shape": "cylinder",
+            "mass": 0.12,
+            "dimensions": {
+              "x": 0.08,
+              "y": 0.32,
+              "z": 0.08
+            },
+            "position": {
+              "x": 0.57223,
+              "y": 1.628627399695981,
+              "z": 2.4987019377251736
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0.7071067811865475,
+              "w": 0.7071067811865476
+            },
+            "color": "#facc15",
+            "visualProfile": {
+              "profileId": "dragon-wing-claw",
+              "meshType": "procedural",
+              "materialId": "dragon-horn"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-wing-claw-root",
+                "label": "Wing Hand Claw mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.16,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-wing-claw-socket"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-wing-claw-socket",
+              "childSnapId": "dragon-wing-claw-root",
+              "jointType": "fixed",
+              "axis": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.7071067811865475,
+                "w": 0.7071067811865476
+              },
+              "behavior": {
+                "profile": "passive",
+                "breakForce": 240,
+                "breakDamage": 10
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-tail-chain-root",
+            "label": "Tail Chain Root",
+            "roles": [
+              "tail"
+            ],
+            "shape": "cylinder",
+            "mass": 0.38,
+            "dimensions": {
+              "x": 0.15,
+              "y": 0.72,
+              "z": 0.15
+            },
+            "position": {
+              "x": -1.8667500000000001,
+              "y": 1.32,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": -0.7071067811865475,
+              "w": 0.7071067811865476
+            },
+            "color": "#78350f",
+            "visualProfile": {
+              "profileId": "dragon-tail",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-brown"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-tail-root",
+                "label": "Tail Chain Root mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.36,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-tail-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-tail-tip-socket",
+                "label": "Tail chain tip",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.36,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-tail-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-tail-socket",
+              "childSnapId": "dragon-tail-root",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": -0.7071067811865475,
+                "w": 0.7071067811865476
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 56,
+                "springDamping": 7,
+                "breakForce": 260,
+                "breakDamage": 10
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-tail-link-1",
+            "label": "Tail Chain Link 1",
+            "roles": [
+              "tail"
+            ],
+            "shape": "cylinder",
+            "mass": 0.28,
+            "dimensions": {
+              "x": 0.12,
+              "y": 0.58,
+              "z": 0.12
+            },
+            "position": {
+              "x": -2.51675,
+              "y": 1.32,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": -0.7071067811865475,
+              "w": 0.7071067811865476
+            },
+            "color": "#854d0e",
+            "visualProfile": {
+              "profileId": "dragon-tail",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-brown"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-tail-root",
+                "label": "Tail Chain Link mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.29,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-tail-tip-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-tail-tip-socket",
+                "label": "Tail chain tip",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.29,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-tail-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-tail-tip-socket",
+              "childSnapId": "dragon-tail-root",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 56,
+                "springDamping": 7,
+                "breakForce": 260,
+                "breakDamage": 10
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-tail-link-2",
+            "label": "Tail Chain Link 2",
+            "roles": [
+              "tail"
+            ],
+            "shape": "cylinder",
+            "mass": 0.28,
+            "dimensions": {
+              "x": 0.12,
+              "y": 0.58,
+              "z": 0.12
+            },
+            "position": {
+              "x": -3.09675,
+              "y": 1.32,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": -0.7071067811865475,
+              "w": 0.7071067811865476
+            },
+            "color": "#854d0e",
+            "visualProfile": {
+              "profileId": "dragon-tail",
+              "meshType": "procedural",
+              "materialId": "dragon-scale-brown"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-tail-root",
+                "label": "Tail Chain Link mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0.29,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-tail-tip-socket"
+                ],
+                "singleUse": true
+              },
+              {
+                "id": "dragon-tail-tip-socket",
+                "label": "Tail chain tip",
+                "localPosition": {
+                  "x": 0,
+                  "y": -0.29,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-tail-root"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-tail-tip-socket",
+              "childSnapId": "dragon-tail-root",
+              "jointType": "hinge",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "springHinge",
+                "motorForce": 56,
+                "springDamping": 7,
+                "breakForce": 260,
+                "breakDamage": 10
+              }
+            }
+          },
+          {
+            "id": "classic-dragon-tail-stinger",
+            "label": "Tail Stinger",
+            "roles": [
+              "tail",
+              "weapon"
+            ],
+            "shape": "sphere",
+            "mass": 0.34,
+            "dimensions": {
+              "x": 0.2,
+              "y": 0.2,
+              "z": 0.2
+            },
+            "position": {
+              "x": -3.38675,
+              "y": 1.32,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": -0.7071067811865475,
+              "w": 0.7071067811865476
+            },
+            "color": "#b45309",
+            "visualProfile": {
+              "profileId": "dragon-tail-stinger",
+              "meshType": "procedural",
+              "materialId": "dragon-horn"
+            },
+            "snapPoints": [
+              {
+                "id": "dragon-tail-root",
+                "label": "Tail Stinger mount",
+                "localPosition": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+                },
+                "mateIds": [
+                  "dragon-tail-tip-socket"
+                ],
+                "singleUse": true
+              }
+            ],
+            "attachment": {
+              "parentSnapId": "dragon-tail-tip-socket",
+              "childSnapId": "dragon-tail-root",
+              "jointType": "fixed",
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "childRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "behavior": {
+                "profile": "passive",
+                "breakForce": 240,
+                "breakDamage": 10
+              }
+            }
+          }
+        ],
+        "joints": [
+          {
+            "id": "joint-classic-dragon-body-classic-dragon-horned-head",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-body",
+            "childPartId": "classic-dragon-horned-head",
+            "pivotOnParent": {
+              "x": 1.50675,
+              "y": 0.059399999999999994,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": -0.36,
+              "y": 0,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            },
+            "behavior": {
+              "profile": "passive",
+              "breakForce": 360,
+              "breakDamage": 14
+            }
+          },
+          {
+            "id": "joint-classic-dragon-horned-head-classic-dragon-upper-jaw",
+            "type": "fixed",
+            "parentPartId": "classic-dragon-horned-head",
+            "childPartId": "classic-dragon-upper-jaw",
+            "pivotOnParent": {
+              "x": 0.2856,
+              "y": -0.14518064043021267,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": -0.2,
+              "y": 0,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            },
+            "behavior": {
+              "profile": "passive",
+              "breakForce": 240,
+              "breakDamage": 10
+            }
+          },
+          {
+            "id": "joint-classic-dragon-upper-jaw-classic-dragon-lower-jaw",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-upper-jaw",
+            "childPartId": "classic-dragon-lower-jaw",
+            "pivotOnParent": {
+              "x": -0.01,
+              "y": -0.11,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": -0.08,
+              "y": 0.04,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "oscillatingMotor",
+              "motorForce": 22,
+              "oscillationSpeed": 6,
+              "oscillationAmplitude": 0.65,
+              "breakForce": 120,
+              "breakDamage": 8
+            }
+          },
+          {
+            "id": "joint-classic-dragon-body-classic-dragon-front-left-leg",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-body",
+            "childPartId": "classic-dragon-front-left-leg",
+            "pivotOnParent": {
+              "x": 0.8302500000000002,
+              "y": -0.3343444621754723,
+              "z": -0.37350312226156623
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.24,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 130,
+              "springDamping": 9,
+              "breakForce": 520,
+              "breakDamage": 12
+            }
+          },
+          {
+            "id": "joint-classic-dragon-body-classic-dragon-front-right-leg",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-body",
+            "childPartId": "classic-dragon-front-right-leg",
+            "pivotOnParent": {
+              "x": 0.8302500000000002,
+              "y": -0.3343444621754723,
+              "z": 0.37350312226156623
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.24,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 130,
+              "springDamping": 9,
+              "breakForce": 520,
+              "breakDamage": 12
+            }
+          },
+          {
+            "id": "joint-classic-dragon-body-classic-dragon-rear-left-leg",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-body",
+            "childPartId": "classic-dragon-rear-left-leg",
+            "pivotOnParent": {
+              "x": -0.89175,
+              "y": -0.2707994620544031,
+              "z": -0.30251568674401713
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.264,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 130,
+              "springDamping": 9,
+              "breakForce": 520,
+              "breakDamage": 12
+            }
+          },
+          {
+            "id": "joint-classic-dragon-body-classic-dragon-rear-right-leg",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-body",
+            "childPartId": "classic-dragon-rear-right-leg",
+            "pivotOnParent": {
+              "x": -0.89175,
+              "y": -0.2707994620544031,
+              "z": 0.30251568674401713
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.264,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 130,
+              "springDamping": 9,
+              "breakForce": 520,
+              "breakDamage": 12
+            }
+          },
+          {
+            "id": "joint-classic-dragon-front-left-leg-classic-dragon-front-left-lower-leg",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-front-left-leg",
+            "childPartId": "classic-dragon-front-left-lower-leg",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.3,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.238,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 130,
+              "springDamping": 9,
+              "breakForce": 520,
+              "breakDamage": 12
+            }
+          },
+          {
+            "id": "joint-classic-dragon-front-right-leg-classic-dragon-front-right-lower-leg",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-front-right-leg",
+            "childPartId": "classic-dragon-front-right-lower-leg",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.3,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.238,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 130,
+              "springDamping": 9,
+              "breakForce": 520,
+              "breakDamage": 12
+            }
+          },
+          {
+            "id": "joint-classic-dragon-rear-left-leg-classic-dragon-rear-left-lower-leg",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-rear-left-leg",
+            "childPartId": "classic-dragon-rear-left-lower-leg",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.33,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.25,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 130,
+              "springDamping": 9,
+              "breakForce": 520,
+              "breakDamage": 12
+            }
+          },
+          {
+            "id": "joint-classic-dragon-rear-right-leg-classic-dragon-rear-right-lower-leg",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-rear-right-leg",
+            "childPartId": "classic-dragon-rear-right-lower-leg",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.33,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.25,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 130,
+              "springDamping": 9,
+              "breakForce": 520,
+              "breakDamage": 12
+            }
+          },
+          {
+            "id": "joint-classic-dragon-front-left-lower-leg-classic-dragon-front-left-foot",
+            "type": "fixed",
+            "parentPartId": "classic-dragon-front-left-lower-leg",
+            "childPartId": "classic-dragon-front-left-foot",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.288,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": -0.036,
+              "y": 0.06,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            },
+            "behavior": {
+              "profile": "passive",
+              "breakForce": 240,
+              "breakDamage": 10
+            }
+          },
+          {
+            "id": "joint-classic-dragon-front-right-lower-leg-classic-dragon-front-right-foot",
+            "type": "fixed",
+            "parentPartId": "classic-dragon-front-right-lower-leg",
+            "childPartId": "classic-dragon-front-right-foot",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.288,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": -0.036,
+              "y": 0.06,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            },
+            "behavior": {
+              "profile": "passive",
+              "breakForce": 240,
+              "breakDamage": 10
+            }
+          },
+          {
+            "id": "joint-classic-dragon-rear-left-lower-leg-classic-dragon-rear-left-foot",
+            "type": "fixed",
+            "parentPartId": "classic-dragon-rear-left-lower-leg",
+            "childPartId": "classic-dragon-rear-left-foot",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.3,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": -0.036,
+              "y": 0.06,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            },
+            "behavior": {
+              "profile": "passive",
+              "breakForce": 240,
+              "breakDamage": 10
+            }
+          },
+          {
+            "id": "joint-classic-dragon-rear-right-lower-leg-classic-dragon-rear-right-foot",
+            "type": "fixed",
+            "parentPartId": "classic-dragon-rear-right-lower-leg",
+            "childPartId": "classic-dragon-rear-right-foot",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.3,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": -0.036,
+              "y": 0.06,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            },
+            "behavior": {
+              "profile": "passive",
+              "breakForce": 240,
+              "breakDamage": 10
+            }
+          },
+          {
+            "id": "joint-classic-dragon-body-classic-dragon-left-wing",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-body",
+            "childPartId": "classic-dragon-left-wing",
+            "pivotOnParent": {
+              "x": 0.39975000000000005,
+              "y": 0.227627399695981,
+              "z": -0.6154519377251734
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0,
+              "z": 0.9315
+            },
+            "axis": {
+              "x": 1,
+              "y": 0,
+              "z": 0
+            },
+            "behavior": {
+              "profile": "oscillatingMotor",
+              "motorForce": 60,
+              "oscillationSpeed": 4.2,
+              "oscillationAmplitude": 5.5,
+              "breakForce": 320,
+              "breakDamage": 12
+            }
+          },
+          {
+            "id": "joint-classic-dragon-body-classic-dragon-right-wing",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-body",
+            "childPartId": "classic-dragon-right-wing",
+            "pivotOnParent": {
+              "x": 0.39975000000000005,
+              "y": 0.227627399695981,
+              "z": 0.6154519377251734
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0,
+              "z": -0.9315
+            },
+            "axis": {
+              "x": -1,
+              "y": 0,
+              "z": 0
+            },
+            "behavior": {
+              "profile": "oscillatingMotor",
+              "motorForce": 60,
+              "oscillationSpeed": 4.2,
+              "oscillationAmplitude": 5.5,
+              "breakForce": 320,
+              "breakDamage": 12
+            }
+          },
+          {
+            "id": "joint-classic-dragon-left-wing-classic-dragon-left-wing-claw",
+            "type": "fixed",
+            "parentPartId": "classic-dragon-left-wing",
+            "childPartId": "classic-dragon-left-wing-claw",
+            "pivotOnParent": {
+              "x": 0.012480000000000012,
+              "y": 0.081,
+              "z": -0.9517499999999999
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.16,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            },
+            "behavior": {
+              "profile": "passive",
+              "breakForce": 240,
+              "breakDamage": 10
+            }
+          },
+          {
+            "id": "joint-classic-dragon-right-wing-classic-dragon-right-wing-claw",
+            "type": "fixed",
+            "parentPartId": "classic-dragon-right-wing",
+            "childPartId": "classic-dragon-right-wing-claw",
+            "pivotOnParent": {
+              "x": 0.012480000000000012,
+              "y": 0.081,
+              "z": 0.9517499999999999
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.16,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            },
+            "behavior": {
+              "profile": "passive",
+              "breakForce": 240,
+              "breakDamage": 10
+            }
+          },
+          {
+            "id": "joint-classic-dragon-body-classic-dragon-tail-chain-root",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-body",
+            "childPartId": "classic-dragon-tail-chain-root",
+            "pivotOnParent": {
+              "x": -1.50675,
+              "y": 0,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.36,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 56,
+              "springDamping": 7,
+              "breakForce": 260,
+              "breakDamage": 10
+            }
+          },
+          {
+            "id": "joint-classic-dragon-tail-chain-root-classic-dragon-tail-link-1",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-tail-chain-root",
+            "childPartId": "classic-dragon-tail-link-1",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.36,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.29,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 56,
+              "springDamping": 7,
+              "breakForce": 260,
+              "breakDamage": 10
+            }
+          },
+          {
+            "id": "joint-classic-dragon-tail-link-1-classic-dragon-tail-link-2",
+            "type": "hinge",
+            "parentPartId": "classic-dragon-tail-link-1",
+            "childPartId": "classic-dragon-tail-link-2",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.29,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0.29,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "springHinge",
+              "motorForce": 56,
+              "springDamping": 7,
+              "breakForce": 260,
+              "breakDamage": 10
+            }
+          },
+          {
+            "id": "joint-classic-dragon-tail-link-2-classic-dragon-tail-stinger",
+            "type": "fixed",
+            "parentPartId": "classic-dragon-tail-link-2",
+            "childPartId": "classic-dragon-tail-stinger",
+            "pivotOnParent": {
+              "x": 0,
+              "y": -0.29,
+              "z": 0
+            },
+            "pivotOnChild": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "behavior": {
+              "profile": "passive",
+              "breakForce": 240,
+              "breakDamage": 10
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

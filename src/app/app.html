@@ -38,3 +38,19 @@
   <span>Learning experiences designed for student agency.</span>
 </footer>
 }
+
+@if (showSpecimenModeToggle) {
+<!--
+  Authoring control: flips every specimen tile between the drawn plate and the
+  baked 3D render so the two can be compared.
+
+  Floating and outside the header blocks on purpose. Most of the pages that show
+  specimens — every `/dragon-genetics/:id` route, including the allele workbench
+  reference — run immersive with the header hidden, so a header placement is
+  invisible exactly where it is most needed.
+
+  Dev builds only. Drop the `showSpecimenModeToggle` guard in app.ts to expose it
+  in a deployed build.
+-->
+<app-specimen-render-toggle class="specimen-mode-floating" />
+}
