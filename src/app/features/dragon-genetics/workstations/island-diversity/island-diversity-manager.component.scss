@@ -263,7 +263,11 @@ h4 {
   overflow: hidden;
   background:
     radial-gradient(circle at 30% 30%, rgb(97 179 168 / 14%), transparent 21rem),
-    repeating-radial-gradient(circle at 60% 60%, transparent 0 2.7rem, rgb(105 170 167 / 5%) 2.8rem 2.9rem),
+    repeating-radial-gradient(
+      circle at 60% 60%,
+      transparent 0 2.7rem,
+      rgb(105 170 167 / 5%) 2.8rem 2.9rem
+    ),
     linear-gradient(150deg, #0a303a, #071d2b 62%, #0c2933);
 }
 
@@ -311,12 +315,19 @@ h4 {
   padding: 0.5rem;
   border: 1px solid color-mix(in srgb, var(--island-accent) 55%, transparent);
   border-radius: 45% 55% 48% 52% / 56% 42% 58% 44%;
-  background: linear-gradient(155deg, color-mix(in srgb, var(--island-accent) 28%, #17382f), #10281f);
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--island-accent) 28%, #17382f),
+    #10281f
+  );
   box-shadow: 0 0.7rem 1.6rem rgb(0 0 0 / 32%);
   color: #eef5f0;
   place-items: center;
   transform: translate(-50%, -50%);
-  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s,
+    border-color 0.18s;
   z-index: 1;
 }
 
@@ -327,7 +338,9 @@ h4 {
 
 .island-marker.active {
   border-width: 3px;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--island-accent) 25%, transparent), 0 0.8rem 2rem rgb(0 0 0 / 35%);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--island-accent) 25%, transparent),
+    0 0.8rem 2rem rgb(0 0 0 / 35%);
 }
 
 .island-marker.warning::after {
@@ -1110,4 +1123,3 @@ h4 {
     transition: none;
   }
 }
-

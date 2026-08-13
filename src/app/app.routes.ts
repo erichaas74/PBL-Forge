@@ -53,9 +53,9 @@ export const routes: Routes = [
   {
     path: 'dragon-genetics/island-diversity',
     loadComponent: () =>
-      import(
-        './features/dragon-genetics/workstations/island-diversity/island-diversity-manager.page'
-      ).then((m) => m.IslandDiversityManagerPage),
+      import('./features/dragon-genetics/workstations/island-diversity/island-diversity-manager.page').then(
+        (m) => m.IslandDiversityManagerPage,
+      ),
   },
   {
     path: 'dragon-genetics/:simulationId',

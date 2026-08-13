@@ -233,4 +233,3 @@ export const ISLAND_DEFINITIONS: readonly IslandDefinition[] = [
     mapY: 88,
   },
 ];
-

@@ -10,13 +10,13 @@ protect a breeding pair, and advance one island at a time through multiple gener
 
 ## Required design decisions
 
-| Decision               | Island Diversity Manager answer |
-| ---------------------- | ------------------------------- |
-| Scientific goal        | Investigate how chance, relatedness, selection, recessive inheritance, migration, and breeding decisions change allele frequencies and population health across generations. |
-| Manipulable evidence   | Seven island populations, individual dragon field records, limited genotype scans, account-dragon conservation intake, movable dragons, two protected-pair berths, generation controls, allele-frequency readouts, and island timelines. |
+| Decision               | Island Diversity Manager answer                                                                                                                                                                                                                                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scientific goal        | Investigate how chance, relatedness, selection, recessive inheritance, migration, and breeding decisions change allele frequencies and population health across generations.                                                                                                                                                                 |
+| Manipulable evidence   | Seven island populations, individual dragon field records, limited genotype scans, account-dragon conservation intake, movable dragons, two protected-pair berths, generation controls, allele-frequency readouts, and island timelines.                                                                                                     |
 | Observable consequence | Scans reveal previously concealed genotypes and carrier states; relocation immediately changes source and destination population metrics; inherited offspring and natural matings change genotype counts; bottleneck and habitat pressures can remove alleles by chance or selection; and each generation adds a comparable timeline record. |
-| Student-built record   | Per-island conservation notes and a persistent archipelago ledger containing scans, relocations, protected pairings, generation outcomes, events, population metrics, and allele-frequency snapshots. |
-| Shared sources         | The Account Genetics File supplies student-owned rescue dragons; the Island Diversity domain owns its fictional population-locus catalog, inheritance engine, initial released populations, and metric calculations; and a replaceable repository owns the complete per-student world snapshot and field notes. |
+| Student-built record   | Per-island conservation notes and a persistent archipelago ledger containing scans, relocations, protected pairings, generation outcomes, events, population metrics, and allele-frequency snapshots.                                                                                                                                        |
+| Shared sources         | The Account Genetics File supplies student-owned rescue dragons; the Island Diversity domain owns its fictional population-locus catalog, inheritance engine, initial released populations, and metric calculations; and a replaceable repository owns the complete per-student world snapshot and field notes.                              |
 
 ## Population model
 

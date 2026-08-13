@@ -386,13 +386,34 @@ main {
   border-radius: 48% 52% 43% 57%;
   background: color-mix(in srgb, var(--simulation-accent) 20%, #173b32);
 }
-.island-preview i:nth-child(1) { left: 10%; top: 20%; }
-.island-preview i:nth-child(2) { left: 42%; top: 12%; }
-.island-preview i:nth-child(3) { right: 10%; top: 25%; }
-.island-preview i:nth-child(4) { left: 22%; top: 57%; }
-.island-preview i:nth-child(5) { left: 50%; top: 50%; }
-.island-preview i:nth-child(6) { right: 16%; top: 61%; }
-.island-preview i:nth-child(7) { left: 46%; bottom: 4%; }
+.island-preview i:nth-child(1) {
+  left: 10%;
+  top: 20%;
+}
+.island-preview i:nth-child(2) {
+  left: 42%;
+  top: 12%;
+}
+.island-preview i:nth-child(3) {
+  right: 10%;
+  top: 25%;
+}
+.island-preview i:nth-child(4) {
+  left: 22%;
+  top: 57%;
+}
+.island-preview i:nth-child(5) {
+  left: 50%;
+  top: 50%;
+}
+.island-preview i:nth-child(6) {
+  right: 16%;
+  top: 61%;
+}
+.island-preview i:nth-child(7) {
+  left: 46%;
+  bottom: 4%;
+}
 .island-preview span {
   position: absolute;
   right: 0.5rem;

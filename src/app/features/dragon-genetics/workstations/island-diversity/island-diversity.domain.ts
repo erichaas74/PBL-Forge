@@ -160,7 +160,8 @@ export function metricsForIsland(population: IslandPopulation): IslandMetrics {
   const largestLineageShare = populationSize
     ? Math.max(0, ...Object.values(lineageCounts)) / populationSize
     : 1;
-  const relatedness = largestLineageShare >= 0.5 ? 'High' : largestLineageShare >= 0.32 ? 'Moderate' : 'Low';
+  const relatedness =
+    largestLineageShare >= 0.5 ? 'High' : largestLineageShare >= 0.32 ? 'Moderate' : 'Low';
   const rareAlleles = alleleFrequencies.reduce(
     (count, record) =>
       count +
@@ -170,7 +171,9 @@ export function metricsForIsland(population: IslandPopulation): IslandMetrics {
   );
   const affectedDragons = population.dragons.filter((dragon) => isMoonfadeAffected(dragon)).length;
   const heatTolerant = population.dragons.filter((dragon) => hasAllele(dragon, 'heat', 'H')).length;
-  const blueHorned = population.dragons.filter((dragon) => isHomozygous(dragon, 'horn', 'b')).length;
+  const blueHorned = population.dragons.filter((dragon) =>
+    isHomozygous(dragon, 'horn', 'b'),
+  ).length;
   const difference = populationSize - population.previousPopulation;
   return {
     population: populationSize,
@@ -328,7 +331,7 @@ export function advanceIslandGeneration(
   const females = adults.filter((dragon) => dragon.sex === 'female');
   const males = adults.filter((dragon) => dragon.sex === 'male');
   const protectedParents = population.protectedPair.map((id) =>
-    id ? adults.find((dragon) => dragon.id === id) ?? null : null,
+    id ? (adults.find((dragon) => dragon.id === id) ?? null) : null,
   );
   const protectedPairValid =
     protectedParents[0] &&
@@ -557,7 +560,11 @@ function randomPair(
 }
 
 function normalizedPair(first: string, second: string): GenotypePair {
-  return first === first.toUpperCase() ? [first, second] : second === second.toUpperCase() ? [second, first] : [first, second];
+  return first === first.toUpperCase()
+    ? [first, second]
+    : second === second.toUpperCase()
+      ? [second, first]
+      : [first, second];
 }
 
 function hasAllele(

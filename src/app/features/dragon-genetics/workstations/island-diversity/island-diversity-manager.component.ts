@@ -72,14 +72,14 @@ export class IslandDiversityManagerComponent {
   );
 
   readonly accountSnapshot = computed(() => this.accountLibrary.recordsFor(this.studentId()));
-  readonly selectedDefinition = computed(
-    () => this.islandDefinition(this.selectedIslandId())!,
-  );
+  readonly selectedDefinition = computed(() => this.islandDefinition(this.selectedIslandId())!);
   readonly selectedPopulation = computed(() => this.world().islands[this.selectedIslandId()]);
   readonly selectedMetrics = computed(() => metricsForIsland(this.selectedPopulation()));
   readonly selectedDragon = computed(() => {
     const id = this.selectedDragonId();
-    return id ? this.selectedPopulation().dragons.find((dragon) => dragon.id === id) ?? null : null;
+    return id
+      ? (this.selectedPopulation().dragons.find((dragon) => dragon.id === id) ?? null)
+      : null;
   });
   readonly selectedDragonScanned = computed(() => {
     const dragon = this.selectedDragon();
@@ -87,14 +87,16 @@ export class IslandDiversityManagerComponent {
   });
   readonly protectedParents = computed(() =>
     this.selectedPopulation().protectedPair.map((id) =>
-      id ? this.selectedPopulation().dragons.find((dragon) => dragon.id === id) ?? null : null,
+      id ? (this.selectedPopulation().dragons.find((dragon) => dragon.id === id) ?? null) : null,
     ),
   );
   readonly pairIssue = computed(() => {
     const [first, second] = this.protectedParents();
     if (!first && !second) return 'Wild reproduction will continue without a protected pairing.';
-    if (!first || !second) return 'One protected berth is still open; wild reproduction remains active.';
-    if (first.sex === second.sex) return 'This pair cannot produce offspring in the diploid breeding model.';
+    if (!first || !second)
+      return 'One protected berth is still open; wild reproduction remains active.';
+    if (first.sex === second.sex)
+      return 'This pair cannot produce offspring in the diploid breeding model.';
     return 'The protected pair can contribute up to two offspring; other adults still mate naturally.';
   });
   readonly knownMoonfade = computed(() => {
@@ -106,10 +108,15 @@ export class IslandDiversityManagerComponent {
       affected: tested.filter(isMoonfadeAffected).length,
     };
   });
-  readonly alerts = computed(() => this.alertsFor(this.selectedDefinition(), this.selectedMetrics()));
+  readonly alerts = computed(() =>
+    this.alertsFor(this.selectedDefinition(), this.selectedMetrics()),
+  );
   readonly canAdvance = computed(() => {
     const adults = this.selectedPopulation().dragons.filter(isBreedingAdult);
-    return adults.some((dragon) => dragon.sex === 'female') && adults.some((dragon) => dragon.sex === 'male');
+    return (
+      adults.some((dragon) => dragon.sex === 'female') &&
+      adults.some((dragon) => dragon.sex === 'male')
+    );
   });
 
   private loadedStudentId: string | null = null;
@@ -129,7 +136,9 @@ export class IslandDiversityManagerComponent {
     this.selectedDragonId.set(null);
     this.syncNoteDraft(islandId);
     const definition = this.islandDefinition(islandId)!;
-    this.statusMessage.set(`${definition.name} field records opened at generation ${this.world().islands[islandId].generation}.`);
+    this.statusMessage.set(
+      `${definition.name} field records opened at generation ${this.world().islands[islandId].generation}.`,
+    );
   }
 
   selectDragon(dragon: PopulationDragon): void {
@@ -173,7 +182,8 @@ export class IslandDiversityManagerComponent {
     if (record?.kind === payload.kind) {
       this.stagedAccountRecord.set(record);
       if (islandId === 'sanctuary') this.admitRecord(record);
-      else this.statusMessage.set('Account rescues enter the archipelago through Sanctuary intake.');
+      else
+        this.statusMessage.set('Account rescues enter the archipelago through Sanctuary intake.');
     }
   }
 
@@ -196,7 +206,9 @@ export class IslandDiversityManagerComponent {
       return;
     }
     this.commit(next);
-    this.statusMessage.set(`${dragon.name}'s three-locus genotype and Moonfade carrier state are now recorded.`);
+    this.statusMessage.set(
+      `${dragon.name}'s three-locus genotype and Moonfade carrier state are now recorded.`,
+    );
   }
 
   placeSelectedParent(berth: 0 | 1): void {
@@ -260,7 +272,9 @@ export class IslandDiversityManagerComponent {
       },
       updatedAtIso: new Date().toISOString(),
     });
-    this.statusMessage.set(`${this.selectedDefinition().name} conservation note saved to the archipelago ledger.`);
+    this.statusMessage.set(
+      `${this.selectedDefinition().name} conservation note saved to the archipelago ledger.`,
+    );
   }
 
   islandMetrics(islandId: IslandId): IslandMetrics {
@@ -296,8 +310,10 @@ export class IslandDiversityManagerComponent {
   parentNames(dragon: PopulationDragon): string {
     if (!dragon.parents.length) return 'Founding record unavailable';
     return dragon.parents
-      .map((parentId) =>
-        this.selectedPopulation().dragons.find((candidate) => candidate.id === parentId)?.name ?? parentId,
+      .map(
+        (parentId) =>
+          this.selectedPopulation().dragons.find((candidate) => candidate.id === parentId)?.name ??
+          parentId,
       )
       .join(' + ');
   }
@@ -356,17 +372,25 @@ export class IslandDiversityManagerComponent {
 
   private alertsFor(definition: IslandDefinition, metrics: IslandMetrics): readonly string[] {
     const alerts: string[] = [];
-    if (metrics.population <= 12) alerts.push('Small population: random allele loss risk is elevated.');
-    if (metrics.diversityPercent < 48) alerts.push('Low model diversity estimate: variation is concentrated.');
-    if (metrics.relatedness === 'High') alerts.push('High lineage concentration: related matings are more likely.');
-    if (metrics.affectedDragons > 0) alerts.push(`${metrics.affectedDragons} dragon${metrics.affectedDragons === 1 ? '' : 's'} show Moonfade symptoms.`);
+    if (metrics.population <= 12)
+      alerts.push('Small population: random allele loss risk is elevated.');
+    if (metrics.diversityPercent < 48)
+      alerts.push('Low model diversity estimate: variation is concentrated.');
+    if (metrics.relatedness === 'High')
+      alerts.push('High lineage concentration: related matings are more likely.');
+    if (metrics.affectedDragons > 0)
+      alerts.push(
+        `${metrics.affectedDragons} dragon${metrics.affectedDragons === 1 ? '' : 's'} show Moonfade symptoms.`,
+      );
     if (definition.id === 'founders-isle' && metrics.blueHornPercent >= 50) {
       alerts.push('Blue horns are frequent; field evidence does not yet identify why.');
     }
     if (definition.id === 'ash-island') {
       alerts.push(`${metrics.heatTolerantPercent}% show the heat-tolerant scale phenotype.`);
     }
-    return alerts.length ? alerts : ['No alert threshold crossed; continued monitoring is still warranted.'];
+    return alerts.length
+      ? alerts
+      : ['No alert threshold crossed; continued monitoring is still warranted.'];
   }
 
   private syncNoteDraft(islandId: IslandId): void {
@@ -377,4 +401,3 @@ export class IslandDiversityManagerComponent {
     this.world.set(this.repository.save(this.studentId(), world));
   }
 }
-

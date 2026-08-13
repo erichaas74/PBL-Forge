@@ -85,4 +85,3 @@ export class IslandDiversityManagerPage {
   private readonly session = inject(SessionService);
   readonly studentId = computed(() => this.session.user()?.uid ?? 'local-student');
 }
-

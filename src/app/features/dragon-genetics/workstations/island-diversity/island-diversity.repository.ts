@@ -37,7 +37,10 @@ export class IslandDiversityRepository {
           studentId: normalizedStudentId,
           world,
         };
-        localStorage.setItem(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`, JSON.stringify(stored));
+        localStorage.setItem(
+          `${STORAGE_KEY_PREFIX}.${normalizedStudentId}`,
+          JSON.stringify(stored),
+        );
       } catch {
         // The simulation remains usable when browser storage is unavailable or full.
       }
@@ -96,10 +99,13 @@ function isDragon(value: unknown): value is PopulationDragon {
 }
 
 function isPair(value: unknown): boolean {
-  return Array.isArray(value) && value.length === 2 && value.every((allele) => typeof allele === 'string');
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    value.every((allele) => typeof allele === 'string')
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
-
