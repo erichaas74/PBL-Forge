@@ -44,8 +44,8 @@ export class SpecimenThumbnailService implements OnDestroy {
   private readonly cache = new Map<string, string>();
 
   /**
-   * Returns a PNG data URL, or null when WebGL is unavailable — callers should
-   * fall back to their flat/SVG representation rather than showing a gap.
+   * Returns a PNG data URL, or null when WebGL is unavailable so callers can
+   * show an explicit unavailable state rather than an inaccurate image.
    */
   bake(descriptor: SpecimenDescriptor, options: SpecimenThumbnailOptions = {}): string | null {
     const size = options.size ?? DEFAULT_SIZE;
