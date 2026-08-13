@@ -172,29 +172,3 @@ footer span:first-child {
     flex-direction: column;
   }
 }
-
-/*
- * Floating specimen plate/render toggle.
- *
- * Fixed rather than in the header because the pages that actually show
- * specimens run immersive with the header hidden. Bottom-left keeps it clear of
- * the arena's own controls, which sit bottom-right.
- *
- * Dev builds only — see `showSpecimenModeToggle` in app.ts.
- */
-.specimen-mode-floating {
-  position: fixed;
-  bottom: 1rem;
-  left: 1rem;
-  z-index: 60;
-
-  --toggle-edge: rgb(241 236 225 / 20%);
-  --toggle-surface: rgb(26 37 44 / 88%);
-  --toggle-caption: #9fb0b8;
-  --toggle-ink: #cdd9de;
-  --toggle-active-edge: var(--gold);
-  --toggle-active-surface: rgb(217 164 65 / 18%);
-  --toggle-active-ink: #f7e6bd;
-
-  filter: drop-shadow(0 6px 18px rgb(0 0 0 / 35%));
-}

@@ -807,6 +807,43 @@ function headStyleFor(part: AssemblyPart): DragonHeadStyle {
 // Jaws.
 // ---------------------------------------------------------------------------
 
+/** Length of jaw the tooth row covers, as a fraction of jaw length. */
+const TOOTH_ROW_SPAN = 0.6;
+
+/**
+ * How far the jaw box narrows by its front face. Shared with the placement
+ * maths below, not just handed to the geometry: anything sitting on the snout
+ * has to follow the same taper or it floats.
+ */
+const JAW_FRONT_SCALE_Y = 0.55;
+const JAW_FRONT_SCALE_Z = 0.5;
+
+/**
+ * Nostril placement, as fractions of jaw length and depth. Shared, not
+ * duplicated: the fangs sit directly beneath the nostrils, so the two have to
+ * move together.
+ */
+const NOSTRIL_ALONG = 0.38;
+const NOSTRIL_LATERAL = 0.25;
+
+/** Fangs run this much longer than the teeth in the same jaw. */
+const FANG_LENGTH_RATIO = 1.5;
+
+/**
+ * Tooth positions along the jaw, front-most first, as fractions of jaw length.
+ *
+ * The row is anchored at its *front* rather than its centre, so `toothStart`
+ * means the same thing at every count: a lone fang sits exactly where the
+ * slider says, and adding teeth extends the row backwards instead of shifting
+ * the one already placed.
+ */
+function toothRow(count: number, start: number): number[] {
+  const total = Math.max(0, Math.round(count));
+  if (total <= 1) return total === 1 ? [start] : [];
+  const step = TOOTH_ROW_SPAN / (total - 1);
+  return Array.from({ length: total }, (_, index) => start - index * step);
+}
+
 function buildJaw(
   part: AssemblyPart,
   palette: DragonPalette,
@@ -817,21 +854,40 @@ function buildJaw(
   const pointDown = variant === 'upper';
 
   group.add(mesh(
-    boxUv(createTaperedBoxGeometry(dims.x, dims.y, dims.z, 0.55, 0.5), SCALE_TILE, palette),
+    boxUv(
+      createTaperedBoxGeometry(dims.x, dims.y, dims.z, JAW_FRONT_SCALE_Y, JAW_FRONT_SCALE_Z),
+      SCALE_TILE,
+      palette,
+    ),
     scaleMaterial(palette),
   ));
+
+  /**
+   * Height of the tapered top face at a station along the jaw. The box narrows
+   * only ahead of its middle, and `createTaperedBoxGeometry` blends over the
+   * front half, so this mirrors that ramp exactly.
+   */
+  function topSurfaceY(along: number): number {
+    const blend = Math.min(1, Math.max(0, along * 2));
+    return dims.y * 0.5 * (1 - blend * (1 - JAW_FRONT_SCALE_Y));
+  }
+
+  // The fangs hang from these same stations, so both read one value.
+  const nostrilRadius = Math.max(dims.y * 0.15, dims.z * 0.045);
+  const nostrilLateralZ = dims.z * NOSTRIL_LATERAL - nostrilRadius;
 
   if (variant === 'upper') {
     // Nostrils stay smooth: scale relief on a 2cm sphere just reads as noise.
     const nostrilMaterial = new THREE.MeshStandardMaterial({ color: palette.scaleDeep, roughness: 0.7 });
     for (const side of [-1, 1]) {
-      const nostril = mesh(
-        new THREE.SphereGeometry(Math.max(dims.y * 0.15, dims.z * 0.045), 10, 7),
-        nostrilMaterial,
-      );
+      const nostril = mesh(new THREE.SphereGeometry(nostrilRadius, 10, 7), nostrilMaterial);
       nostril.name = `dragon-nostril-${side < 0 ? 'left' : 'right'}`;
       nostril.scale.set(1.25, 0.45, 1);
-      nostril.position.set(dims.x * 0.38, dims.y * 0.48, side * dims.z * 0.25);
+      // Half a nostril's thickness in from the old line, and sunk to the
+      // *tapered* top rather than the height of the flat rear section — the
+      // snout has already dropped by this far forward, so the old fixed height
+      // left them hanging above the surface.
+      nostril.position.set(dims.x * NOSTRIL_ALONG, topSurfaceY(NOSTRIL_ALONG), side * nostrilLateralZ);
       group.add(nostril);
     }
   }
@@ -841,13 +897,25 @@ function buildJaw(
     toothCount: visualNumber(part, 'toothCount', defaults.toothCount),
     toothHeight: visualNumber(part, 'toothHeight', defaults.toothHeight),
     toothRadius: visualNumber(part, 'toothRadius', defaults.toothRadius),
+    toothStart: visualNumber(part, 'toothStart', defaults.toothStart),
   };
   const fangScale = visualNumber(part, 'fangScale', 1);
   const enamel = toothMaterial(palette);
   const toothHeight = dims.y * style.toothHeight * fangScale;
   // Teeth march back from the snout tip; the range matches the jaw's taper.
   const toothRadius = dims.z * style.toothRadius;
-  for (const along of spreadPositions(style.toothCount, 0.6, 0.08).reverse()) {
+  /**
+   * Every tooth is rooted on the jaw's mid-height and grows out from there —
+   * fixed, not tunable. Hanging them off the bottom face made a long tooth read
+   * as stuck on rather than set into the jaw, and the root drifted whenever the
+   * jaw was rescaled. A cone is centred on its own position, so the mesh sits
+   * half its length past the midline.
+   */
+  function rootedAtMidline(height: number): number {
+    return (pointDown ? -1 : 1) * height * 0.5;
+  }
+
+  for (const along of toothRow(style.toothCount, style.toothStart)) {
     for (const side of [-1, 1]) {
       const tooth = mesh(
         revolvedUv(
@@ -861,11 +929,34 @@ function buildJaw(
       );
       tooth.position.set(
         along * dims.x,
-        (pointDown ? -1 : 1) * dims.y * 0.42,
+        rootedAtMidline(toothHeight),
         side * dims.z * 0.32 * (1 - Math.max(0, along) * 0.4),
       );
       if (pointDown) tooth.rotation.x = Math.PI;
       group.add(tooth);
+    }
+  }
+
+  if (variant === 'upper') {
+    // Fangs hang under the nostrils. They are pulled further in than the tooth
+    // row so they stay inside the snout, which is tapered to 0.5 depth at the
+    // tip: a fang on the tooth line would break the surface here.
+    const fangHeight = toothHeight * FANG_LENGTH_RATIO;
+    for (const side of [-1, 1]) {
+      const fang = mesh(
+        revolvedUv(
+          new THREE.ConeGeometry(toothRadius, fangHeight, 5),
+          toothRadius,
+          fangHeight,
+          KERATIN_TILE,
+          palette,
+        ),
+        enamel,
+      );
+      fang.name = `dragon-fang-${side < 0 ? 'left' : 'right'}`;
+      fang.position.set(dims.x * NOSTRIL_ALONG, rootedAtMidline(fangHeight), side * nostrilLateralZ);
+      fang.rotation.x = Math.PI;
+      group.add(fang);
     }
   }
 
@@ -943,6 +1034,13 @@ function buildFoot(part: AssemblyPart, palette: DragonPalette): THREE.Group {
 }
 
 /** Curved two-segment talon along the local Y axis (matches the cylinder physics shape). */
+/**
+ * How far a talon's blunt end sits behind its own origin, as a fraction of its
+ * length: the base cylinder is centred at -0.22 and is 0.55 long, so it reaches
+ * 0.495 back. Anything mounting a talon by its root needs this.
+ */
+const TALON_BLUNT_END = 0.495;
+
 function buildTalon(radius: number, length: number, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
   const keratin = clawMaterial(palette);
@@ -1029,6 +1127,14 @@ export interface DragonJawStyle {
   toothHeight: number;
   /** Tooth base radius, as a fraction of jaw depth. */
   toothRadius: number;
+  /**
+   * Position of the front-most tooth along the jaw, as a fraction of jaw length
+   * measured from the jaw's centre. `+x` is the snout tip, so `0.5` sits the
+   * front tooth on the very end and negative values start the row behind the
+   * midpoint. The rest of the row marches back from here over
+   * {@link TOOTH_ROW_SPAN}.
+   */
+  toothStart: number;
 }
 
 /**
@@ -1075,7 +1181,9 @@ export const DEFAULT_DRAGON_STYLE: DragonStyle = {
   // Tuned in the parts lab against the drake body: taller, thicker, more swept
   // spikes over a longer ridge than the original five nubs.
   body: { spikeCount: 6, spikeSpread: 0.73, spikeHeight: 0.2, spikeRadius: 0.051, spikeLean: 0.56 },
-  jaw: { toothCount: 4, toothHeight: 1.15, toothRadius: 0.1 },
+  // The row starts behind the fang station (`NOSTRIL_ALONG`): at 0.38 the front
+  // tooth grew out of the same spot as the fang and disappeared inside it.
+  jaw: { toothCount: 4, toothHeight: 1.15, toothRadius: 0.1, toothStart: 0.28 },
   // Horn lengths were authored against the old sphere's radius (dims.x / 2 on a
   // uniform head); they now key off head height, which is the same number on
   // the shipped horned head.
@@ -1345,19 +1453,30 @@ function buildTailClub(part: AssemblyPart, palette: DragonPalette): THREE.Group 
   const spikeScale = visualNumber(part, 'tailClubSpikeScale', 1);
   const spikeRadius = dims.z * style.spikeRadius;
   const spikeLength = dims.z * style.spikeLength * spikeScale;
+  const knobCentre = new THREE.Vector3(0, knob.position.y, 0);
+  const coneAxis = new THREE.Vector3(0, 1, 0);
   for (let index = 0; index < spikeCount; index += 1) {
     const angle = (index / spikeCount) * Math.PI * 2;
     const spike = mesh(
       revolvedUv(new THREE.ConeGeometry(spikeRadius, spikeLength, 6), spikeRadius, spikeLength, HORN_TILE, palette),
       spikeMaterial,
     );
-    spike.position.set(
+    // The ring the spikes grow from: a circle around the knob, rolled off-axis
+    // so they fan rather than sit in one flat band.
+    const root = new THREE.Vector3(
       Math.cos(angle) * dims.z * 0.62,
-      -dims.y * 0.42 - Math.sin(angle) * dims.z * 0.2,
+      knobCentre.y - Math.sin(angle) * dims.z * 0.2,
       Math.sin(angle) * dims.z * 0.62,
     );
-    spike.rotation.z = -Math.PI / 2 - angle * 0.4;
-    spike.rotation.y = -angle;
+    // Each spike points straight out of the knob and is anchored by its root.
+    // Both halves of that matter: a cone is centred on its own position, so the
+    // ring used to bisect every spike and swallow the inner half, and the old
+    // fixed rotation was not radial — past a quarter turn it aimed spikes down
+    // and back into the knob, where pushing them out would have buried them
+    // completely.
+    const outward = root.clone().sub(knobCentre).normalize();
+    spike.quaternion.setFromUnitVectors(coneAxis, outward);
+    spike.position.copy(root).addScaledVector(outward, spikeLength * 0.5);
     group.add(spike);
   }
 
@@ -1380,9 +1499,14 @@ function buildStinger(radius: number, palette: DragonPalette): THREE.Group {
   knuckle.position.y = radius * 0.18;
   group.add(knuckle);
 
-  const blade = buildTalon(radius * 0.5, radius * 2.1, palette);
-  blade.position.y = -radius * 0.1;
+  const bladeLength = radius * 2.1;
+  const blade = buildTalon(radius * 0.5, bladeLength, palette);
   blade.rotation.z = Math.PI;
+  // Anchored by its blunt end at the knuckle's core and driven the other way,
+  // out of the free end of the tail. Hung from its middle, as it was, the blunt
+  // end broke back out through the top of the knuckle — a flat slab of keratin
+  // sitting where the stinger joins the tail.
+  blade.position.y = knuckle.position.y - TALON_BLUNT_END * bladeLength;
   group.add(blade);
 
   return group;

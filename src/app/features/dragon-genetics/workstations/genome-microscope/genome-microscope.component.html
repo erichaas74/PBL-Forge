@@ -1,0 +1,282 @@
+<section
+  class="genome-microscope"
+  [attr.data-level]="level()"
+  aria-label="Dragon genome microscope"
+>
+  <header class="microscope-header">
+    <div>
+      <small>DRAGON GENOME MICROSCOPE</small>
+      <strong>{{ levelLabel(level()) }}</strong>
+    </div>
+    <div class="sex-control" role="group" aria-label="Dragon sex chromosome model">
+      <button
+        type="button"
+        [class.active]="specimenSex() === 'female'"
+        [attr.aria-pressed]="specimenSex() === 'female'"
+        (click)="selectSex('female')"
+      >
+        Female <span>XX</span>
+      </button>
+      <button
+        type="button"
+        [class.active]="specimenSex() === 'male'"
+        [attr.aria-pressed]="specimenSex() === 'male'"
+        (click)="selectSex('male')"
+      >
+        Male <span>XY</span>
+      </button>
+    </div>
+  </header>
+
+  <nav class="zoom-rail" aria-label="Genome microscope magnification levels">
+    @for (item of levels; track item.id; let index = $index) {
+      <button
+        type="button"
+        [class.active]="level() === item.id"
+        [class.visited]="currentLevelIndex() >= index"
+        [attr.aria-pressed]="level() === item.id"
+        (click)="selectLevel(item.id)"
+      >
+        <i>{{ index + 1 }}</i
+        ><span>{{ item.shortLabel }}</span>
+      </button>
+    }
+  </nav>
+
+  <div class="microscope-stage">
+    <svg
+      class="cell-scene"
+      viewBox="0 0 1000 620"
+      role="img"
+      [attr.aria-label]="summary()"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <defs>
+        <radialGradient id="gm-cell-fill" cx="46%" cy="43%" r="62%">
+          <stop offset="0" stop-color="#54c8c2" stop-opacity="0.28" />
+          <stop offset="0.72" stop-color="#287f99" stop-opacity="0.15" />
+          <stop offset="1" stop-color="#092b39" stop-opacity="0.04" />
+        </radialGradient>
+        <radialGradient id="gm-nucleus-fill" cx="46%" cy="43%" r="62%">
+          <stop offset="0" stop-color="#b986cc" stop-opacity="0.38" />
+          <stop offset="1" stop-color="#623d88" stop-opacity="0.16" />
+        </radialGradient>
+        <filter id="gm-glow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="7" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="gm-soft-shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#000" flood-opacity="0.3" />
+        </filter>
+        <linearGradient id="gm-dna-a" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#49a8ff" />
+          <stop offset="1" stop-color="#67d790" />
+        </linearGradient>
+        <linearGradient id="gm-dna-b" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#ff6d68" />
+          <stop offset="1" stop-color="#f8e78c" />
+        </linearGradient>
+      </defs>
+
+      <g class="cell-layer">
+        <path
+          class="cell-membrane"
+          d="M501 52 C708 42 897 146 922 306 C949 479 749 574 513 570 C267 566 75 492 75 317 C75 151 273 61 501 52 Z"
+          fill="url(#gm-cell-fill)"
+        />
+        <path
+          class="cell-inner-membrane"
+          d="M500 74 C696 65 869 160 894 309 C917 460 735 548 515 544 C288 541 104 475 103 319 C103 169 286 83 500 74 Z"
+        />
+        @for (organelle of [1, 2, 3, 4, 5, 6, 7]; track organelle) {
+          <path
+            class="organelle organelle-{{ organelle }}"
+            d="M0 0 c24 -17 51 5 42 25 c-8 20 -43 19 -52 1 c-7 -12 -1 -20 10 -26z"
+          />
+        }
+        <g class="nucleus" (click)="selectLevel('nucleus')">
+          <circle cx="500" cy="310" r="170" fill="url(#gm-nucleus-fill)" />
+          <circle class="nuclear-envelope" cx="500" cy="310" r="170" />
+          <circle class="nuclear-envelope-inner" cx="500" cy="310" r="157" />
+          <circle class="nucleolus" cx="446" cy="268" r="29" />
+          @for (pair of chromosomePairs(); track pair.id; let index = $index) {
+            <g
+              class="nuclear-chromosome-pair pair-{{ index }}"
+              [class.sex-pair]="pair.kind === 'sex'"
+              [class.active]="selectedChromosome() === pair.id"
+              (click)="$event.stopPropagation(); selectChromosome(pair.id)"
+            >
+              <path d="M-13 -29 C-7 -12 -4 -7 0 0 C-5 10 -9 19 -12 29" />
+              <path d="M13 -29 C7 -12 4 -7 0 0 C5 10 9 19 12 29" />
+            </g>
+          }
+        </g>
+      </g>
+
+      <g class="nucleus-focus-layer">
+        <circle class="focus-nucleus" cx="500" cy="310" r="250" fill="url(#gm-nucleus-fill)" />
+        <circle class="focus-nuclear-envelope" cx="500" cy="310" r="250" />
+        <circle class="focus-nuclear-envelope-inner" cx="500" cy="310" r="235" />
+        <circle class="focus-nucleolus" cx="408" cy="224" r="42" />
+        <g class="chromatin-lines">
+          <path d="M318 235 q45 -55 91 3 t93 4 t95 -13 t73 27" />
+          <path d="M295 352 q45 -58 92 1 t91 -5 t96 9 t102 -5" />
+          <path d="M356 443 q44 -40 88 1 t94 -5 t87 3" />
+        </g>
+        @for (pair of chromosomePairs(); track pair.id; let index = $index) {
+          <g
+            class="focus-chromosome-pair pair-{{ index }}"
+            [class.sex-pair]="pair.kind === 'sex'"
+            [class.active]="selectedChromosome() === pair.id"
+            (click)="selectChromosome(pair.id)"
+          >
+            <path d="M-18 -42 C-10 -20 -6 -10 0 0 C-7 15 -12 29 -17 43" />
+            <path d="M18 -42 C10 -20 6 -10 0 0 C7 15 12 29 17 43" />
+            <circle r="7" />
+            <text y="65">
+              {{
+                pair.id === 'sex'
+                  ? specimenSex() === 'female'
+                    ? 'XX'
+                    : 'XY'
+                  : chromosomeNumber(pair.id)
+              }}
+            </text>
+          </g>
+        }
+      </g>
+
+      <g class="chromosome-set-layer">
+        <rect class="set-field" x="68" y="55" width="864" height="510" rx="32" />
+        <text class="set-label" x="500" y="100">COMPLETE DRAGON CHROMOSOME SET</text>
+        <text class="set-sub-label" x="500" y="130">4 autosome pairs + 1 sex-chromosome pair</text>
+      </g>
+    </svg>
+
+    <div class="chromosome-set-html" aria-label="Dragon chromosome pairs">
+      @for (pair of chromosomePairs(); track pair.id) {
+        <button
+          type="button"
+          class="chromosome-pair-card"
+          [class.active]="selectedChromosome() === pair.id"
+          [class.sex-pair-card]="pair.kind === 'sex'"
+          (click)="selectChromosome(pair.id)"
+        >
+          <span>{{ pair.label }}</span>
+          <div class="homologs">
+            <app-chromosome-svg [chromosome]="pair.maternal" [compact]="true" />
+            <app-chromosome-svg [chromosome]="pair.paternal" [compact]="true" />
+          </div>
+          <small>{{ pair.kind === 'autosome' ? 'AUTOSOME PAIR' : 'SEX CHROMOSOMES' }}</small>
+        </button>
+      }
+    </div>
+
+    <div class="chromosome-focus-html">
+      @if (activePair(); as pair) {
+        <div class="chromosome-focus-card">
+          <header>
+            <span>{{ pair.label }}</span
+            ><small>ONE FROM EACH PARENT</small>
+          </header>
+          <button type="button" class="focused-homolog" (click)="selectLevel('dna')">
+            <small>MATERNAL COPY</small>
+            <app-chromosome-svg
+              [chromosome]="pair.maternal"
+              [selectedLocus]="activeGene()?.sampleCode ?? null"
+              [interactive]="true"
+              (locusSelected)="selectGeneByLocus($event)"
+            />
+          </button>
+          <button type="button" class="focused-homolog" (click)="selectLevel('dna')">
+            <small>PATERNAL COPY</small>
+            <app-chromosome-svg
+              [chromosome]="pair.paternal"
+              [selectedLocus]="activeGene()?.sampleCode ?? null"
+              [interactive]="true"
+              (locusSelected)="selectGeneByLocus($event)"
+            />
+          </button>
+          @if (genesForSelectedChromosome().length) {
+            <div class="gene-locus-buttons" role="group" aria-label="Genes on selected chromosome">
+              @for (gene of genesForSelectedChromosome(); track gene.id) {
+                <button
+                  type="button"
+                  [class.active]="activeGene()?.id === gene.id"
+                  [attr.aria-pressed]="activeGene()?.id === gene.id"
+                  (click)="selectGene(gene.id)"
+                >
+                  {{ gene.sampleCode }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <svg
+      class="dna-scene"
+      viewBox="0 0 1000 620"
+      role="img"
+      aria-label="DNA double helix with a highlighted gene region"
+    >
+      <defs>
+        <linearGradient id="gm-dna-strand-left" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#49a8ff" />
+          <stop offset="1" stop-color="#67d790" />
+        </linearGradient>
+        <linearGradient id="gm-dna-strand-right" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ff6d68" />
+          <stop offset="1" stop-color="#f8e78c" />
+        </linearGradient>
+      </defs>
+      <path
+        class="dna-strand dna-left"
+        d="M365 35 C530 110 530 170 365 235 S200 360 365 430 S530 535 365 590"
+      />
+      <path
+        class="dna-strand dna-right"
+        d="M635 35 C470 110 470 170 635 235 S800 360 635 430 S470 535 635 590"
+      />
+      @for (pair of dnaPairs(); track pair.index) {
+        <g class="base-pair" [class.gene-base]="pair.index >= 4 && pair.index <= 8">
+          <line x1="405" [attr.y1]="pair.y" x2="595" [attr.y2]="pair.y" />
+          <text x="385" [attr.y]="pair.y + 6">{{ pair.left }}</text>
+          <text x="615" [attr.y]="pair.y + 6">{{ pair.right }}</text>
+        </g>
+      }
+      <rect class="gene-region" x="315" y="130" width="370" height="150" rx="28" />
+      <text class="dna-label" x="500" y="105">DNA MOLECULE</text>
+      <text class="gene-label" x="500" y="320">
+        {{ activeGene()?.sampleCode ?? 'GENE REGION' }}
+      </text>
+    </svg>
+
+    <div class="allele-focus" aria-label="Allele comparison">
+      <header>
+        <small>{{ activeGene()?.sampleCode ?? 'SELECT A GENE' }}</small>
+        <strong>ALLELE DNA COMPARISON</strong>
+      </header>
+      @for (allele of activeAlleles(); track allele.id) {
+        <section>
+          <span>{{ allele.sampleCode }}</span>
+          <div class="sequence">
+            @for (base of allele.modelSequence; track $index) {
+              <b>{{ base }}</b>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  </div>
+
+  <footer class="microscope-controls">
+    <button type="button" [disabled]="!canZoomOut()" (click)="zoomOut()">− Zoom out</button>
+    <output aria-live="polite">{{ summary() }}</output>
+    <button type="button" [disabled]="!canZoomIn()" (click)="zoomIn()">Zoom in +</button>
+  </footer>
+</section>

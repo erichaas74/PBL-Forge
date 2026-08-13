@@ -18,6 +18,7 @@ Use the nucleotide colors, strand rails, paired-base blocks, polymerase movement
 choreography, and repair-enzyme movement established by
 [`docs/dna-mutation-animation.html`](../dna-mutation-animation.html).
 
-The active implementation is composed from reusable models under
-`src/app/shared/dna-process-visuals/`. Question difficulty and hints continue to come from the
-student's resolved adaptive assignment settings.
+The active workstation is in
+[`workstations/dna-process-lab/`](../../src/app/features/dragon-genetics/workstations/dna-process-lab/).
+It composes reusable molecular models from `src/app/shared/dna-process-visuals/`. Question
+difficulty and hints continue to come from the student's resolved adaptive assignment settings.

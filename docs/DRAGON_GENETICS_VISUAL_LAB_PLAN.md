@@ -1,5 +1,10 @@
 # Dragon Genetics visual laboratory plan
 
+> **Current product authority:** Follow
+> [`DRAGON_GENETICS_WORKSTATION_RULES.md`](DRAGON_GENETICS_WORKSTATION_RULES.md) for dedicated
+> workstation behavior. Its open-investigation and no-question-dock rules override scripted phase,
+> prediction-gate, and station-navigation proposals retained in this older plan.
+
 Use the [station simulation build guides](dragon-genetics-simulations/README.md) for the code-facing
 specification of each independent display.
 
@@ -322,15 +327,18 @@ src/app/shared/dragon-visuals/
     dragon-visual.bridge.ts
   displays/
     shared/
-    trait-inspector/
-    genome-microscope/
-    future-station-renderers/
 
 src/app/features/dragon-genetics/
-  visual-adapter/
-    dragon-visual-scene.adapter.ts
-    visual-question-registry.ts
-    dragon-visual-event.handler.ts
+  adaptive/
+    dragon-adaptive.store.ts
+    dragon-simulation.registry.ts
+    dragon-simulation-experience.page.*
+  workstations/
+    allele-workbench/
+    dna-process-lab/
+    dragon-hatchery/
+    shared/
+    simulation-visual/
 
 visual-packs/ or versioned remote storage/
   royal-hatchery-v1/
@@ -343,14 +351,14 @@ visual-packs/ or versioned remote storage/
 
 ### Component boundaries
 
-- `DragonGeneticsStore` remains the source of student progress, mastery, parent selection, trials, and official limits.
+- `DragonAdaptiveStore` is the active source of student run state, assignment settings, evidence, and genetics-notebook persistence.
 - Existing inheritance functions remain the only source of scientific outcomes. The adapter converts those outcomes into a versioned `DragonVisualScene` containing analysis samples, instrument state, alleles, phenotypes, selection, metrics, phase, and deterministic seed.
 - `DragonVisualBridge` exposes the active scene, teaching sequence, presentation surface, and last semantic event as Angular read-only signals.
 - Replaceable renderers consume those signals. They may use SVG, Canvas, Three.js, CSS, sprite sheets, or future graphics technology without changing lesson code.
 - A renderer owns only short-lived presentation state such as microscope depth, selected readout, transition progress, and replay position. It does not decide whether an answer is correct or whether a module unlocks.
-- `visual-question-registry.ts` maps every question ID to a primitive, data seed, visual prompt, required interaction, evidence rule, and misconception target.
-- `visual-question` renders the registered simulation followed by its answer control. It must reject an unregistered science question in development and tests.
-- `evidence-dock` converts the important interaction into compact Firestore evidence rather than storing screenshots or large animation state.
+- `dragon-simulation.registry.ts` maps each active simulation to reviewed models, prompts, answer controls, and evidence rules.
+- `dragon-simulation-experience.page.*` selects the dedicated workstation or the shared registry-driven surface for the current simulation.
+- Dedicated evidence controls stay with their owning workstation and convert interactions into compact records rather than storing screenshots or large animation state.
 
 ### Replaceable visual-pack contract
 

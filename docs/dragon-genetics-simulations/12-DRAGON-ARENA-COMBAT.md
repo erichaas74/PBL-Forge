@@ -17,7 +17,7 @@ its realism today, and designs for kid-friendly input and a turn-based duel mode
 - **AI**: strategy-block programs produce control frames from sensors (opponent
   direction/distance, stuck time, tipped time, wall proximity).
 
-Fixed in this pass: combatant spawn rotation now rotates part *offsets* rigidly
+Fixed in this pass: combatant spawn rotation now rotates part _offsets_ rigidly
 around the spawn point (previously only orientations rotated, so a 180°-turned
 assembly spawned inside-out — which is why the duel's blue combatant had been
 left facing away from its opponent). The duel scenario now faces blue toward red.
@@ -44,11 +44,11 @@ core happens to point.
 **Fix**: an upright/heading assist (small corrective torque toward vertical, and
 optional soft auto-face toward the opponent when no steer input is held). This is
 what every physics-creature game (Rain World, Gang Beasts, Stray Gods) does: the
-ragdoll is *actuated*, not passive. ~30 lines in the physics service, huge payoff.
+ragdoll is _actuated_, not passive. ~30 lines in the physics service, huge payoff.
 
 ### 3. Attacks are shoves, not strikes
 
-Bite/wing/tail apply forces; damage only happens if the resulting *collision* is
+Bite/wing/tail apply forces; damage only happens if the resulting _collision_ is
 fast enough. A bite that connects slowly does nothing, and there is no sense of a
 "hit landing."
 
@@ -64,7 +64,7 @@ profile — nothing reads them yet.
 genes, damage from temperament) and `createEducationalAssembly` discards it. The
 duel therefore plays identically for every genome. Passing `combatProfile`
 through `materializeDragon` → `saveAssemblyAsset` closes the loop and makes trait
-choices *matter* in the fight — the core hook of the whole lab.
+choices _matter_ in the fight — the core hook of the whole lab.
 
 ### 5. Feedback: telegraphs and hit reactions
 
@@ -80,7 +80,7 @@ Impacts happen silently between frames. Add, in rough order of value:
 
 ### 6. Flight and fire
 
-- **Wings**: winged genotypes could get a *lift* component while boosting (small
+- **Wings**: winged genotypes could get a _lift_ component while boosting (small
   sustained +y force per wing, so `WW`/`Ww` dragons hop and glide — visibly
   different movement from `ww`). Cheap, and it showcases the genotype.
 - **Fire (F allele)**: a cone ability with a fuel/cooldown meter, particle cone
@@ -105,13 +105,13 @@ in kid-readable language.
 The browser Gamepad API needs no dependencies: poll `navigator.getGamepads()` in
 the existing RAF tick and merge into the same `ControlKey` set.
 
-| Gamepad | Action |
-| --- | --- |
-| Left stick | move (throttle/steer) |
-| A / bottom face | bite |
-| X / left face | wing buffet |
-| B / right face | tail sweep |
-| Right trigger | boost |
+| Gamepad         | Action                |
+| --------------- | --------------------- |
+| Left stick      | move (throttle/steer) |
+| A / bottom face | bite                  |
+| X / left face   | wing buffet           |
+| B / right face  | tail sweep            |
+| Right trigger   | boost                 |
 
 Works with any USB/Bluetooth controller on Chromebooks. Deadzone ~0.2.
 
@@ -119,7 +119,7 @@ Works with any USB/Bluetooth controller on Chromebooks. Deadzone ~0.2.
 
 The shared arena already has **strategy block programs** (move/sensor/logic
 blocks producing control frames). A "coach mode" duel would let a student
-assemble their dragon's *program* before the fight, then watch both AIs battle.
+assemble their dragon's _program_ before the fight, then watch both AIs battle.
 That turns the duel into a planning exercise — often better classroom fit than a
 reflex game, and it reuses `strategy-runner` and the block panel as-is.
 
@@ -133,8 +133,8 @@ sequences of steps (`aim`, `advance`, `bite`, …) through the physics engine.
 ### Proposed flow ("plan → watch → pass")
 
 1. **Plan phase** (untimed): the active player picks up to 3 move cards —
-   *Advance*, *Circle left/right*, *Retreat*, *Bite lunge*, *Wing buffet*,
-   *Tail sweep*, *Brace* (defensive: lowers stance, halves incoming knockback).
+   _Advance_, _Circle left/right_, _Retreat_, _Bite lunge_, _Wing buffet_,
+   _Tail sweep_, _Brace_ (defensive: lowers stance, halves incoming knockback).
 2. **Play phase** (~6 s): physics runs, the attack-move runner executes the
    scripted cards while the opponent's AI runs a mild defensive program.
 3. **Pass**: `endTurn()` swaps `activeTeam`; on a shared device the laptop turns
@@ -143,12 +143,12 @@ sequences of steps (`aim`, `advance`, `bite`, …) through the physics engine.
 
 ### Genetics hooks (the point of the whole thing)
 
-| Genotype | Turn-based effect |
-| --- | --- |
-| `W_` | unlocks *Wing buffet* card (+ glide distance on Advance) |
-| `F_` | unlocks *Fire breath* card (cone damage, 2-turn cooldown) |
-| `H_` | *Brace* card gains extra knockback resistance |
-| jaw/temperament loci | *Bite lunge* damage multiplier |
+| Genotype             | Turn-based effect                                         |
+| -------------------- | --------------------------------------------------------- |
+| `W_`                 | unlocks _Wing buffet_ card (+ glide distance on Advance)  |
+| `F_`                 | unlocks _Fire breath_ card (cone damage, 2-turn cooldown) |
+| `H_`                 | _Brace_ card gains extra knockback resistance             |
+| jaw/temperament loci | _Bite lunge_ damage multiplier                            |
 
 Cards a dragon can't use appear greyed with the genotype reason — the same
 pattern the wing-buffet button already uses (`Unavailable: wingless`).

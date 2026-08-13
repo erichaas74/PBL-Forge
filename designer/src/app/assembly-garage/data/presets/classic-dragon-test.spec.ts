@@ -1,4 +1,5 @@
 import { sampleDragonBodyRadius } from '@pbl/assembly/rendering/dragon-body-profile';
+import { DEFAULT_DRAGON_STYLE } from '@pbl/assembly/rendering/dragon-procedural-mesh.factory';
 import { CLASSIC_DRAGON_TEST_PRESET } from './classic-dragon-test';
 
 describe('CLASSIC_DRAGON_TEST_PRESET', () => {
@@ -84,6 +85,39 @@ describe('CLASSIC_DRAGON_TEST_PRESET', () => {
     expect(upperJaw.snapPoints?.some(point => point.id === 'dragon-snout-socket') ?? false).toBeFalse();
     expect(lowerJaw.position.y + lowerJaw.dimensions.y / 2)
       .toBeLessThanOrEqual(upperJaw.position.y - upperJaw.dimensions.y / 2);
+
+    // The mouth shuts flush: same length, ends aligned, and the lower jaw's top
+    // face against the upper's underside with no gap. The teeth are longer than
+    // either jaw is tall and pass through the opposite one, so the jaws — not
+    // the tooth rows — are what decide where the mouth closes.
+    const upperUnderside = upperJaw.position.y - upperJaw.dimensions.y / 2;
+    const lowerTop = lowerJaw.position.y + lowerJaw.dimensions.y / 2;
+
+    expect(lowerJaw.dimensions.x).toBe(upperJaw.dimensions.x);
+    expect(lowerTop).toBeCloseTo(upperUnderside, 6);
+    expect(lowerJaw.position.x).toBeCloseTo(upperJaw.position.x, 6);
+
+    // Hinged on the shared back corner, so the jaws stay aligned through the
+    // swing rather than sliding out of register as they open.
+    const hinge = lowerJawJoint!.pivotOnParent;
+
+    expect(hinge.x).toBeCloseTo(-upperJaw.dimensions.x / 2, 6);
+    expect(hinge.y).toBeCloseTo(-upperJaw.dimensions.y / 2, 6);
+    expect(upperJaw.position.y - upperJaw.dimensions.y * DEFAULT_DRAGON_STYLE.jaw.toothHeight)
+      .toBeLessThan(lowerTop);
+
+    // The head is at +x and the tail at -x, and a talon runs along its own +y.
+    // A wing claw rolled the wrong way about z rakes backwards down the wing,
+    // which is silent in every other check: the joint is still valid.
+    for (const clawId of ['classic-dragon-left-wing-claw', 'classic-dragon-right-wing-claw']) {
+      const claw = state.parts.find(part => part.id === clawId)!;
+      const { x, y, z, w } = claw.rotation!;
+      // The x component of the claw's own +y turned into world space:
+      // q · (0,1,0) · q⁻¹ reduces to this for that one axis.
+      const pointsForward = 2 * (x * y - z * w);
+
+      expect(pointsForward).toBeGreaterThan(0.5);
+    }
 
     const body = state.parts.find(part => part.id === 'classic-dragon-body')!;
     const upperLegIds = [

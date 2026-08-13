@@ -3,11 +3,16 @@
 Notes for anyone — person or assistant — making changes here. Read
 [`docs/CODE_ORGANIZATION.md`](docs/CODE_ORGANIZATION.md) for where code belongs.
 
+**Before changing any Dragon Genetics student workstation, read
+[`docs/DRAGON_GENETICS_WORKSTATION_RULES.md`](docs/DRAGON_GENETICS_WORKSTATION_RULES.md).** It is the
+authoritative product contract: dedicated workstations are open investigations, not scripted quiz
+screens, and must not include an embedded question dock.
+
 ## Two applications
 
-| | Path | Serve | Test |
-| --- | --- | --- | --- |
-| **PBL Forge** — the student app | `src/` | `npm start` (4200) | `npm run test:ci` |
+|                                               | Path        | Serve                           | Test                       |
+| --------------------------------------------- | ----------- | ------------------------------- | -------------------------- |
+| **PBL Forge** — the student app               | `src/`      | `npm start` (4200)              | `npm run test:ci`          |
 | **Dragon Designer** — private authoring tools | `designer/` | `npm run start:designer` (4300) | `npm run test:designer:ci` |
 
 Student source must never import from `designer/` or `assembly-garage`; `npm run check:designer-boundary`
@@ -32,6 +37,9 @@ Full reference: [`docs/BROWSER_DRIVER.md`](docs/BROWSER_DRIVER.md). Two things t
 `npm run bake:parts` is the narrower loop for judging mesh quality from six angles.
 
 ## Changing what a dragon part looks like
+
+**Start at [`docs/PART_WORK_BRIEF.md`](docs/PART_WORK_BRIEF.md)** — the brief for editing an
+existing part or adding a new one, written for a session with no prior context.
 
 The anatomy is generated code, not model files. [`docs/MESH_EDITING.md`](docs/MESH_EDITING.md)
 maps what lives where and what each kind of change drags along — in particular that

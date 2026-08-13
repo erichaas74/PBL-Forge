@@ -8,7 +8,7 @@ import {
   LevelChallenge,
   SimulationSectionDefinition,
 } from './dragon-simulation.models';
-import { ALLELE_VAULT_GENES } from './allele-workbench/allele-vault.models';
+import { ALLELE_VAULT_GENES } from '../workstations/allele-workbench/allele-vault.models';
 
 export const DRAGON_SIMULATION_CONTENT_VERSION = 1;
 

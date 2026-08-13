@@ -1,9 +1,11 @@
 # Adaptive full-page simulation architecture
 
-The Dragon Genetics student experience now uses one route per scientific instrument. The mission
-map lives at `/dragon-genetics`; a simulation lives at `/dragon-genetics/:simulationId`. Simulation
-routes hide the global application chrome and use the complete viewport for the model, embedded
-question dock, and short phase rail.
+The Dragon Genetics student experience uses one route per scientific instrument. The mission map
+lives at `/dragon-genetics`; a simulation lives at `/dragon-genetics/:simulationId`. Dedicated
+workstations use the available route surface for open investigation and follow
+[`DRAGON_GENETICS_WORKSTATION_RULES.md`](../DRAGON_GENETICS_WORKSTATION_RULES.md). They do not mount
+an embedded question dock or phase rail. Registry-driven generic simulations may temporarily use
+the older question flow until they are rebuilt as dedicated workstations.
 
 ## Runtime flow
 
@@ -14,27 +16,28 @@ flowchart LR
   R --> G[Deterministic question generator]
   D[Simulation registry] --> G
   G --> X[Full-page experience shell]
-  X --> V[Interactive visual model]
-  X --> Q[Embedded checkpoint]
+  X --> W[Dedicated open workstation]
+  X --> Q[Temporary generic question flow]
+  W --> P[Persistent experiments and discoveries]
   Q --> E[Pure evaluator]
-  E --> P[Versioned simulation run]
+  E --> P
   P --> F[Firestore and device resume]
   P --> T[Teacher score matrix]
 ```
 
 ## Source map
 
-| Concern | Source |
-| --- | --- |
-| Simulation, level, assignment, run, and response contracts | `src/app/features/dragon-genetics/adaptive/dragon-simulation.models.ts` |
-| Ten core simulations, Hatchery, Arena, and the Grade 7 through AP challenge bank | `adaptive/dragon-simulation.registry.ts` |
-| Seeded selection, option order, and pure evaluation | `adaptive/dragon-question.generator.ts` |
-| Assignment and simulation-run Firestore access | `adaptive/dragon-adaptive.repository.ts` |
-| Resolution, resume, response, completion, and device fallback | `adaptive/dragon-adaptive.store.ts` |
-| Full-screen route and embedded question controller | `adaptive/dragon-simulation-experience.page.*` |
-| Data-driven visual instrument surface | `adaptive/dragon-simulation-visual.component.*` |
-| Mission map | `dragon-genetics.page.*` |
-| Assignment and student overrides | `dragon-teacher.page.*` |
+| Concern                                                                          | Source                                                                  |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Simulation, level, assignment, run, and response contracts                       | `src/app/features/dragon-genetics/adaptive/dragon-simulation.models.ts` |
+| Ten core simulations, Hatchery, Arena, and the Grade 7 through AP challenge bank | `adaptive/dragon-simulation.registry.ts`                                |
+| Seeded selection, option order, and pure evaluation                              | `adaptive/dragon-question.generator.ts`                                 |
+| Assignment and simulation-run Firestore access                                   | `adaptive/dragon-adaptive.repository.ts`                                |
+| Resolution, resume, response, completion, and device fallback                    | `adaptive/dragon-adaptive.store.ts`                                     |
+| Full-screen route, dedicated hosts, and temporary generic question controller    | `adaptive/dragon-simulation-experience.page.*`                          |
+| Registry-driven visual instrument surface                                        | `workstations/simulation-visual/dragon-simulation-visual.component.*`   |
+| Mission map                                                                      | `dragon-genetics.page.*`                                                |
+| Assignment and student overrides                                                 | `dragon-teacher.page.*`                                                 |
 
 ## Level resolution
 
@@ -83,10 +86,12 @@ migrated to schema version 4 and remains readable so previous evidence is not di
 
 ## Accessibility and responsive behavior
 
-- Visual nodes and answer choices are native buttons.
+- Workstation tools, specimens, destinations, and temporary generic answer choices are native
+  buttons.
 - Every visual target exposes a label, detail, selected state, and non-color symbol.
 - Feedback and active instrument records use polite status regions.
-- The layout changes from side-by-side stage and dock to a stage plus bottom sheet on narrow screens.
+- Dedicated workstation panels restack without adding an assessment bottom sheet. Temporary generic
+  simulations may still restack their question flow.
 - Essential copy remains HTML and supports wrapping and zoom.
 - `prefers-reduced-motion` disables scan animation and movement transitions.
 - The interaction is complete without dragging or pointer precision.

@@ -8,11 +8,8 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { NgComponentOutlet } from '@angular/common';
 import { SpecimenFrame } from './specimen-pose';
 import { SpecimenProfileRegistry } from './specimen-profile.registry';
-import { SPECIMEN_PLATES } from './specimen-plate.registry';
-import { specimenRenderMode } from './specimen-render-mode';
 import { SpecimenSource } from './specimen.models';
 import { SpecimenThumbnailService } from './specimen-thumbnail.service';
 
@@ -34,17 +31,8 @@ import { SpecimenThumbnailService } from './specimen-thumbnail.service';
  */
 @Component({
   selector: 'app-specimen-thumb',
-  imports: [NgComponentOutlet],
   template: `
-    @if (plate(); as plateComponent) {
-      <!--
-        The flat plate, when the owning simulation has registered artwork and
-        the render mode asks for it. Cheapest and most legible at tile size.
-      -->
-      <ng-container
-        [ngComponentOutlet]="plateComponent"
-        [ngComponentOutletInputs]="plateInputs()" />
-    } @else if (image(); as source) {
+    @if (image(); as source) {
       <img [src]="source" [alt]="alt()" [style.--specimen-accent]="accent()" />
     } @else {
       <!--
@@ -110,45 +98,10 @@ export class SpecimenThumbComponent {
   /** Overrides the label baked into the source. */
   readonly labelOverride = input<string | null>(null);
 
-  /**
-   * Forces the baked 3D render even when a plate is registered.
-   *
-   * For the places where accuracy beats legibility — a hero tile, or a side by
-   * side against the plate. Leave unset to follow the app-wide render mode.
-   */
-  readonly forceRender = input(false);
-
   private readonly registry = inject(SpecimenProfileRegistry);
   private readonly thumbnails = inject(SpecimenThumbnailService);
-  private readonly plates = inject(SPECIMEN_PLATES, { optional: true }) ?? [];
 
   private readonly resolution = computed(() => this.registry.resolve(this.source()));
-
-  /**
-   * The plate component for this specimen, or null to fall through to a render.
-   *
-   * Null whenever the mode asks for a render, the caller forced one, or the
-   * owning simulation never registered artwork — a simulation without a plate
-   * is not an error, it just gets the 3D path.
-   */
-  protected readonly plate = computed(() => {
-    if (this.forceRender() || specimenRenderMode() !== 'plate') return null;
-
-    const resolved = this.resolution();
-    if (resolved.status !== 'ready') return null;
-
-    return this.plates.find(
-      entry => entry.profileId === resolved.descriptor.profileId,
-    )?.component ?? null;
-  });
-
-  protected readonly plateInputs = computed(() => {
-    const resolved = this.resolution();
-    return {
-      descriptor: resolved.status === 'ready' ? resolved.descriptor : null,
-      focusedTraitId: this.focusedTraitId(),
-    };
-  });
 
   readonly label = computed(() => {
     const resolved = this.resolution();
@@ -173,18 +126,10 @@ export class SpecimenThumbComponent {
    * signal (`contextLost`). Doing that inside a `computed` throws NG0600 —
    * correctly, because a computed is supposed to be a pure derivation that can
    * be re-evaluated or discarded at will, and spinning up a GPU context is
-   * neither. This was a real defect the first time the flat path made it
-   * observable.
+   * neither.
    */
   constructor() {
     effect(() => {
-      // Never bake behind a plate: the whole point of the flat path is that it
-      // costs no WebGL context and no render.
-      if (this.plate()) {
-        this.bakedImage.set(null);
-        return;
-      }
-
       const resolved = this.resolution();
       if (resolved.status !== 'ready') {
         this.bakedImage.set(null);

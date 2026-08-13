@@ -1,0 +1,344 @@
+@if (model(); as vm) {
+  <section
+    class="bay"
+    id="dragon-hatchery"
+    [class.reduced-motion]="reducedMotion()"
+    [style]="themeVariables()"
+    role="group"
+    aria-label="Dragon hatchery"
+  >
+    <header class="bay-head">
+      <div class="clutch-record" [attr.data-target]="vm.targets.clutchRecord">
+        <span class="tag">Clutch record</span>
+        <strong>{{ vm.clutchLabel }}</strong>
+        @if (vm.parents.length) {
+          <p class="parents">
+            @for (parent of vm.parents; track parent.id) {
+              <span>{{ parent.label }}</span>
+            }
+          </p>
+        }
+        @if (vm.focusTraitName) {
+          <p class="focus-note">Focus trait · {{ vm.focusTraitName }} ({{ vm.focusGeneId }})</p>
+        }
+      </div>
+
+      @if (!openLab()) {
+        <div class="run-state">
+          <span class="mode-chip">{{ vm.mode }} mode</span>
+          <ol class="phase-rail">
+            @for (step of phaseRail; track step.id) {
+              <li
+                [class.active]="vm.phase === step.id"
+                [class.done]="isPhaseDone(vm.phase, step.id)"
+              >
+                <i aria-hidden="true"></i>{{ step.label }}
+              </li>
+            }
+          </ol>
+          <small>
+            {{ vm.counts.examined }}/{{ vm.counts.total }} examined ·
+            {{ vm.counts.sampled }} sampled · {{ vm.counts.hatched }} hatched
+          </small>
+        </div>
+      }
+    </header>
+
+    @if (!openLab()) {
+      <section class="tool-rail" aria-label="Hatchery tools">
+        @for (tool of vm.tools; track tool.id) {
+          <article class="tool" [class.active]="tool.active" [class.ready]="tool.enabled">
+            <strong>{{ tool.label }}</strong>
+            <small>{{ tool.hint }}</small>
+            <i class="budget" [class.spent]="tool.remaining === 0">{{
+              budgetLabel(tool.remaining)
+            }}</i>
+          </article>
+        }
+      </section>
+    }
+
+    @if (!openLab() && vm.metrics.length) {
+      <dl class="metric-row">
+        @for (metric of vm.metrics; track metric.id) {
+          <div>
+            <dt>{{ metric.label }}</dt>
+            <dd>
+              {{ metric.value }}{{ metric.unit }}
+              @if (metric.referenceValue !== undefined) {
+                <i>expected {{ metric.referenceValue }}{{ metric.unit }}</i>
+              }
+            </dd>
+          </div>
+        }
+      </dl>
+    }
+
+    <div class="bay-body">
+      <section class="tray" [attr.data-target]="vm.targets.eggTray" aria-label="Egg tray">
+        @for (egg of vm.eggs; track egg.id) {
+          <div
+            class="egg-cell"
+            [class.active]="egg.active"
+            [class.staged]="egg.staged"
+            [class.hatched]="egg.hatched"
+            [class.locked]="egg.locked"
+          >
+            <button
+              type="button"
+              class="egg"
+              [attr.data-target]="vm.targets.eggSample"
+              [attr.data-egg]="egg.id"
+              [attr.data-status]="egg.status"
+              [attr.aria-pressed]="egg.active"
+              [attr.aria-label]="'Egg ' + egg.position + ', ' + egg.statusLabel"
+              [disabled]="egg.locked"
+              (click)="focusEgg(egg)"
+            >
+              <app-hatchery-egg-glyph
+                class="egg-glyph"
+                [class.reduced-motion]="reducedMotion()"
+                [status]="egg.status"
+                [staged]="egg.staged"
+                [locked]="egg.locked"
+                [speckleSeed]="egg.shellSeed"
+                [theme]="theme()"
+                [instanceId]="egg.id"
+              />
+              <span class="egg-number">{{ egg.position }}</span>
+              <span class="egg-status">{{ egg.statusLabel }}</span>
+              @if (egg.genotypeLabel) {
+                <span class="egg-genotype mono">{{ egg.genotypeLabel }}</span>
+              }
+            </button>
+
+            @if (vm.stagingEnabled) {
+              <button
+                type="button"
+                class="stage-toggle"
+                [attr.data-target]="vm.targets.hatchTray"
+                [attr.aria-pressed]="egg.staged"
+                [disabled]="!egg.canStage"
+                (click)="toggleStaged(egg)"
+              >
+                {{ egg.staged ? 'In hatch tray' : 'Add to hatch tray' }}
+              </button>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="bench" aria-label="Examination bench">
+        @if (vm.activeEgg; as egg) {
+          <header class="bench-head">
+            <div>
+              <span class="tag">Egg {{ egg.position }}</span>
+              <strong>{{ egg.label }}</strong>
+              @if (egg.caption) {
+                <p>{{ egg.caption }}</p>
+              }
+            </div>
+            <span class="status-chip" [attr.data-status]="egg.status">{{ egg.statusLabel }}</span>
+          </header>
+
+          <div class="bench-grid">
+            <div class="candling-window" [class.lit]="egg.examined || egg.hatched">
+              <app-hatchery-egg-glyph
+                [class.reduced-motion]="reducedMotion()"
+                [status]="egg.status"
+                [staged]="egg.staged"
+                [locked]="egg.locked"
+                [speckleSeed]="egg.shellSeed"
+                [theme]="theme()"
+                instanceId="bench"
+              />
+            </div>
+
+            <section class="readout" [attr.data-target]="vm.targets.phenotypeReadout">
+              <span class="tag">Trait readout</span>
+              @if (egg.traits.length) {
+                <ul class="trait-list">
+                  @for (trait of egg.traits; track trait.traitId) {
+                    <li [class.focus]="trait.focus">
+                      <span class="trait-name">{{ trait.name }}</span>
+                      <span class="trait-value">{{ trait.phenotype }}</span>
+                      <span class="trait-genotype mono">{{ trait.genotype ?? '——' }}</span>
+                    </li>
+                  }
+                </ul>
+                <p class="note">
+                  {{
+                    egg.sampled
+                      ? 'Both records are open: what this dragon shows, and the alleles behind it.'
+                      : 'These are the traits the egg will show. They do not report the allele pair.'
+                  }}
+                </p>
+              } @else {
+                <p class="sealed">The shell has not been candled. No trait is readable yet.</p>
+              }
+            </section>
+
+            <section class="scan" [attr.data-target]="vm.targets.alleleSlotA">
+              <span class="tag">
+                DNA sample
+                @if (vm.focusGeneId) {
+                  · gene {{ vm.focusGeneId }}
+                }
+              </span>
+              <div class="chromosome-frame" [class.sampling]="vm.phase === 'reveal' && egg.sampled">
+                <app-chromosome-pair
+                  [alleles]="alleleDisplay(egg.focusTrait?.allelePair)"
+                  [geneIndex]="egg.focusTrait?.geneIndex ?? 0"
+                  [concealed]="!egg.sampled"
+                  [theme]="theme().chromosome"
+                  [instanceId]="'bench-' + egg.id"
+                />
+              </div>
+              <div class="allele-slots">
+                <span class="slot" [attr.data-target]="vm.targets.alleleSlotA">
+                  <i>Allele 1</i>{{ alleleDisplay(egg.focusTrait?.allelePair)[0] }}
+                </span>
+                <span class="genotype-chip mono">{{ egg.genotypeLabel ?? '— — —' }}</span>
+                <span class="slot" [attr.data-target]="vm.targets.alleleSlotB">
+                  <i>Allele 2</i>{{ alleleDisplay(egg.focusTrait?.allelePair)[1] }}
+                </span>
+              </div>
+            </section>
+          </div>
+
+          <div class="bench-actions">
+            <button
+              type="button"
+              class="action examine"
+              [attr.data-target]="vm.targets.examineControl"
+              [disabled]="!egg.canExamine"
+              (click)="examineEgg(egg)"
+            >
+              {{ egg.examined ? 'Traits already read' : 'Examine this egg' }}
+            </button>
+            <button
+              type="button"
+              class="action sample"
+              [attr.data-target]="vm.targets.sampleControl"
+              [disabled]="!egg.canSample"
+              (click)="sampleEgg(egg)"
+            >
+              {{ egg.sampled ? 'DNA already sampled' : 'Sample the DNA' }}
+            </button>
+            @if (vm.stagingEnabled) {
+              <button
+                type="button"
+                class="action stage"
+                [class.on]="egg.staged"
+                [attr.aria-pressed]="egg.staged"
+                [disabled]="!egg.canStage"
+                (click)="toggleStaged(egg)"
+              >
+                {{ egg.staged ? 'Remove from hatch tray' : 'Choose this egg to hatch' }}
+              </button>
+            }
+          </div>
+        } @else {
+          <p class="bench-idle">Select an egg from the tray to bring it to the bench.</p>
+        }
+      </section>
+    </div>
+
+    <section class="hatch-bar" [attr.data-target]="vm.targets.hatchTray" aria-label="Hatch tray">
+      <div class="staged">
+        <span class="tag">
+          Hatch tray
+          @if (vm.hatchLimit !== null) {
+            · {{ vm.counts.staged }} of {{ vm.hatchLimit }}
+          }
+        </span>
+        @if (vm.stagedEggs.length) {
+          <ul>
+            @for (egg of vm.stagedEggs; track egg.id) {
+              <li>
+                <b>Egg {{ egg.position }}</b>
+                <small>{{ egg.phenotypeSummary || 'not examined' }}</small>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="empty">
+            {{
+              vm.hatchCommitted
+                ? 'This clutch has been hatched.'
+                : 'No eggs chosen yet. Only the eggs you choose will hatch.'
+            }}
+          </p>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="hatch-control"
+        [attr.data-target]="vm.targets.hatchControl"
+        [disabled]="!vm.hatchEnabled && !openLabHatchEnabled(vm)"
+        (click)="commitHatch()"
+      >
+        @if (vm.hatchCommitted) {
+          {{ vm.counts.hatched }} hatched
+        } @else {
+          Hatch {{ vm.counts.staged }} chosen egg{{ vm.counts.staged === 1 ? '' : 's' }}
+        }
+      </button>
+    </section>
+
+    @if (vm.hatchedEggs.length) {
+      <section class="hatched-row" aria-label="Hatched dragons">
+        <span class="tag">Hatched</span>
+        <ul>
+          @for (egg of vm.hatchedEggs; track egg.id) {
+            <li>
+              <b>Egg {{ egg.position }}</b>
+              <span>{{ egg.phenotypeSummary }}</span>
+              <i class="mono">{{ egg.genotypeLabel ?? 'genotype not sampled' }}</i>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (caption()) {
+      <p class="caption">{{ caption() }}</p>
+    }
+
+    @if (feedback(); as note) {
+      <div class="feedback" [attr.data-tone]="note.tone" role="status">
+        <strong>{{ note.headline }}</strong>
+        @if (note.detail) {
+          <p>{{ note.detail }}</p>
+        }
+      </div>
+    }
+
+    @if (!openLab() && vm.evidenceMarks.length) {
+      <section class="evidence-row" aria-label="Evidence marks">
+        <span class="tag">Pin the evidence for your claim</span>
+        <div>
+          @for (mark of vm.evidenceMarks; track mark.id) {
+            <button
+              type="button"
+              class="mark"
+              [attr.data-target]="vm.targets.evidenceMark"
+              [attr.data-anchor]="mark.anchorId"
+              [class.pinned]="mark.pinned"
+              [disabled]="!mark.enabled"
+              [attr.aria-pressed]="mark.pinned"
+              (click)="pinEvidence(mark.id, mark.enabled)"
+            >
+              {{ mark.label }}
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    <p class="visually-hidden" aria-live="polite">{{ vm.summary }}</p>
+  </section>
+} @else {
+  <p class="station-idle">No clutch is loaded in the hatchery.</p>
+}

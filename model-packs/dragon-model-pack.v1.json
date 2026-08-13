@@ -282,7 +282,8 @@
               "parameters": {
                 "toothCount": 4,
                 "toothHeight": 1.15,
-                "toothRadius": 0.1
+                "toothRadius": 0.1,
+                "toothStart": 0.28
               }
             },
             "snapPoints": [
@@ -303,8 +304,8 @@
                 "id": "dragon-lower-jaw-socket",
                 "label": "Lower jaw hinge",
                 "localPosition": {
-                  "x": -0.01,
-                  "y": -0.11,
+                  "x": -0.26,
+                  "y": -0.1,
                   "z": 0
                 },
                 "mateIds": [
@@ -345,13 +346,13 @@
             "shape": "box",
             "mass": 0.15,
             "dimensions": {
-              "x": 0.4,
+              "x": 0.52,
               "y": 0.09,
               "z": 0.24
             },
             "position": {
-              "x": 2.4223500000000007,
-              "y": 1.084219359569787,
+              "x": 2.3523500000000004,
+              "y": 1.0892193595697872,
               "z": 0
             },
             "rotation": {
@@ -368,7 +369,8 @@
               "parameters": {
                 "toothCount": 4,
                 "toothHeight": 1.15,
-                "toothRadius": 0.1
+                "toothRadius": 0.1,
+                "toothStart": 0.28
               }
             },
             "snapPoints": [
@@ -376,8 +378,8 @@
                 "id": "dragon-lower-jaw-root",
                 "label": "Lower Jaw mount",
                 "localPosition": {
-                  "x": -0.08,
-                  "y": 0.04,
+                  "x": -0.26,
+                  "y": 0.045,
                   "z": 0
                 },
                 "mateIds": [
@@ -1567,14 +1569,14 @@
               "z": 0.08
             },
             "position": {
-              "x": 0.57223,
+              "x": 0.25223000000000007,
               "y": 1.628627399695981,
               "z": -2.4987019377251736
             },
             "rotation": {
               "x": 0,
               "y": 0,
-              "z": 0.7071067811865475,
+              "z": -0.7071067811865475,
               "w": 0.7071067811865476
             },
             "color": "#facc15",
@@ -1610,7 +1612,7 @@
               "childRotation": {
                 "x": 0,
                 "y": 0,
-                "z": 0.7071067811865475,
+                "z": -0.7071067811865475,
                 "w": 0.7071067811865476
               },
               "behavior": {
@@ -1636,14 +1638,14 @@
               "z": 0.08
             },
             "position": {
-              "x": 0.57223,
+              "x": 0.25223000000000007,
               "y": 1.628627399695981,
               "z": 2.4987019377251736
             },
             "rotation": {
               "x": 0,
               "y": 0,
-              "z": 0.7071067811865475,
+              "z": -0.7071067811865475,
               "w": 0.7071067811865476
             },
             "color": "#facc15",
@@ -1679,7 +1681,7 @@
               "childRotation": {
                 "x": 0,
                 "y": 0,
-                "z": 0.7071067811865475,
+                "z": -0.7071067811865475,
                 "w": 0.7071067811865476
               },
               "behavior": {
@@ -2063,13 +2065,13 @@
             "parentPartId": "classic-dragon-upper-jaw",
             "childPartId": "classic-dragon-lower-jaw",
             "pivotOnParent": {
-              "x": -0.01,
-              "y": -0.11,
+              "x": -0.26,
+              "y": -0.1,
               "z": 0
             },
             "pivotOnChild": {
-              "x": -0.08,
-              "y": 0.04,
+              "x": -0.26,
+              "y": 0.045,
               "z": 0
             },
             "axis": {

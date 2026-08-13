@@ -1,0 +1,108 @@
+:host {
+  --hatch-line: #a46947;
+  --stripe-coral: #f07c78;
+  --stripe-gold: #f8d35e;
+  --stripe-blue: #aeb9d8;
+  --stripe-green: #b9dbc7;
+  --stripe-violet: #b996d6;
+
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.chromosome-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chromosome-band--placeholder {
+  fill: #d7d7d7;
+  stroke: #575757;
+  stroke-width: 0.35;
+  vector-effect: non-scaling-stroke;
+}
+
+.chromosome-svg--placeholder .chromosome-outline {
+  stroke: #f2f2f2;
+}
+
+.chromosome-svg--placeholder .centromere-line {
+  stroke: #3b3b3b;
+}
+
+.chromosome-svg--placeholder .arm-label {
+  fill: #d2d2d2;
+}
+
+.chromosome-outline {
+  fill: none;
+  stroke: #ddd4c8;
+  stroke-width: 0.55;
+  vector-effect: non-scaling-stroke;
+}
+
+.centromere-line {
+  stroke: #564b40;
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.arm-label,
+.allele-symbol,
+.locus-label {
+  font-family: var(--font-body);
+  font-size: 3.25px;
+}
+
+.arm-label {
+  fill: #c8bda9;
+  dominant-baseline: middle;
+}
+
+.arm-label--left {
+  text-anchor: end;
+}
+
+.arm-label--right {
+  text-anchor: start;
+}
+
+.gene-marker {
+  opacity: 0.28;
+  stroke-width: 0.45;
+  vector-effect: non-scaling-stroke;
+}
+
+.gene-locus--active .gene-marker {
+  opacity: 1;
+  stroke-width: 1.15;
+}
+
+.gene-locus--interactive {
+  cursor: pointer;
+}
+
+.locus-hit-target {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.gene-locus--interactive:hover .gene-marker {
+  opacity: 1;
+  stroke-width: 1.15;
+}
+
+.allele-symbol {
+  font-family: var(--font-display);
+  font-size: 3.25px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.locus-label {
+  fill: #ded4c3;
+  text-anchor: middle;
+}

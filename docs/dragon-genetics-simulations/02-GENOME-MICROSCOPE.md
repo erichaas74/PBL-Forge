@@ -1,102 +1,63 @@
 # 02 - Genome Microscope
 
-**Curriculum:** Module 2, Genome Decoder and Station A, DNA Structure · **Skill:** GEN-2 ·
-**Contract:** `genome-microscope`
+**Curriculum:** Module 2, Genome Decoder · **Skill:** GEN-2
 
-## Implementation status
-
-The first production implementation is complete and mounted in Module 2. It follows the shared
-scene/bridge/event boundary and does not import lesson, store, router, or Firebase code into the
-renderer.
-
-| Layer                                          | Implementation                                                                    |
-| ---------------------------------------------- | --------------------------------------------------------------------------------- |
-| Shared renderer                                | `src/app/shared/dragon-visuals/displays/genome-microscope/`                       |
-| Semantic contract                              | `src/app/shared/dragon-visuals/domain/dragon-visual.models.ts`                    |
-| Contract validation                            | `src/app/shared/dragon-visuals/domain/visual-contract.validation.ts`              |
-| Teaching animation                             | `GENOME_ZOOM_SEQUENCE` in `core-teaching-sequences.ts`                            |
-| Feature adapter                                | `createGenomeMicroscopeScene` in `dragon-visual-scene.adapter.ts`                 |
-| Lesson orchestration                           | `src/app/features/dragon-genetics/stations/genome-microscope-station.component.*` |
-| Curriculum tasks and copy                      | `simulation/data/genome-microscope-content.ts`                                    |
-| Dragon trait files                             | `simulation/data/dragon-genome-expedition.content.ts`                             |
-| DNA replication, RNA, mutation, and repair lab | `dragon-dna-repair-lab.component.*`                                               |
-| Reusable molecular animations and questions    | `src/app/shared/dna-process-visuals/`                                             |
-| Saved evidence model                           | `simulation/domain/genome-microscope.models.ts`                                   |
+**Runtime status:** dedicated SVG workstation
 
 ## Teaching purpose
 
-Students choose one of the familiar Module 1 dragons and build the nested information model:
-dragon → body region → cell → nucleus → chromosome → DNA → gene location → allele pair. The
-selected dragon remains visible so the organization of genetic information stays connected to the
-observable trait. The traits are deliberately simplified instructional models, not claims that one
-gene completely determines a complex structure.
+Students investigate the nested information model:
 
-## Scene inputs
+`dragon cell → nucleus → chromosome pairs → one chromosome → DNA → gene → allele`
 
-- selected egg or dragon analysis sample;
-- `focusLevel`: `cell`, `chromosome`, `dna`, `gene`, or `allele`;
-- optional `focusGeneId`; and
-- the selected gene's chromosome model and allele pair;
-- lesson-owned prediction, label placements, reveal state, and pinned evidence level; and
-- deterministic task and scene seeds.
+The visual begins with a somatic dragon cell. Students may zoom one level at a time or select a
+visible structure. The model keeps chromosome, DNA, gene, and allele distinct instead of collapsing
+them into one object.
 
-## Display model
+## Code-driven model
 
-The Module 2 shell adds a Dragon Genome Archive, visible Trait Genome File, scientific five-level
-microscope map, evidence dock, notebook, and reveal-gated Allele Vault. The former continuous zoom
-scene and Chromosome Locator have been removed. The sample's actual allele symbols appear only
-after the microscope hierarchy is correct.
+- The cell membrane, organelles, nucleus, chromosome glyphs, DNA helix, base pairs, and gene region
+  are SVG or reusable SVG components.
+- The default genome contains four autosome pairs and one sex-chromosome pair.
+- The autosome list is an input, so the laboratory can change the modeled pair count without
+  redrawing the workstation.
+- Female mode displays XX; male mode displays XY with a shorter Y chromosome.
+- Full chromosome bands, centromeres, lengths, and locus positions come from the same catalog used
+  by Allele Workbench.
+- Genes and allele DNA sequences come from the shared workstation catalogs.
 
-The DNA lab closely adapts the base-pair colors, strand choreography, mutation movements,
-polymerase travel, and construction timing from `docs/dna-mutation-animation.html`. Uncoiling has
-been removed from the molecular lab. Students instead watch both complementary strands form during DNA
-replication, build a single mRNA strand during transcription, compare insertion, deletion, and
-substitution, and repair one deliberate copying mismatch. The animation, question, explanation,
-feedback, and science-boundary code lives in reusable components under
-`src/app/shared/dna-process-visuals/` so later DNA and RNA questions can use the same models.
+The uploaded cell and chromosome-set illustrations are composition references only. No raster
+image is used by the workstation.
 
-## Student sequence
+## Current implementation
 
-1. Choose a familiar dragon and open its current Trait Genome File.
-2. Predict the requested scientific level and build the nested five-level microscope map.
-3. Replicate DNA, transcribe RNA, compare mutation types, diagnose a mismatch, and repair it with
-   base-pair evidence.
-4. Reveal the selected gene locus and Allele Vault, then pin and save supporting evidence.
-5. Restore four scrambled claims in the Dragon Genome Repair mastery mission.
+| Concern                               | Source                                                                                                                                                                                                                                                                |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dedicated workstation                 | [`workstations/genome-microscope/genome-microscope.component.ts`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.component.ts)                                                                                               |
+| SVG template                          | [`genome-microscope.component.html`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.component.html)                                                                                                                          |
+| Responsive presentation               | [`genome-microscope.component.scss`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.component.scss)                                                                                                                          |
+| Zoom and chromosome-pair models       | [`genome-microscope.models.ts`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.models.ts)                                                                                                                                    |
+| Shared chromosome geometry and colors | [`workstations/shared/dragon-chromosome.catalog.ts`](../../src/app/features/dragon-genetics/workstations/shared/dragon-chromosome.catalog.ts)                                                                                                                         |
+| Reusable chromosome SVG               | [`workstations/shared/chromosome-svg.component.ts`](../../src/app/features/dragon-genetics/workstations/shared/chromosome-svg.component.ts)                                                                                                                           |
+| Shared gene and allele records        | [`workstations/allele-workbench/allele-vault.models.ts`](../../src/app/features/dragon-genetics/workstations/allele-workbench/allele-vault.models.ts)                                                                                                                 |
+| Shared allele DNA                     | [`workstations/shared/dragon-gene-dna.catalog.ts`](../../src/app/features/dragon-genetics/workstations/shared/dragon-gene-dna.catalog.ts)                                                                                                                             |
+| Routed host and reviewed questions    | [`adaptive/dragon-simulation-experience.page.ts`](../../src/app/features/dragon-genetics/adaptive/dragon-simulation-experience.page.ts) and [`adaptive/dragon-simulation.registry.ts`](../../src/app/features/dragon-genetics/adaptive/dragon-simulation.registry.ts) |
 
-Learn mode gives guided microscope reveals. Practice scrambles labels and focus requests. Official mode starts
-at a random level with no hints. Reteach lets the student reconstruct the hierarchy from large scale
-to small scale.
+## Interaction behavior
 
-The implemented station provides selectable genome extracts, fixed-seed task order, click or drag
-label placement, lesson-owned correction, a reveal-only allele readout, an evidence dock, compact
-notebook records, and the existing four-question GEN-2 check. A verified five-level map mirrors the
-full organism-to-allele pathway into Module 2 progress; the quick check is still required before the
-module unlocks.
+- `Zoom in` and `Zoom out` move exactly one scientific level.
+- The level rail permits direct review of a previously observed scale.
+- Selecting a chromosome pair opens both homologs, explicitly labeled by parental origin.
+- Selecting a gene locus focuses the gene region on the DNA model.
+- The allele level compares the two code-driven reference DNA sequences.
+- Selecting a scientific object emits the matching adaptive model target for an embedded question.
 
-## Semantic targets and events
+## Acceptance targets
 
-Targets: `sample-record`, `cell-level`, `chromosome-level`, `dna-level`, `gene-locus`,
-`allele-slot-a`, `allele-slot-b`, `zoom-path`, `level-label-dropzone`.
-
-Emit `hotspot-selected`, `label-placed`, `prediction-locked`, `reveal-requested`, and checkpoint
-events. The implemented renderer also emits `evidence-pinned`. Saved records contain the scene seed,
-sample, focus gene, pre-reveal prediction, hierarchy attempts, requested level, selected evidence,
-misconception flag, and active elapsed time. They never contain screenshots or animation frames.
-
-## Acceptance checks
-
-- All five levels remain visible enough to preserve the hierarchy during focus changes.
-- DNA base pairing is accurate but does not imply that a single base pair is an allele.
-- The selected sample drives the gene and allele readout.
-- Reduced motion replaces zoom travel with focus and breadcrumb changes.
-- Replication uses DNA bases only, transcription is named as a separate process, and repair language
-  does not imply that every mutation changes phenotype.
-
-## Verified quality gates
-
-- Pure view-model tests verify hidden alleles, hierarchy order, and lesson-owned grading state.
-- Feature interaction tests complete prediction → map → reveal → evidence → save in Learn,
-  Practice, Official, and Reteach modes.
-- Adapter and contract tests verify selected-sample gene data and visual-scene compatibility.
-- Angular lint, production build, and the complete headless test suite must pass before release.
+- The initial state is the complete dragon cell, not a chromosome or isolated DNA fragment.
+- The nucleus contains the configured number of autosome pairs plus one sex pair.
+- XX and XY are visually and semantically distinct.
+- Chromosome colors never drift from Allele Workbench because both use the same catalog objects.
+- DNA base pairing does not imply that one base pair is an allele.
+- Reduced-motion mode shows the same final state without animated scaling.
+- Keyboard users can operate the zoom controls, level rail, chromosomes, genes, and sex selector.

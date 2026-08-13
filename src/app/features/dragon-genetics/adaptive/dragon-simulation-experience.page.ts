@@ -11,18 +11,29 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { SessionService } from '../../../core/firebase/session.service';
 import { DragonArenaComponent } from '../dragon-arena.component';
-import { DragonDnaRepairLabComponent } from '../dragon-dna-repair-lab.component';
+import { DragonHatcheryStationComponent } from '../workstations/dragon-hatchery/dragon-hatchery-station.component';
+import { DragonDnaRepairLabComponent } from '../workstations/dna-process-lab/dragon-dna-repair-lab.component';
+import { DnaAnalysisCase } from '../workstations/dna-process-lab/dna-sequence-analysis.component';
 import { findParent, runDragonBatch } from '../dragon-genetics.domain';
 import { DragonBattleResult, StudentDragonRecord } from '../dragon-genetics.models';
-import { DRAGON_TRAITS, genotypeLabel } from '../simulation/domain/dragon-inheritance';
-import { AlleleVaultWorkbenchComponent } from './allele-workbench/allele-vault-workbench.component';
+import {
+  breedLabClutch,
+  DRAGON_TRAITS,
+  genotypeLabel,
+} from '../simulation/domain/dragon-inheritance';
+import { AlleleVaultWorkbenchComponent } from '../workstations/allele-workbench/allele-vault-workbench.component';
+import {
+  chromosomeVisual,
+  DRAGON_LOCUS_COLORS,
+} from '../workstations/shared/dragon-chromosome.catalog';
+import { ChromosomeSvgModel } from '../workstations/shared/chromosome-svg.component';
 import {
   ALLELE_VAULT_ALLELES,
   ALLELE_VAULT_GENES,
   AlleleClaimFeedback,
   AlleleWorkbenchInteraction,
-} from './allele-workbench/allele-vault.models';
-import { GeneticsNotebookComponent } from './allele-workbench/genetics-notebook.component';
+} from '../workstations/allele-workbench/allele-vault.models';
+import { GeneticsNotebookComponent } from '../workstations/shared/genetics-notebook.component';
 import { DragonAdaptiveStore } from './dragon-adaptive.store';
 import {
   GeneratedSimulationQuestion,
@@ -36,7 +47,8 @@ import {
   isDragonSimulationId,
   LEVEL_PROFILES,
 } from './dragon-simulation.registry';
-import { DragonSimulationVisualComponent } from './dragon-simulation-visual.component';
+import { DragonSimulationVisualComponent } from '../workstations/simulation-visual/dragon-simulation-visual.component';
+import { GenomeMicroscopeComponent } from '../workstations/genome-microscope/genome-microscope.component';
 
 @Component({
   selector: 'app-dragon-simulation-experience-page',
@@ -47,6 +59,8 @@ import { DragonSimulationVisualComponent } from './dragon-simulation-visual.comp
     GeneticsNotebookComponent,
     DragonDnaRepairLabComponent,
     DragonArenaComponent,
+    DragonHatcheryStationComponent,
+    GenomeMicroscopeComponent,
   ],
   templateUrl: './dragon-simulation-experience.page.html',
   styleUrl: './dragon-simulation-experience.page.scss',
@@ -61,6 +75,9 @@ export class DragonSimulationExperiencePage {
     this.route.paramMap.pipe(map((params) => params.get('simulationId'))),
     { initialValue: this.route.snapshot.paramMap.get('simulationId') },
   );
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
 
   readonly definition = computed(() => {
     const id = this.simulationId();
@@ -103,6 +120,61 @@ export class DragonSimulationExperiencePage {
     const available = new Set(this.availableAlleleGenes().map((gene) => gene.id));
     return ALLELE_VAULT_ALLELES.filter((allele) => available.has(allele.geneId));
   });
+  readonly transferredDnaAnalysisCase = computed<DnaAnalysisCase | null>(() => {
+    if (this.definition()?.id !== 'dna-process-lab') return null;
+    const params = this.queryParams();
+    const gene = ALLELE_VAULT_GENES.find((candidate) => candidate.id === params.get('gene'));
+    const sampleA = ALLELE_VAULT_ALLELES.find(
+      (candidate) => candidate.id === params.get('sampleA'),
+    );
+    const sampleB = ALLELE_VAULT_ALLELES.find(
+      (candidate) => candidate.id === params.get('sampleB'),
+    );
+    if (!gene || sampleA?.geneId !== gene.id || sampleB?.geneId !== gene.id) return null;
+    const reference = sampleA.modelSequence.join('');
+    const sample = sampleB.modelSequence.join('');
+    return {
+      id: `${gene.id}:${sampleA.id}:${sampleB.id}`,
+      sampleLabel: `${gene.chromosome} · ${gene.sampleCode}`,
+      chromosomeLabel: gene.chromosome,
+      geneLabel: gene.sampleCode,
+      locusLabel: gene.locus,
+      referenceSampleLabel: sampleA.sampleCode,
+      comparisonSampleLabel: sampleB.sampleCode,
+      reference,
+      sample,
+      mutationType:
+        reference.length < sample.length
+          ? 'insertion'
+          : reference.length > sample.length
+            ? 'deletion'
+            : 'substitution',
+    };
+  });
+  readonly transferredDnaChromosomeModel = computed<ChromosomeSvgModel | null>(() => {
+    if (!this.transferredDnaAnalysisCase()) return null;
+    const params = this.queryParams();
+    const activeGene = ALLELE_VAULT_GENES.find((candidate) => candidate.id === params.get('gene'));
+    if (!activeGene) return null;
+    const chromosomeGenes = ALLELE_VAULT_GENES.filter(
+      (candidate) => candidate.chromosome === activeGene.chromosome,
+    );
+    const visual = chromosomeVisual(activeGene.chromosome);
+    const chromosomeNumber = activeGene.chromosome.replace(/^Chr\s*/i, '');
+    return {
+      length: visual.length,
+      leftLabel: `${chromosomeNumber}p`,
+      rightLabel: `${chromosomeNumber}q`,
+      centromere: visual.centromere,
+      bands: visual.bands,
+      loci: chromosomeGenes.map((gene, index) => ({
+        position: visual.locusPositions[index] ?? 0.5,
+        label: gene.sampleCode,
+        symbol: gene.id === activeGene.id ? gene.sampleCode : undefined,
+        color: DRAGON_LOCUS_COLORS[index % DRAGON_LOCUS_COLORS.length],
+      })),
+    };
+  });
   readonly dnaLabFocusQuestionId = computed(() => {
     const definition = this.definition();
     const currentQuestion = this.question();
@@ -144,6 +216,18 @@ export class DragonSimulationExperiencePage {
     const seed = this.arenaSeed();
     if (seed === null) return null;
     return runDragonBatch(findParent('ember'), findParent('tide'), seed, 1).sample[0] ?? null;
+  });
+  readonly hatcheryParents = [findParent('ember'), findParent('tide')] as const;
+  readonly hatcheryClutch = computed(() => {
+    if (this.definition()?.id !== 'dragon-hatchery') return [];
+    const seed = this.run()?.seed;
+    if (!seed) return [];
+    return breedLabClutch(
+      this.hatcheryParents[0],
+      this.hatcheryParents[1],
+      seedToRunNumber(seed),
+      6,
+    );
   });
   /** The most recent completed trial, or null before the first battle ends. */
   readonly arenaTrial = signal<DragonBattleResult | null>(null);
@@ -225,15 +309,25 @@ export class DragonSimulationExperiencePage {
   }
 
   handleAlleleWorkbenchInteraction(event: AlleleWorkbenchInteraction): void {
+    if (event.type === 'dna-analysis-requested' && event.pairIds) {
+      void this.router.navigate(['/dragon-genetics', 'dna-process-lab'], {
+        queryParams: {
+          gene: event.geneId,
+          sampleA: event.pairIds[0],
+          sampleB: event.pairIds[1],
+        },
+      });
+      return;
+    }
     if (event.type === 'expression-run' && event.pairIds && event.phenotype) {
       this.store.recordAlleleExperiment(event.geneId, event.pairIds, event.phenotype);
       return;
     }
     if (
-      event.type === 'discovery-claim'
-      && event.traitId
-      && event.dominantAlleleId
-      && event.recessiveAlleleId
+      event.type === 'discovery-claim' &&
+      event.traitId &&
+      event.dominantAlleleId &&
+      event.recessiveAlleleId
     ) {
       const status = this.store.submitAlleleDiscovery(
         event.geneId,

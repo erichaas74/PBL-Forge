@@ -1,0 +1,662 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.genome-microscope {
+  --microscope-accent: #65c8bc;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-height: 38rem;
+  overflow: hidden;
+  border: 1px solid rgb(117 197 196 / 24%);
+  border-radius: 1.3rem;
+  background:
+    radial-gradient(circle at 50% 42%, rgb(57 148 164 / 13%), transparent 48%),
+    linear-gradient(150deg, #0d2632, #071821 72%);
+  color: white;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 28%);
+}
+
+.microscope-header,
+.microscope-controls {
+  position: relative;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  background: rgb(5 20 29 / 86%);
+  backdrop-filter: blur(12px);
+}
+
+.microscope-header {
+  border-bottom: 1px solid rgb(255 255 255 / 9%);
+}
+
+.microscope-header > div:first-child {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.microscope-header small,
+.chromosome-focus-card header small,
+.chromosome-pair-card > small,
+.allele-focus header small {
+  color: #79d3ca;
+  font-size: var(--text-xs);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.microscope-header strong,
+.allele-focus header strong {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.sex-control {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.sex-control button,
+.zoom-rail button,
+.microscope-controls button,
+.gene-locus-buttons button {
+  border: 1px solid rgb(255 255 255 / 13%);
+  background: #102d3a;
+  color: #bed0d7;
+  cursor: pointer;
+}
+
+.sex-control button {
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.6rem;
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.sex-control button span {
+  margin-left: 0.25rem;
+  color: #7c94a0;
+}
+
+.sex-control button.active,
+.zoom-rail button.active,
+.gene-locus-buttons button.active {
+  border-color: var(--microscope-accent);
+  background: color-mix(in srgb, var(--microscope-accent) 20%, #102d3a);
+  color: white;
+}
+
+.sex-control button.active span {
+  color: var(--microscope-accent);
+}
+
+.zoom-rail {
+  position: relative;
+  z-index: 15;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.45rem 0.7rem;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  background: rgb(6 24 33 / 72%);
+}
+
+.zoom-rail button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.38rem;
+  border-radius: 99px;
+  font-size: var(--text-xs);
+  font-weight: 850;
+}
+
+.zoom-rail button i {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #44606c;
+  border-radius: 50%;
+  color: #76909b;
+  font-style: normal;
+}
+
+.zoom-rail button.visited i {
+  border-color: var(--microscope-accent);
+  color: var(--microscope-accent);
+}
+
+.microscope-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cell-scene,
+.dna-scene,
+.chromosome-set-html,
+.chromosome-focus-html,
+.allele-focus {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cell-scene,
+.dna-scene {
+  display: block;
+}
+
+.cell-layer,
+.nucleus-focus-layer,
+.chromosome-set-layer,
+.chromosome-set-html,
+.chromosome-focus-html,
+.dna-scene,
+.allele-focus {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.86);
+  transform-origin: center;
+  transition:
+    opacity 0.35s ease,
+    transform 0.55s cubic-bezier(0.2, 0.75, 0.2, 1);
+}
+
+.genome-microscope[data-level='cell'] .cell-layer,
+.genome-microscope[data-level='nucleus'] .nucleus-focus-layer,
+.genome-microscope[data-level='chromosome-set'] .chromosome-set-layer,
+.genome-microscope[data-level='chromosome-set'] .chromosome-set-html,
+.genome-microscope[data-level='chromosome'] .chromosome-focus-html,
+.genome-microscope[data-level='dna'] .dna-scene,
+.genome-microscope[data-level='gene'] .dna-scene,
+.genome-microscope[data-level='allele'] .allele-focus {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.cell-membrane {
+  stroke: #55b2cc;
+  stroke-width: 8;
+  filter: drop-shadow(0 0 22px rgb(62 181 194 / 22%));
+}
+
+.cell-inner-membrane {
+  fill: none;
+  stroke: rgb(142 223 223 / 28%);
+  stroke-width: 3;
+  stroke-dasharray: 8 12;
+}
+
+.organelle {
+  fill: rgb(245 194 82 / 24%);
+  stroke: rgb(245 194 82 / 62%);
+  stroke-width: 3;
+}
+
+.organelle-1 {
+  transform: translate(240px, 175px) rotate(-28deg);
+}
+.organelle-2 {
+  transform: translate(720px, 155px) rotate(24deg);
+}
+.organelle-3 {
+  transform: translate(245px, 425px) rotate(18deg);
+}
+.organelle-4 {
+  transform: translate(724px, 430px) rotate(-18deg);
+}
+.organelle-5 {
+  transform: translate(790px, 300px) scale(0.8);
+}
+.organelle-6 {
+  transform: translate(172px, 300px) scale(0.72);
+}
+.organelle-7 {
+  transform: translate(505px, 500px) scale(0.65);
+}
+
+.nucleus {
+  cursor: zoom-in;
+  filter: url('#gm-soft-shadow');
+}
+
+.nuclear-envelope,
+.focus-nuclear-envelope {
+  fill: none;
+  stroke: #bf89ce;
+  stroke-width: 8;
+}
+
+.nuclear-envelope-inner,
+.focus-nuclear-envelope-inner {
+  fill: none;
+  stroke: rgb(238 192 244 / 45%);
+  stroke-width: 3;
+  stroke-dasharray: 12 9;
+}
+
+.nucleolus,
+.focus-nucleolus {
+  fill: rgb(226 157 216 / 38%);
+  stroke: #db9bd4;
+  stroke-width: 4;
+}
+
+.nuclear-chromosome-pair,
+.focus-chromosome-pair {
+  cursor: pointer;
+}
+
+.nuclear-chromosome-pair path,
+.focus-chromosome-pair path {
+  fill: none;
+  stroke: #aeb9d8;
+  stroke-linecap: round;
+  stroke-width: 12;
+  transition: stroke 0.2s;
+}
+
+.nuclear-chromosome-pair path:last-of-type,
+.focus-chromosome-pair path:last-of-type {
+  stroke: #b9dbc7;
+}
+
+.nuclear-chromosome-pair.active path,
+.focus-chromosome-pair.active path {
+  stroke: #ff6d68;
+  filter: url('#gm-glow');
+}
+
+.nuclear-chromosome-pair.sex-pair path,
+.focus-chromosome-pair.sex-pair path {
+  stroke-dasharray: 11 5;
+}
+
+.nuclear-chromosome-pair.pair-0 {
+  transform: translate(438px, 332px) rotate(-22deg);
+}
+.nuclear-chromosome-pair.pair-1 {
+  transform: translate(535px, 245px) rotate(25deg);
+}
+.nuclear-chromosome-pair.pair-2 {
+  transform: translate(565px, 353px) rotate(-12deg) scale(0.86);
+}
+.nuclear-chromosome-pair.pair-3 {
+  transform: translate(455px, 225px) rotate(18deg) scale(0.75);
+}
+.nuclear-chromosome-pair.pair-4 {
+  transform: translate(507px, 398px) rotate(7deg) scale(0.64);
+}
+
+.focus-nucleus {
+  filter: url('#gm-soft-shadow');
+}
+
+.chromatin-lines path {
+  fill: none;
+  stroke: rgb(226 188 233 / 20%);
+  stroke-width: 4;
+}
+
+.focus-chromosome-pair circle {
+  fill: #e6b26a;
+}
+
+.focus-chromosome-pair text {
+  fill: #dce7ea;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.focus-chromosome-pair.pair-0 {
+  transform: translate(350px, 250px) rotate(-24deg);
+}
+.focus-chromosome-pair.pair-1 {
+  transform: translate(520px, 195px) rotate(18deg);
+}
+.focus-chromosome-pair.pair-2 {
+  transform: translate(650px, 280px) rotate(12deg) scale(0.9);
+}
+.focus-chromosome-pair.pair-3 {
+  transform: translate(410px, 405px) rotate(16deg) scale(0.78);
+}
+.focus-chromosome-pair.pair-4 {
+  transform: translate(610px, 415px) rotate(-12deg) scale(0.66);
+}
+
+.set-field {
+  fill: rgb(7 26 36 / 92%);
+  stroke: rgb(117 197 196 / 25%);
+  stroke-width: 2;
+}
+
+.set-label,
+.set-sub-label,
+.dna-label,
+.gene-label {
+  fill: #dfeaec;
+  font-family: var(--font-display);
+  font-weight: 850;
+  text-anchor: middle;
+}
+
+.set-label {
+  font-size: 25px;
+}
+.set-sub-label {
+  fill: #7f9ba6;
+  font-size: 16px;
+}
+
+.chromosome-set-html {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.8rem;
+  padding: 7rem 4.5rem 4.2rem;
+}
+
+.chromosome-pair-card {
+  display: grid;
+  min-width: 0;
+  gap: 0.55rem;
+  padding: 0.9rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 11%);
+  border-radius: 1rem;
+  background: rgb(10 35 45 / 82%);
+  color: white;
+  cursor: zoom-in;
+}
+
+.chromosome-pair-card:hover,
+.chromosome-pair-card.active {
+  border-color: var(--microscope-accent);
+  background: rgb(22 62 72 / 88%);
+}
+
+.chromosome-pair-card > span {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 850;
+}
+
+.chromosome-pair-card > small {
+  color: #78929d;
+}
+
+.homologs {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.sex-pair-card {
+  border-style: dashed;
+}
+
+.chromosome-focus-html {
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.chromosome-focus-card {
+  display: grid;
+  width: min(56rem, 94%);
+  gap: 0.85rem;
+}
+
+.chromosome-focus-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-inline: 0.5rem;
+}
+
+.chromosome-focus-card header span {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 900;
+}
+
+.focused-homolog {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 1rem;
+  background: rgb(12 37 48 / 78%);
+  color: #8ea7b1;
+  text-align: left;
+  cursor: zoom-in;
+}
+
+.focused-homolog:hover {
+  border-color: var(--microscope-accent);
+}
+
+.gene-locus-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.gene-locus-buttons button {
+  padding: 0.45rem 0.65rem;
+  border-radius: 99px;
+  font-size: var(--text-xs);
+  font-weight: 900;
+}
+
+.dna-scene {
+  padding: 0.7rem;
+}
+
+.dna-strand {
+  fill: none;
+  stroke-width: 18;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 10px rgb(74 171 199 / 25%));
+}
+
+.dna-left {
+  stroke: url('#gm-dna-strand-left');
+}
+.dna-right {
+  stroke: url('#gm-dna-strand-right');
+}
+
+.base-pair line {
+  stroke: #66808b;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.base-pair text {
+  fill: #dfe9ec;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+.base-pair.gene-base line {
+  stroke: #f8d35e;
+  filter: url('#gm-glow');
+}
+
+.gene-region {
+  fill: rgb(248 211 94 / 5%);
+  stroke: #f8d35e;
+  stroke-width: 4;
+  stroke-dasharray: 12 9;
+}
+
+.dna-label {
+  font-size: 23px;
+}
+.gene-label {
+  fill: #f8d35e;
+  font-size: 20px;
+}
+
+.genome-microscope[data-level='dna'] .gene-region,
+.genome-microscope[data-level='dna'] .gene-label {
+  opacity: 0.18;
+}
+
+.genome-microscope[data-level='gene'] .gene-region {
+  filter: url('#gm-glow');
+}
+
+.allele-focus {
+  display: grid;
+  align-content: center;
+  gap: 1rem;
+  padding: clamp(1rem, 4vw, 4rem);
+}
+
+.allele-focus header {
+  display: grid;
+  gap: 0.2rem;
+  text-align: center;
+}
+
+.allele-focus section {
+  display: grid;
+  grid-template-columns: minmax(7rem, 10rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 1rem;
+  background: rgb(11 36 47 / 76%);
+}
+
+.allele-focus section > span {
+  font-family: var(--font-display);
+  font-weight: 900;
+}
+
+.sequence {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(1.6rem, 1fr));
+  gap: 0.25rem;
+}
+
+.sequence b {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 0.4rem;
+  background: #183f4d;
+  color: #d9e7ea;
+  font-size: var(--text-sm);
+}
+
+.microscope-controls {
+  border-top: 1px solid rgb(255 255 255 / 9%);
+}
+
+.microscope-controls button {
+  flex: 0 0 auto;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.65rem;
+  font-size: var(--text-sm);
+  font-weight: 900;
+}
+
+.microscope-controls button:disabled {
+  opacity: 0.34;
+  cursor: default;
+}
+
+.microscope-controls output {
+  min-width: 0;
+  overflow: hidden;
+  color: #9eb3bc;
+  font-size: var(--text-xs);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-layer,
+  .nucleus-focus-layer,
+  .chromosome-set-layer,
+  .chromosome-set-html,
+  .chromosome-focus-html,
+  .dna-scene,
+  .allele-focus {
+    transition: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .zoom-rail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chromosome-set-html {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: center;
+    padding: 4rem 1rem 1rem;
+  }
+
+  .focused-homolog {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .genome-microscope {
+    min-height: 46rem;
+  }
+
+  .microscope-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .zoom-rail button span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chromosome-set-html {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .allele-focus section {
+    grid-template-columns: 1fr;
+  }
+
+  .sequence {
+    grid-template-columns: repeat(6, minmax(1.6rem, 1fr));
+  }
+
+  .microscope-controls output {
+    display: none;
+  }
+}

@@ -19,8 +19,8 @@ import { DEFAULT_DRAGON_ASSIGNMENT } from './dragon-simulation.registry';
 import {
   GeneticsNotebookSnapshot,
   normalizeGeneticsNotebook,
-} from './allele-workbench/genetics-notebook.models';
-import { normalizeAlleleVaultGeneIds } from './allele-workbench/allele-vault.models';
+} from '../workstations/shared/genetics-notebook.models';
+import { normalizeAlleleVaultGeneIds } from '../workstations/allele-workbench/allele-vault.models';
 
 export const DEFAULT_DRAGON_ASSIGNMENT_ID = 'default';
 
@@ -33,7 +33,8 @@ export class DragonAdaptiveRepository {
   async loadAssignment(assignmentId = DEFAULT_DRAGON_ASSIGNMENT_ID): Promise<DragonAssignment> {
     await this.session.ensureUser();
     const snapshot = await runInFirebaseContext(this.injector, () =>
-      getDoc(doc(this.firestore, `dragonGeneticsAssignments/${assignmentId}`)));
+      getDoc(doc(this.firestore, `dragonGeneticsAssignments/${assignmentId}`)),
+    );
     if (!snapshot.exists()) return { ...DEFAULT_DRAGON_ASSIGNMENT, id: assignmentId };
     return normalizeAssignment(snapshot.id, snapshot.data());
   }
@@ -42,46 +43,52 @@ export class DragonAdaptiveRepository {
     const user = await this.session.ensureUser();
     if (!user) throw new Error('A teacher session is required to save an assignment.');
     await runInFirebaseContext(this.injector, () =>
-      setDoc(doc(this.firestore, `dragonGeneticsAssignments/${assignment.id}`), {
-        ...assignment,
-        ownerId: user.uid,
-        updatedAt: serverTimestamp(),
-      }, { merge: true }));
+      setDoc(
+        doc(this.firestore, `dragonGeneticsAssignments/${assignment.id}`),
+        {
+          ...assignment,
+          ownerId: user.uid,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      ),
+    );
   }
 
   async loadGeneticsNotebook(): Promise<GeneticsNotebookSnapshot | null> {
     const user = await this.session.ensureUser();
     if (!user) return null;
     const snapshot = await runInFirebaseContext(this.injector, () =>
-      getDoc(doc(this.firestore, `dragonLabProgress/${user.uid}`)));
+      getDoc(doc(this.firestore, `dragonLabProgress/${user.uid}`)),
+    );
     return normalizeGeneticsNotebook(snapshot.data()?.['geneticsNotebook'], user.uid);
   }
 
-  async saveGeneticsNotebook(
-    notebook: GeneticsNotebookSnapshot,
-    teacherId: string,
-  ): Promise<void> {
+  async saveGeneticsNotebook(notebook: GeneticsNotebookSnapshot, teacherId: string): Promise<void> {
     const user = await this.session.ensureUser();
     if (!user) return;
     await runInFirebaseContext(this.injector, () =>
-      setDoc(doc(this.firestore, `dragonLabProgress/${user.uid}`), {
-        studentId: user.uid,
-        projectId: 'dragon-genetics-lab',
-        assignmentId: notebook.assignmentId,
-        teacherId,
-        geneticsNotebook: notebook,
-        updatedAt: serverTimestamp(),
-      }, { merge: true }));
+      setDoc(
+        doc(this.firestore, `dragonLabProgress/${user.uid}`),
+        {
+          studentId: user.uid,
+          projectId: 'dragon-genetics-lab',
+          assignmentId: notebook.assignmentId,
+          teacherId,
+          geneticsNotebook: notebook,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      ),
+    );
   }
 
   async loadRuns(): Promise<DragonSimulationRun[]> {
     const user = await this.session.ensureUser();
     if (!user) return [];
     const snapshots = await runInFirebaseContext(this.injector, () =>
-      getDocs(collection(
-        this.firestore,
-        `dragonLabProgress/${user.uid}/simulationRuns`,
-      )));
+      getDocs(collection(this.firestore, `dragonLabProgress/${user.uid}/simulationRuns`)),
+    );
     return snapshots.docs
       .map((snapshot) => normalizeRun(snapshot.data()))
       .filter((run): run is DragonSimulationRun => !!run);
@@ -91,10 +98,8 @@ export class DragonAdaptiveRepository {
     const user = await this.session.ensureUser();
     if (!user) return null;
     const snapshot = await runInFirebaseContext(this.injector, () =>
-      getDoc(doc(
-        this.firestore,
-        `dragonLabProgress/${user.uid}/simulationRuns/${simulationId}`,
-      )));
+      getDoc(doc(this.firestore, `dragonLabProgress/${user.uid}/simulationRuns/${simulationId}`)),
+    );
     return snapshot.exists() ? normalizeRun(snapshot.data()) : null;
   }
 
@@ -102,14 +107,16 @@ export class DragonAdaptiveRepository {
     const user = await this.session.ensureUser();
     if (!user) return;
     await runInFirebaseContext(this.injector, () =>
-      setDoc(doc(
-        this.firestore,
-        `dragonLabProgress/${user.uid}/simulationRuns/${run.simulationId}`,
-      ), {
-        ...run,
-        studentId: user.uid,
-        updatedAt: serverTimestamp(),
-      }, { merge: true }));
+      setDoc(
+        doc(this.firestore, `dragonLabProgress/${user.uid}/simulationRuns/${run.simulationId}`),
+        {
+          ...run,
+          studentId: user.uid,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      ),
+    );
 
     const runs = await this.loadRuns();
     const completedSimulationIds = runs
@@ -122,50 +129,60 @@ export class DragonAdaptiveRepository {
       runs.map((candidate) => [candidate.simulationId, candidate.score]),
     );
     await runInFirebaseContext(this.injector, () =>
-      setDoc(doc(this.firestore, `dragonLabProgress/${user.uid}`), {
-        studentId: user.uid,
-        projectId: 'dragon-genetics-lab',
-        experienceSchemaVersion: 4,
-        assignmentId: run.assignmentId,
-        teacherId,
-        activeSimulationId: run.complete ? null : run.simulationId,
-        completedSimulationIds,
-        simulationLevels,
-        simulationScores,
-        updatedAt: serverTimestamp(),
-      }, { merge: true }));
+      setDoc(
+        doc(this.firestore, `dragonLabProgress/${user.uid}`),
+        {
+          studentId: user.uid,
+          projectId: 'dragon-genetics-lab',
+          experienceSchemaVersion: 4,
+          assignmentId: run.assignmentId,
+          teacherId,
+          activeSimulationId: run.complete ? null : run.simulationId,
+          completedSimulationIds,
+          simulationLevels,
+          simulationScores,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      ),
+    );
   }
 }
 
 function normalizeAssignment(id: string, value: Record<string, unknown>): DragonAssignment {
-  const alleleCatalog = value['alleleCatalog'] as Partial<DragonAssignment['alleleCatalog']> | undefined;
+  const alleleCatalog = value['alleleCatalog'] as
+    Partial<DragonAssignment['alleleCatalog']> | undefined;
   const storedGeneIds = Array.isArray(alleleCatalog?.availableGeneIds)
-    ? alleleCatalog.availableGeneIds.filter((geneId): geneId is string => typeof geneId === 'string')
+    ? alleleCatalog.availableGeneIds.filter(
+        (geneId): geneId is string => typeof geneId === 'string',
+      )
     : null;
-  const isLegacyMockCatalog = value['assignmentVersion'] === 1
-    && storedGeneIds?.length === 4
-    && ['wings', 'fire', 'horns', 'scales'].every((geneId) => storedGeneIds.includes(geneId));
-  const storedVersion = typeof value['assignmentVersion'] === 'number'
-    ? value['assignmentVersion']
-    : 0;
-  const availableGeneIds = storedGeneIds && !isLegacyMockCatalog
-    ? normalizeAlleleVaultGeneIds(storedGeneIds)
-    : [...DEFAULT_DRAGON_ASSIGNMENT.alleleCatalog.availableGeneIds];
+  const isLegacyMockCatalog =
+    value['assignmentVersion'] === 1 &&
+    storedGeneIds?.length === 4 &&
+    ['wings', 'fire', 'horns', 'scales'].every((geneId) => storedGeneIds.includes(geneId));
+  const storedVersion =
+    typeof value['assignmentVersion'] === 'number' ? value['assignmentVersion'] : 0;
+  const availableGeneIds =
+    storedGeneIds && !isLegacyMockCatalog
+      ? normalizeAlleleVaultGeneIds(storedGeneIds)
+      : [...DEFAULT_DRAGON_ASSIGNMENT.alleleCatalog.availableGeneIds];
   return {
     ...DEFAULT_DRAGON_ASSIGNMENT,
     ...value,
     id,
-    assignmentVersion: isLegacyMockCatalog || storedVersion < DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
-      ? DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
-      : storedVersion,
+    assignmentVersion:
+      isLegacyMockCatalog || storedVersion < DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
+        ? DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
+        : storedVersion,
     alleleCatalog: {
       availableGeneIds,
     },
-    simulationSettings: (value['simulationSettings'] ?? {}) as DragonAssignment['simulationSettings'],
+    simulationSettings: (value['simulationSettings'] ??
+      {}) as DragonAssignment['simulationSettings'],
     studentOverrides: (value['studentOverrides'] ?? {}) as DragonAssignment['studentOverrides'],
-    updatedAtIso: typeof value['updatedAtIso'] === 'string'
-      ? value['updatedAtIso']
-      : new Date(0).toISOString(),
+    updatedAtIso:
+      typeof value['updatedAtIso'] === 'string' ? value['updatedAtIso'] : new Date(0).toISOString(),
   } as DragonAssignment;
 }
 

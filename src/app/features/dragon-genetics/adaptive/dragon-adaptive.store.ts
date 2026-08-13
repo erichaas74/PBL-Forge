@@ -14,17 +14,14 @@ import {
   DEFAULT_DRAGON_ASSIGNMENT,
   DRAGON_SIMULATION_CONTENT_VERSION,
 } from './dragon-simulation.registry';
-import {
-  evaluateSimulationAnswer,
-  generateSimulationQuestions,
-} from './dragon-question.generator';
+import { evaluateSimulationAnswer, generateSimulationQuestions } from './dragon-question.generator';
 import { DragonAdaptiveRepository } from './dragon-adaptive.repository';
 import { resolveSimulationSettings } from './dragon-assignment.resolver';
 import {
   ALLELE_VAULT_ALLELES,
   ALLELE_VAULT_GENES,
   normalizeAlleleVaultGeneIds,
-} from './allele-workbench/allele-vault.models';
+} from '../workstations/allele-workbench/allele-vault.models';
 import {
   createEmptyGeneticsNotebook,
   DiscoveryClaimStatus,
@@ -33,7 +30,7 @@ import {
   mergeGeneticsNotebooks,
   normalizeGeneticsNotebook,
   recordAlleleExperiment as addAlleleExperiment,
-} from './allele-workbench/genetics-notebook.models';
+} from '../workstations/shared/genetics-notebook.models';
 
 const LOCAL_ASSIGNMENT_KEY = 'pbl-forge.dragon-genetics.assignment.v1';
 const LOCAL_RUNS_KEY_PREFIX = 'pbl-forge.dragon-genetics.runs.v1';
@@ -44,7 +41,9 @@ export class DragonAdaptiveStore {
   private readonly repository = inject(DragonAdaptiveRepository);
   private readonly session = inject(SessionService);
   private readonly assignmentSignal = signal<DragonAssignment>(loadLocalAssignment());
-  private readonly runsSignal = signal<Partial<Record<DragonSimulationId, DragonSimulationRun>>>({});
+  private readonly runsSignal = signal<Partial<Record<DragonSimulationId, DragonSimulationRun>>>(
+    {},
+  );
   private readonly geneticsNotebookSignal = signal<GeneticsNotebookSnapshot>(
     loadLocalGeneticsNotebook('local-student'),
   );
@@ -62,8 +61,8 @@ export class DragonAdaptiveStore {
   readonly teacherPreviewLevel = this.teacherPreviewLevelSignal.asReadonly();
   readonly persistenceState = signal<'loading' | 'saved' | 'saving' | 'error'>('loading');
   readonly ready = signal(false);
-  readonly completedCount = computed(() =>
-    Object.values(this.runsSignal()).filter((run) => run?.complete).length,
+  readonly completedCount = computed(
+    () => Object.values(this.runsSignal()).filter((run) => run?.complete).length,
   );
 
   constructor() {
@@ -75,8 +74,10 @@ export class DragonAdaptiveStore {
     });
   }
 
-  settingsFor(simulationId: DragonSimulationId, studentId = this.session.user()?.uid ?? 'local-student'):
-    ResolvedSimulationSettings {
+  settingsFor(
+    simulationId: DragonSimulationId,
+    studentId = this.session.user()?.uid ?? 'local-student',
+  ): ResolvedSimulationSettings {
     return resolveSimulationSettings(
       this.assignmentSignal(),
       simulationId,
@@ -105,12 +106,13 @@ export class DragonAdaptiveStore {
       // Offline/local work continues from the device copy.
     }
     const existing = newerRun(local, remote);
-    const canResume = !forceNew && existing
-      && existing.contentVersion === DRAGON_SIMULATION_CONTENT_VERSION
-      && (!existing.complete || (
-        existing.assignmentVersion === settings.assignmentVersion
-        && existing.level === settings.level
-      ));
+    const canResume =
+      !forceNew &&
+      existing &&
+      existing.contentVersion === DRAGON_SIMULATION_CONTENT_VERSION &&
+      (!existing.complete ||
+        (existing.assignmentVersion === settings.assignmentVersion &&
+          existing.level === settings.level));
     if (canResume) {
       this.putRun(existing);
       return existing;
@@ -144,7 +146,10 @@ export class DragonAdaptiveStore {
     return run;
   }
 
-  questionsFor(definition: DragonSimulationDefinition, run: DragonSimulationRun): GeneratedSimulationQuestion[] {
+  questionsFor(
+    definition: DragonSimulationDefinition,
+    run: DragonSimulationRun,
+  ): GeneratedSimulationQuestion[] {
     const settings: ResolvedSimulationSettings = {
       assignmentId: run.assignmentId,
       assignmentVersion: run.assignmentVersion,
@@ -156,9 +161,9 @@ export class DragonAdaptiveStore {
     };
     const generated = generateSimulationQuestions(definition, settings, run.seed);
     const byId = new Map(generated.map((question) => [question.id, question]));
-    return run.questionIds.map((id) => byId.get(id)).filter(
-      (question): question is GeneratedSimulationQuestion => !!question,
-    );
+    return run.questionIds
+      .map((id) => byId.get(id))
+      .filter((question): question is GeneratedSimulationQuestion => !!question);
   }
 
   answer(
@@ -167,7 +172,11 @@ export class DragonAdaptiveStore {
     selectedOptionId: string,
   ): DragonSimulationRun | null {
     const run = this.runsSignal()[definition.id];
-    if (!run || run.complete || run.responses.some((response) => response.questionId === question.id)) {
+    if (
+      !run ||
+      run.complete ||
+      run.responses.some((response) => response.questionId === question.id)
+    ) {
       return run ?? null;
     }
     const evaluation = evaluateSimulationAnswer(question, selectedOptionId);
@@ -184,7 +193,9 @@ export class DragonAdaptiveStore {
     const next = {
       ...run,
       responses,
-      score: Math.round(100 * responses.filter((item) => item.correct).length / run.questionIds.length),
+      score: Math.round(
+        (100 * responses.filter((item) => item.correct).length) / run.questionIds.length,
+      ),
       updatedAtIso: new Date().toISOString(),
     };
     this.putRun(next);
@@ -195,8 +206,9 @@ export class DragonAdaptiveStore {
   advance(simulationId: DragonSimulationId): DragonSimulationRun | null {
     const run = this.runsSignal()[simulationId];
     if (!run) return null;
-    const answered = run.responses.some((response) =>
-      response.questionId === run.questionIds[run.currentQuestionIndex]);
+    const answered = run.responses.some(
+      (response) => response.questionId === run.questionIds[run.currentQuestionIndex],
+    );
     if (!answered) return run;
     const last = run.currentQuestionIndex >= run.questionIds.length - 1;
     const next = {
@@ -387,26 +399,30 @@ function newerRun(
 function loadLocalAssignment(): DragonAssignment {
   if (typeof localStorage === 'undefined') return DEFAULT_DRAGON_ASSIGNMENT;
   try {
-    const stored = JSON.parse(localStorage.getItem(LOCAL_ASSIGNMENT_KEY) ?? 'null') as
-      Partial<DragonAssignment> | null;
+    const stored = JSON.parse(
+      localStorage.getItem(LOCAL_ASSIGNMENT_KEY) ?? 'null',
+    ) as Partial<DragonAssignment> | null;
     if (!stored) return DEFAULT_DRAGON_ASSIGNMENT;
     const storedGeneIds = Array.isArray(stored.alleleCatalog?.availableGeneIds)
       ? stored.alleleCatalog.availableGeneIds
       : null;
-    const isLegacyMockCatalog = stored.assignmentVersion === 1
-      && storedGeneIds?.length === 4
-      && ['wings', 'fire', 'horns', 'scales'].every((geneId) => storedGeneIds.includes(geneId));
+    const isLegacyMockCatalog =
+      stored.assignmentVersion === 1 &&
+      storedGeneIds?.length === 4 &&
+      ['wings', 'fire', 'horns', 'scales'].every((geneId) => storedGeneIds.includes(geneId));
     const storedVersion = stored.assignmentVersion ?? 0;
     return {
       ...DEFAULT_DRAGON_ASSIGNMENT,
       ...stored,
-      assignmentVersion: isLegacyMockCatalog || storedVersion < DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
-        ? DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
-        : storedVersion,
+      assignmentVersion:
+        isLegacyMockCatalog || storedVersion < DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
+          ? DEFAULT_DRAGON_ASSIGNMENT.assignmentVersion
+          : storedVersion,
       alleleCatalog: {
-        availableGeneIds: storedGeneIds && !isLegacyMockCatalog
-          ? normalizeAlleleVaultGeneIds(storedGeneIds)
-          : [...DEFAULT_DRAGON_ASSIGNMENT.alleleCatalog.availableGeneIds],
+        availableGeneIds:
+          storedGeneIds && !isLegacyMockCatalog
+            ? normalizeAlleleVaultGeneIds(storedGeneIds)
+            : [...DEFAULT_DRAGON_ASSIGNMENT.alleleCatalog.availableGeneIds],
       },
       simulationSettings: stored.simulationSettings ?? {},
       studentOverrides: stored.studentOverrides ?? {},
@@ -427,8 +443,10 @@ function loadLocalGeneticsNotebook(
     const stored = JSON.parse(
       localStorage.getItem(`${LOCAL_NOTEBOOK_KEY_PREFIX}.${studentId}`) ?? 'null',
     );
-    return normalizeGeneticsNotebook(stored, studentId)
-      ?? createEmptyGeneticsNotebook(studentId, assignmentId);
+    return (
+      normalizeGeneticsNotebook(stored, studentId) ??
+      createEmptyGeneticsNotebook(studentId, assignmentId)
+    );
   } catch {
     return createEmptyGeneticsNotebook(studentId, assignmentId);
   }
@@ -449,7 +467,9 @@ function saveLocalAssignment(assignment: DragonAssignment): void {
   }
 }
 
-function loadLocalRuns(studentId: string): Partial<Record<DragonSimulationId, DragonSimulationRun>> {
+function loadLocalRuns(
+  studentId: string,
+): Partial<Record<DragonSimulationId, DragonSimulationRun>> {
   if (typeof localStorage === 'undefined') return {};
   try {
     return JSON.parse(localStorage.getItem(`${LOCAL_RUNS_KEY_PREFIX}.${studentId}`) ?? '{}');

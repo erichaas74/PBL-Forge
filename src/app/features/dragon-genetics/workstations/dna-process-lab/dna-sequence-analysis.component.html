@@ -1,0 +1,162 @@
+<section class="sequence-analysis" aria-label="DNA comparison bench">
+  <header class="analysis-head">
+    <div>
+      <span class="analysis-kind">{{ activeTool() }}</span>
+      <h3>{{ analysisCase().geneLabel ?? analysisCase().sampleLabel }}</h3>
+    </div>
+    <output
+      [class.supported]="lastSupported() === true"
+      [class.unsupported]="lastSupported() === false"
+    >
+      {{ lastSupported() === null ? 'READY' : lastSupported() ? 'SUPPORTED' : 'NOT SUPPORTED' }}
+    </output>
+  </header>
+
+  <div class="sequence-reader" [class.codon-view]="showCodons()">
+    <div class="strand-label">
+      <strong>{{ analysisCase().referenceSampleLabel ?? 'A' }}</strong
+      ><span>DNA</span>
+    </div>
+    <div class="base-track" aria-label="Sample A DNA">
+      @for (base of referenceBases(); track $index) {
+        <span class="base" [attr.data-base]="base"
+          ><small>{{ $index + 1 }}</small
+          >{{ base }}</span
+        >
+      }
+    </div>
+    <div class="strand-label">
+      <strong>{{ analysisCase().comparisonSampleLabel ?? 'B' }}</strong
+      ><span>DNA</span>
+    </div>
+    <div class="base-track sample-track" aria-label="Sample B DNA">
+      @for (base of sampleBases(); track $index) {
+        <button
+          type="button"
+          class="base"
+          [attr.data-base]="base"
+          [class.selected]="selectedPosition() === $index"
+          (click)="selectPosition($index)"
+        >
+          <small>{{ $index + 1 }}</small
+          >{{ base }}
+        </button>
+      }
+    </div>
+    @if (activeTool() === 'pair' || activeTool() === 'copy' || activeTool() === 'repair') {
+      <div class="strand-label complement-label"><strong>PAIR</strong><span>Sample B</span></div>
+      <div class="base-track complement-track" aria-label="Complementary DNA">
+        @for (base of complement().split(''); track $index) {
+          <span class="base" [attr.data-base]="base"
+            ><small>{{ $index + 1 }}</small
+            >{{ base }}</span
+          >
+        }
+      </div>
+    }
+  </div>
+
+  <section class="test-console" aria-label="Active molecular test">
+    @switch (activeTool()) {
+      @case ('align') {
+        <strong>TEST POSITION</strong>
+        <button type="button" [disabled]="selectedPosition() === null" (click)="testPosition()">
+          {{
+            selectedPosition() === null
+              ? 'SELECT BASE'
+              : 'POSITION ' + ((selectedPosition() ?? 0) + 1)
+          }}
+        </button>
+      }
+      @case ('pair') {
+        <strong>TEST COMPLEMENT</strong>
+        <div class="choice-row transcript-choices">
+          @for (
+            sequence of [complement(), analysisCase().sample, analysisCase().reference];
+            track sequence
+          ) {
+            <button
+              type="button"
+              [class.selected]="selectedComplement() === sequence"
+              (click)="testComplement(sequence)"
+            >
+              {{ sequence }}
+            </button>
+          }
+        </div>
+      }
+      @case ('copy') {
+        <strong>DNA PRODUCTS</strong>
+        <div class="choice-row">
+          <button
+            type="button"
+            [class.selected]="selectedCopyCount() === 1"
+            (click)="testCopyCount(1)"
+          >
+            1
+          </button>
+          <button
+            type="button"
+            [class.selected]="selectedCopyCount() === 2"
+            (click)="testCopyCount(2)"
+          >
+            2
+          </button>
+          <button
+            type="button"
+            [class.selected]="selectedCopyCount() === 4"
+            (click)="testCopyCount(4)"
+          >
+            4
+          </button>
+        </div>
+      }
+      @case ('rna') {
+        <strong>TEST RNA</strong>
+        <div class="choice-row transcript-choices">
+          @for (sequence of transcriptOptions(); track sequence) {
+            <button
+              type="button"
+              [class.selected]="transcript() === sequence"
+              (click)="testTranscript(sequence)"
+            >
+              {{ sequence }}
+            </button>
+          }
+        </div>
+      }
+      @case ('mutation') {
+        <strong>TEST CHANGE</strong>
+        <div class="choice-row">
+          @for (type of ['substitution', 'insertion', 'deletion']; track type) {
+            <button
+              type="button"
+              [class.selected]="mutationType() === type"
+              (click)="testMutationType(type)"
+            >
+              {{ type }}
+            </button>
+          }
+        </div>
+      }
+      @case ('repair') {
+        <strong
+          >TEST REPAIR
+          {{ selectedPosition() === null ? '' : 'AT ' + ((selectedPosition() ?? 0) + 1) }}</strong
+        >
+        <div class="choice-row">
+          @for (base of bases; track base) {
+            <button
+              type="button"
+              [class.selected]="selectedRepairBase() === base"
+              [disabled]="selectedPosition() === null"
+              (click)="testRepairBase(base)"
+            >
+              {{ base }}
+            </button>
+          }
+        </div>
+      }
+    }
+  </section>
+</section>

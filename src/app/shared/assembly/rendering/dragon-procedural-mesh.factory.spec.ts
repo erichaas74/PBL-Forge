@@ -289,11 +289,218 @@ describe('dragon upper jaw mesh', () => {
     expect(upperJaw.getObjectByName('dragon-nostril-right')).toBeTruthy();
   });
 
+  it('sinks the nostrils onto the tapered top face, not the height of the flat rear', () => {
+    const dims = jawPart('dragon-upper-jaw').dimensions;
+    const upperJaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
+    const nostril = upperJaw.getObjectByName('dragon-nostril-left')!;
+    // The box narrows to 0.55 height by its front face, blended over the front
+    // half: at 0.38 along, the top has already dropped this far.
+    const topThere = dims.y * 0.5 * (1 - 2 * 0.38 * (1 - 0.55));
+
+    expect(nostril.position.y).toBeCloseTo(topThere);
+    expect(nostril.position.y).toBeLessThan(dims.y * 0.5);
+  });
+
+  it('draws the nostrils in by half their own thickness', () => {
+    const dims = jawPart('dragon-upper-jaw').dimensions;
+    const upperJaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
+    const nostril = upperJaw.getObjectByName('dragon-nostril-right') as THREE.Mesh;
+    const radius = (nostril.geometry as THREE.SphereGeometry).parameters.radius;
+
+    // Thickness is the sphere's full z extent, so half of it is one radius.
+    expect(nostril.position.z).toBeCloseTo(dims.z * 0.25 - radius);
+  });
+
   it('does not put nostrils on the lower jaw', () => {
     const lowerJaw = createDragonProceduralObject(jawPart('dragon-lower-jaw'))!;
 
     expect(lowerJaw.getObjectByName('dragon-nostril-left')).toBeFalsy();
     expect(lowerJaw.getObjectByName('dragon-nostril-right')).toBeFalsy();
+  });
+});
+
+describe('dragon jaw tooth row', () => {
+  /**
+   * Row teeth are the unnamed cones on a jaw: the fangs are cones too, but they
+   * carry names and are placed off the row.
+   */
+  function rowTeeth(jaw: THREE.Object3D): THREE.Mesh[] {
+    const teeth = jaw.children.filter(
+      (child): child is THREE.Mesh =>
+        child instanceof THREE.Mesh && child.geometry instanceof THREE.ConeGeometry && !child.name,
+    );
+    expect(teeth.length).toBeGreaterThan(0);
+    return teeth;
+  }
+
+  function frontToothX(jaw: THREE.Object3D): number {
+    return Math.max(...rowTeeth(jaw).map(tooth => tooth.position.x));
+  }
+
+  function jawPartWithToothStart(
+    profileId: 'dragon-upper-jaw' | 'dragon-lower-jaw',
+    toothStart: number,
+  ): AssemblyPart {
+    const part = jawPart(profileId);
+    return { ...part, visualProfile: { profileId, meshType: 'procedural', parameters: { toothStart } } };
+  }
+
+  it('anchors the row at its front, so a lone fang lands on toothStart itself', () => {
+    const dims = jawPart('dragon-upper-jaw').dimensions;
+    const jaw = createDragonProceduralObject({
+      ...jawPart('dragon-upper-jaw'),
+      visualProfile: {
+        profileId: 'dragon-upper-jaw',
+        meshType: 'procedural',
+        parameters: { toothCount: 1, toothStart: 0.3 },
+      },
+    })!;
+
+    expect(frontToothX(jaw)).toBeCloseTo(0.3 * dims.x);
+  });
+
+  for (const profileId of ['dragon-upper-jaw', 'dragon-lower-jaw'] as const) {
+    it(`starts the ${profileId} row at toothStart, as a fraction of jaw length`, () => {
+      const dims = jawPart(profileId).dimensions;
+
+      const forward = createDragonProceduralObject(jawPartWithToothStart(profileId, 0.45))!;
+      const back = createDragonProceduralObject(jawPartWithToothStart(profileId, 0.05))!;
+
+      expect(frontToothX(forward)).toBeCloseTo(0.45 * dims.x);
+      expect(frontToothX(back)).toBeCloseTo(0.05 * dims.x);
+    });
+
+    it(`roots every ${profileId} tooth on the jaw's mid-height`, () => {
+      const jaw = createDragonProceduralObject(jawPart(profileId))!;
+      const pointDown = profileId === 'dragon-upper-jaw';
+
+      for (const tooth of rowTeeth(jaw)) {
+        const height = (tooth.geometry as THREE.ConeGeometry).parameters.height;
+        // A cone is centred on its position, so a root on the midline puts the
+        // mesh half its length past it.
+        expect(tooth.position.y).toBeCloseTo((pointDown ? -1 : 1) * height * 0.5);
+      }
+    });
+  }
+});
+
+describe('dragon upper jaw fangs', () => {
+  function fangs(jaw: THREE.Object3D): THREE.Mesh[] {
+    return ['dragon-fang-left', 'dragon-fang-right']
+      .map(name => jaw.getObjectByName(name) as THREE.Mesh | undefined)
+      .filter((fang): fang is THREE.Mesh => !!fang);
+  }
+
+  function toothHeightOf(jaw: THREE.Object3D): number {
+    const tooth = jaw.children.find(
+      (child): child is THREE.Mesh =>
+        child instanceof THREE.Mesh && child.geometry instanceof THREE.ConeGeometry && !child.name,
+    )!;
+    return (tooth.geometry as THREE.ConeGeometry).parameters.height;
+  }
+
+  it('runs the fangs one and a half times the length of the teeth', () => {
+    const jaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
+    const teeth = toothHeightOf(jaw);
+
+    expect(fangs(jaw).length).toBe(2);
+    for (const fang of fangs(jaw)) {
+      expect((fang.geometry as THREE.ConeGeometry).parameters.height).toBeCloseTo(teeth * 1.5);
+    }
+  });
+
+  it('hangs each fang under a nostril, rooted on the midline', () => {
+    const jaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
+
+    for (const fang of fangs(jaw)) {
+      const nostril = jaw.getObjectByName(fang.name.replace('fang', 'nostril'))!;
+      const height = (fang.geometry as THREE.ConeGeometry).parameters.height;
+
+      expect(fang.position.x).toBeCloseTo(nostril.position.x);
+      expect(fang.position.z).toBeCloseTo(nostril.position.z);
+      expect(fang.position.y).toBeCloseTo(-height * 0.5);
+    }
+  });
+
+  it('insets the fangs from the tooth line so they stay inside the tapered snout', () => {
+    const jaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
+    const dims = jawPart('dragon-upper-jaw').dimensions;
+    // Snout depth tapers to half by the tip; the surface at the fangs' station.
+    const halfDepthThere = dims.z * 0.5 * (1 - 2 * 0.38 * 0.5);
+
+    for (const fang of fangs(jaw)) {
+      expect(Math.abs(fang.position.z)).toBeLessThan(halfDepthThere);
+    }
+  });
+
+  it('leaves the lower jaw fangless', () => {
+    const lowerJaw = createDragonProceduralObject(jawPart('dragon-lower-jaw'))!;
+
+    expect(fangs(lowerJaw).length).toBe(0);
+  });
+});
+
+describe('dragon tail weapons', () => {
+  function tailPart(profileId: 'dragon-tail-club' | 'dragon-tail-stinger'): AssemblyPart {
+    return {
+      id: profileId,
+      label: profileId,
+      roles: ['weapon'],
+      shape: profileId === 'dragon-tail-club' ? 'cylinder' : 'sphere',
+      mass: 0.9,
+      dimensions:
+        profileId === 'dragon-tail-club'
+          ? { x: 0.2, y: 1.05, z: 0.28 }
+          : { x: 0.2, y: 0.2, z: 0.2 },
+      position: { x: 0, y: 0, z: 0 },
+      color: '#92400e',
+      visualProfile: { profileId, meshType: 'procedural' },
+    };
+  }
+
+  /**
+   * Both of these grew from their own middle, which buried half of every spike
+   * in the knob it rings and pushed the stinger's blunt end back out through the
+   * top of the knuckle. They are anchored by their roots now.
+   */
+  it('stands the club spikes clear of the knob instead of burying them in it', () => {
+    const dims = tailPart('dragon-tail-club').dimensions;
+    const club = createDragonProceduralObject(tailPart('dragon-tail-club'))!;
+    const knobRadius = dims.z * 0.8;
+    const knobCentre = new THREE.Vector3(0, -dims.y * 0.42, 0);
+    const spikes = club.children.filter(
+      (child): child is THREE.Mesh =>
+        child instanceof THREE.Mesh && child.geometry instanceof THREE.ConeGeometry,
+    );
+
+    expect(spikes.length).toBeGreaterThan(0);
+    for (const spike of spikes) {
+      const length = (spike.geometry as THREE.ConeGeometry).parameters.height;
+      const axis = new THREE.Vector3(0, 1, 0).applyQuaternion(spike.quaternion);
+      const root = spike.position.clone().addScaledVector(axis, -length / 2);
+      const tip = spike.position.clone().addScaledVector(axis, length / 2);
+
+      // Root inside the knob, and most of the spike showing outside it.
+      expect(root.distanceTo(knobCentre)).toBeLessThan(knobRadius);
+      expect(tip.distanceTo(knobCentre) - knobRadius).toBeGreaterThan(length * 0.4);
+    }
+  });
+
+  it('keeps the stinger blade out of the top of its knuckle', () => {
+    const stinger = createDragonProceduralObject(tailPart('dragon-tail-stinger'))!;
+    const radius = tailPart('dragon-tail-stinger').dimensions.x;
+    const knuckleTop = radius * 0.18 + radius * 0.72;
+    const knuckleBottom = radius * 0.18 - radius * 0.72;
+    // The knuckle is the only sphere; whatever else is there is the blade.
+    const blade = stinger.children.find(
+      child => !(child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry),
+    )!;
+
+    stinger.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(blade);
+
+    expect(box.max.y).toBeLessThanOrEqual(knuckleTop);
+    expect(box.min.y).toBeLessThan(knuckleBottom);
   });
 });
 

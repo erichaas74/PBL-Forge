@@ -33,8 +33,6 @@ export type AssemblyPartFamily = 'primitive' | 'car' | 'robot' | 'dragon';
  * ever loft as a ball. The collider is untouched.
  */
 const HORNED_HEAD_DIMENSIONS: Vector3Data = { x: 0.42, y: 0.32, z: 0.3 };
-const SNOUT_HEAD_DIMENSIONS: Vector3Data = { x: 0.68, y: 0.38, z: 0.34 };
-const ARMORED_HEAD_DIMENSIONS: Vector3Data = { x: 0.54, y: 0.48, z: 0.44 };
 
 export interface AssemblyPartDefinition {
   id: string;
@@ -369,24 +367,6 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     behavior: BREAKABLE_MEDIUM,
     extraSnapPoints: [jawSocket('dragon-head-horned', HORNED_HEAD_DIMENSIONS, 'sphere')],
   }),
-  dragonPart('dragon-snout-head', 'Long Snout Head', 'box', SNOUT_HEAD_DIMENSIONS, 0.82, '#fb923c', {
-    parentSnapId: 'dragon-head-socket',
-    childSnapId: 'dragon-neck',
-    jointType: 'hinge',
-    axis: { x: 0, y: 1, z: 0 },
-    childSnapPosition: { x: -0.34, y: 0, z: 0 },
-    behavior: BREAKABLE_MEDIUM,
-    extraSnapPoints: [jawSocket('dragon-head-snout', SNOUT_HEAD_DIMENSIONS, 'box')],
-  }),
-  dragonPart('dragon-armored-head', 'Armored Head', 'box', ARMORED_HEAD_DIMENSIONS, 0.95, '#64748b', {
-    parentSnapId: 'dragon-head-socket',
-    childSnapId: 'dragon-neck',
-    jointType: 'fixed',
-    axis: { x: 0, y: 1, z: 0 },
-    childSnapPosition: { x: -0.28, y: 0, z: 0 },
-    behavior: BREAKABLE_MEDIUM,
-    extraSnapPoints: [jawSocket('dragon-head-armored', ARMORED_HEAD_DIMENSIONS, 'box')],
-  }),
   dragonPart('dragon-upper-jaw', 'Upper Jaw', 'box', { x: 0.52, y: 0.2, z: 0.3 }, 0.28, '#fbbf24', {
     parentSnapId: 'dragon-upper-jaw-head-socket',
     childSnapId: 'dragon-upper-jaw-root',
@@ -395,15 +375,22 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     childSnapPosition: { x: -0.2, y: 0, z: 0 },
     behavior: BREAKABLE_LIGHT,
     extraSnapPoints: [
-      socket('dragon-lower-jaw-socket', 'Lower jaw hinge', { x: -0.01, y: -0.11, z: 0 }, 'dragon-lower-jaw-root'),
+      // Back-bottom corner of the upper jaw: the jaw joint. The lower jaw hangs
+      // from its own back-top corner on the same point, so the two are flush
+      // along their whole length when shut and swing apart from the rear.
+      socket('dragon-lower-jaw-socket', 'Lower jaw hinge', { x: -0.26, y: -0.1, z: 0 }, 'dragon-lower-jaw-root'),
     ],
   }),
-  dragonPart('dragon-lower-jaw', 'Lower Jaw', 'box', { x: 0.4, y: 0.09, z: 0.24 }, 0.15, '#f59e0b', {
+  // Same length as the upper jaw so the two line up front and back. The teeth
+  // are longer than either jaw is tall and pass through the opposite one — that
+  // is what lets the mouth shut flush instead of resting on its own teeth.
+  dragonPart('dragon-lower-jaw', 'Lower Jaw', 'box', { x: 0.52, y: 0.09, z: 0.24 }, 0.15, '#f59e0b', {
     parentSnapId: 'dragon-lower-jaw-socket',
     childSnapId: 'dragon-lower-jaw-root',
     jointType: 'hinge',
     axis: { x: 0, y: 0, z: 1 },
-    childSnapPosition: { x: -0.08, y: 0.04, z: 0 },
+    // Its own back-top corner, mated to the hinge above.
+    childSnapPosition: { x: -0.26, y: 0.045, z: 0 },
     behavior: JAW_OPEN_CLOSE_MOTOR,
   }),
   dragonPart('dragon-front-left-leg', 'Front Left Upper Leg', 'cylinder', { x: 0.24, y: 0.6, z: 0.24 }, 0.4, '#166534', {
@@ -536,7 +523,10 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     jointType: 'fixed',
     axis: { x: 0, y: 1, z: 0 },
     childSnapPosition: { x: 0, y: 0.16, z: 0 },
-    childRotation: quaternionFromAxisAngle({ x: 0, y: 0, z: 1 }, Math.PI / 2),
+    // The talon runs along its own +y. A +90° roll about z sends that to -x,
+    // which on this dragon is the tail: the claw raked backwards off the wing.
+    // -90° puts it on +x, forward with the head.
+    childRotation: quaternionFromAxisAngle({ x: 0, y: 0, z: 1 }, -Math.PI / 2),
     behavior: BREAKABLE_LIGHT,
   }),
   dragonPart('dragon-whip-tail', 'Whip Tail', 'cylinder', { x: 0.12, y: 1.25, z: 0.12 }, 0.55, '#7c2d12', {
@@ -956,14 +946,6 @@ function getDefaultVisualProfile(
 
   if (id.includes('lower-jaw')) {
     return visualProfile('dragon-lower-jaw', 'dragon-horn');
-  }
-
-  if (id.includes('snout-head')) {
-    return visualProfile('dragon-head-snout', 'dragon-scale-orange');
-  }
-
-  if (id.includes('armored-head')) {
-    return visualProfile('dragon-head-armored', 'dark-metal');
   }
 
   if (id.includes('wing-hand-claw')) {

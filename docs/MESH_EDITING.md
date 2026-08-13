@@ -64,7 +64,7 @@ backSpikeCount backSpikeScale browLength browRidge camber cheek clawScale craniu
 crestScale dihedral earShape eyeAxial eyeColor fangScale fingerSag hornLength
 hornRadius muzzleDepth muzzleDrop muzzleWidth scallop sex spikeCount spikeHeight
 spikeLean spikeLength spikeRadius spikeSpread tailClubSpikeCount tailClubSpikeScale
-talonCount talonLength talonRadius toothCount toothHeight toothRadius
+talonCount talonLength talonRadius toothCount toothHeight toothRadius toothStart
 ```
 
 ## Making a number tunable instead of hardcoded

@@ -40,13 +40,13 @@ verdicts until the record is saved. Reteach isolates one diagnosed misconception
 
 ## Module configurations
 
-| Host module | Tools | Typical settings |
-| --- | --- | --- |
-| Module 1 - Traits | `examine` | No prediction, unlimited candling, no hatching |
-| Module 3 - Genotype vs. phenotype | `examine`, `sample` | Scarce samples so two same-looking eggs must be chosen between |
-| Module 6 - Probability vs. actual | all three | Prediction required, 8-egg clutch, hatch limit matching the sample size |
-| Module 8 - Sibling variation | `sample`, `hatch` | Hatch two siblings and compare the sampled allele pairs |
-| Module 9 - Diversity | `examine`, `hatch` | Hatch limit forces a trade-off between traits and variation |
+| Host module                       | Tools               | Typical settings                                                        |
+| --------------------------------- | ------------------- | ----------------------------------------------------------------------- |
+| Module 1 - Traits                 | `examine`           | No prediction, unlimited candling, no hatching                          |
+| Module 3 - Genotype vs. phenotype | `examine`, `sample` | Scarce samples so two same-looking eggs must be chosen between          |
+| Module 6 - Probability vs. actual | all three           | Prediction required, 8-egg clutch, hatch limit matching the sample size |
+| Module 8 - Sibling variation      | `sample`, `hatch`   | Hatch two siblings and compare the sampled allele pairs                 |
+| Module 9 - Diversity              | `examine`, `hatch`  | Hatch limit forces a trade-off between traits and variation             |
 
 ## Hosting it in a module
 
@@ -65,7 +65,8 @@ The lesson host is configured entirely through inputs, so a module adds the hatc
   [hatchLimit]="2"
   [mode]="store.mode()"
   (recordSaved)="store.saveHatcheryRecord($event)"
-  (hatchedDragons)="store.carryForward($event)" />
+  (hatchedDragons)="store.carryForward($event)"
+/>
 ```
 
 `recordSaved` returns the assessment record; `hatchedDragons` returns the chosen offspring so the
@@ -92,9 +93,9 @@ eggs hatched, the prediction, and the pinned evidence — never animation frames
 
 ## Implementation
 
-- Display: [`displays/dragon-hatchery/`](../../src/app/shared/dragon-visuals/displays/dragon-hatchery/README.md)
+- Workstation: [`workstations/dragon-hatchery/`](../../src/app/features/dragon-genetics/workstations/dragon-hatchery/README.md)
 - Scene builder: `createDragonHatcheryScene` in
-  [`visual-adapter/dragon-visual-scene.adapter.ts`](../../src/app/features/dragon-genetics/visual-adapter/dragon-visual-scene.adapter.ts)
-- Lesson host: [`stations/dragon-hatchery-station.component.ts`](../../src/app/features/dragon-genetics/stations/dragon-hatchery-station.component.ts),
+  [`dragon-hatchery-scene.adapter.ts`](../../src/app/features/dragon-genetics/workstations/dragon-hatchery/dragon-hatchery-scene.adapter.ts)
+- Lesson host: [`dragon-hatchery-station.component.ts`](../../src/app/features/dragon-genetics/workstations/dragon-hatchery/dragon-hatchery-station.component.ts),
   configured per module through its inputs
 - Teaching sequence: `HATCHERY_SELECTION_SEQUENCE`

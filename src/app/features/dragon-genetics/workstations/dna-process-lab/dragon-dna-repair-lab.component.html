@@ -1,0 +1,76 @@
+<section class="dna-workbench" aria-label="DNA evidence workstation">
+  <header class="sample-vault">
+    <div>
+      <small>DNA SAMPLE VAULT</small
+      ><strong>{{ activeAnalysisCase().geneLabel ?? 'UNASSIGNED GENE' }}</strong>
+    </div>
+    @if (chromosomeModel(); as chromosome) {
+      <app-chromosome-svg
+        [chromosome]="chromosome"
+        [selectedLocus]="activeAnalysisCase().geneLabel ?? null"
+      />
+    }
+    <div class="sample-tags">
+      <span>{{ activeAnalysisCase().referenceSampleLabel ?? 'SAMPLE A' }}</span>
+      <span>{{ activeAnalysisCase().comparisonSampleLabel ?? 'SAMPLE B' }}</span>
+    </div>
+  </header>
+
+  <nav class="tool-rack" aria-label="Molecular tools">
+    <small>TOOLS</small>
+    @for (tool of tools; track tool.id) {
+      <button
+        type="button"
+        [class.active]="activeTool() === tool.id"
+        [attr.aria-pressed]="activeTool() === tool.id"
+        (click)="selectTool(tool.id)"
+      >
+        {{ tool.label }}
+      </button>
+    }
+  </nav>
+
+  <main class="comparison-bench">
+    <app-dna-sequence-analysis
+      [analysisCase]="activeAnalysisCase()"
+      [activeTool]="activeTool()"
+      (evidenceCompleted)="recordEvidence($event)"
+    />
+  </main>
+
+  <section class="evidence-log" aria-label="Evidence log">
+    <header>
+      <small>EVIDENCE LOG</small><strong>{{ caseEvidence().length }}</strong>
+    </header>
+    <div class="evidence-list">
+      @for (record of caseEvidence(); track record.id) {
+        <span [class.supported]="record.supported"
+          ><b>{{ record.tool }}</b
+          ><code>{{ record.observation }}</code
+          ><i>{{ record.supported ? '✓' : '×' }}</i></span
+        >
+      } @empty {
+        <span class="empty">NO TESTS</span>
+      }
+    </div>
+  </section>
+
+  <section class="claim-builder" aria-label="Molecular claim builder">
+    <small>MOLECULAR CLAIM</small>
+    <select [value]="claimTool()" (change)="selectClaim($event)">
+      @for (tool of tools; track tool.id) {
+        <option [value]="tool.id">{{ tool.label }}</option>
+      }
+    </select>
+    <button type="button" (click)="saveClaim()">SAVE CLAIM</button>
+    <output [class.saved]="claimStatus() === 'saved'">
+      {{
+        claimStatus() === 'idle'
+          ? ''
+          : claimStatus() === 'saved'
+            ? 'EVIDENCE LINKED'
+            : 'MORE EVIDENCE NEEDED'
+      }}
+    </output>
+  </section>
+</section>

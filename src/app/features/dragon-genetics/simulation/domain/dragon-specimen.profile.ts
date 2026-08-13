@@ -12,10 +12,6 @@ import {
   SpecimenProfile,
   provideSpecimenProfile,
 } from '../../../../shared/assembly/preview/specimen-profile.registry';
-import { provideSpecimenPlate } from '../../../../shared/assembly/preview/specimen-plate.registry';
-import {
-  DragonSpecimenPlateComponent,
-} from '../../../../shared/dragon-visuals/specimen-plate/dragon-specimen-plate.component';
 import {
   DRAGON_LOCUS_VISUALS,
   expressDragonPhenotype,
@@ -32,7 +28,9 @@ import {
   showsDominantPhenotype,
 } from './dragon-inheritance';
 import {
+  DEFAULT_EXPRESSIVE_DRAGON,
   EXPRESSIVE_DRAGON_TRAITS,
+  DragonSex,
   ExpressiveDragonProfile,
   ExpressiveDragonTraitId,
   expressivePhenotype,
@@ -73,31 +71,24 @@ type DragonSpecimenGenome =
 export const DRAGON_SPECIMEN_PROFILE: SpecimenProfile<DragonSpecimenGenome> = {
   id: DRAGON_SPECIMEN_PROFILE_ID,
   supports: isDragonSpecimenGenome,
-  express: (genome, options) => genome.kind === 'engine'
-    ? describeEngineGenome(genome.genome, options)
-    : describeLabGenome(
-        genome.genome,
-        { ...options, generation: options.generation ?? genome.generation },
-        genome.identity,
-      ),
+  express: (genome, options) =>
+    genome.kind === 'engine'
+      ? describeEngineGenome(genome.genome, options)
+      : describeLabGenome(
+          genome.genome,
+          { ...options, generation: options.generation ?? genome.generation },
+          genome.identity,
+        ),
 };
 
 /**
  * Register once, wherever the viewer is used (route providers or bootstrap).
  *
- * Supplies both halves of "how to show a dragon": the rule for expressing a
- * genome into an assembly, and the flat artwork for drawing one at tile size.
- * They travel together so a screen can never end up able to express a dragon
- * but not draw it.
+ * Supplies the rule for expressing a genome into the assembly used by the live
+ * viewport and baked 3D thumbnails.
  */
 export function provideDragonSpecimenProfile(): Provider[] {
-  return [
-    provideSpecimenProfile(DRAGON_SPECIMEN_PROFILE as SpecimenProfile),
-    provideSpecimenPlate({
-      profileId: DRAGON_SPECIMEN_PROFILE_ID,
-      component: DragonSpecimenPlateComponent,
-    }),
-  ];
+  return [provideSpecimenProfile(DRAGON_SPECIMEN_PROFILE as SpecimenProfile)];
 }
 
 // ---------------------------------------------------------------------------
@@ -217,17 +208,23 @@ export function createDragonBenchBuild(
 export function createExpressiveDragonBenchBuild(
   id: string,
   profile: ExpressiveDragonProfile,
-  options: { label?: string; generation?: number } = {},
+  options: {
+    label?: string;
+    generation?: number;
+    identity?: DragonIdentityPaint;
+  } = {},
 ): DragonBenchBuild {
   const generation = options.generation ?? 0;
   const coreGenome = toCoreLabGenome(profile);
   const bodyColor = showsExpressiveDominant(
     profile,
-    EXPRESSIVE_DRAGON_TRAITS.find(trait => trait.id === 'body-color')!,
+    EXPRESSIVE_DRAGON_TRAITS.find((trait) => trait.id === 'body-color')!,
   );
-  const identity: DragonIdentityPaint = bodyColor
-    ? { color: '#98552f', accentColor: '#e3a75d' }
-    : { color: '#287b78', accentColor: '#75d0c1' };
+  const identity: DragonIdentityPaint =
+    options.identity ??
+    (bodyColor
+      ? { color: '#98552f', accentColor: '#e3a75d' }
+      : { color: '#287b78', accentColor: '#75d0c1' });
   const engineGenome = createVisualGenome(id, coreGenome, generation, identity);
   // Tail length stays fixed here: the K locus changes the club end, not the whole tail.
   engineGenome.loci['tail-length'].maternal.value = 0.62;
@@ -262,16 +259,56 @@ export function createExpressiveDragonBenchBuild(
   };
 }
 
+const sexedParentSources = new WeakMap<
+  DragonParentProfile,
+  Partial<Record<DragonSex, SpecimenSource>>
+>();
+
+/**
+ * A full live-canvas build for a hatchery parent. The four inherited lab genes
+ * come from the selected parent record; the additional expressive loci use the
+ * shared test-bench baseline until the hatchery data model carries those loci.
+ * Sex is explicit so the renderer applies the female or male head/frill anatomy.
+ */
+export function dragonParentCanvasSource(
+  parent: DragonParentProfile,
+  sex: DragonSex,
+): SpecimenSource {
+  const cached = sexedParentSources.get(parent)?.[sex];
+  if (cached) return cached;
+
+  const profile: ExpressiveDragonProfile = {
+    sex,
+    genome: {
+      ...DEFAULT_EXPRESSIVE_DRAGON.genome,
+      wings: parent.genome.wings,
+      fire: parent.genome.fire,
+      horns: parent.genome.horns,
+      scales: parent.genome.scales,
+      'eye-color': sex === 'male' ? ['E', 'Y'] : ['E', 'e'],
+    },
+  };
+  const source = createExpressiveDragonBenchBuild(`${parent.id}-${sex}`, profile, {
+    label: `${parent.name} · ${sex}`,
+    identity: { color: parent.color, accentColor: parent.accentColor },
+  }).source;
+  const entries = sexedParentSources.get(parent) ?? {};
+  entries[sex] = source;
+  sexedParentSources.set(parent, entries);
+  return source;
+}
+
 function buildExpressiveTraitReadouts(profile: ExpressiveDragonProfile): SpecimenTraitReadout[] {
   return [
     {
       id: 'sex-chromosomes',
       label: 'Modeled sex',
       valueLabel: `${profile.sex === 'female' ? 'Female' : 'Male'} · ${sexChromosomes(profile.sex)}`,
-      detail: 'This fictional dragon population uses an XX/XY model; real species use many systems.',
+      detail:
+        'This fictional dragon population uses an XX/XY model; real species use many systems.',
       roles: ['head'],
     },
-    ...EXPRESSIVE_DRAGON_TRAITS.map(trait => ({
+    ...EXPRESSIVE_DRAGON_TRAITS.map((trait) => ({
       id: `trait:${trait.id}`,
       label: trait.name,
       valueLabel: `${displayExpressiveGenotype(profile, trait.id)} · ${expressivePhenotype(profile, trait)}`,
@@ -283,7 +320,7 @@ function buildExpressiveTraitReadouts(profile: ExpressiveDragonProfile): Specime
 }
 
 function dominant(profile: ExpressiveDragonProfile, traitId: ExpressiveDragonTraitId): boolean {
-  const trait = EXPRESSIVE_DRAGON_TRAITS.find(candidate => candidate.id === traitId);
+  const trait = EXPRESSIVE_DRAGON_TRAITS.find((candidate) => candidate.id === traitId);
   return !!trait && showsExpressiveDominant(profile, trait);
 }
 
@@ -307,19 +344,26 @@ function displayExpressiveGenotype(
 
 function expressiveTraitRoles(traitId: ExpressiveDragonTraitId): readonly AssemblyPartRole[] {
   switch (traitId) {
-    case 'wings': return ['wing'];
-    case 'tail': return ['tail'];
+    case 'wings':
+      return ['wing'];
+    case 'tail':
+      return ['tail'];
     case 'legs':
-    case 'claws': return ['leg'];
+    case 'claws':
+      return ['leg'];
     case 'fire':
-    case 'fangs': return ['jaw'];
+    case 'fangs':
+      return ['jaw'];
     case 'horns':
     case 'crest':
     case 'ears':
-    case 'eye-color': return ['head'];
-    case 'spikes': return ['core'];
+    case 'eye-color':
+      return ['head'];
+    case 'spikes':
+      return ['core'];
     case 'scales':
-    case 'body-color': return [];
+    case 'body-color':
+      return [];
   }
 }
 
@@ -496,10 +540,13 @@ function isDragonSpecimenGenome(value: unknown): value is DragonSpecimenGenome {
 
   if (candidate.kind === 'lab') {
     const genome = candidate.genome as Record<string, unknown>;
-    return DRAGON_TRAITS.every(trait => {
+    return DRAGON_TRAITS.every((trait) => {
       const genotype = genome[trait.id];
-      return Array.isArray(genotype) && genotype.length === 2
-        && genotype.every(allele => typeof allele === 'string');
+      return (
+        Array.isArray(genotype) &&
+        genotype.length === 2 &&
+        genotype.every((allele) => typeof allele === 'string')
+      );
     });
   }
 

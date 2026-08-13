@@ -21,7 +21,7 @@ import {
   INSTRUCTION_LEVELS,
 } from './adaptive/dragon-simulation.models';
 import { DRAGON_SIMULATIONS } from './adaptive/dragon-simulation.registry';
-import { ALLELE_VAULT_GENES } from './adaptive/allele-workbench/allele-vault.models';
+import { ALLELE_VAULT_GENES } from './workstations/allele-workbench/allele-vault.models';
 
 interface ProgressDocument {
   id: string;
@@ -56,9 +56,13 @@ export class DragonTeacherPage {
         const records = collection(this.firestore, 'dragonLabProgress');
         const source = query(records, where('teacherId', '==', user?.uid ?? '__none__'));
         return collectionData(source, { idField: 'id' }).pipe(
-          map((documents) => (documents as ProgressDocument[]).sort((a, b) =>
-            (b.completedSimulationIds?.length ?? 0) - (a.completedSimulationIds?.length ?? 0)
-            || a.studentId.localeCompare(b.studentId))),
+          map((documents) =>
+            (documents as ProgressDocument[]).sort(
+              (a, b) =>
+                (b.completedSimulationIds?.length ?? 0) - (a.completedSimulationIds?.length ?? 0) ||
+                a.studentId.localeCompare(b.studentId),
+            ),
+          ),
           catchError((error: unknown) => {
             console.error('Dragon Genetics teacher dashboard could not load.', error);
             this.error.set('Sign in with the assigned teacher account to view student records.');
@@ -83,28 +87,41 @@ export class DragonTeacherPage {
 
   averageScore(students: ProgressDocument[]): number {
     const scores = students.flatMap((student) => Object.values(student.simulationScores ?? {}));
-    return scores.length ? Math.round(scores.reduce((sum, score) => sum + (score ?? 0), 0) / scores.length) : 0;
+    return scores.length
+      ? Math.round(scores.reduce((sum, score) => sum + (score ?? 0), 0) / scores.length)
+      : 0;
   }
 
   completionCount(students: ProgressDocument[]): number {
-    return students.reduce((sum, student) => sum + (student.completedSimulationIds?.length ?? 0), 0);
+    return students.reduce(
+      (sum, student) => sum + (student.completedSimulationIds?.length ?? 0),
+      0,
+    );
   }
 
   studentSimulationLevel(studentId: string, simulationId: DragonSimulationId): InstructionLevel {
-    return this.adaptiveStore.assignment().studentOverrides[studentId]
-      ?.simulationLevels?.[simulationId]
-      ?? this.adaptiveStore.settingsFor(simulationId, studentId).level;
+    return (
+      this.adaptiveStore.assignment().studentOverrides[studentId]?.simulationLevels?.[
+        simulationId
+      ] ?? this.adaptiveStore.settingsFor(simulationId, studentId).level
+    );
   }
 
-  studentOverrideValue(studentId: string, simulationId: DragonSimulationId): InstructionLevel | 'inherit' {
-    return this.adaptiveStore.assignment().studentOverrides[studentId]
-      ?.simulationLevels?.[simulationId]
-      ?? 'inherit';
+  studentOverrideValue(
+    studentId: string,
+    simulationId: DragonSimulationId,
+  ): InstructionLevel | 'inherit' {
+    return (
+      this.adaptiveStore.assignment().studentOverrides[studentId]?.simulationLevels?.[
+        simulationId
+      ] ?? 'inherit'
+    );
   }
 
   async setDefaultLevel(event: Event): Promise<void> {
     const level = this.eventLevel(event);
-    if (level) await this.changeAssignment((assignment) => ({ ...assignment, defaultLevel: level }));
+    if (level)
+      await this.changeAssignment((assignment) => ({ ...assignment, defaultLevel: level }));
   }
 
   async setSimulationLevel(simulationId: DragonSimulationId, event: Event): Promise<void> {
@@ -197,7 +214,9 @@ export class DragonTeacherPage {
 
   private eventLevel(event: Event): InstructionLevel | null {
     const value = (event.target as HTMLSelectElement).value;
-    return INSTRUCTION_LEVELS.includes(value as InstructionLevel) ? value as InstructionLevel : null;
+    return INSTRUCTION_LEVELS.includes(value as InstructionLevel)
+      ? (value as InstructionLevel)
+      : null;
   }
 
   private async changeAssignment(

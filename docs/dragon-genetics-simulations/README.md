@@ -1,59 +1,51 @@
 # Dragon Genetics simulation build guides
 
-This folder is the build specification for the nine active independent laboratory displays. Each
-simulation consumes semantic genetics data from the shared visual contract and teaches one
-scientific model. Laboratory instruments never depend on dragon body artwork; the assembled
-dragon remains a separate arena concern.
+These guides describe the active student laboratories and the scientific intent for future
+dedicated instruments. Start with the authoritative
+[Dragon Genetics workstation product rules](../DRAGON_GENETICS_WORKSTATION_RULES.md), then use the
+[simulation build standard](SIMULATION_BUILD_STANDARD.md) for implementation details.
 
-Start with [Simulation build standard](SIMULATION_BUILD_STANDARD.md), then use the station guide
-for the display being implemented.
+The routed runtime is documented in
+[Adaptive full-page simulation architecture](ADAPTIVE_FULL_PAGE_ARCHITECTURE.md). Assignment level,
+deterministic generation, reviewed questions, evidence, and persistence are coordinated by the
+adaptive shell.
 
-The current student runtime is the routed, adaptive full-page platform described in
-[Adaptive full-page simulation architecture](ADAPTIVE_FULL_PAGE_ARCHITECTURE.md). It provides a
-dedicated route, visual instrument, embedded checkpoints, deterministic per-student generation, and
-Grade 7 through AP Biology assignment levels for all nine core simulations, the shared Hatchery, and
-the Arena evidence experience.
+| Module | Student-facing display  | Current surface                     | Build guide                         |
+| ------ | ----------------------- | ----------------------------------- | ----------------------------------- |
+| 1      | Trait Evidence Analyzer | Registry-driven generic workstation | [01](01-TRAIT-EVIDENCE-ANALYZER.md) |
+| 2      | Genome Microscope       | Dedicated workstation               | [02](02-GENOME-MICROSCOPE.md)       |
+| 3      | Genotype Scanner        | Registry-driven generic workstation | [03](03-GENOTYPE-SCANNER.md)        |
+| 4      | Allele Workbench        | Dedicated workstation               | [04](04-ALLELE-WORKBENCH.md)        |
+| 5      | Punnett Composer        | Registry-driven generic workstation | [05](05-PUNNETT-COMPOSER.md)        |
+| 6      | Incubator Sampler       | Registry-driven generic workstation | [06](06-INCUBATOR-SAMPLER.md)       |
+| 7      | Reproduction Comparison | Registry-driven generic workstation | [07](07-REPRODUCTION-COMPARISON.md) |
+| 8      | DNA Process Lab         | Dedicated workstation               | [08](08-DNA-PROCESS-LAB.md)         |
+| 9      | Diversity Manager       | Registry-driven generic workstation | [09](09-DIVERSITY-MANAGER.md)       |
+| Shared | Dragon Hatchery         | Dedicated workstation               | [11](11-DRAGON-HATCHERY.md)         |
+| Arena  | Dragon Arena Combat     | Dedicated experience                | [12](12-DRAGON-ARENA-COMBAT.md)     |
 
-| Module | Student-facing display                    | Scene contract kind       | Build guide                                                   |
-| ------ | ----------------------------------------- | ------------------------- | ------------------------------------------------------------- |
-| 1      | Trait Evidence Analyzer                   | `trait-inspector`         | [01 - Trait Evidence Analyzer](01-TRAIT-EVIDENCE-ANALYZER.md) |
-| 2      | Genome Microscope                         | `genome-microscope`       | [02 - Genome Microscope](02-GENOME-MICROSCOPE.md)             |
-| 3      | Genotype Scanner                          | `genotype-scanner`        | [03 - Genotype Scanner](03-GENOTYPE-SCANNER.md)               |
-| 4      | Allele Workbench                          | `allele-switchboard`      | [04 - Allele Workbench](04-ALLELE-WORKBENCH.md)               |
-| 5      | Punnett Composer                          | `punnett-composer`        | [05 - Punnett Composer](05-PUNNETT-COMPOSER.md)               |
-| 6      | Incubator Sampler                         | `incubator-sampler`       | [06 - Incubator Sampler](06-INCUBATOR-SAMPLER.md)             |
-| 7      | Reproduction Comparison                   | `reproduction-comparison` | [07 - Reproduction Comparison](07-REPRODUCTION-COMPARISON.md) |
-| 8      | DNA Replication, Mutation, and Repair Lab | `dna-process-lab`         | [08 - DNA Process Lab](08-DNA-PROCESS-LAB.md)                 |
-| 9      | Diversity Manager                         | `diversity-manager`       | [09 - Diversity Manager](09-DIVERSITY-MANAGER.md)             |
+## Source layout
 
-One further instrument belongs to no single module:
+All active feature-specific workstation files live under
+[`src/app/features/dragon-genetics/workstations`](../../src/app/features/dragon-genetics/workstations/README.md):
 
-| Module | Student-facing display | Scene contract kind | Build guide                                   |
-| ------ | ---------------------- | ------------------- | --------------------------------------------- |
-| Shared | Dragon Hatchery        | `dragon-hatchery`   | [11 - Dragon Hatchery](11-DRAGON-HATCHERY.md) |
+- `allele-workbench/` contains the active allele investigation.
+- `dna-process-lab/` contains DNA comparison, mutation, and repair tools.
+- `dragon-hatchery/` contains the complete Hatchery feature slice.
+- `genome-microscope/` contains the staged cell-to-allele SVG investigation.
+- `simulation-visual/` renders registry-driven stations without a dedicated instrument.
+- `shared/` contains the chromosome catalog, DNA catalog, and persistent genetics notebook reused
+  by multiple Dragon Genetics workstations.
 
-Stations 1 through 4 and the shared hatchery retain their specialized renderer implementations.
-All nine active core stations also run through the adaptive full-page visual shell; the specialized guides
-remain the reference when a station graduates from the shared adaptive visual grammar to a bespoke
-instrument renderer.
-Stations that show alleles or genotypes share one chromosome drawing, defined in
-[`displays/shared/chromosome-diagram.ts`](../../src/app/shared/dragon-visuals/displays/shared/chromosome-diagram.ts)
-from [`docs/allelle-diagram.html`](../allelle-diagram.html).
+Generic assembly rendering remains in `src/app/shared/assembly`. Cross-workstation visual contracts
+and renderer primitives remain in `src/app/shared/dragon-visuals`. Feature-specific UI must not be
+added to those shared packages.
 
 ## Code links
 
-- [Display implementation boundary](../../src/app/shared/dragon-visuals/displays/README.md)
-- [Scene and instrument contracts](../../src/app/shared/dragon-visuals/domain/dragon-visual.models.ts)
-- [Teaching-sequence contract](../../src/app/shared/dragon-visuals/domain/teaching-sequence.models.ts)
-- [Visual-pack and SVG asset contract](../../src/app/shared/dragon-visuals/domain/visual-pack.models.ts)
-- [Visual signal bridge](../../src/app/shared/dragon-visuals/state/dragon-visual.bridge.ts)
-- [Feature-to-visual adapter](../../src/app/features/dragon-genetics/visual-adapter/dragon-visual-scene.adapter.ts)
+- [Canonical workstation boundary](../../src/app/features/dragon-genetics/workstations/README.md)
+- [Adaptive simulation registry](../../src/app/features/dragon-genetics/adaptive/dragon-simulation.registry.ts)
+- [Routed adaptive host](../../src/app/features/dragon-genetics/adaptive/dragon-simulation-experience.page.ts)
+- [Shared visual contracts](../../src/app/shared/dragon-visuals/domain/dragon-visual.models.ts)
+- [Shared visual boundary](../../src/app/shared/dragon-visuals/README.md)
 - [Complete laboratory plan](../DRAGON_GENETICS_VISUAL_LAB_PLAN.md)
-
-## Source interpretation
-
-The supplied display descriptions establish the station names, science focus, and visual mood.
-References to dragon models, body parts, or miniature hatchlings inside instruments are intentionally
-translated into phenotype labels, sample IDs, allele records, eggs, plots, and inheritance paths.
-This follows the product rule that the scientific display analyzes genetics without rendering the
-dragon itself.

@@ -1,119 +1,153 @@
-# Simulation build standard
+# Workstation build standard
 
-Use this standard for every Dragon Genetics laboratory display.
+Use this engineering standard with the authoritative
+[Dragon Genetics workstation product rules](../DRAGON_GENETICS_WORKSTATION_RULES.md). The product
+rules define the experience; this document defines how to implement it safely.
 
-## Architecture
+## Required design brief
+
+Before writing code, add these decisions to the workstation's guide:
+
+| Decision               | Required answer                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| Scientific goal        | The relationship students should understand through investigation               |
+| Manipulable evidence   | The specimens, samples, genes, chromosomes, tools, or data students can operate |
+| Observable consequence | What visibly changes because of a student's action                              |
+| Student-built record   | The chart, claim, comparison, notebook entry, or evidence set that persists     |
+| Shared sources         | Existing catalogs, renderers, and repositories that provide scientific truth    |
+
+Do not start implementation when the proposal describes only a prompt, answer choices, and
+feedback. That is an assessment screen, not a workstation.
+
+## Interaction architecture
 
 ```mermaid
 flowchart LR
-  L[Lesson and student signals] --> A[Feature scene adapter]
-  A --> B[DragonVisualBridge]
-  B --> R[Independent station renderer]
-  P[Versioned SVG visual pack] --> R
-  T[Declarative teaching sequence] --> R
-  R --> E[Semantic stage events]
-  E --> L
+  T[Teacher-released catalog] --> W[Open workstation]
+  S[Shared scientific models] --> W
+  W --> M[Student manipulates specimens and data]
+  M --> O[Model shows observable consequence]
+  O --> M
+  O --> R[Student-built persistent record]
+  R --> N[Shared notebook or evidence repository]
 ```
 
-The lesson owns correctness, progression, student responses, and evidence. The renderer owns only
-short-lived presentation state such as focus depth, animation progress, selected marks, and reduced
-motion. SVG assets contain no curriculum sentences or answer logic.
+The workstation is an open state space. Students may move among valid tools and specimens without a
+phase controller. Scientific prerequisites may control a result, but a lesson script must not
+control the order of unrelated actions.
 
-## Required teaching loop
+## Dedicated workstation shell
 
-Every important concept uses the same sequence:
+A dedicated workstation route contains:
 
-1. **Observe:** show the selected sample record and relevant scientific model.
-2. **Predict:** require a classification or prediction before revealing the answer.
-3. **Manipulate:** make the student operate the model, not merely press Next.
-4. **Reveal:** animate the scientific relationship and show the result.
-5. **Explain:** require the student to select evidence supporting a claim.
-6. **Save:** emit a compact event that the lesson converts into assessment evidence.
+- a concise scientific goal;
+- the complete interactive laboratory surface;
+- compact current-state or measurement readouts;
+- optional Guide or Hints access that is closed by default; and
+- persistent notebook or record access when relevant.
 
-## Display boundary
+It does not contain:
 
-- Read the current `DragonVisualScene` from `DragonVisualBridge.scene`.
-- Render only when `scene.kind` matches the station's instrument kind.
-- Resolve samples using IDs from the discriminated `scene.instrument` payload.
-- Never import lesson stores, Firestore, routers, mastery rules, or genetics feature components.
-- Never render dragon anatomy inside an instrument. Use phenotype text or symbols as readouts.
-- Never calculate official correctness in the renderer.
-- Emit only `DragonVisualStageEvent` values through the bridge.
+- an embedded question dock;
+- multiple-choice answer buttons;
+- a numbered phase rail;
+- Observe / Predict / Manipulate / Reveal / Explain steps;
+- a required `Continue` button;
+- a score panel attached to the instrument; or
+- directions occupying the main scientific surface.
 
-## SVG authoring contract
+Registry-generated questions may continue to support temporary generic simulations or a separate
+assessment experience. They are not mounted beside a dedicated workstation.
 
-Each station SVG should be a replaceable asset in a versioned visual pack. Use stable semantic IDs
-instead of code that depends on path order or pixel coordinates.
+## Direct-manipulation contract
 
-Required conventions:
+- Use drag-and-drop when the student is spatially moving a scientific object.
+- Provide select-object, then select-destination as an equivalent native-button path.
+- Both paths call the same state transition and create the same evidence.
+- Keep the source element stable during drag; use a bounded drag preview.
+- Do not let dragging resize a panel, move sliders, or produce layout flashes.
+- Permit repeated experiments and replacement of loaded samples.
+- Preserve valid state when panels restack at narrow widths.
 
-- one root ID matching the station, such as `genome-microscope`;
-- named groups for all animation and interaction targets;
-- named anchors for token destinations and motion paths;
-- text placeholders, not baked-in lesson wording;
-- a logical `viewBox` that remains readable at Chromebook and tablet widths;
-- meaningful reading order even when animation is disabled; and
-- no scripts, external URLs, embedded assessment answers, or student data in the SVG.
+## Scientific-data boundary
 
-Use these common semantic targets where relevant: `sample-record`, `prediction-control`,
-`reveal-control`, `evidence-mark`, `phenotype-readout`, `allele-slot-a`, `allele-slot-b`,
-`parent-a-alleles`, `parent-b-alleles`, and `offspring-allele-slots`.
+A workstation component consumes data; it does not create a private version of scientific truth.
 
-## Modes
+- Teacher settings own record availability.
+- The shared chromosome catalog owns length, centromere, band, color, and locus geometry.
+- The shared gene and DNA catalogs own gene identity and allele sequences.
+- Expressive-genome and assembly code own rendered dragon phenotype.
+- The shared notebook or explicit evidence repository owns cross-workstation student records.
+- The repository boundary owns mock-device persistence versus future database persistence.
 
-| Mode | Guidance | Reveal | Evidence |
-| --- | --- | --- | --- |
-| Learn | Labels, narrated cues, and one worked example | Pauses for prediction, then explains | Guided evidence selection |
-| Practice | Fewer labels, varied deterministic sample | Only after submitted prediction | Corrective feedback and misconception flag |
-| Official | No hints and equivalent randomized conditions | Locked until answer submission | Attempts, response, result, selected evidence |
-| Reteach | Isolates the diagnosed misconception | Stepwise comparison | Correction plus a new equivalent example |
+One source change must propagate to every workstation that represents the same object.
 
-## Instructional levels and generated sections
+## Visual implementation
 
-Mode describes support and assessment conditions; instructional level describes the scientific
-reasoning expected. They are independent. Every full-page simulation resolves `grade-7`, `grade-8`,
-`high-school`, or `ap-biology` from its assignment before generating a run. A higher level changes
-the evidence, number of reasoning steps, statistical expectations, and model limitations—not only
-the reading level.
+- Use code-driven Angular and SVG for scientific models that must change with data.
+- Clip, label, and position SVG structures from normalized input data when possible.
+- Use the existing assembly renderer for a phenotype dragon; do not generate substitute artwork.
+- Do not include a dragon if the investigation does not use phenotype as evidence.
+- Treat reference images as visual/scientific references, not runtime assets, when the model must be
+  interactive.
+- Give every SVG, canvas, and assembled specimen an accessible name or summary.
+- Pair color with a stable label, sample code, pattern, shape, or line style.
 
-Generated runs must be deterministic from student, assignment, simulation, version, and attempt
-inputs. Store the seed and template IDs rather than duplicated prompt text. An in-progress run never
-changes when the teacher publishes a new assignment version. Runtime-generated official questions
-must use reviewed templates and pure evaluators; unreviewed generative-model output is not gradable
-content.
+## Answer concealment
 
-## Accessibility and motion
+Unknown values must remain unknown until student investigation supports them.
 
-- Give the simulation a concise accessible name and a live text summary of its current state.
-- Pair color with a label, line style, symbol, or shape; parent origin cannot rely on color alone.
-- Support keyboard operation with select-then-place as an alternative to dragging.
-- Keep focus order aligned with Observe, Predict, Manipulate, Reveal, Explain.
-- Honor `prefers-reduced-motion`; reveal the same state without spatial animation.
-- Prevent looping decoration while students read or answer.
-- Keep essential text in HTML when practical so it can wrap and localize.
+- Use neutral sample IDs instead of answer-bearing allele notation.
+- Use neutral chromosome placeholders before a sample is loaded.
+- Do not pre-label dominant, recessive, genotype, trait, or phenotype answers.
+- Do not put concealed answer text in visually hidden DOM content.
+- Reveal only the evidence produced by the tool used. Seeing a phenotype does not reveal an
+  unperformed genotype test.
 
-## Evidence event minimum
+## Persistence and mock mode
 
-For a meaningful checkpoint, the lesson should be able to save the scene ID, deterministic seed,
-sample IDs, focus gene, pre-reveal prediction, required action, revealed result, selected evidence,
-attempt count, misconception flag, and elapsed active time. Do not save animation frames, pointer
-tracks, SVG markup, or screenshots.
+Every dedicated workstation must run without a live database during local development.
 
-## Implementation shape
+- Load teacher-released mock data through the same repository-facing contract used by the host.
+- Save student experiments and discoveries locally under the current student identity.
+- Restore relevant records after refresh and when opening another workstation.
+- Keep repository replacement separate from workstation interaction state.
+- Never place temporary mock answers directly in component templates.
 
-Create each renderer under `src/app/shared/dragon-visuals/displays/<station-name>/`. A station may
-contain an Angular component, a pure view-model mapper, SVG binding helpers, and focused tests. Keep
-shared playback and SVG-loading utilities beside the station folders rather than duplicating them.
+## Component location
+
+Create feature-specific code under:
+
+```text
+src/app/features/dragon-genetics/workstations/<workstation-name>/
+```
+
+Keep component, template, styles, view model, focused content, record types, and tests together.
+Place only genuinely cross-workstation catalogs, notebook models, and visual components in
+`workstations/shared/`. Generic application infrastructure remains under `src/app/shared/`.
+
+## Accessibility and responsive behavior
+
+- All tools and movable records are reachable by keyboard.
+- Click/select alternatives do not require pointer precision.
+- Focus order follows the physical laboratory layout.
+- Accessible summaries report the current model state without leaking concealed answers.
+- Reduced-motion mode shows identical scientific results without spatial animation.
+- Panels stack without losing selection, loaded specimens, or experiment history.
+- Text remains readable on Chromebooks, tablets, and projected classroom displays.
 
 ## Completion gate
 
-A station is ready only when it:
+A dedicated workstation is ready only when:
 
-- supports Learn, Practice, Official, and targeted Reteach scenes;
-- requires a prediction before every answer-bearing reveal;
-- renders fixed-seed examples without lesson or Firebase services;
-- validates all sample and semantic target references;
-- works with keyboard input, reduced motion, and narrow layouts;
-- produces a screen-reader summary matching the visible state;
-- emits the required semantic evidence events; and
-- has unit tests for view-model mapping and one interaction-path test per mode.
+- it presents one scientific goal and no scripted procedure on the main surface;
+- it has no question dock, phase rail, or required next-step control;
+- students can freely select and repeat valid experiments;
+- drag operations have a matching click/keyboard path;
+- observable results derive from the loaded scientific data;
+- hidden answers do not leak before the appropriate investigation;
+- relevant student-built records persist across reloads and workstations;
+- mock mode works without a live database;
+- narrow and reduced-motion layouts retain the full investigation; and
+- focused tests cover data mapping, concealment, both interaction paths, persistence, and repeated
+  experiments.

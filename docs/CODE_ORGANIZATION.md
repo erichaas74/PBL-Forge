@@ -6,6 +6,7 @@ The workspace contains two Angular applications. Student-facing PBL Forge code l
 ## Application features
 
 - `src/app/features/dragon-genetics`: the three-week student experience, teacher dashboard, persistence, assessments, and arena integration.
+- `src/app/features/dragon-genetics/workstations`: every active Dragon Genetics student workstation, grouped by lab with cross-lab chromosome and notebook code in `workstations/shared`.
 - `src/app/features/dragon-genetics/simulation`: Dragon Genetics inheritance, phenotype generation, simplified genome models, and source content extracted from the migration prototype.
 - Other folders under `src/app/features`: catalog, generic activity player, project view, and teacher studio.
 
@@ -41,3 +42,7 @@ progress, or creation-library dependencies. PBL Forge must never import from `de
 - `docs`: implementation and deployment guidance.
 
 Before moving or deleting an archive, run `rg` to confirm there are no imports from `src`, then run `npm run verify`.
+
+Before adding or rebuilding a Dragon Genetics workstation, follow
+[`DRAGON_GENETICS_WORKSTATION_RULES.md`](DRAGON_GENETICS_WORKSTATION_RULES.md). Those product rules
+override older scripted station patterns in historical planning documents.
