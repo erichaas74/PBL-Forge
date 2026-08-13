@@ -3,179 +3,372 @@
   width: 100%;
 }
 
-.dna-workbench {
-  --dna-blue: #74a3ff;
-  --dna-gold: #e8c27a;
-  display: grid;
-  grid-template-columns: minmax(8rem, 0.25fr) minmax(0, 1.75fr);
-  grid-template-rows: auto minmax(22rem, 1fr) minmax(8rem, auto);
-  gap: 0.65rem;
-  min-height: 42rem;
-  padding: 0.75rem;
-  border: 1px solid rgb(116 163 255 / 20%);
-  border-radius: 1.1rem;
-  background: linear-gradient(150deg, #171c22, #0c141b 58%, #141a20);
-  color: #eef8f5;
+.dna-lab {
+  --bench-blue: #2367ef;
+  --bench-blue-dark: #163f91;
+  --bench-ink: #122241;
+  --bench-muted: #63718a;
+  --bench-line: #d8e3f2;
+  min-height: 58rem;
+  padding: clamp(0.8rem, 2vw, 1.3rem);
+  border: 1px solid #cbd9eb;
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at 12% 0%, rgb(86 149 255 / 14%), transparent 25rem),
+    linear-gradient(180deg, #f9fbff, #edf4fd);
+  color: var(--bench-ink);
+  box-shadow: 0 1.2rem 3rem rgb(41 76 125 / 16%);
 }
 
-.sample-vault {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(8rem, auto) minmax(16rem, 1fr) auto;
+.lab-header,
+.loader-toolbar,
+.evidence-log > header {
+  display: flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid rgb(116 163 255 / 18%);
-  border-radius: 0.75rem;
-  background: rgb(20 35 47 / 78%);
+  justify-content: space-between;
+  gap: 1rem;
 }
-.sample-vault > div:first-child {
-  display: grid;
+
+.lab-header {
+  align-items: flex-start;
+  padding: 0.35rem 0.35rem 1rem;
 }
-.sample-vault small,
-.tool-rack small,
-.evidence-log small,
-.claim-builder small {
-  color: #9fc0ff;
-  font-size: var(--text-xs);
-  letter-spacing: 0.11em;
+
+.eyebrow {
+  color: #3267c7;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
 }
-.sample-vault app-chromosome-svg {
-  width: 100%;
+
+.lab-header h2 {
+  margin: 0.25rem 0 0.35rem;
+  color: #10234a;
+  font-size: clamp(1.6rem, 3vw, 2.55rem);
+  letter-spacing: -0.035em;
 }
-.sample-tags {
+
+.lab-header p {
+  max-width: 52rem;
+  margin: 0;
+  color: var(--bench-muted);
+}
+
+.lab-header p strong {
+  color: #263e69;
+}
+
+.base-legend {
   display: flex;
   gap: 0.35rem;
-}
-.sample-tags span {
-  padding: 0.35rem 0.5rem;
-  border: 1px solid rgb(232 194 122 / 32%);
-  border-radius: 0.35rem;
-  color: var(--dna-gold);
-  font-family: ui-monospace, monospace;
+  padding: 0.4rem;
+  border: 1px solid var(--bench-line);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0.3rem 0.8rem rgb(51 82 125 / 8%);
 }
 
-.tool-rack {
-  display: grid;
-  align-content: start;
-  gap: 0.4rem;
-  padding: 0.6rem;
-  border: 1px solid rgb(255 255 255 / 8%);
-  border-radius: 0.75rem;
-  background: rgb(11 18 24 / 75%);
+.base-legend span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 2.3rem;
+  color: #40506a;
+  font-size: 0.75rem;
+  font-weight: 900;
 }
-.tool-rack button,
-.claim-builder button,
-.claim-builder select {
-  min-height: 2.4rem;
-  border: 1px solid rgb(255 255 255 / 14%);
-  border-radius: 0.45rem;
-  background: rgb(255 255 255 / 5%);
-  color: #b8c8cf;
+
+.base-legend i {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 0.25rem;
+}
+
+.base-legend [data-base='A'] i {
+  background: #48a43b;
+}
+.base-legend [data-base='T'] i {
+  background: #e34c45;
+}
+.base-legend [data-base='C'] i {
+  background: #2877e8;
+}
+.base-legend [data-base='G'] i {
+  background: #e2a11a;
+}
+
+.sample-loader,
+.comparison-bench,
+.evidence-log {
+  border: 1px solid var(--bench-line);
+  border-radius: 1.1rem;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 0.5rem 1.4rem rgb(55 88 134 / 8%);
+}
+
+.sample-loader {
+  margin-bottom: 0.8rem;
+  overflow: hidden;
+}
+
+.loader-toolbar {
+  padding: 0.65rem 0.8rem;
+  border-bottom: 1px solid var(--bench-line);
+  background: #f5f8fe;
+}
+
+.loader-toolbar > span {
+  color: var(--bench-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.scope-switch {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.scope-switch button,
+.swap-button {
+  min-height: 2.35rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #c7d5e9;
+  border-radius: 0.65rem;
+  background: #fff;
+  color: #496080;
   font: inherit;
-  font-size: var(--text-xs);
-  font-weight: 800;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
   cursor: pointer;
 }
-.tool-rack button.active {
-  border-color: var(--dna-blue);
-  background: rgb(116 163 255 / 16%);
-  color: #fff;
-  box-shadow: inset 3px 0 var(--dna-blue);
+
+.scope-switch button.active {
+  border-color: var(--bench-blue);
+  background: #e8f0ff;
+  color: #174eaf;
+  box-shadow: inset 0 -0.18rem var(--bench-blue);
+}
+
+.specimen-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem;
+}
+
+.specimen-card {
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid #d5e0ee;
+  border-radius: 0.85rem;
+  background: linear-gradient(180deg, #fff, #f8fbff);
+}
+
+.specimen-card > header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+  color: #52627c;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.specimen-card > header span {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #dfeaff;
+  color: #2057b8;
+  font-weight: 950;
+}
+
+.specimen-b > header span {
+  background: #fff0d7;
+  color: #9a6100;
+}
+
+.specimen-card label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.specimen-card label > span {
+  color: #6a7890;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.specimen-card select {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.4rem 2rem 0.4rem 0.7rem;
+  border: 1px solid #bdcde2;
+  border-radius: 0.65rem;
+  background: #fff;
+  color: #18345f;
+  font: inherit;
+  font-weight: 850;
+}
+
+.specimen-card app-chromosome-svg {
+  display: block;
+  min-height: 3.2rem;
+  margin-top: 0.35rem;
+}
+
+.specimen-card > small {
+  display: block;
+  color: #718098;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.swap-button {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 4.4rem;
+  justify-items: center;
+  border-color: #a9bddd;
+  color: #294f91;
+}
+
+.swap-button span {
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .comparison-bench {
   min-width: 0;
-  min-height: 0;
+  overflow: hidden;
 }
-.evidence-log,
-.claim-builder {
-  min-width: 0;
-  padding: 0.65rem;
-  border: 1px solid rgb(255 255 255 / 9%);
-  border-radius: 0.75rem;
-  background: rgb(11 18 24 / 75%);
+
+.empty-bench {
+  display: grid;
+  min-height: 18rem;
+  place-items: center;
+  color: var(--bench-muted);
 }
-.evidence-log header {
-  display: flex;
-  justify-content: space-between;
+
+.evidence-log {
+  margin-top: 0.8rem;
+  padding: 0.8rem;
 }
+
+.evidence-log > header {
+  align-items: flex-end;
+  margin-bottom: 0.6rem;
+}
+
+.evidence-log > header div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.evidence-log > header strong {
+  color: #203a67;
+}
+
+.evidence-log > header > b {
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: #edf3fd;
+  color: #456187;
+  font-size: 0.75rem;
+}
+
 .evidence-list {
   display: grid;
-  gap: 0.25rem;
-  max-height: 8rem;
-  margin-top: 0.45rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  max-height: 11rem;
   overflow-y: auto;
 }
-.evidence-list > span {
+
+.evidence-list article {
   display: grid;
-  grid-template-columns: 5rem minmax(0, 1fr) auto;
-  gap: 0.35rem;
-  padding: 0.25rem 0.35rem;
-  border-left: 2px solid #a76060;
-  color: #9aaab1;
-  font-size: var(--text-xs);
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.5rem;
+  min-width: 0;
+  padding: 0.55rem;
+  border: 1px solid #dce5f1;
+  border-left: 0.25rem solid #5e8de0;
+  border-radius: 0.55rem;
+  background: #fbfdff;
 }
-.evidence-list > span.supported {
-  border-color: #68c898;
+
+.evidence-list article[data-tool='mutation'] {
+  border-left-color: #e3992e;
 }
-.evidence-list b {
+
+.evidence-list article[data-tool='repair'] {
+  border-left-color: #45a979;
+}
+
+.evidence-list article > span {
+  color: #375c9c;
+  font-size: 0.75rem;
+  font-weight: 900;
   text-transform: uppercase;
 }
-.evidence-list code {
+
+.evidence-list article p {
+  grid-column: 1 / -1;
+  margin: 0;
   overflow: hidden;
+  color: #53637b;
+  font-size: 0.78rem;
   text-overflow: ellipsis;
 }
-.evidence-list i {
-  color: #d8e7ee;
-  font-style: normal;
-}
-.evidence-list .empty {
-  display: block;
-  border: 0;
-  color: #65747b;
+
+.evidence-list article strong {
+  color: #687790;
+  font-size: 0.75rem;
+  text-align: right;
 }
 
-.claim-builder {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-content: start;
-  gap: 0.45rem;
-}
-.claim-builder small,
-.claim-builder output {
+.empty-record {
   grid-column: 1 / -1;
-}
-.claim-builder select {
-  padding: 0.35rem 0.5rem;
-}
-.claim-builder button {
-  padding-inline: 0.8rem;
-  border-color: rgb(232 194 122 / 45%);
-  color: var(--dna-gold);
-}
-.claim-builder output {
-  min-height: 1rem;
-  color: #cf8b7f;
-  font-size: var(--text-xs);
-}
-.claim-builder output.saved {
-  color: #68c898;
+  margin: 0;
+  padding: 1rem;
+  border: 1px dashed #c7d4e6;
+  border-radius: 0.6rem;
+  color: #78869b;
+  text-align: center;
 }
 
-@media (max-width: 760px) {
-  .dna-workbench {
+@media (max-width: 800px) {
+  .lab-header,
+  .loader-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .base-legend {
+    align-self: flex-start;
+  }
+
+  .specimen-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto auto;
   }
-  .sample-vault {
-    grid-column: 1;
+
+  .swap-button {
+    grid-template-columns: auto auto;
+    justify-self: center;
+  }
+
+  .evidence-list {
     grid-template-columns: 1fr;
   }
-  .tool-rack {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .tool-rack small {
-    grid-column: 1 / -1;
+}
+
+@media (max-width: 520px) {
+  .scope-switch {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }

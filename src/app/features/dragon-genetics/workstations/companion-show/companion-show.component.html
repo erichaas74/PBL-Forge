@@ -1,0 +1,658 @@
+<section class="companion-show" aria-labelledby="companion-show-title">
+  <header class="show-head">
+    <div class="goal-block">
+      <span>SCIENTIFIC GOAL</span>
+      <h2 id="companion-show-title">Mini Dragon Show</h2>
+      <p>{{ goal() }}</p>
+    </div>
+    <dl class="program-readout" aria-label="Breeding program readout">
+      <div>
+        <dt>Kennel</dt>
+        <dd>{{ kennel().length }}</dd>
+      </div>
+      <div>
+        <dt>Generations</dt>
+        <dd>{{ generations() }}</dd>
+      </div>
+      <div>
+        <dt>Litters</dt>
+        <dd>{{ materializedLitters().length }}</dd>
+      </div>
+      <div>
+        <dt>Founder lines</dt>
+        <dd>{{ founderLines() }}</dd>
+      </div>
+    </dl>
+  </header>
+
+  <div class="workbench">
+    <!-- Breed standard ---------------------------------------------------- -->
+    <aside class="panel standard-bench" aria-labelledby="standard-title">
+      <header>
+        <span>BREED STANDARD</span>
+        <h3 id="standard-title">What should your mini dragon look like?</h3>
+      </header>
+
+      <label class="breed-name-field">
+        <span>BREED NAME</span>
+        <input
+          type="text"
+          data-testid="breed-name"
+          maxlength="60"
+          placeholder="Name your breed"
+          [value]="breedName()"
+          (input)="setBreedName($event)"
+        />
+      </label>
+
+      <div class="standard-rows">
+        @for (row of standardRows(); track row.geneId) {
+          <fieldset>
+            <legend>{{ row.geneName }}</legend>
+            <div class="form-choices">
+              @for (form of row.forms; track form.id) {
+                <button
+                  type="button"
+                  class="form-choice"
+                  [class.chosen]="row.selectedFormId === form.id"
+                  [attr.aria-pressed]="row.selectedFormId === form.id"
+                  [attr.data-testid]="'target-' + form.id"
+                  (click)="setTarget(row.geneId, form.id)"
+                >
+                  {{ form.label }}
+                </button>
+              }
+            </div>
+          </fieldset>
+        }
+      </div>
+
+      <p class="standard-summary" aria-live="polite">
+        @if (targets().length) {
+          <strong>{{ breedName().trim() || 'Unnamed breed' }}</strong>
+          <span>{{ standardSummary() }}</span>
+        } @else {
+          <span class="empty"
+            >Choose a characteristic to start a standard. Choosing it again removes it.</span
+          >
+        }
+      </p>
+    </aside>
+
+    <!-- Pairing bench and nursery ----------------------------------------- -->
+    <main class="panel pairing-bench">
+      <header>
+        <span>PAIRING BENCH</span>
+        <h3>Choose two dragons and whelp a litter</h3>
+      </header>
+
+      <div class="pair-stands">
+        @for (role of pairRoles; track role) {
+          @let parent = role === 'dam' ? dam() : sire();
+          @let parentSource = role === 'dam' ? damSource() : sireSource();
+          <div
+            class="parent-stand"
+            [class.loaded]="parent"
+            (dragover)="allowDrop($event)"
+            (drop)="dropOnPair(role, $event)"
+          >
+            <header>
+              <span>{{ role === 'dam' ? 'PARENT ONE' : 'PARENT TWO' }}</span>
+              <strong>{{ parent?.name ?? 'Empty stand' }}</strong>
+              @if (parent) {
+                <button type="button" class="ghost" (click)="clearPair(role)">Clear</button>
+              }
+            </header>
+            <div class="stand-model" [class.empty]="!parentSource">
+              <app-specimen-viewport
+                [source]="parentSource"
+                [ariaLabel]="
+                  parent ? parent.name + ' on the ' + role + ' stand' : role + ' stand is empty'
+                "
+                [controls]="false"
+                [framePadding]="1.3"
+              />
+              @if (!parent) {
+                <div class="empty-stand">
+                  <i aria-hidden="true"></i><span>DROP OR SELECT A DRAGON</span>
+                </div>
+              }
+            </div>
+            @if (parent && targets().length) {
+              <ul class="match-strip">
+                @for (match of matchesFor(parent.genome); track match.geneId) {
+                  <li [class.matched]="match.matched">
+                    <b aria-hidden="true">{{ match.matched ? '●' : '○' }}</b>
+                    <span>{{ match.actualLabel }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="whelp-controls">
+        <label>
+          <span>LITTER SIZE</span>
+          <!--
+            `selected` on the option, not `[value]` on the select: the options are
+            written by @for in the same pass, so a value bound to the select has
+            nothing to match yet and the control falls back to the first option.
+          -->
+          <select data-testid="litter-size" (change)="setLitterSize($event)">
+            @for (size of litterSizes; track size) {
+              <option [value]="size" [selected]="size === litterSize()">{{ size }} young</option>
+            }
+          </select>
+        </label>
+        <button
+          type="button"
+          class="whelp-button"
+          data-testid="whelp"
+          [disabled]="!pairReady()"
+          (click)="whelp()"
+        >
+          <span aria-hidden="true">❤</span> Whelp a litter
+        </button>
+        @if (bloodline(); as reading) {
+          <div class="bloodline-meter" [attr.data-band]="reading.band">
+            <header>
+              <span>BLOODLINE</span><strong>{{ reading.band }}</strong>
+            </header>
+            <div class="meter-track" aria-hidden="true">
+              <i [style.width.%]="reading.inbreedingPercent * 4"></i>
+            </div>
+            <p>
+              Shared ancestry {{ reading.relatednessPercent }}% · young inbreeding
+              {{ reading.inbreedingPercent }}%
+            </p>
+            <small>{{ reading.summary }}</small>
+            @if (reading.sharedAncestorNames.length) {
+              <small class="shared-line"
+                >Shared line: {{ reading.sharedAncestorNames.join(', ') }}</small
+              >
+            }
+          </div>
+        }
+      </div>
+
+      <p class="status-bar" aria-live="polite">{{ statusMessage() }}</p>
+
+      <section class="nursery" aria-labelledby="nursery-title">
+        <header>
+          <div>
+            <span>NURSERY</span>
+            <h4 id="nursery-title">
+              {{
+                activeLitter()
+                  ? parentNames(activeLitter()!) +
+                    ' · generation ' +
+                    activeLitter()!.record.generation
+                  : 'No litter yet'
+              }}
+            </h4>
+          </div>
+          @if (activeLitter(); as litter) {
+            <p>
+              {{ litter.matchedCount }} of {{ litter.pups.length }} match the standard this litter
+              was bred to
+            </p>
+          }
+        </header>
+
+        <div class="nursery-body">
+          <div class="show-stand" [class.empty]="!standSource()">
+            <app-specimen-viewport
+              [source]="standSource()"
+              [ariaLabel]="
+                selectedPup() ? selectedPup()!.name + ' on the show stand' : 'Show stand is empty'
+              "
+              [controls]="false"
+              [showGroundShadow]="true"
+              [framePadding]="1.25"
+            />
+            @if (selectedPup(); as pup) {
+              <div class="stand-plate">
+                <strong>{{ pup.name }}</strong>
+                @if (targets().length) {
+                  <span [class.full]="pup.meetsStandard"
+                    >{{ pup.matchedCount }}/{{ pup.matches.length }} to standard</span
+                  >
+                }
+              </div>
+            } @else {
+              <div class="empty-stand"><span>WHELP A LITTER TO FILL THE STAND</span></div>
+            }
+          </div>
+
+          <div class="pup-side">
+            @if (nurseryPups().length) {
+              <div class="pup-row" role="list" aria-label="Young in this litter">
+                @for (pup of nurseryPups(); track pup.id) {
+                  @let paint = paintFor(pup);
+                  <div
+                    class="pup-card"
+                    role="listitem"
+                    [class.selected]="selectedPup()?.id === pup.id"
+                  >
+                    <button
+                      type="button"
+                      class="pup-portrait"
+                      [style.--pup-color]="paint.color"
+                      [style.--pup-accent]="paint.patchColor"
+                      [style.--pup-ember]="paint.emberColor"
+                      [attr.aria-pressed]="selectedPup()?.id === pup.id"
+                      [attr.data-testid]="'pup-' + pup.id"
+                      (click)="selectPup(pup.id)"
+                    >
+                      <span class="pup-body" aria-hidden="true"><i></i><b></b><u></u></span>
+                      <strong>{{ pup.name }}</strong>
+                      @if (targets().length) {
+                        <small [class.full]="pup.meetsStandard"
+                          >{{ pup.matchedCount }}/{{ pup.matches.length }}</small
+                        >
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      class="keep-toggle"
+                      [class.kept]="pup.kept"
+                      [attr.data-testid]="'keep-' + pup.id"
+                      (click)="togglePupKept(pup)"
+                    >
+                      {{ pup.kept ? 'In kennel' : 'Keep' }}
+                    </button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="nursery-empty">
+                Pair two dragons and whelp a litter. Every young dragon here can be kept as breeding
+                stock or sent to a pet home.
+              </p>
+            }
+
+            @if (selectedPup(); as pup) {
+              <div class="pup-detail">
+                @if (targets().length) {
+                  <dl class="standard-readout" aria-label="Standard comparison">
+                    @for (match of pup.matches; track match.geneId) {
+                      <div [class.matched]="match.matched">
+                        <dt>{{ match.geneName }}</dt>
+                        <dd>
+                          <b>{{ match.actualLabel }}</b>
+                          @if (!match.matched) {
+                            <small>standard asks for {{ match.targetLabel }}</small>
+                          }
+                        </dd>
+                      </div>
+                    }
+                  </dl>
+                }
+
+                <dl class="trial-readout" aria-label="Show card">
+                  <div class="trial-head">
+                    <dt>Show card</dt>
+                    <dd>{{ ribbonsFor(pup.genome) }} of {{ standShowCard().length }} ribbons</dd>
+                  </div>
+                  @for (result of standShowCard(); track result.trial.id) {
+                    <div [class.placed]="result.outcome.places">
+                      <dt>
+                        {{ result.trial.name }}
+                        <small>{{ result.trial.brief }}</small>
+                      </dt>
+                      <dd>
+                        <b>{{ result.outcome.label }}</b>
+                        <small>{{ result.outcome.detail }}</small>
+                      </dd>
+                    </div>
+                  }
+                </dl>
+
+                <dl class="feature-readout">
+                  <div class="feature-head">
+                    <dt>Individual features</dt>
+                    <dd>not one of the six inherited genes</dd>
+                  </div>
+                  @for (feature of standFeatures(); track feature.label) {
+                    <div>
+                      <dt>{{ feature.label }}</dt>
+                      <dd>{{ feature.value }}</dd>
+                    </div>
+                  }
+                </dl>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Society register and kennel ---------------------------------------- -->
+    <aside class="panel kennel-panel" aria-labelledby="kennel-title">
+      <header>
+        <span>SOCIETY REGISTER</span>
+        <h3 id="kennel-title">Founders</h3>
+      </header>
+      <ul class="founder-list">
+        @for (founder of founders; track founder.id) {
+          @let paint = founderPreview(founder.id);
+          <li
+            class="founder-card"
+            [class.adopted]="isAdopted(founder.id)"
+            draggable="true"
+            (dragstart)="startCompanionDrag($event, founder.id)"
+          >
+            <span
+              class="kennel-mark"
+              [style.--pup-color]="paint.color"
+              [style.--pup-accent]="paint.patchColor"
+              [style.--pup-ember]="paint.emberColor"
+              aria-hidden="true"
+              ><i></i><b></b><u></u
+            ></span>
+            <span class="kennel-copy">
+              <strong>{{ founder.name }}</strong>
+              <small>{{ founder.title }}</small>
+            </span>
+            <span class="kennel-actions">
+              <button
+                type="button"
+                [attr.data-testid]="'adopt-dam-' + founder.id"
+                (click)="adoptFounder('dam', founder.id)"
+              >
+                Parent 1
+              </button>
+              <button
+                type="button"
+                [attr.data-testid]="'adopt-sire-' + founder.id"
+                (click)="adoptFounder('sire', founder.id)"
+              >
+                Parent 2
+              </button>
+            </span>
+          </li>
+        }
+      </ul>
+
+      <header class="kennel-head">
+        <span>KENNEL</span>
+        <h3>{{ kennel().length }} dragons</h3>
+      </header>
+      @if (kennel().length) {
+        <ul class="kennel-list">
+          @for (dragon of kennel(); track dragon.id) {
+            @let paint = paintFor(dragon);
+            <li
+              class="kennel-card"
+              [class.paired]="isPaired(dragon.id)"
+              [class.on-standard]="targets().length && meetsCurrentStandard(dragon.genome)"
+              draggable="true"
+              (dragstart)="startCompanionDrag($event, dragon.id)"
+            >
+              <span
+                class="kennel-mark"
+                [style.--pup-color]="paint.color"
+                [style.--pup-accent]="paint.patchColor"
+                [style.--pup-ember]="paint.emberColor"
+                aria-hidden="true"
+                ><i></i><b></b><u></u
+              ></span>
+              <span class="kennel-copy">
+                <strong>{{ dragon.name }}</strong>
+                <small
+                  >Generation {{ dragon.generation }} ·
+                  {{ dragon.origin === 'founder' ? 'founder line' : 'bred here' }}</small
+                >
+                <small class="kennel-match">
+                  {{ ribbonsFor(dragon.genome) }} ribbons
+                  @if (targets().length) {
+                    · {{ matchedCountFor(dragon.genome) }}/{{ targets().length }} to standard
+                  }
+                </small>
+              </span>
+              <span class="kennel-actions">
+                <button type="button" (click)="assignToPair('dam', dragon.id)">Parent 1</button>
+                <button type="button" (click)="assignToPair('sire', dragon.id)">Parent 2</button>
+                <button type="button" class="ghost" (click)="releaseCompanion(dragon)">
+                  Release
+                </button>
+              </span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="kennel-empty">
+          Send a founder to a parent stand to bring it into your kennel.
+        </p>
+      }
+    </aside>
+  </div>
+
+  <!-- Litter record ------------------------------------------------------- -->
+  <section class="record-card" aria-labelledby="litter-record-title">
+    <header>
+      <div>
+        <span>BREEDING RECORD</span>
+        <h3 id="litter-record-title">Every litter you have whelped</h3>
+      </div>
+      <p>Cite the litters bred to your current standard as the evidence for a registry entry.</p>
+    </header>
+    @if (materializedLitters().length) {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Litter</th>
+              <th scope="col">Parents</th>
+              <th scope="col">Young</th>
+              <th scope="col">Matched standard</th>
+              <th scope="col">Kept</th>
+              <th scope="col">Evidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (litter of materializedLitters(); track litter.record.id) {
+              <tr [class.active]="activeLitter()?.record?.id === litter.record.id">
+                <th scope="row">
+                  <button type="button" class="litter-link" (click)="openLitter(litter)">
+                    Generation {{ litter.record.generation }} · #{{ litter.record.runNumber }}
+                  </button>
+                </th>
+                <td>{{ parentNames(litter) }}</td>
+                <td>{{ litter.pups.length }}</td>
+                <td>
+                  @if (litter.record.targets.length) {
+                    <strong>{{ litter.matchPercent }}%</strong>
+                    <small>{{ litter.matchedCount }} of {{ litter.pups.length }}</small>
+                  } @else {
+                    <small>No standard was set</small>
+                  }
+                </td>
+                <td>{{ litter.record.keptPupIds.length }}</td>
+                <td>
+                  @if (canCite(litter)) {
+                    <button
+                      type="button"
+                      class="cite-toggle"
+                      [class.cited]="isCited(litter.record.id)"
+                      [attr.aria-pressed]="isCited(litter.record.id)"
+                      [attr.data-testid]="'cite-' + litter.record.id"
+                      (click)="toggleCitation(litter)"
+                    >
+                      {{ isCited(litter.record.id) ? 'Cited' : 'Cite' }}
+                    </button>
+                  } @else {
+                    <small class="uncitable">Bred to a different standard</small>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="record-empty">No litters yet.</p>
+    }
+  </section>
+
+  <!-- Show ring and registry ---------------------------------------------- -->
+  <section class="show-ring" aria-labelledby="show-ring-title">
+    <header>
+      <div>
+        <span>ROYAL MINI DRAGON SOCIETY</span>
+        <h3 id="show-ring-title">Show ring &amp; breed registry</h3>
+      </div>
+      <p>
+        A breed is recorded when your own litters show the standard is inherited, not when one
+        dragon looks right.
+      </p>
+    </header>
+
+    <div class="ring-body">
+      <div class="ring-stand">
+        <div class="champion-model" [class.empty]="!championSource()">
+          <app-specimen-viewport
+            [source]="championSource()"
+            [ariaLabel]="champion() ? champion()!.name + ' in the show ring' : 'Show ring is empty'"
+            [controls]="false"
+            [framePadding]="1.2"
+          />
+          @if (!champion()) {
+            <div class="empty-stand"><span>CHOOSE A BREED REPRESENTATIVE</span></div>
+          }
+        </div>
+        @if (championCandidates().length) {
+          <div class="candidate-row" role="group" aria-label="Dragons that meet the standard">
+            @for (candidate of championCandidates(); track candidate.id) {
+              <button
+                type="button"
+                class="candidate"
+                [class.chosen]="champion()?.id === candidate.id"
+                [attr.aria-pressed]="champion()?.id === candidate.id"
+                [style.--pup-color]="paintFor(candidate).color"
+                [attr.data-testid]="'champion-' + candidate.id"
+                (click)="selectChampion(candidate.id)"
+              >
+                <i aria-hidden="true"></i>{{ candidate.name }}
+              </button>
+            }
+          </div>
+        } @else {
+          <p class="candidate-empty">
+            @if (targets().length) {
+              No kennel dragon shows every characteristic in the standard yet.
+            } @else {
+              Write a standard, then dragons that meet it appear here.
+            }
+          </p>
+        }
+        @if (champion()) {
+          <ul class="ribbon-row" aria-label="Breed representative show card">
+            @for (result of championShowCard(); track result.trial.id) {
+              <li [class.placed]="result.outcome.places">
+                <b aria-hidden="true">{{ result.outcome.places ? '✦' : '·' }}</b>
+                <span>{{ result.trial.name }}</span>
+                <small>{{ result.outcome.label }}</small>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <div class="ring-evidence">
+        <div class="consistency-row">
+          <div class="consistency-card">
+            <span>BREEDS TRUE</span>
+            <strong data-testid="consistency">{{ consistency().percent }}%</strong>
+            <small>
+              {{ consistency().matchedCount }} of {{ consistency().pupCount }} young across
+              {{ consistency().litterCount }} cited litter{{
+                consistency().litterCount === 1 ? '' : 's'
+              }}
+            </small>
+          </div>
+          <div class="consistency-card ribbons">
+            <span>RIBBONS</span>
+            <strong>{{ championRibbons() }}</strong>
+            <small>taken by your breed representative</small>
+          </div>
+        </div>
+
+        <ul class="evidence-list" aria-label="Registry evidence">
+          @for (check of evidenceChecks(); track check.id) {
+            <li [class.met]="check.met">
+              <b aria-hidden="true">{{ check.met ? '✓' : '·' }}</b>
+              <span
+                ><strong>{{ check.label }}</strong><small>{{ check.detail }}</small></span
+              >
+            </li>
+          }
+        </ul>
+
+        <label class="claim-field">
+          <span>BREEDER STATEMENT</span>
+          <textarea
+            rows="4"
+            maxlength="600"
+            data-testid="claim"
+            placeholder="What does your evidence show about how reliably this breed is inherited?"
+            [value]="claim()"
+            (input)="setClaim($event)"
+          ></textarea>
+        </label>
+
+        <button
+          type="button"
+          class="register-button"
+          data-testid="register"
+          [disabled]="!canRegister()"
+          (click)="registerBreed()"
+        >
+          Record this breed
+        </button>
+      </div>
+    </div>
+
+    @if (registry().length) {
+      <ol class="registry-list" aria-label="Recorded breeds">
+        @for (entry of registry(); track entry.id) {
+          <li>
+            <header>
+              <strong>{{ entry.breedName }}</strong>
+              <span>{{ entry.consistencyPercent }}% of {{ entry.pupsObserved }} young</span>
+            </header>
+            <p class="registry-standard">
+              @for (target of entry.targets; track target.geneId) {
+                <span>{{ standardLabel(target) }}</span>
+              }
+            </p>
+            <p class="registry-claim">{{ entry.claim }}</p>
+            <small
+              >Representative {{ entry.championName }} · {{ entry.generations }} generations ·
+              {{ entry.ribbons }} ribbons · pairing inbreeding {{ entry.inbreedingPercent }}%</small
+            >
+          </li>
+        }
+      </ol>
+    }
+  </section>
+
+  <details class="observation-prompts">
+    <summary>Optional breeder prompts</summary>
+    <ul>
+      <li>
+        Two parents that both meet your standard produced young that did not. What could explain
+        that?
+      </li>
+      <li>
+        One of your traits produces three different young rather than two. What does that tell you
+        about how it is inherited?
+      </li>
+      <li>Which trial results changed when you changed which trait you bred for?</li>
+      <li>What happened to the bloodline reading as you kept breeding your best dragons together?</li>
+      <li>How many litters of evidence would convince you that your breed is inherited reliably?</li>
+    </ul>
+  </details>
+</section>

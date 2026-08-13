@@ -1,8 +1,10 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
@@ -10,13 +12,21 @@ import {
 } from '@angular/core';
 
 export type DnaBase = 'A' | 'T' | 'C' | 'G';
-export type DnaEvidenceTool = 'align' | 'pair' | 'copy' | 'rna' | 'mutation' | 'repair';
+export type DnaDifferenceKind = 'match' | 'substitution' | 'insertion' | 'deletion';
+export type DnaLabTool = 'compare' | 'mutation' | 'repair';
+export type DnaMutationAction = 'substitution' | 'insertion' | 'deletion';
+export type DnaRepairAction = 'replace' | 'insert' | 'remove';
 
 export interface DnaEvidenceResult {
   caseId: string;
-  tool: DnaEvidenceTool;
+  tool: DnaLabTool;
   observation: string;
-  supported: boolean;
+  differenceCount: number;
+}
+
+export interface DnaSequenceChanged {
+  caseId: string;
+  sequence: string;
 }
 
 export interface DnaAnalysisCase {
@@ -32,17 +42,39 @@ export interface DnaAnalysisCase {
   mutationType: 'substitution' | 'insertion' | 'deletion';
 }
 
-export interface DnaAnalysisResult {
-  caseId: string;
-  correct: boolean;
-  changedPosition: number | null;
-  mutationType: string | null;
-  transcript: string | null;
+export interface DnaAlignmentColumn {
+  referenceBase: DnaBase | null;
+  comparisonBase: DnaBase | null;
+  referenceIndex: number | null;
+  comparisonIndex: number | null;
+  kind: DnaDifferenceKind;
+}
+
+interface DifferenceCounts {
+  substitutions: number;
+  insertions: number;
+  deletions: number;
+}
+
+interface AnimationCell {
+  base: DnaBase | null;
+  focus: boolean;
+}
+
+interface DnaAnimationSnapshot {
+  kind: DnaMutationAction | 'repair';
+  label: string;
+  position: number;
+  beforeBase: DnaBase | null;
+  afterBase: DnaBase | null;
+  cells: readonly AnimationCell[];
 }
 
 export const DEFAULT_DNA_ANALYSIS_CASE: DnaAnalysisCase = {
   id: 'scale-pigment-01',
   sampleLabel: 'Dragon scale-cell sample',
+  referenceSampleLabel: 'CH3-G1a',
+  comparisonSampleLabel: 'CH3-G1b',
   reference: 'ATGCCTGAATTT',
   sample: 'ATGCATGAATTT',
   mutationType: 'substitution',
@@ -51,6 +83,8 @@ export const DEFAULT_DNA_ANALYSIS_CASE: DnaAnalysisCase = {
 export const TEST_DNA_ANALYSIS_CASE: DnaAnalysisCase = {
   id: 'test-wing-pigment-01',
   sampleLabel: 'Test case · Wing-pigment cell sample',
+  referenceSampleLabel: 'CH1-G1a',
+  comparisonSampleLabel: 'CH1-G1b',
   reference: 'ATGCCGTAACGA',
   sample: 'ATGCTGTAACGA',
   mutationType: 'substitution',
@@ -64,173 +98,458 @@ export const TEST_DNA_ANALYSIS_CASE: DnaAnalysisCase = {
 })
 export class DnaSequenceAnalysisComponent {
   readonly analysisCase = input<DnaAnalysisCase>(DEFAULT_DNA_ANALYSIS_CASE);
-  readonly activeTool = input<DnaEvidenceTool>('align');
-  readonly analysisCompleted = output<DnaAnalysisResult>();
   readonly evidenceCompleted = output<DnaEvidenceResult>();
+  readonly sequenceChanged = output<DnaSequenceChanged>();
 
-  readonly selectedPosition = signal<number | null>(null);
-  readonly mutationType = signal<string | null>(null);
-  readonly transcript = signal<string | null>(null);
-  readonly showComplement = signal(false);
-  readonly showCodons = signal(false);
-  readonly submitted = signal(false);
-  readonly selectedComplement = signal<string | null>(null);
-  readonly selectedCopyCount = signal<number | null>(null);
-  readonly selectedRepairBase = signal<string | null>(null);
-  readonly lastSupported = signal<boolean | null>(null);
+  readonly mode = signal<DnaLabTool>('compare');
+  readonly workingSample = signal(DEFAULT_DNA_ANALYSIS_CASE.sample);
+  readonly selectedColumn = signal<number | null>(null);
+  readonly mutationAction = signal<DnaMutationAction>('substitution');
+  readonly repairAction = signal<DnaRepairAction>('replace');
+  readonly selectedBase = signal<DnaBase>('A');
+  readonly animationSnapshot = signal<DnaAnimationSnapshot | null>(null);
+  readonly animationPlaying = signal(false);
   readonly bases = ['A', 'T', 'C', 'G'] as const;
 
-  readonly referenceBases = computed(() => this.analysisCase().reference.split(''));
-  readonly sampleBases = computed(() => this.analysisCase().sample.split(''));
-  readonly changedPositions = computed(() => {
-    const reference = this.referenceBases();
-    const sample = this.sampleBases();
-    const length = Math.max(reference.length, sample.length);
-    return Array.from({ length }, (_, index) => index).filter(
-      (index) => reference[index] !== sample[index],
-    );
+  private activeCaseId = '';
+  private animationStartTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly alignment = computed(() =>
+    alignDnaSequences(this.analysisCase().reference, this.workingSample()),
+  );
+  readonly differenceColumns = computed(() =>
+    this.alignment()
+      .map((column, index) => ({ column, index }))
+      .filter(({ column }) => column.kind !== 'match'),
+  );
+  readonly changedPositions = computed(() => this.differenceColumns().map(({ index }) => index));
+  readonly selectedAlignment = computed(() => {
+    const index = this.selectedColumn();
+    return index === null ? null : (this.alignment()[index] ?? null);
   });
-  readonly complement = computed(() =>
-    this.sampleBases()
-      .map((base) => this.complementFor(base as DnaBase))
-      .join(''),
-  );
-  readonly correctTranscript = computed(() =>
-    this.sampleBases()
-      .map((base) => this.rnaFor(base as DnaBase))
-      .join(''),
-  );
-  readonly transcriptOptions = computed(() => {
-    const correct = this.correctTranscript();
-    const referenceTranscript = this.analysisCase()
-      .reference.split('')
-      .map((base) => this.rnaFor(base as DnaBase))
-      .join('');
-    return [correct, this.analysisCase().sample.replaceAll('T', 'U'), referenceTranscript].filter(
-      (value, index, values) => values.indexOf(value) === index,
-    );
+  readonly differenceCounts = computed<DifferenceCounts>(() => {
+    const columns = this.differenceColumns();
+    return {
+      substitutions: columns.filter(({ column }) => column.kind === 'substitution').length,
+      insertions: columns.filter(({ column }) => column.kind === 'insertion').length,
+      deletions: columns.filter(({ column }) => column.kind === 'deletion').length,
+    };
   });
-  readonly positionCorrect = computed(() => {
-    const selected = this.selectedPosition();
-    return selected !== null && this.changedPositions().includes(selected);
+  readonly differenceCount = computed(() => this.differenceColumns().length);
+  readonly matchingBaseCount = computed(
+    () => this.alignment().filter((column) => column.kind === 'match').length,
+  );
+  readonly similarity = computed(() => {
+    const total = this.alignment().length;
+    return total === 0 ? 100 : Math.round((this.matchingBaseCount() / total) * 100);
   });
-  readonly mutationCorrect = computed(
-    () => this.mutationType() === this.analysisCase().mutationType,
-  );
-  readonly transcriptCorrect = computed(() => this.transcript() === this.correctTranscript());
-  readonly allCorrect = computed(
-    () => this.positionCorrect() && this.mutationCorrect() && this.transcriptCorrect(),
-  );
+  readonly selectedDifferenceOrdinal = computed(() => {
+    const selected = this.selectedColumn();
+    return this.differenceColumns().findIndex(({ index }) => index === selected);
+  });
+  readonly canApplyMutation = computed(() => {
+    const column = this.selectedAlignment();
+    if (!column) return false;
+    return this.mutationAction() === 'insertion' || column.comparisonIndex !== null;
+  });
+  readonly canApplyRepair = computed(() => {
+    const column = this.selectedAlignment();
+    if (!column) return false;
+    return this.repairAction() === 'insert' || column.comparisonIndex !== null;
+  });
 
   constructor() {
     effect(() => {
-      this.analysisCase();
+      const analysis = this.analysisCase();
+      if (analysis.id === this.activeCaseId) return;
+      this.activeCaseId = analysis.id;
+      const alignment = alignDnaSequences(analysis.reference, analysis.sample);
+      const firstDifference = alignment.findIndex((column) => column.kind !== 'match');
+      const initialColumn = firstDifference >= 0 ? firstDifference : alignment.length ? 0 : null;
       untracked(() => {
-        this.selectedPosition.set(null);
-        this.mutationType.set(null);
-        this.transcript.set(null);
-        this.showComplement.set(false);
-        this.showCodons.set(false);
-        this.submitted.set(false);
-        this.selectedComplement.set(null);
-        this.selectedCopyCount.set(null);
-        this.selectedRepairBase.set(null);
-        this.lastSupported.set(null);
+        this.workingSample.set(analysis.sample);
+        this.mode.set('compare');
+        this.selectedColumn.set(initialColumn);
+        this.animationPlaying.set(false);
+        this.animationSnapshot.set(
+          initialColumn === null
+            ? null
+            : snapshotForColumn(alignment[initialColumn], initialColumn, analysis.reference),
+        );
       });
     });
-    effect(() => {
-      this.activeTool();
-      untracked(() => this.lastSupported.set(null));
+
+    this.destroyRef.onDestroy(() => this.clearAnimationTimers());
+  }
+
+  selectMode(mode: DnaLabTool): void {
+    this.mode.set(mode);
+    if (mode === 'repair' && this.selectedAlignment()?.kind === 'deletion') {
+      this.repairAction.set('insert');
+    } else if (mode === 'repair' && this.selectedAlignment()?.kind === 'insertion') {
+      this.repairAction.set('remove');
+    }
+  }
+
+  selectColumn(index: number): void {
+    this.selectedColumn.set(index);
+    this.animationPlaying.set(false);
+    const column = this.alignment()[index];
+    if (column) {
+      this.animationSnapshot.set(snapshotForColumn(column, index, this.analysisCase().reference));
+      if (this.mode() === 'repair') this.suggestRepairFor(column);
+    }
+  }
+
+  moveToDifference(direction: -1 | 1): void {
+    const differences = this.differenceColumns();
+    if (!differences.length) return;
+    const current = this.selectedDifferenceOrdinal();
+    const next = current < 0 ? 0 : (current + direction + differences.length) % differences.length;
+    this.selectColumn(differences[next].index);
+  }
+
+  chooseMutationAction(action: DnaMutationAction): void {
+    this.mutationAction.set(action);
+  }
+
+  chooseRepairAction(action: DnaRepairAction): void {
+    this.repairAction.set(action);
+  }
+
+  chooseBase(base: DnaBase): void {
+    this.selectedBase.set(base);
+  }
+
+  recordComparison(): void {
+    this.evidenceCompleted.emit({
+      caseId: this.analysisCase().id,
+      tool: 'compare',
+      observation: this.comparisonSummary(),
+      differenceCount: this.differenceCount(),
     });
   }
 
-  selectPosition(index: number): void {
-    if (!this.submitted()) this.selectedPosition.set(index);
+  replayDifference(): void {
+    const index = this.selectedColumn();
+    const column = this.selectedAlignment();
+    if (index === null || !column) return;
+    this.playAnimation(snapshotForColumn(column, index, this.analysisCase().reference));
   }
 
-  selectMutation(type: string): void {
-    if (!this.submitted()) this.mutationType.set(type);
-  }
+  applyMutation(): void {
+    const column = this.selectedAlignment();
+    const selectedIndex = this.selectedColumn();
+    if (!column || selectedIndex === null || !this.canApplyMutation()) return;
 
-  selectTranscript(sequence: string): void {
-    if (!this.submitted()) this.transcript.set(sequence);
-  }
+    const action = this.mutationAction();
+    const beforeSequence = this.workingSample();
+    const sequence = beforeSequence.split('') as DnaBase[];
+    const beforeCount = this.differenceCount();
+    let position = column.comparisonIndex ?? sequence.length;
+    let beforeBase: DnaBase | null = null;
+    let afterBase: DnaBase | null = null;
 
-  submit(): void {
-    if (
-      this.selectedPosition() === null ||
-      this.mutationType() === null ||
-      this.transcript() === null
-    ) {
-      return;
+    if (action === 'substitution' && column.comparisonIndex !== null) {
+      position = column.comparisonIndex;
+      beforeBase = sequence[position] ?? null;
+      afterBase = this.selectedBase();
+      sequence[position] = afterBase;
+    } else if (action === 'insertion') {
+      position = column.comparisonIndex ?? sequence.length;
+      afterBase = this.selectedBase();
+      sequence.splice(position, 0, afterBase);
+    } else if (action === 'deletion' && column.comparisonIndex !== null) {
+      position = column.comparisonIndex;
+      beforeBase = sequence[position] ?? null;
+      sequence.splice(position, 1);
     }
 
-    this.submitted.set(true);
-    this.analysisCompleted.emit({
-      caseId: this.analysisCase().id,
-      correct: this.allCorrect(),
-      changedPosition:
-        this.selectedPosition() === null ? null : (this.selectedPosition() as number) + 1,
-      mutationType: this.mutationType(),
-      transcript: this.transcript(),
-    });
-  }
-
-  revise(): void {
-    this.submitted.set(false);
-  }
-
-  testPosition(): void {
-    const position = this.selectedPosition();
-    if (position === null) return;
-    this.emitEvidence(
-      'align',
-      `Position ${position + 1}`,
-      this.changedPositions().includes(position),
+    this.commitSequence(
+      sequence.join(''),
+      'mutation',
+      `${capitalize(action)} at comparison base ${position + 1}: ${displayBase(beforeBase)} → ${displayBase(afterBase)} · ${beforeCount} → ${this.pendingDifferenceCount(sequence.join(''))} differences`,
     );
+    this.playAnimation(
+      buildAnimationSnapshot(
+        action,
+        `${capitalize(action)} mutation`,
+        beforeSequence,
+        position,
+        beforeBase,
+        afterBase,
+      ),
+    );
+    this.selectNearestColumn(selectedIndex);
   }
 
-  testComplement(sequence: string): void {
-    this.selectedComplement.set(sequence);
-    this.emitEvidence('pair', sequence, sequence === this.complement());
+  applyRepair(): void {
+    const column = this.selectedAlignment();
+    const selectedIndex = this.selectedColumn();
+    if (!column || selectedIndex === null || !this.canApplyRepair()) return;
+
+    const action = this.repairAction();
+    const beforeSequence = this.workingSample();
+    const sequence = beforeSequence.split('') as DnaBase[];
+    const beforeCount = this.differenceCount();
+    let position = column.comparisonIndex ?? sequence.length;
+    let beforeBase: DnaBase | null = null;
+    let afterBase: DnaBase | null = null;
+
+    if (action === 'replace' && column.comparisonIndex !== null) {
+      position = column.comparisonIndex;
+      beforeBase = sequence[position] ?? null;
+      afterBase = this.selectedBase();
+      sequence[position] = afterBase;
+    } else if (action === 'insert') {
+      position = insertionIndexFor(column, this.alignment(), selectedIndex, sequence.length);
+      afterBase = this.selectedBase();
+      sequence.splice(position, 0, afterBase);
+    } else if (action === 'remove' && column.comparisonIndex !== null) {
+      position = column.comparisonIndex;
+      beforeBase = sequence[position] ?? null;
+      sequence.splice(position, 1);
+    }
+
+    this.commitSequence(
+      sequence.join(''),
+      'repair',
+      `${repairLabel(action)} at comparison base ${position + 1}: ${beforeCount} → ${this.pendingDifferenceCount(sequence.join(''))} differences`,
+    );
+    this.playAnimation(
+      buildAnimationSnapshot(
+        'repair',
+        `${repairLabel(action)} repair`,
+        beforeSequence,
+        position,
+        beforeBase,
+        afterBase,
+      ),
+    );
+    this.selectNearestColumn(selectedIndex);
   }
 
-  testCopyCount(count: number): void {
-    this.selectedCopyCount.set(count);
-    this.emitEvidence('copy', `${count} DNA product${count === 1 ? '' : 's'}`, count === 2);
+  resetComparison(): void {
+    const original = this.analysisCase().sample;
+    this.workingSample.set(original);
+    this.animationPlaying.set(false);
+    this.sequenceChanged.emit({ caseId: this.analysisCase().id, sequence: original });
+    const firstDifference =
+      this.differenceColumns()[0]?.index ?? (this.alignment().length ? 0 : null);
+    this.selectedColumn.set(firstDifference);
+    if (firstDifference !== null) {
+      this.animationSnapshot.set(
+        snapshotForColumn(
+          this.alignment()[firstDifference],
+          firstDifference,
+          this.analysisCase().reference,
+        ),
+      );
+    }
   }
 
-  testMutationType(type: string): void {
-    this.selectMutation(type);
-    this.emitEvidence('mutation', type, type === this.analysisCase().mutationType);
+  differenceSymbol(kind: DnaDifferenceKind): string {
+    return ({ match: '·', substitution: 'S', insertion: '+', deletion: '−' } as const)[kind];
   }
 
-  testTranscript(sequence: string): void {
-    this.selectTranscript(sequence);
-    this.emitEvidence('rna', sequence, sequence === this.correctTranscript());
+  baseLabel(base: DnaBase | null): string {
+    return displayBase(base);
   }
 
-  testRepairBase(base: string): void {
-    this.selectedRepairBase.set(base);
-    const position = this.selectedPosition();
-    const supported = position !== null && base === this.referenceBases()[position];
-    this.emitEvidence('repair', position === null ? base : `${base} at ${position + 1}`, supported);
-  }
-
-  baseAt(sequence: string, index: number): string {
-    return sequence[index] ?? '—';
-  }
-
-  private complementFor(base: DnaBase): DnaBase {
+  complementBase(base: DnaBase | null): DnaBase | null {
+    if (!base) return null;
     return ({ A: 'T', T: 'A', C: 'G', G: 'C' } as const)[base];
   }
 
-  private rnaFor(base: DnaBase): string {
-    return ({ A: 'U', T: 'A', C: 'G', G: 'C' } as const)[base];
+  columnLabel(column: DnaAlignmentColumn, index: number): string {
+    return `Aligned position ${index + 1}: reference ${displayBase(column.referenceBase)}, comparison ${displayBase(column.comparisonBase)}, ${column.kind}`;
   }
 
-  private emitEvidence(tool: DnaEvidenceTool, observation: string, supported: boolean): void {
-    this.lastSupported.set(supported);
-    this.evidenceCompleted.emit({ caseId: this.analysisCase().id, tool, observation, supported });
+  private comparisonSummary(): string {
+    const counts = this.differenceCounts();
+    return `${this.similarity()}% match · ${counts.substitutions} substitutions · ${counts.insertions} insertions · ${counts.deletions} deletions`;
   }
+
+  private pendingDifferenceCount(sequence: string): number {
+    return alignDnaSequences(this.analysisCase().reference, sequence).filter(
+      (column) => column.kind !== 'match',
+    ).length;
+  }
+
+  private commitSequence(sequence: string, tool: 'mutation' | 'repair', observation: string): void {
+    this.workingSample.set(sequence);
+    this.sequenceChanged.emit({ caseId: this.analysisCase().id, sequence });
+    this.evidenceCompleted.emit({
+      caseId: this.analysisCase().id,
+      tool,
+      observation,
+      differenceCount: this.differenceCount(),
+    });
+  }
+
+  private selectNearestColumn(preferredIndex: number): void {
+    const alignment = this.alignment();
+    if (!alignment.length) {
+      this.selectedColumn.set(null);
+      return;
+    }
+    this.selectedColumn.set(Math.min(preferredIndex, alignment.length - 1));
+  }
+
+  private suggestRepairFor(column: DnaAlignmentColumn): void {
+    if (column.kind === 'deletion') {
+      this.repairAction.set('insert');
+      if (column.referenceBase) this.selectedBase.set(column.referenceBase);
+    } else if (column.kind === 'insertion') {
+      this.repairAction.set('remove');
+    } else if (column.kind === 'substitution') {
+      this.repairAction.set('replace');
+    }
+  }
+
+  private playAnimation(snapshot: DnaAnimationSnapshot): void {
+    this.clearAnimationTimers();
+    this.animationPlaying.set(false);
+    this.animationSnapshot.set(snapshot);
+    this.animationStartTimer = setTimeout(() => this.animationPlaying.set(true), 0);
+  }
+
+  private clearAnimationTimers(): void {
+    if (this.animationStartTimer) clearTimeout(this.animationStartTimer);
+    this.animationStartTimer = null;
+  }
+}
+
+export function alignDnaSequences(reference: string, comparison: string): DnaAlignmentColumn[] {
+  const referenceBases = reference.split('') as DnaBase[];
+  const comparisonBases = comparison.split('') as DnaBase[];
+  const rows = referenceBases.length + 1;
+  const columns = comparisonBases.length + 1;
+  const distance = Array.from({ length: rows }, () => Array<number>(columns).fill(0));
+
+  for (let i = 0; i < rows; i += 1) distance[i][0] = i;
+  for (let j = 0; j < columns; j += 1) distance[0][j] = j;
+
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < columns; j += 1) {
+      const substitutionCost = referenceBases[i - 1] === comparisonBases[j - 1] ? 0 : 1;
+      distance[i][j] = Math.min(
+        distance[i - 1][j - 1] + substitutionCost,
+        distance[i - 1][j] + 1,
+        distance[i][j - 1] + 1,
+      );
+    }
+  }
+
+  const aligned: DnaAlignmentColumn[] = [];
+  let i = referenceBases.length;
+  let j = comparisonBases.length;
+  while (i > 0 || j > 0) {
+    if (
+      i > 0 &&
+      j > 0 &&
+      distance[i][j] ===
+        distance[i - 1][j - 1] + (referenceBases[i - 1] === comparisonBases[j - 1] ? 0 : 1)
+    ) {
+      const referenceBase = referenceBases[i - 1];
+      const comparisonBase = comparisonBases[j - 1];
+      aligned.push({
+        referenceBase,
+        comparisonBase,
+        referenceIndex: i - 1,
+        comparisonIndex: j - 1,
+        kind: referenceBase === comparisonBase ? 'match' : 'substitution',
+      });
+      i -= 1;
+      j -= 1;
+    } else if (i > 0 && distance[i][j] === distance[i - 1][j] + 1) {
+      aligned.push({
+        referenceBase: referenceBases[i - 1],
+        comparisonBase: null,
+        referenceIndex: i - 1,
+        comparisonIndex: null,
+        kind: 'deletion',
+      });
+      i -= 1;
+    } else {
+      aligned.push({
+        referenceBase: null,
+        comparisonBase: comparisonBases[j - 1],
+        referenceIndex: null,
+        comparisonIndex: j - 1,
+        kind: 'insertion',
+      });
+      j -= 1;
+    }
+  }
+  return aligned.reverse();
+}
+
+function snapshotForColumn(
+  column: DnaAlignmentColumn,
+  alignedIndex: number,
+  reference: string,
+): DnaAnimationSnapshot {
+  const kind = column.kind === 'match' ? 'substitution' : column.kind;
+  const position = column.referenceIndex ?? column.comparisonIndex ?? alignedIndex;
+  return buildAnimationSnapshot(
+    kind,
+    column.kind === 'match' ? 'Matching base pair' : `${capitalize(column.kind)} difference`,
+    reference,
+    position,
+    column.referenceBase,
+    column.comparisonBase,
+  );
+}
+
+function buildAnimationSnapshot(
+  kind: DnaMutationAction | 'repair',
+  label: string,
+  contextSequence: string,
+  position: number,
+  beforeBase: DnaBase | null,
+  afterBase: DnaBase | null,
+): DnaAnimationSnapshot {
+  const context = contextSequence.split('') as DnaBase[];
+  const cells = Array.from({ length: 5 }, (_, offset): AnimationCell => {
+    const relative = offset - 2;
+    const contextIndex = position + relative;
+    return {
+      base: relative === 0 ? beforeBase : (context[contextIndex] ?? null),
+      focus: relative === 0,
+    };
+  });
+  return { kind, label, position: position + 1, beforeBase, afterBase, cells };
+}
+
+function insertionIndexFor(
+  column: DnaAlignmentColumn,
+  alignment: readonly DnaAlignmentColumn[],
+  selectedIndex: number,
+  fallback: number,
+): number {
+  if (column.comparisonIndex !== null) return column.comparisonIndex;
+  const nextComparison = alignment
+    .slice(selectedIndex + 1)
+    .find((candidate) => candidate.comparisonIndex !== null)?.comparisonIndex;
+  return nextComparison ?? fallback;
+}
+
+function displayBase(base: DnaBase | null): string {
+  return base ?? 'gap';
+}
+
+function capitalize(value: string): string {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+function repairLabel(action: DnaRepairAction): string {
+  return (
+    {
+      replace: 'Base replacement',
+      insert: 'Missing-base insertion',
+      remove: 'Extra-base excision',
+    } as const
+  )[action];
 }

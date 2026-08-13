@@ -13,30 +13,42 @@ describe('DragonDnaRepairLabComponent', () => {
     fixture.detectChanges();
   });
 
-  it('opens as an unordered evidence workstation with no dragon', () => {
+  it('opens as a two-specimen comparison laboratory with no question dock', () => {
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelectorAll('.tool-rack button').length).toBe(6);
+    expect(element.querySelectorAll('.specimen-card select').length).toBe(2);
+    expect(element.querySelectorAll('.scope-switch button').length).toBe(2);
     expect(element.querySelector('app-dna-sequence-analysis')).not.toBeNull();
-    expect(element.querySelector('app-specimen-viewport')).toBeNull();
-    expect(element.querySelector('.phase-switch')).toBeNull();
+    expect(element.querySelector('.question-dock')).toBeNull();
+    expect(lab.geneSpecimens().length).toBe(24);
   });
 
-  it('records supported and unsupported tests for the loaded DNA case', () => {
+  it('builds two modeled homolog records for every released chromosome', () => {
+    lab.selectScope('chromosome');
+    fixture.detectChanges();
+
+    expect(lab.chromosomeSpecimens().length).toBe(8);
+    expect(lab.availableSpecimens()[0].detail).toContain('3 released genes');
+    expect(lab.comparisonCase()?.reference.length).toBe(36);
+    expect(lab.comparisonCase()?.sample.length).toBe(36);
+  });
+
+  it('persists comparison evidence and an edited working sequence for the student', () => {
+    const activeCase = lab.comparisonCase();
+    expect(activeCase).not.toBeNull();
+    if (!activeCase) return;
+
     lab.recordEvidence({
-      caseId: lab.activeAnalysisCase().id,
-      tool: 'align',
-      observation: 'Position 1',
-      supported: false,
+      caseId: activeCase.id,
+      tool: 'repair',
+      observation: 'Base replacement: 1 → 0 differences',
+      differenceCount: 0,
     });
-    lab.recordEvidence({
-      caseId: lab.activeAnalysisCase().id,
-      tool: 'mutation',
-      observation: 'substitution',
-      supported: true,
-    });
-    expect(lab.caseEvidence().length).toBe(2);
-    expect(
-      JSON.parse(localStorage.getItem('pbl-forge.dragon-genetics.dna-evidence.v1') ?? '[]').length,
-    ).toBe(2);
+    lab.recordWorkingSequence({ caseId: activeCase.id, sequence: activeCase.reference });
+
+    const saved = JSON.parse(
+      localStorage.getItem('pbl-forge.dragon-genetics.dna-comparison-lab.v2:local-student') ?? '{}',
+    );
+    expect(saved.evidence.length).toBe(1);
+    expect(saved.workingSequences[activeCase.id]).toBe(activeCase.reference);
   });
 });

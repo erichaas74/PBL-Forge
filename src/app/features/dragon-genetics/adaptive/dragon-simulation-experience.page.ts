@@ -46,6 +46,7 @@ import {
 import { DragonSimulationVisualComponent } from '../workstations/simulation-visual/dragon-simulation-visual.component';
 import { GenomeMicroscopeComponent } from '../workstations/genome-microscope/genome-microscope.component';
 import { PunnettComposerComponent } from '../workstations/punnett-composer/punnett-composer.component';
+import { IncubatorSamplerComponent } from '../workstations/incubator-sampler/incubator-sampler.component';
 
 @Component({
   selector: 'app-dragon-simulation-experience-page',
@@ -59,6 +60,7 @@ import { PunnettComposerComponent } from '../workstations/punnett-composer/punne
     DragonHatcheryBreedingLabComponent,
     GenomeMicroscopeComponent,
     PunnettComposerComponent,
+    IncubatorSamplerComponent,
   ],
   templateUrl: './dragon-simulation-experience.page.html',
   styleUrl: './dragon-simulation-experience.page.scss',

@@ -5,6 +5,7 @@ import { positiveNumber } from '../domain/vector-data';
 import { instantiateAssemblyAsset, loadAssemblyAssetTemplate } from './assembly-asset-loader';
 import { createDragonProceduralObject } from './dragon-procedural-mesh.factory';
 import { isSharedDragonTexture } from './dragon-textures';
+import { createMiniDragonProceduralObject } from './mini-dragon-procedural-mesh.factory';
 
 export interface AssemblyMaterialOptions {
   emissive?: number;
@@ -64,7 +65,11 @@ function buildContent(part: AssemblyPart): THREE.Object3D {
   const meshType = part.visualProfile?.meshType;
 
   if (meshType === 'procedural' || meshType === 'asset') {
-    const procedural = createDragonProceduralObject(part);
+    // Two independent procedural species. The mini dragon is asked first because
+    // its profile ids are its own namespace; neither factory answers for the
+    // other's parts, so the order only decides which lookup happens twice.
+    const procedural =
+      createMiniDragonProceduralObject(part) ?? createDragonProceduralObject(part);
     if (procedural) {
       applyProfileTransform(procedural, part);
       return procedural;

@@ -23,6 +23,10 @@ adaptive shell.
 | Shared | Dragon Hatchery          | Dedicated workstation               | [11](11-DRAGON-HATCHERY.md)                 |
 | Arena  | Dragon Arena Combat      | Dedicated experience                | [12](12-DRAGON-ARENA-COMBAT.md)             |
 | 13     | Blood Compatibility Lab  | Dedicated workstation               | [13](13-DRAGON-BLOOD-TYPE-COMPATIBILITY.md) |
+| 14     | Companion Dragon Show    | Dedicated workstation               | [14](14-COMPANION-SHOW.md)                  |
+
+The Companion Dragon Show is the open-workstation alternative to the arena: same genes, same
+breeder, same renderer, but the goal is to establish a pet breed rather than win a duel.
 
 ## Source layout
 
@@ -30,6 +34,7 @@ All active feature-specific workstation files live under
 [`src/app/features/dragon-genetics/workstations`](../../src/app/features/dragon-genetics/workstations/README.md):
 
 - `allele-workbench/` contains the active allele investigation.
+- `companion-show/` contains the breed standard, kennel, litter, bloodline, and registry model.
 - `dna-process-lab/` contains DNA comparison, mutation, and repair tools.
 - `dragon-hatchery/` contains the complete Hatchery feature slice.
 - `genome-microscope/` contains the staged cell-to-allele SVG investigation.

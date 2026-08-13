@@ -306,6 +306,87 @@ main {
 .open-workstations .island-diversity-card {
   --simulation-accent: #83d5af;
 }
+.open-workstations .companion-show-card {
+  --simulation-accent: #f0a8cd;
+}
+.companion-preview {
+  position: relative;
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 8rem;
+  margin: 0.7rem 1rem 0.7rem 0;
+  border-radius: 0.9rem;
+  background:
+    radial-gradient(circle at 50% 112%, color-mix(in srgb, var(--simulation-accent) 26%, transparent),
+      transparent 62%),
+    #2a1b2b;
+}
+/* Show-ring floor, so the pets stand on something rather than float. */
+.companion-preview::after {
+  content: '';
+  position: absolute;
+  right: 12%;
+  bottom: 1.9rem;
+  left: 12%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--simulation-accent) 45%, transparent),
+    transparent
+  );
+}
+.companion-preview .pet {
+  position: relative;
+  display: block;
+  width: 4.2rem;
+  height: 3.1rem;
+  margin-bottom: 2rem;
+  border-radius: 54% 46% 44% 56%;
+  background: color-mix(in srgb, var(--simulation-accent) 62%, #3b2438);
+}
+.companion-preview .pet i {
+  position: absolute;
+  top: -0.85rem;
+  left: 0.25rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: inherit;
+}
+.companion-preview .pet b {
+  position: absolute;
+  right: -0.95rem;
+  bottom: 0.55rem;
+  width: 1.6rem;
+  height: 0.65rem;
+  border-radius: 0 60% 60% 0;
+  background: color-mix(in srgb, var(--simulation-accent) 34%, #efd8e6);
+}
+.companion-preview .pet.small {
+  width: 3.2rem;
+  height: 2.4rem;
+  background: color-mix(in srgb, var(--simulation-accent) 40%, #46293f);
+}
+.companion-preview .pet.tiny {
+  width: 2.5rem;
+  height: 1.9rem;
+  background: color-mix(in srgb, var(--simulation-accent) 78%, #4a2c42);
+}
+.companion-preview .rosette {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.4rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--simulation-accent) 55%, transparent);
+  border-radius: 999px;
+  color: var(--simulation-accent);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
 .rescue-preview {
   display: flex;
   flex-wrap: wrap;
@@ -454,7 +535,8 @@ main {
   .island-preview {
     padding: 0 1rem 1rem;
   }
-  .island-preview {
+  .island-preview,
+  .companion-preview {
     margin-left: 1rem;
   }
   .map-heading {

@@ -1,4 +1,10 @@
-<aside class="account-file" [class.closed]="!open()" aria-label="Account genetics file">
+<aside
+  class="account-file"
+  [class.closed]="!open()"
+  [class.compact]="compact()"
+  [class.disabled]="disabled()"
+  [attr.aria-label]="dragonsOnly() ? 'Account dragon file' : 'Account genetics file'"
+>
   <button
     class="file-handle"
     type="button"
@@ -6,33 +12,42 @@
     (click)="open.set(!open())"
   >
     <span class="folder-mark" aria-hidden="true"><i></i></span>
-    <span><small>ACCOUNT</small><strong>Genetics file</strong></span>
+    <span
+      ><small>ACCOUNT</small
+      ><strong>{{ dragonsOnly() ? 'Dragon file' : 'Genetics file' }}</strong></span
+    >
     <b aria-hidden="true">{{ open() ? '‹' : '›' }}</b>
   </button>
 
   @if (open()) {
     <div class="file-body">
-      <nav aria-label="Genetics file record types">
-        <button
-          type="button"
-          [class.active]="tab() === 'dragon'"
-          [attr.aria-pressed]="tab() === 'dragon'"
-          (click)="tab.set('dragon')"
-        >
-          Dragons <span>{{ snapshot().dragons.length }}</span>
-        </button>
-        <button
-          type="button"
-          [class.active]="tab() === 'chromosome'"
-          [attr.aria-pressed]="tab() === 'chromosome'"
-          (click)="tab.set('chromosome')"
-        >
-          Chromosomes <span>{{ snapshot().chromosomes.length }}</span>
-        </button>
-      </nav>
+      @if (!dragonsOnly()) {
+        <nav aria-label="Genetics file record types">
+          <button
+            type="button"
+            [class.active]="tab() === 'dragon'"
+            [attr.aria-pressed]="tab() === 'dragon'"
+            (click)="tab.set('dragon')"
+          >
+            Dragons <span>{{ snapshot().dragons.length }}</span>
+          </button>
+          <button
+            type="button"
+            [class.active]="tab() === 'chromosome'"
+            [attr.aria-pressed]="tab() === 'chromosome'"
+            (click)="tab.set('chromosome')"
+          >
+            Chromosomes <span>{{ snapshot().chromosomes.length }}</span>
+          </button>
+        </nav>
+      }
 
       <p class="file-cue">
-        Select a record, then choose a destination. Records can also be dragged.
+        {{
+          dragonsOnly()
+            ? 'Select a dragon or drag its record to the parent chamber.'
+            : 'Select a record, then choose a destination. Records can also be dragged.'
+        }}
       </p>
 
       <div class="record-list" [attr.data-tab]="tab()">
@@ -42,7 +57,8 @@
             class="account-record"
             [class.selected]="selectedRecordId() === record.id"
             [attr.aria-pressed]="selectedRecordId() === record.id"
-            draggable="true"
+            [disabled]="disabled()"
+            [attr.draggable]="!disabled()"
             (click)="select(record)"
             (dragstart)="startDrag($event, record)"
           >

@@ -181,6 +181,13 @@ export class SpecimenRendererService {
   }
 
   show(descriptor: SpecimenDescriptor, options: ShowSpecimenOptions = {}): void {
+    const dbg = globalThis as unknown as Record<string, unknown>;
+    dbg['__specimenShow'] = {
+      calls: ((dbg['__specimenShow'] as { calls?: number })?.calls ?? 0) + 1,
+      id: descriptor.id,
+      colors: [...new Set(descriptor.blueprint.parts.map(p => p.color))],
+      hasScene: !!this.scene,
+    };
     if (!this.scene) return;
 
     this.clearSpecimen();

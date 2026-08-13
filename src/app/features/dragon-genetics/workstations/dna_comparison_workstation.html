@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DNA Comparison Workstation</title>
+<style>
+:root{
+  --a:#58b33b; --t:#ef493f; --c:#2877e8; --g:#f3ae19;
+  --ink:#0f1c3b; --muted:#5e6d89; --line:#dbe5f3; --blue:#2367ef;
+  --panel:#ffffff; --bg:#edf4fd; --rail1:#a9c7ff; --rail2:#5c81d6; --rail3:#244a9a;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:
+radial-gradient(circle at 15% 10%,rgba(95,159,255,.15),transparent 28%),linear-gradient(180deg,#eef5ff 0%,#f7faff 55%,#eaf2fc 100%);padding:18px}
+.app{max-width:1420px;margin:auto;background:rgba(255,255,255,.96);border:1px solid rgba(189,204,226,.75);border-radius:28px;box-shadow:0 18px 55px rgba(52,83,130,.18);padding:24px}
+.header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+.header h1{margin:0;font-size:clamp(2rem,4vw,3.5rem);letter-spacing:-.04em}
+.header p{margin:.4rem 0 0;color:var(--muted);max-width:780px;font-size:1.05rem}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+button{border:1px solid #cfd9e7;border-radius:12px;background:#fff;color:#18315f;font-weight:800;padding:11px 16px;cursor:pointer}
+button:hover{background:#eef5ff}.primary{background:linear-gradient(180deg,#2f7cff,#1057dc);color:#fff;border-color:#1f61dd}
+.status{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 16px}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;background:#eef4ff;color:#1b56c7;font-weight:800;border:1px solid #cfe0fb}
+.badge.good{background:#eef9ee;color:#2d7d2f;border-color:#cce8cc}.badge.warn{background:#fff7e8;color:#9a6a0b;border-color:#f0dfb1}
+.chromosome-panel{margin-bottom:16px;border:1px solid var(--line);border-radius:18px;padding:14px 16px;background:linear-gradient(180deg,#fbfdff,#f5f9ff)}
+.chromosome-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px}.chromosome-head strong{font-size:1.02rem;color:#203c78}.chromosome-head span{color:var(--muted);font-size:.95rem}
+.chromosome-wrap{display:flex;align-items:center;gap:10px}.chromosome-tip{width:22px;height:28px;border-radius:16px;background:linear-gradient(180deg,#b9cfff,#86a8e9 48%,#5579ca 100%);border:1px solid rgba(58,92,160,.18)}
+.chromosome{flex:1;display:flex;align-items:stretch;height:42px;border-radius:22px;overflow:hidden;border:1px solid #cdd9eb;background:linear-gradient(180deg,#c5d7fd,#9ebaf3)}
+.gene-band{position:relative;display:flex;align-items:center;justify-content:center;font-weight:900;color:#17305e;cursor:pointer;border-right:1px solid rgba(255,255,255,.65);transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;font-size:.92rem}
+.gene-band:last-child{border-right:0}.gene-band:hover{filter:brightness(1.03)}.gene-band.active{box-shadow:inset 0 0 0 3px rgba(255,255,255,.95), inset 0 0 0 5px rgba(27,86,199,.65);z-index:2}.gene-band small{display:block;font-size:.72rem;font-weight:800;opacity:.8;letter-spacing:.04em}
+.gene-band.center{border-left:8px solid rgba(82,111,179,.42);border-right:8px solid rgba(82,111,179,.42)}
+.stage{position:relative;border:1px solid var(--line);border-radius:22px;background:radial-gradient(circle at 50% 46%,rgba(84,144,255,.11),transparent 30%),linear-gradient(180deg,#fff,#f7fbff);overflow:hidden;padding:18px;min-height:620px}
+.row-label{display:flex;justify-content:space-between;align-items:center;margin:0 4px 8px;font-weight:900;color:#203c78}
+.row-label small{font-weight:700;color:var(--muted)}
+.track-wrap{position:relative;height:250px;border:1px solid #d7e1ef;border-radius:18px;background:#fbfdff;overflow:hidden;cursor:grab;user-select:none;touch-action:none;margin-bottom:18px}
+.track-wrap:active{cursor:grabbing}.track-wrap.dragging{outline:4px solid rgba(35,103,239,.12)}
+.edge-fade{pointer-events:none;position:absolute;inset:0;background:linear-gradient(90deg,#fbfdff 0%,rgba(251,253,255,0) 8%,rgba(251,253,255,0) 92%,#fbfdff 100%);z-index:4}
+.center-guide{position:absolute;left:50%;top:0;bottom:0;border-left:3px dashed rgba(35,103,239,.35);z-index:3;pointer-events:none}.center-guide:before{content:"ALIGN";position:absolute;top:8px;left:8px;font-size:.72rem;font-weight:900;letter-spacing:.08em;color:#2a63ce;background:#eef5ff;border:1px solid #cfe0fb;border-radius:7px;padding:3px 6px}
+svg{display:block;width:100%;height:100%}
+.legend{display:flex;gap:20px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:10px;padding:10px 16px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.legend-item{display:flex;align-items:center;gap:8px;font-weight:700;color:#2b3e65}.chip{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:white;font-weight:900}
+.instructions{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}.card{border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:#fff}.card strong{display:block;margin-bottom:5px}.card span{color:var(--muted)}
+.match-panel{margin-top:14px;padding:14px 16px;border-radius:16px;border:1px solid #cfe0fb;background:#f4f8ff;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.score{font-size:1.1rem;font-weight:900}.score b{font-size:1.5rem;color:#1d5fd7}
+@media(max-width:900px){.app{padding:14px}.instructions{grid-template-columns:1fr}.track-wrap{height:220px}.stage{padding:10px}.header h1{font-size:2rem}.chromosome-head{align-items:flex-start}.chromosome{height:52px}.gene-band{font-size:.8rem}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <h1>DNA Comparison Workstation</h1>
+      <p>Drag either DNA strand left or right to search for matching regions. The DNA extends continuously beyond the screen, so moving the strand simply reveals another segment.</p>
+    </div>
+    <div class="controls">
+      <button id="randomize">New Comparison</button>
+      <button id="hint">Center Closest Match</button>
+      <button class="primary" id="reset">Reset View</button>
+    </div>
+  </div>
+
+  <div class="status">
+    <span class="badge" id="geneBadge">Loaded segment: Gene 1</span>
+    <span class="badge" id="offsetBadge">Relative offset: 0 bases</span>
+    <span class="badge warn" id="matchBadge">Searching for a matching region</span>
+  </div>
+
+  <div class="chromosome-panel">
+    <div class="chromosome-head">
+      <strong>Chromosome Map</strong>
+      <span>Click a colored gene band to load that DNA segment into the comparison tool.</span>
+    </div>
+    <div class="chromosome-wrap">
+      <div class="chromosome-tip"></div>
+      <div class="chromosome" id="chromosomeMap"></div>
+      <div class="chromosome-tip"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="row-label"><span>DNA Sample A</span><small>Drag horizontally</small></div>
+    <div class="track-wrap" id="trackA">
+      <div class="center-guide"></div>
+      <svg id="svgA" viewBox="0 0 1200 250" preserveAspectRatio="none" aria-label="DNA sample A"></svg>
+      <div class="edge-fade"></div>
+    </div>
+
+    <div class="row-label"><span>DNA Sample B</span><small>Drag horizontally</small></div>
+    <div class="track-wrap" id="trackB">
+      <div class="center-guide"></div>
+      <svg id="svgB" viewBox="0 0 1200 250" preserveAspectRatio="none" aria-label="DNA sample B"></svg>
+      <div class="edge-fade"></div>
+    </div>
+
+    <div class="match-panel">
+      <div class="score">Visible alignment: <b id="scoreText">0%</b></div>
+      <div id="message">Slide the strands until the letters line up.</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="chip" style="background:var(--a)">A</span>Adenine</div>
+    <div class="legend-item"><span class="chip" style="background:var(--t)">T</span>Thymine</div>
+    <div class="legend-item"><span class="chip" style="background:var(--c)">C</span>Cytosine</div>
+    <div class="legend-item"><span class="chip" style="background:var(--g)">G</span>Guanine</div>
+  </div>
+
+  <div class="instructions">
+    <div class="card"><strong>1. Choose a gene</strong><span>Click a colored band on the chromosome to load that gene's DNA segment.</span></div>
+    <div class="card"><strong>2. Slide</strong><span>Drag either strand left or right. The strand never reaches an end.</span></div>
+    <div class="card"><strong>3. Compare</strong><span>Use the center guide and letters to line up a matching stretch. The alignment indicator will turn green.</span></div>
+  </div>
+</div>
+
+<script>
+const colors={A:'#58b33b',T:'#ef493f',C:'#2877e8',G:'#f3ae19'};
+const complements={A:'T',T:'A',C:'G',G:'C'};
+const bases=['A','C','G','T'];
+const SPACING=82;
+const VISIBLE_PADDING=12;
+let offsetA=0, offsetB=0;
+let dragState=null;
+let motifStart=0, motifLength=12, trueShift=0;
+let seqA=[], seqB=[];
+let currentGeneIndex=0;
+const geneTemplates=[
+  {name:'Gene 1', subtitle:'Band A', color:'#f7b2c4', width:18},
+  {name:'Gene 2', subtitle:'Band B', color:'#ffd36d', width:22},
+  {name:'Gene 3', subtitle:'Band C', color:'#8fd3a3', width:20, center:true},
+  {name:'Gene 4', subtitle:'Band D', color:'#7dc4ff', width:24},
+  {name:'Gene 5', subtitle:'Band E', color:'#c6a7ff', width:16}
+];
+let geneLibrary=[];
+
+const svgA=document.getElementById('svgA');
+const svgB=document.getElementById('svgB');
+const trackA=document.getElementById('trackA');
+const trackB=document.getElementById('trackB');
+const offsetBadge=document.getElementById('offsetBadge');
+const matchBadge=document.getElementById('matchBadge');
+const scoreText=document.getElementById('scoreText');
+const message=document.getElementById('message');
+
+function randBase(){return bases[Math.floor(Math.random()*4)]}
+function makeGeneData(meta){
+  const L=240;
+  const localA=Array.from({length:L},randBase);
+  const localB=Array.from({length:L},randBase);
+  const localMotifLength=12+Math.floor(Math.random()*6);
+  const localMotifStart=55+Math.floor(Math.random()*90);
+  const localTrueShift=-18+Math.floor(Math.random()*37);
+  for(let i=0;i<localMotifLength;i++){
+    const j=localMotifStart+i+localTrueShift;
+    if(j>=0&&j<L) localB[j]=localA[localMotifStart+i];
+  }
+  return {...meta, seqA:localA, seqB:localB, motifStart:localMotifStart, motifLength:localMotifLength, trueShift:localTrueShift};
+}
+function renderChromosome(){
+  const holder=document.getElementById('chromosomeMap');
+  holder.innerHTML=geneLibrary.map((gene,index)=>`<button class="gene-band ${gene.center?'center':''} ${index===currentGeneIndex?'active':''}" data-gene="${index}" style="width:${gene.width}%; background:${gene.color}; border:0;">${gene.name}</button>`).join('');
+  holder.querySelectorAll('.gene-band').forEach(btn=>btn.addEventListener('click',()=>loadGene(Number(btn.dataset.gene))));
+}
+function loadGene(index){
+  currentGeneIndex=index;
+  const gene=geneLibrary[index];
+  seqA=[...gene.seqA];
+  seqB=[...gene.seqB];
+  motifStart=gene.motifStart;
+  motifLength=gene.motifLength;
+  trueShift=gene.trueShift;
+  offsetA=0; offsetB=0;
+  document.getElementById('geneBadge').textContent=`Loaded segment: ${gene.name}`;
+  renderChromosome();
+  renderAll();
+}
+function buildGeneLibrary(){
+  geneLibrary=geneTemplates.map(meta=>makeGeneData(meta));
+  loadGene(Math.min(currentGeneIndex,geneLibrary.length-1));
+}
+
+function wrapped(seq,index){
+  const n=seq.length;
+  const i=((index%n)+n)%n;
+  return seq[i];
+}
+
+function pairSvg(x,base){
+  const bot=complements[base];
+  return `<g transform="translate(${x},0)">
+    <circle cx="0" cy="44" r="9" fill="#94a9d5"/>
+    <circle cx="0" cy="206" r="9" fill="#94a9d5"/>
+    <rect x="-22" y="58" width="44" height="60" rx="11" fill="${colors[base]}" stroke="rgba(20,35,65,.25)" stroke-width="2"/>
+    <rect x="-22" y="132" width="44" height="60" rx="11" fill="${colors[bot]}" stroke="rgba(20,35,65,.25)" stroke-width="2"/>
+    <text x="0" y="97" text-anchor="middle" font-size="26" font-weight="900" fill="white">${base}</text>
+    <text x="0" y="171" text-anchor="middle" font-size="26" font-weight="900" fill="white">${bot}</text>
+    <line x1="0" y1="118" x2="0" y2="132" stroke="#8fa0be" stroke-width="3" stroke-dasharray="4 4"/>
+  </g>`;
+}
+
+function renderStrand(svg,seq,offsetPx){
+  const width=1200;
+  const center=width/2;
+  const centerIndex=Math.floor(offsetPx/SPACING);
+  const frac=offsetPx-centerIndex*SPACING;
+  const count=Math.ceil(width/SPACING)+VISIBLE_PADDING*2;
+  let body=`<defs><linearGradient id="rail-${svg.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9c7ff"/><stop offset=".45" stop-color="#5c81d6"/><stop offset="1" stop-color="#244a9a"/></linearGradient></defs>`;
+  body+=`<path d="M -80 44 Q 600 20 1280 44" fill="none" stroke="url(#rail-${svg.id})" stroke-width="14" stroke-linecap="round"/>`;
+  body+=`<path d="M -80 206 Q 600 230 1280 206" fill="none" stroke="url(#rail-${svg.id})" stroke-width="14" stroke-linecap="round"/>`;
+  for(let k=-VISIBLE_PADDING;k<count-VISIBLE_PADDING;k++){
+    const x=center + k*SPACING - frac;
+    const idx=centerIndex+k;
+    body+=pairSvg(x,wrapped(seq,idx));
+  }
+  svg.innerHTML=body;
+}
+
+function visibleBases(seq,offsetPx){
+  const centerIndex=Math.floor(offsetPx/SPACING);
+  const half=6;
+  const out=[];
+  for(let i=-half;i<=half;i++) out.push(wrapped(seq,centerIndex+i));
+  return out;
+}
+
+function alignmentScore(){
+  const a=visibleBases(seqA,offsetA), b=visibleBases(seqB,offsetB);
+  let matches=0;
+  for(let i=0;i<a.length;i++) if(a[i]===b[i]) matches++;
+  return Math.round(matches/a.length*100);
+}
+
+function renderAll(){
+  renderStrand(svgA,seqA,offsetA);
+  renderStrand(svgB,seqB,offsetB);
+  const relative=Math.round((offsetB-offsetA)/SPACING);
+  const score=alignmentScore();
+  offsetBadge.textContent=`Relative offset: ${relative} bases`;
+  scoreText.textContent=score+'%';
+  if(score>=85){
+    matchBadge.className='badge good';
+    matchBadge.textContent='Strong matching region found';
+    message.textContent='The visible DNA letters are closely aligned.';
+  }else if(score>=60){
+    matchBadge.className='badge';
+    matchBadge.textContent='Possible partial match';
+    message.textContent='Close. Keep sliding to improve the alignment.';
+  }else{
+    matchBadge.className='badge warn';
+    matchBadge.textContent='Searching for a matching region';
+    message.textContent='Slide the strands until the letters line up.';
+  }
+}
+
+function attachDrag(track,which){
+  track.addEventListener('pointerdown',e=>{
+    track.setPointerCapture(e.pointerId);
+    dragState={which,startX:e.clientX,startOffset:which==='A'?offsetA:offsetB};
+    track.classList.add('dragging');
+  });
+  track.addEventListener('pointermove',e=>{
+    if(!dragState||dragState.which!==which)return;
+    const dx=e.clientX-dragState.startX;
+    if(which==='A')offsetA=dragState.startOffset-dx;
+    else offsetB=dragState.startOffset-dx;
+    renderAll();
+  });
+  const end=()=>{dragState=null;track.classList.remove('dragging')};
+  track.addEventListener('pointerup',end);
+  track.addEventListener('pointercancel',end);
+}
+
+attachDrag(trackA,'A');
+attachDrag(trackB,'B');
+
+document.getElementById('reset').addEventListener('click',()=>{offsetA=0;offsetB=0;renderAll()});
+document.getElementById('randomize').addEventListener('click',buildGeneLibrary);
+document.getElementById('hint').addEventListener('click',()=>{
+  // Bring the hidden planted matching regions approximately to center.
+  offsetA=motifStart*SPACING;
+  offsetB=(motifStart+trueShift)*SPACING;
+  renderAll();
+});
+
+buildGeneLibrary();
+</script>
+</body>
+</html>

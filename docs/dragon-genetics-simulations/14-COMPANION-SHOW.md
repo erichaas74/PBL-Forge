@@ -1,0 +1,194 @@
+# 14 — Mini Dragon Show
+
+**Curriculum:** selective breeding, inheritance patterns, breeding true, inbreeding ·
+**Route:** `/dragon-genetics/companion-show`
+
+## Why this exists
+
+Module 12 sends a student's dragon into the [arena](12-DRAGON-ARENA-COMBAT.md) to fight. That is a
+good final challenge for some students and the wrong one for others. The Mini Dragon Show is the
+open-workstation counterpart: establish a pet breed instead of winning a duel.
+
+It is built on a **separate species**. The lab dragon is a scaled reptile with four genes that all
+behave the same way — one dominant allele is enough, and the heterozygote is invisible. A breeding
+program on that genome replays one Punnett square six times. The domesticated mini dragon is its own
+animal with its own anatomy and its own six loci, chosen so that a student writing a breed standard
+meets a *different* inheritance relationship at each one.
+
+The science that makes it more than dress-up: **two dragons that both meet a visible standard can
+still produce young that do not.** A student cannot see the hidden allele, so the only way to
+establish a breed is to accumulate breeding evidence. Pushing consistency up invites breeding close
+relatives, which the bloodline meter reads straight off the pedigree, and the show ring's trials pull
+against each other so no single animal can win everything.
+
+## The species
+
+### Anatomy
+
+A cat-sized furred quadruped: a short round barrel under a thick coat, an oversized neotenous skull,
+huge forward-set eyes, a stub snout, tufted ears, curling horns, short legs with soft paws and toe
+beans, a plumed tail, and small rounded wings that some genotypes lose.
+
+Six procedural profiles, all new, in
+[`mini-dragon-procedural-mesh.factory.ts`](../../src/app/shared/assembly/rendering/mini-dragon-procedural-mesh.factory.ts):
+`mini-dragon-body`, `-head`, `-leg`, `-wing`, `-tail`, `-tail-plume`. The module shares **no** builder,
+silhouette module, palette, or texture with the classic dragon factory. In particular it uses no
+texture maps at all — the coat is geometry, built from thousands of small truncated-cone tufts, and
+the matte material with no scale map is most of what stops the animal reading as a reptile.
+
+Its parameter keys are all `mini`-prefixed (`miniCoatDepth`, `miniHornCurl`, `miniWingSpread`,
+`miniEmberColor`, …) so the two species' silent `visualProfile.parameters` contracts cannot collide.
+
+Both factories are asked in `three-assembly-mesh.factory.ts`; neither answers for the other's profile
+ids, and a spec asserts that.
+
+### The six genes
+
+| Gene | Pattern | Visible forms | Channel on the animal |
+| --- | --- | --- | --- |
+| Coat | complete dominance (fluffy recessive) | Sleek · Fluffy | tuft length and density everywhere |
+| Horns | complete dominance (curled dominant) | Curled · Straight | the arc a horn sweeps |
+| Wings | **incomplete dominance** | Broad · Small · Vestigial | wing size, collapsing to a furred nub |
+| Coat pattern | **codominance** | Ash · Ash-and-gold · Gold | coat colour, both at once in patches |
+| Ember | **multiple alleles** (rose > blue > pale) | Rose · Blue · Pale | eye and throat glow |
+| Size | complete dominance (teacup recessive) | Standard · Teacup | body *proportions*, not scale |
+
+Every gene gets a different *kind* of visual change, so no two can be confused for one another.
+
+Size deliberately alters proportions rather than overall scale: the specimen viewer frames whatever
+it is given, so an animal that is merely smaller renders identically to a large one and the gene
+would be invisible. A teacup is a relatively larger head on shorter legs, which is both what small
+breeds look like and something that survives auto-framing.
+
+Coat colour is a trait here rather than identity, because the codominant locus owns it. Individual
+variation therefore rides on saturation and lightness only: two gold littermates differ, neither can
+be mistaken for ash, and no jitter leaks a genotype.
+
+### The founding population
+
+Six founders, chosen so the pool is a workable puzzle rather than a random draw: every allele of
+every gene is present, all three wing forms and all three ember forms are visible among the founders
+so the ladders can be discovered by looking, and both recessive traits — the fluffy coat and the
+teacup size — are carried by sleek standard-sized founders, so they must be bred out of hiding.
+
+### The show ring
+
+Four judged trials, which is what this species has instead of combat abilities. Each is a second,
+independent read-out of the genome, and none of them names a gene:
+
+| Trial | Reads | Outcomes (ribbon first) |
+| --- | --- | --- |
+| Flight trial | wings | Soars · Hovers · Grounded |
+| Agility run | size **and** coat | Nimble · Brisk · Heavy |
+| Cold endurance | coat | Endures · Withdraws |
+| Ember display | ember | Rose flare · Blue flare · Faint glow |
+
+Cold endurance rewards the fluffy coat and the agility run punishes it, so no companion takes every
+ribbon and a breed standard has to commit to something. The agility run reads two loci precisely so
+that at least one trial cannot be predicted from a single visible characteristic.
+
+## Required pre-build decision
+
+1. **Scientific goal:** Determine whether a mini dragon you design is reliably inherited across
+   generations.
+2. **Manipulable evidence:** Students choose which characteristics enter the standard and which form
+   each takes, adopt founders, pair any two kennel dragons, choose a litter size, whelp repeatedly,
+   keep or release each young dragon, re-open any past litter, enter animals in the show ring, and
+   choose which litters count as evidence.
+3. **Observable consequence:** Each litter renders as named young judged against the standard it was
+   bred to; the kennel, generation count, and founder-line count change with what is kept; the
+   bloodline meter re-reads the pedigree for every pairing; the show card re-runs for every animal;
+   and the breeds-true figure moves with the litters the student cites.
+4. **Student-built record:** The breed standard, the kennel, every litter with its match counts, the
+   cited evidence set, the breeder statement, and the submitted registry entries all persist.
+5. **Shared sources:** Founders, loci, and phenotype labels come from `mini-dragon.genetics.ts`; the
+   animal is built by `mini-dragon.anatomy.ts` and drawn by the shared specimen renderer; trials come
+   from `mini-dragon.events.ts`; persistence is user-scoped local storage.
+
+## Open investigation behavior
+
+- The standard is empty at first. Choosing a form adds it; choosing the same form again removes it.
+  Any subset of the six genes is a legal standard.
+- Either parent stand accepts a click on a founder's `Parent 1` / `Parent 2` button, a drag of a
+  founder card, a drag of a kennel card, or the same buttons on a kennel card. Every drag has a
+  button equivalent.
+- Litter sizes are 4, 6, 8, and 12. A pairing can be repeated as often as the student wants.
+- Keeping a young dragon adds it to the kennel and makes it available as a parent, which is how the
+  program advances a generation. Releasing one removes it and clears it from any pairing.
+- Any past litter can be re-opened in the nursery from the breeding record.
+- Changing the standard releases the cited evidence, and litters bred to a different standard cannot
+  be cited. Evidence is only comparable within one standard.
+- Optional breeder prompts stay collapsed and are never graded.
+
+## Judging and bloodline model
+
+**Breed match** compares a dragon's visible form to the standard, gene by gene. Nothing else counts —
+there is no cuteness score for the app to invent.
+
+**Breeds true** is the share of young, across the litters the student cites, that met every
+characteristic in the standard. It is computed from the student's own records and is zero until they
+cite something.
+
+**Bloodline** is the kinship coefficient between the two proposed parents, computed by the standard
+recursion over the kennel pedigree and reported as the pair's shared ancestry (`2f`) and the expected
+inbreeding of their young (`f`). It reads no genome at all: an inbreeding warning has to come from
+the family tree, and deriving it from genotypes would hand students the hidden alleles the
+workstation asks them to infer. Founder lines are treated as unrelated, so full siblings read 50%
+shared ancestry and 25% young inbreeding.
+
+## Individual features
+
+Ear tufts, eye size, snout length, tail plume, and toe count are hashed off each dragon's id — stable
+for one animal, unpredictable from its parents. They exist because a pet workstation needs young that
+look like individuals, and they are labelled on the surface as *not one of the six inherited genes*
+so no student reads inheritance out of an ear. Biological sex is deliberately absent: the model has
+no sex-linked gene, and the workstation rules forbid treating sex as a cosmetic toggle.
+
+## Registry
+
+`Record this breed` unlocks only when the student's own records carry it: a breed name, at least one
+characteristic in the standard, a kennel dragon chosen as the representative that meets the standard,
+three generations bred, at least two cited litters, and a written breeder statement. The evidence
+list shows which are met at all times. Registration records the claim and the evidence; it does not
+score it.
+
+## Persistence
+
+Per student: breed name, standard, adopted founder ids, current pairing, litter size, every litter
+record (parents, run number, size, the standard it was bred to, kept young), the next run number, the
+chosen representative, cited litters, the breeder statement, and registry entries.
+
+The kennel is never stored. It is rebuilt on load by replaying adopted founders and then every litter
+in order through the deterministic breeder, so a saved program cannot drift from the inheritance
+model that produced it.
+
+The storage key is `…companion-show.v2`. Version 1 held a breeding program for the four-gene lab
+dragon; there is no mapping from "winged" to a coat, a horn curl, or an ember, so a v1 payload is
+ignored rather than migrated.
+
+## What this species does not share
+
+Because the mini dragon is a different animal with a different genome, its companions are **not**
+loadable in the Pedigree Lab, Punnett Composer, Hatchery, or Incubator Sampler — those read the
+account genetics file, which holds four-gene lab dragons. The Society register replaces the account
+file inside this workstation. That is the deliberate cost of a separate species; if cross-lab
+specimens are wanted later, the account library would need a species field rather than the mini
+dragon bending back onto the lab dragon's four loci.
+
+## Acceptance checks
+
+- No question dock, phase rail, numbered directions, answer colors, score, or Continue button.
+- No allele, genotype, Punnett square, or predicted probability appears anywhere on the surface.
+- A litter cannot be whelped until two different kennel dragons are paired.
+- Every litter size produces the requested number of young.
+- Standard labels come from the gene catalog, not from workstation copy.
+- The incomplete-dominance locus shows three visible forms and the codominant locus shows both
+  colours on one animal.
+- A heterozygous and a homozygous parent at a completely dominant locus are indistinguishable.
+- Keeping a young dragon raises the generation count; releasing it clears it from any pairing.
+- Litters bred to a different standard cannot be cited as evidence.
+- Full siblings read 25% expected inbreeding for their young, from pedigree alone.
+- No genome takes every ribbon on the show card.
+- Registration stays locked until every evidence line is met.
+- Reloading restores the standard, kennel, litters, citations, and registry.
+- Every rendered specimen uses the mini dragon profiles and the shared specimen renderer.

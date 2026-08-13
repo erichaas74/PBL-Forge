@@ -1,76 +1,129 @@
-<section class="dna-workbench" aria-label="DNA evidence workstation">
-  <header class="sample-vault">
+<section class="dna-lab" aria-label="DNA mutation and repair comparison laboratory">
+  <header class="lab-header">
     <div>
-      <small>DNA SAMPLE VAULT</small
-      ><strong>{{ activeAnalysisCase().geneLabel ?? 'UNASSIGNED GENE' }}</strong>
+      <span class="eyebrow">MOLECULAR COMPARISON LAB</span>
+      <h2>DNA Mutation &amp; Repair Bench</h2>
+      <p><strong>Scientific goal:</strong> {{ goal() }}</p>
     </div>
-    @if (chromosomeModel(); as chromosome) {
-      <app-chromosome-svg
-        [chromosome]="chromosome"
-        [selectedLocus]="activeAnalysisCase().geneLabel ?? null"
-      />
-    }
-    <div class="sample-tags">
-      <span>{{ activeAnalysisCase().referenceSampleLabel ?? 'SAMPLE A' }}</span>
-      <span>{{ activeAnalysisCase().comparisonSampleLabel ?? 'SAMPLE B' }}</span>
+    <div class="base-legend" aria-label="DNA base color key">
+      <span data-base="A"><i></i>A</span>
+      <span data-base="T"><i></i>T</span>
+      <span data-base="C"><i></i>C</span>
+      <span data-base="G"><i></i>G</span>
     </div>
   </header>
 
-  <nav class="tool-rack" aria-label="Molecular tools">
-    <small>TOOLS</small>
-    @for (tool of tools; track tool.id) {
+  <section class="sample-loader" aria-label="DNA specimens">
+    <header class="loader-toolbar">
+      <div class="scope-switch" role="group" aria-label="Comparison scope">
+        <button
+          type="button"
+          [class.active]="comparisonScope() === 'gene'"
+          [attr.aria-pressed]="comparisonScope() === 'gene'"
+          (click)="selectScope('gene')"
+        >
+          GENE SAMPLES
+        </button>
+        <button
+          type="button"
+          [class.active]="comparisonScope() === 'chromosome'"
+          [attr.aria-pressed]="comparisonScope() === 'chromosome'"
+          (click)="selectScope('chromosome')"
+        >
+          CHROMOSOME RECORDS
+        </button>
+      </div>
+      <span>
+        {{
+          comparisonScope() === 'gene'
+            ? 'Any two released gene samples'
+            : 'All released loci in chromosome order'
+        }}
+      </span>
+    </header>
+
+    <div class="specimen-grid">
+      <article class="specimen-card specimen-a">
+        <header><span>A</span><strong>REFERENCE RECORD</strong></header>
+        <label>
+          <span>Select DNA record A</span>
+          <select [value]="specimenAId() ?? ''" (change)="selectSpecimen('a', $event)">
+            @for (specimen of availableSpecimens(); track specimen.id) {
+              <option [value]="specimen.id">{{ specimen.label }}</option>
+            }
+          </select>
+        </label>
+        @if (chromosomeFor(specimenA()); as chromosome) {
+          <app-chromosome-svg
+            [chromosome]="chromosome"
+            [selectedLocus]="specimenA()?.locusLabel ?? null"
+            [compact]="comparisonScope() === 'chromosome'"
+          />
+        }
+        <small>{{ specimenA()?.detail ?? 'No record loaded' }}</small>
+      </article>
+
       <button
         type="button"
-        [class.active]="activeTool() === tool.id"
-        [attr.aria-pressed]="activeTool() === tool.id"
-        (click)="selectTool(tool.id)"
+        class="swap-button"
+        (click)="swapSpecimens()"
+        aria-label="Swap DNA records"
       >
-        {{ tool.label }}
+        <span aria-hidden="true">⇄</span>
+        SWAP
       </button>
-    }
-  </nav>
 
-  <main class="comparison-bench">
-    <app-dna-sequence-analysis
-      [analysisCase]="activeAnalysisCase()"
-      [activeTool]="activeTool()"
-      (evidenceCompleted)="recordEvidence($event)"
-    />
-  </main>
-
-  <section class="evidence-log" aria-label="Evidence log">
-    <header>
-      <small>EVIDENCE LOG</small><strong>{{ caseEvidence().length }}</strong>
-    </header>
-    <div class="evidence-list">
-      @for (record of caseEvidence(); track record.id) {
-        <span [class.supported]="record.supported"
-          ><b>{{ record.tool }}</b
-          ><code>{{ record.observation }}</code
-          ><i>{{ record.supported ? '✓' : '×' }}</i></span
-        >
-      } @empty {
-        <span class="empty">NO TESTS</span>
-      }
+      <article class="specimen-card specimen-b">
+        <header><span>B</span><strong>COMPARISON RECORD</strong></header>
+        <label>
+          <span>Select DNA record B</span>
+          <select [value]="specimenBId() ?? ''" (change)="selectSpecimen('b', $event)">
+            @for (specimen of availableSpecimens(); track specimen.id) {
+              <option [value]="specimen.id">{{ specimen.label }}</option>
+            }
+          </select>
+        </label>
+        @if (chromosomeFor(specimenB()); as chromosome) {
+          <app-chromosome-svg
+            [chromosome]="chromosome"
+            [selectedLocus]="specimenB()?.locusLabel ?? null"
+            [compact]="comparisonScope() === 'chromosome'"
+          />
+        }
+        <small>{{ specimenB()?.detail ?? 'No record loaded' }}</small>
+      </article>
     </div>
   </section>
 
-  <section class="claim-builder" aria-label="Molecular claim builder">
-    <small>MOLECULAR CLAIM</small>
-    <select [value]="claimTool()" (change)="selectClaim($event)">
-      @for (tool of tools; track tool.id) {
-        <option [value]="tool.id">{{ tool.label }}</option>
+  <main class="comparison-bench">
+    @if (comparisonCase(); as activeCase) {
+      <app-dna-sequence-analysis
+        [analysisCase]="activeCase"
+        (evidenceCompleted)="recordEvidence($event)"
+        (sequenceChanged)="recordWorkingSequence($event)"
+      />
+    } @else {
+      <div class="empty-bench">Load two DNA records to open the comparison.</div>
+    }
+  </main>
+
+  <section class="evidence-log" aria-label="Saved DNA comparison record">
+    <header>
+      <div><span class="eyebrow">LAB RECORD</span><strong>Current comparison</strong></div>
+      <b>{{ caseEvidence().length }} entries</b>
+    </header>
+    <div class="evidence-list">
+      @for (record of caseEvidence().slice().reverse(); track record.id) {
+        <article [attr.data-tool]="record.tool">
+          <span>{{ record.tool }}</span>
+          <p>{{ record.observation }}</p>
+          <strong>{{ record.differenceCount }} differences</strong>
+        </article>
+      } @empty {
+        <p class="empty-record">
+          Record a comparison or run a mutation or repair to build an evidence history.
+        </p>
       }
-    </select>
-    <button type="button" (click)="saveClaim()">SAVE CLAIM</button>
-    <output [class.saved]="claimStatus() === 'saved'">
-      {{
-        claimStatus() === 'idle'
-          ? ''
-          : claimStatus() === 'saved'
-            ? 'EVIDENCE LINKED'
-            : 'MORE EVIDENCE NEEDED'
-      }}
-    </output>
+    </div>
   </section>
 </section>

@@ -307,6 +307,14 @@ export class IslandDiversityManagerComponent {
     return this.world().scannedDragonIds.includes(dragon.id);
   }
 
+  moonfadeStatus(dragon: PopulationDragon): string {
+    return isMoonfadeAffected(dragon)
+      ? 'Affected'
+      : isMoonfadeCarrier(dragon)
+        ? 'Unaffected carrier'
+        : 'No d detected';
+  }
+
   parentNames(dragon: PopulationDragon): string {
     if (!dragon.parents.length) return 'Founding record unavailable';
     return dragon.parents

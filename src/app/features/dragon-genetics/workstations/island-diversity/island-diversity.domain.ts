@@ -23,7 +23,7 @@ const POPULATION_PROFILES: Readonly<Record<IslandId, PopulationProfile>> = {
   'founders-isle': {
     size: 15,
     upperFrequency: { horn: 0.18, heat: 0.72, moonfade: 0.84 },
-    lineageCount: 2,
+    lineageCount: 3,
   },
   stormbreak: {
     size: 12,
@@ -243,10 +243,10 @@ export function relocateDragon(
     ...source,
     previousPopulation: source.dragons.length,
     dragons: source.dragons.filter((dragon) => dragon.id !== dragonId),
-    protectedPair: source.protectedPair.map((id) => (id === dragonId ? null : id)) as readonly [
-      string | null,
-      string | null,
-    ],
+    protectedPair: [
+      source.protectedPair[0] === dragonId ? null : source.protectedPair[0],
+      source.protectedPair[1] === dragonId ? null : source.protectedPair[1],
+    ] as const,
   };
   const nextDestination = {
     ...destination,
@@ -337,6 +337,7 @@ export function advanceIslandGeneration(
     protectedParents[0] &&
     protectedParents[1] &&
     protectedParents[0].sex !== protectedParents[1].sex;
+  if (protectedPairValid) birthCount = Math.max(3, birthCount);
   const offspring: PopulationDragon[] = [];
   for (let index = 0; index < birthCount && females.length && males.length; index += 1) {
     const useProtectedPair = Boolean(protectedPairValid && index < 2);
@@ -350,9 +351,14 @@ export function advanceIslandGeneration(
   }
   const dragons = [...aged, ...offspring];
   const retainedIds = new Set(dragons.map((dragon) => dragon.id));
-  const protectedPair = population.protectedPair.map((id) =>
-    id && retainedIds.has(id) ? id : null,
-  ) as readonly [string | null, string | null];
+  const protectedPair = [
+    population.protectedPair[0] && retainedIds.has(population.protectedPair[0])
+      ? population.protectedPair[0]
+      : null,
+    population.protectedPair[1] && retainedIds.has(population.protectedPair[1])
+      ? population.protectedPair[1]
+      : null,
+  ] as const;
   const provisional: IslandPopulation = {
     ...population,
     generation: nextGeneration,

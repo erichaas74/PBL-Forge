@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
+  alignDnaSequences,
   DnaSequenceAnalysisComponent,
   TEST_DNA_ANALYSIS_CASE,
 } from './dna-sequence-analysis.component';
@@ -12,30 +13,53 @@ describe('DnaSequenceAnalysisComponent', () => {
     TestBed.configureTestingModule({ imports: [DnaSequenceAnalysisComponent] });
     fixture = TestBed.createComponent(DnaSequenceAnalysisComponent);
     analyzer = fixture.componentInstance;
+    fixture.componentRef.setInput('analysisCase', TEST_DNA_ANALYSIS_CASE);
     fixture.detectChanges();
   });
 
-  it('derives the changed position, complement, and mRNA from the supplied sample', () => {
-    fixture.componentRef.setInput('analysisCase', TEST_DNA_ANALYSIS_CASE);
-    fixture.detectChanges();
+  it('aligns substitutions, insertions, and deletions without losing their positions', () => {
+    expect(alignDnaSequences('ATGC', 'ATTC').map((column) => column.kind)).toEqual([
+      'match',
+      'match',
+      'substitution',
+      'match',
+    ]);
+    expect(
+      alignDnaSequences('ATGC', 'ATGGC').filter((column) => column.kind === 'insertion').length,
+    ).toBe(1);
+    expect(
+      alignDnaSequences('ATGC', 'AGC').filter((column) => column.kind === 'deletion').length,
+    ).toBe(1);
+  });
+
+  it('shows the actual changed base and recomputes metrics after a mutation', () => {
+    const evidence: string[] = [];
+    analyzer.evidenceCompleted.subscribe((result) => evidence.push(result.tool));
 
     expect(analyzer.changedPositions()).toEqual([4]);
-    expect(analyzer.complement()).toBe('TACGACATTGCT');
-    expect(analyzer.correctTranscript()).toBe('UACGACAUUGCU');
+    expect(analyzer.differenceCounts().substitutions).toBe(1);
+
+    analyzer.chooseMutationAction('insertion');
+    analyzer.chooseBase('G');
+    analyzer.applyMutation();
+
+    expect(analyzer.workingSample().length).toBe(TEST_DNA_ANALYSIS_CASE.sample.length + 1);
+    expect(evidence).toEqual(['mutation']);
+    expect(analyzer.animationSnapshot()?.kind).toBe('insertion');
   });
 
-  it('requires the student to combine three pieces of evidence', () => {
-    fixture.componentRef.setInput('analysisCase', TEST_DNA_ANALYSIS_CASE);
-    fixture.detectChanges();
-    const results: boolean[] = [];
-    analyzer.analysisCompleted.subscribe((result) => results.push(result.correct));
+  it('lets a selected repair restore sequence agreement and records the result', () => {
+    const results: number[] = [];
+    analyzer.evidenceCompleted.subscribe((result) => results.push(result.differenceCount));
 
-    analyzer.selectPosition(4);
-    analyzer.selectMutation('substitution');
-    analyzer.selectTranscript('UACGACAUUGCU');
-    analyzer.submit();
+    analyzer.selectMode('repair');
+    analyzer.chooseRepairAction('replace');
+    analyzer.chooseBase('C');
+    analyzer.applyRepair();
 
-    expect(analyzer.allCorrect()).toBeTrue();
-    expect(results).toEqual([true]);
+    expect(analyzer.workingSample()).toBe(TEST_DNA_ANALYSIS_CASE.reference);
+    expect(analyzer.differenceCount()).toBe(0);
+    expect(results).toEqual([0]);
+    expect(analyzer.animationSnapshot()?.kind).toBe('repair');
   });
 });

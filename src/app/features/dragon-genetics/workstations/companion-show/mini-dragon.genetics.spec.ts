@@ -1,0 +1,242 @@
+import {
+  MINI_DRAGON_GENES,
+  MINI_FOUNDERS,
+  MiniGenome,
+  breedMiniGenomes,
+  expressMiniGene,
+  isMiniGenome,
+  miniCoatPaint,
+  miniIndividualFeatures,
+  miniPhenotypeFormId,
+  normalizeMiniGenotype,
+} from './mini-dragon.genetics';
+import { MINI_TRIALS, miniRibbonCount, runMiniTrial } from './mini-dragon.events';
+
+function genomeWith(overrides: Partial<MiniGenome>): MiniGenome {
+  return {
+    coat: ['F', 'F'],
+    horns: ['C', 'c'],
+    wings: ['W', 'w'],
+    pattern: ['A', 'A'],
+    ember: ['Eb', 'ep'],
+    size: ['T', 't'],
+    ...overrides,
+  };
+}
+
+describe('mini dragon inheritance patterns', () => {
+  it('covers five different relationships across six genes', () => {
+    const patterns = new Set(MINI_DRAGON_GENES.map((gene) => gene.pattern));
+    expect(MINI_DRAGON_GENES.length).toBe(6);
+    expect(patterns).toEqual(
+      new Set([
+        'complete-dominance',
+        'incomplete-dominance',
+        'codominance',
+        'multiple-alleles',
+      ]),
+    );
+  });
+
+  it('hides a recessive coat behind one dominant allele', () => {
+    expect(miniPhenotypeFormId('coat', genomeWith({ coat: ['F', 'f'] }))).toBe('coat:sleek');
+    expect(miniPhenotypeFormId('coat', genomeWith({ coat: ['f', 'f'] }))).toBe('coat:fluffy');
+  });
+
+  it('gives incomplete dominance a visible heterozygote', () => {
+    expect(miniPhenotypeFormId('wings', genomeWith({ wings: ['W', 'W'] }))).toBe('wings:broad');
+    expect(miniPhenotypeFormId('wings', genomeWith({ wings: ['W', 'w'] }))).toBe('wings:small');
+    expect(miniPhenotypeFormId('wings', genomeWith({ wings: ['w', 'w'] }))).toBe(
+      'wings:vestigial',
+    );
+  });
+
+  it('shows both alleles at once for the codominant coat pattern', () => {
+    expect(miniPhenotypeFormId('pattern', genomeWith({ pattern: ['A', 'A'] }))).toBe(
+      'pattern:ash',
+    );
+    expect(miniPhenotypeFormId('pattern', genomeWith({ pattern: ['A', 'G'] }))).toBe(
+      'pattern:ash-gold',
+    );
+    expect(miniPhenotypeFormId('pattern', genomeWith({ pattern: ['G', 'A'] }))).toBe(
+      'pattern:ash-gold',
+    );
+  });
+
+  it('resolves the ember series by its dominance hierarchy', () => {
+    expect(miniPhenotypeFormId('ember', genomeWith({ ember: ['Er', 'ep'] }))).toBe('ember:rose');
+    expect(miniPhenotypeFormId('ember', genomeWith({ ember: ['Eb', 'Er'] }))).toBe('ember:rose');
+    expect(miniPhenotypeFormId('ember', genomeWith({ ember: ['Eb', 'ep'] }))).toBe('ember:blue');
+    expect(miniPhenotypeFormId('ember', genomeWith({ ember: ['ep', 'ep'] }))).toBe('ember:pale');
+  });
+
+  it('orders a genotype most-dominant first however it is written', () => {
+    expect(normalizeMiniGenotype('ember', ['ep', 'Er'])).toEqual(['Er', 'ep']);
+    expect(normalizeMiniGenotype('coat', ['f', 'F'])).toEqual(['F', 'f']);
+  });
+
+  it('never leaks an allele symbol into a phenotype label', () => {
+    for (const gene of MINI_DRAGON_GENES) {
+      for (const form of gene.forms) {
+        for (const allele of gene.alleles) {
+          expect(form.label.split(/\s+/)).withContext(form.id).not.toContain(allele);
+        }
+      }
+    }
+  });
+});
+
+describe('mini dragon breeding', () => {
+  it('draws one allele from each parent at every locus', () => {
+    const dam = genomeWith({ coat: ['F', 'F'] });
+    const sire = genomeWith({ coat: ['f', 'f'] });
+
+    for (let index = 0; index < 12; index += 1) {
+      const pup = breedMiniGenomes(dam, sire, `seed:${index}`);
+      expect(pup.coat.slice().sort()).toEqual(['F', 'f']);
+      expect(isMiniGenome(pup)).toBe(true);
+    }
+  });
+
+  it('is deterministic for the same parents and seed', () => {
+    const dam = MINI_FOUNDERS[0].genome;
+    const sire = MINI_FOUNDERS[2].genome;
+    expect(breedMiniGenomes(dam, sire, 'litter-1:0')).toEqual(
+      breedMiniGenomes(dam, sire, 'litter-1:0'),
+    );
+  });
+
+  it('produces all three forms from a pair of heterozygotes at an incomplete locus', () => {
+    const parent = genomeWith({ wings: ['W', 'w'] });
+    const forms = new Set(
+      Array.from({ length: 60 }, (_, index) =>
+        miniPhenotypeFormId('wings', breedMiniGenomes(parent, parent, `w:${index}`)),
+      ),
+    );
+    expect(forms).toEqual(new Set(['wings:broad', 'wings:small', 'wings:vestigial']));
+  });
+});
+
+describe('the founding population', () => {
+  it('carries every allele of every gene somewhere in the pool', () => {
+    for (const gene of MINI_DRAGON_GENES) {
+      const present = new Set(MINI_FOUNDERS.flatMap((founder) => founder.genome[gene.id]));
+      expect(present).withContext(gene.id).toEqual(new Set(gene.alleles));
+    }
+  });
+
+  it('shows every visible form of every gene in the founders', () => {
+    for (const gene of MINI_DRAGON_GENES) {
+      const visible = new Set(
+        MINI_FOUNDERS.map((founder) => expressMiniGene(gene.id, founder.genome).id),
+      );
+      expect(visible.size).withContext(gene.id).toBe(gene.forms.length);
+    }
+  });
+
+  it('hides the fluffy coat and the teacup size behind carriers', () => {
+    const carriesHidden = (geneId: 'coat' | 'size', hidden: string): boolean =>
+      MINI_FOUNDERS.some(
+        (founder) =>
+          founder.genome[geneId].includes(hidden) &&
+          expressMiniGene(geneId, founder.genome).id !== `${geneId}:${
+            geneId === 'coat' ? 'fluffy' : 'teacup'
+          }`,
+      );
+    expect(carriesHidden('coat', 'f')).toBe(true);
+    expect(carriesHidden('size', 't')).toBe(true);
+  });
+});
+
+describe('coat paint and individual features', () => {
+  it('keeps the coat colour inside the family its pattern genotype names', () => {
+    const ash = miniCoatPaint(genomeWith({ pattern: ['A', 'A'] }), 'one');
+    const gold = miniCoatPaint(genomeWith({ pattern: ['G', 'G'] }), 'one');
+    const both = miniCoatPaint(genomeWith({ pattern: ['A', 'G'] }), 'one');
+
+    expect(ash.color).toBe(ash.patchColor);
+    expect(gold.color).toBe(gold.patchColor);
+    // A codominant animal carries two colours; a homozygote carries one.
+    expect(both.color).not.toBe(both.patchColor);
+  });
+
+  it('varies littermates without moving them between pattern families', () => {
+    const genome = genomeWith({ pattern: ['G', 'G'] });
+    const first = miniCoatPaint(genome, 'pup-1');
+    const second = miniCoatPaint(genome, 'pup-2');
+
+    expect(first.color).not.toBe(second.color);
+    expect(hueOf(first.color)).toBe(hueOf(second.color));
+  });
+
+  it('gives the ember locus its own colour', () => {
+    expect(miniCoatPaint(genomeWith({ ember: ['Er', 'ep'] }), 'x').emberColor).not.toBe(
+      miniCoatPaint(genomeWith({ ember: ['ep', 'ep'] }), 'x').emberColor,
+    );
+  });
+
+  it('keeps individual features stable per animal and unlinked to any parent', () => {
+    expect(miniIndividualFeatures('pup-1')).toEqual(miniIndividualFeatures('pup-1'));
+    expect(miniIndividualFeatures('pup-1')).not.toEqual(miniIndividualFeatures('pup-2'));
+  });
+});
+
+describe('show ring trials', () => {
+  it('reads the flight trial off the wing locus alone', () => {
+    expect(runMiniTrial('flight', genomeWith({ wings: ['W', 'W'] })).outcome.id).toBe(
+      'flight:soars',
+    );
+    expect(runMiniTrial('flight', genomeWith({ wings: ['W', 'w'] })).outcome.id).toBe(
+      'flight:hovers',
+    );
+    expect(runMiniTrial('flight', genomeWith({ wings: ['w', 'w'] })).outcome.id).toBe(
+      'flight:grounded',
+    );
+  });
+
+  it('needs two loci to predict the agility run', () => {
+    const nimble = genomeWith({ size: ['t', 't'], coat: ['F', 'F'] });
+    const heavy = genomeWith({ size: ['T', 'T'], coat: ['f', 'f'] });
+    const mixed = genomeWith({ size: ['t', 't'], coat: ['f', 'f'] });
+
+    expect(runMiniTrial('agility', nimble).outcome.id).toBe('agility:nimble');
+    expect(runMiniTrial('agility', heavy).outcome.id).toBe('agility:heavy');
+    expect(runMiniTrial('agility', mixed).outcome.id).toBe('agility:brisk');
+  });
+
+  it('sets the coat trials against each other so no animal takes every ribbon', () => {
+    const fluffy = genomeWith({ coat: ['f', 'f'], size: ['t', 't'] });
+    const sleek = genomeWith({ coat: ['F', 'F'], size: ['t', 't'] });
+
+    expect(runMiniTrial('endurance', fluffy).outcome.places).toBe(true);
+    expect(runMiniTrial('agility', fluffy).outcome.places).toBe(false);
+    expect(runMiniTrial('endurance', sleek).outcome.places).toBe(false);
+    expect(runMiniTrial('agility', sleek).outcome.places).toBe(true);
+  });
+
+  it('caps any genome below a clean sweep of the card', () => {
+    const best = genomeWith({
+      coat: ['f', 'f'],
+      wings: ['W', 'W'],
+      size: ['t', 't'],
+      ember: ['Er', 'Er'],
+    });
+    expect(miniRibbonCount(best)).toBeLessThan(MINI_TRIALS.length);
+  });
+
+  it('never names a gene or a genotype in a trial result', () => {
+    const genome = genomeWith({});
+    const text = MINI_TRIALS.map((trial) => {
+      const result = runMiniTrial(trial.id, genome);
+      return `${trial.name} ${trial.brief} ${result.outcome.label} ${result.outcome.detail}`;
+    }).join(' ');
+
+    expect(text.toLowerCase()).not.toContain('allele');
+    expect(text.toLowerCase()).not.toContain('genotype');
+    expect(text).not.toMatch(/\b[A-Z][a-z]?[A-Za-z]\b(?=\s|$)/);
+  });
+});
+
+function hueOf(color: string): string {
+  return /^hsl\(\s*([\d.]+)/.exec(color)?.[1] ?? color;
+}

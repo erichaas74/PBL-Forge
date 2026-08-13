@@ -2,12 +2,10 @@ import { PUBLISHED_CLASSIC_DRAGON_PRESET } from '../../../../data/published-drag
 import { AssemblyBlueprint } from '../../../../shared/assembly/domain/assembly.models';
 import { AssemblyCombatProfile } from '../../../../shared/assembly/combat/assembly-combat.models';
 import { cloneAssemblyBlueprint } from '../../../../shared/assembly/domain/assembly-clone';
-import {
-  createFounderDragonGenome,
-  generateDragonAssembly,
-} from './dragon-phenotype-builder';
+import { createFounderDragonGenome, generateDragonAssembly } from './dragon-phenotype-builder';
 import {
   DragonLabGenome,
+  DragonBredProfile,
   DragonGameteGenome,
   DragonOffspring,
   DragonParentProfile,
@@ -67,21 +65,33 @@ export const DRAGON_TRAITS: readonly DragonTraitDefinition[] = [
 
 export const DRAGON_PARENTS: readonly DragonParentProfile[] = [
   profile('ember', 'Ember', 'Volcanic scout', '#d94841', '#ffb45e', {
-    wings: ['W', 'w'], fire: ['F', 'f'], scales: ['S', 's'], horns: ['h', 'h'],
+    wings: ['W', 'w'],
+    fire: ['F', 'f'],
+    scales: ['S', 's'],
+    horns: ['h', 'h'],
   }),
   profile('tide', 'Tide', 'Coastal navigator', '#3679b8', '#73d5e8', {
-    wings: ['w', 'w'], fire: ['F', 'f'], scales: ['s', 's'], horns: ['H', 'h'],
+    wings: ['w', 'w'],
+    fire: ['F', 'f'],
+    scales: ['s', 's'],
+    horns: ['H', 'h'],
   }),
   profile('moss', 'Moss', 'Forest guardian', '#4f814d', '#add46f', {
-    wings: ['W', 'w'], fire: ['f', 'f'], scales: ['S', 's'], horns: ['H', 'h'],
+    wings: ['W', 'w'],
+    fire: ['f', 'f'],
+    scales: ['S', 's'],
+    horns: ['H', 'h'],
   }),
   profile('quartz', 'Quartz', 'Mountain glider', '#7d66a5', '#d8b6f0', {
-    wings: ['W', 'W'], fire: ['f', 'f'], scales: ['s', 's'], horns: ['h', 'h'],
+    wings: ['W', 'W'],
+    fire: ['f', 'f'],
+    scales: ['s', 's'],
+    horns: ['h', 'h'],
   }),
 ];
 
 export function getTrait(traitId: DragonTraitId): DragonTraitDefinition {
-  const trait = DRAGON_TRAITS.find(item => item.id === traitId);
+  const trait = DRAGON_TRAITS.find((item) => item.id === traitId);
   if (!trait) throw new Error(`Unknown dragon trait: ${traitId}`);
   return trait;
 }
@@ -142,7 +152,9 @@ export function dominantPhenotypeProbability(
   traitId: DragonTraitId,
 ): number {
   const cells = buildPunnettCells(parentA, parentB, traitId);
-  return Math.round(100 * cells.filter(cell => cell.showsDominantPhenotype).length / cells.length);
+  return Math.round(
+    (100 * cells.filter((cell) => cell.showsDominantPhenotype).length) / cells.length,
+  );
 }
 
 export function breedLabClutch(
@@ -151,17 +163,42 @@ export function breedLabClutch(
   run: number,
   size = 8,
 ): DragonOffspring[] {
+  return breedLabOffspringProfiles(parentA, parentB, run, size).map((dragon) => {
+    const engineGenome = createVisualGenome(dragon.id, dragon.genome, dragon.generation);
+    const build = createEducationalAssembly(dragon.genome, engineGenome);
+    return {
+      ...dragon,
+      engineGenome,
+      assembly: build.assembly,
+      combatProfile: build.combatProfile,
+    };
+  });
+}
+
+/**
+ * Breeds the same deterministic offspring as {@link breedLabClutch} without eagerly generating a
+ * 3D assembly for every animal. Population instruments can handle batches of 100 cheaply, then
+ * materialize only the specimens that actually enter a renderer.
+ */
+export function breedLabOffspringProfiles(
+  parentA: DragonParentProfile,
+  parentB: DragonParentProfile,
+  run: number,
+  size = 8,
+): DragonBredProfile[] {
   return Array.from({ length: size }, (_, index) => {
     const seed = `${parentA.id}:${parentB.id}:${run}:${index}`;
-    const genome = Object.fromEntries(DRAGON_TRAITS.map(trait => [trait.id, normalizeGenotype([
-      selectAllele(parentA.genome[trait.id], `${seed}:${trait.id}:a`),
-      selectAllele(parentB.genome[trait.id], `${seed}:${trait.id}:b`),
-    ])])) as DragonLabGenome;
+    const genome = Object.fromEntries(
+      DRAGON_TRAITS.map((trait) => [
+        trait.id,
+        normalizeGenotype([
+          selectAllele(parentA.genome[trait.id], `${seed}:${trait.id}:a`),
+          selectAllele(parentB.genome[trait.id], `${seed}:${trait.id}:b`),
+        ]),
+      ]),
+    ) as DragonLabGenome;
     const id = `clutch-${run}-${index + 1}`;
     const color = offspringColor(`${parentA.id}:${parentB.id}:${run}`, index);
-    const engineGenome = createVisualGenome(id, genome, run);
-    const build = createEducationalAssembly(genome, engineGenome);
-
     return {
       id,
       name: `Hatchling ${index + 1}`,
@@ -171,9 +208,6 @@ export function breedLabClutch(
       genome,
       parentIds: [parentA.id, parentB.id],
       generation: run,
-      engineGenome,
-      assembly: build.assembly,
-      combatProfile: build.combatProfile,
     };
   });
 }
@@ -198,10 +232,7 @@ export function fertilizeLabGametes(
   sequence = 1,
 ): DragonOffspring {
   const genome = Object.fromEntries(
-    DRAGON_TRAITS.map((trait) => [
-      trait.id,
-      normalizeGenotype([egg[trait.id], sperm[trait.id]]),
-    ]),
+    DRAGON_TRAITS.map((trait) => [trait.id, normalizeGenotype([egg[trait.id], sperm[trait.id]])]),
   ) as DragonLabGenome;
   const color = offspringColor(`${eggParent.id}:${spermParent.id}:${generation}`, sequence);
   const engineGenome = createVisualGenome(offspringId, genome, generation);
@@ -226,7 +257,7 @@ export function countDominantPhenotypes(
   clutch: readonly DragonOffspring[],
   traitId: DragonTraitId,
 ): number {
-  return clutch.filter(dragon => showsDominantPhenotype(dragon.genome[traitId], traitId)).length;
+  return clutch.filter((dragon) => showsDominantPhenotype(dragon.genome[traitId], traitId)).length;
 }
 
 export function analyzePairDiversity(
@@ -238,11 +269,14 @@ export function analyzePairDiversity(
   for (const trait of DRAGON_TRAITS) {
     const alleles = new Set([...parentA.genome[trait.id], ...parentB.genome[trait.id]]);
     alleleRichness += alleles.size / 2;
-    heterozygousCells += buildPunnettCells(parentA, parentB, trait.id)
-      .filter(cell => isHeterozygous(cell.genotype)).length / 4;
+    heterozygousCells +=
+      buildPunnettCells(parentA, parentB, trait.id).filter((cell) => isHeterozygous(cell.genotype))
+        .length / 4;
   }
-  const alleleRichnessPercent = Math.round(100 * alleleRichness / DRAGON_TRAITS.length);
-  const expectedHeterozygosityPercent = Math.round(100 * heterozygousCells / DRAGON_TRAITS.length);
+  const alleleRichnessPercent = Math.round((100 * alleleRichness) / DRAGON_TRAITS.length);
+  const expectedHeterozygosityPercent = Math.round(
+    (100 * heterozygousCells) / DRAGON_TRAITS.length,
+  );
   const score = Math.round(alleleRichnessPercent * 0.6 + expectedHeterozygosityPercent * 0.4);
 
   return {
@@ -251,11 +285,12 @@ export function analyzePairDiversity(
     alleleRichnessPercent,
     expectedHeterozygosityPercent,
     score,
-    summary: score >= 75
-      ? 'This pair preserves many modeled alleles and can produce varied offspring.'
-      : score >= 55
-        ? 'This pair preserves some variation, with fewer possible combinations at some genes.'
-        : 'This pair has a narrower modeled gene pool. Repeating only this cross could reduce variation.',
+    summary:
+      score >= 75
+        ? 'This pair preserves many modeled alleles and can produce varied offspring.'
+        : score >= 55
+          ? 'This pair preserves some variation, with fewer possible combinations at some genes.'
+          : 'This pair has a narrower modeled gene pool. Repeating only this cross could reduce variation.',
   };
 }
 
@@ -266,7 +301,9 @@ export function allParentPairAnalyses(): PairDiversityAnalysis[] {
       analyses.push(analyzePairDiversity(DRAGON_PARENTS[first], DRAGON_PARENTS[second]));
     }
   }
-  return analyses.sort((left, right) => right.score - left.score || left.pairId.localeCompare(right.pairId));
+  return analyses.sort(
+    (left, right) => right.score - left.score || left.pairId.localeCompare(right.pairId),
+  );
 }
 
 function profile(
@@ -391,12 +428,13 @@ export function createEducationalAssembly(
 
   if (!showsDominantPhenotype(genome.wings, 'wings')) {
     const removedIds = new Set(
-      blueprint.parts.filter(part => part.roles?.includes('wing')).map(part => part.id),
+      blueprint.parts.filter((part) => part.roles?.includes('wing')).map((part) => part.id),
     );
     blueprint = {
-      parts: blueprint.parts.filter(part => !removedIds.has(part.id)),
-      joints: blueprint.joints.filter(joint =>
-        !removedIds.has(joint.parentPartId) && !removedIds.has(joint.childPartId)),
+      parts: blueprint.parts.filter((part) => !removedIds.has(part.id)),
+      joints: blueprint.joints.filter(
+        (joint) => !removedIds.has(joint.parentPartId) && !removedIds.has(joint.childPartId),
+      ),
     };
   }
 
@@ -409,26 +447,33 @@ export function createEducationalAssembly(
    * horned one with the horns taken off.
    */
   if (!showsDominantPhenotype(genome.horns, 'horns')) {
-    blueprint.parts = blueprint.parts.map(part =>
+    blueprint.parts = blueprint.parts.map((part) =>
       part.visualProfile?.profileId === 'dragon-head-horned'
         ? {
-          ...part,
-          visualProfile: {
-            ...part.visualProfile,
-            parameters: { ...(part.visualProfile.parameters ?? {}), hornLength: 0, browLength: 0 },
-          },
-        }
-        : part);
+            ...part,
+            visualProfile: {
+              ...part.visualProfile,
+              parameters: {
+                ...(part.visualProfile.parameters ?? {}),
+                hornLength: 0,
+                browLength: 0,
+              },
+            },
+          }
+        : part,
+    );
   }
 
-  blueprint.parts = blueprint.parts.map(part => {
+  blueprint.parts = blueprint.parts.map((part) => {
     const profileId = part.visualProfile?.profileId ?? '';
     const parameters: Record<string, string | number | boolean> = {
       ...(part.visualProfile?.parameters ?? {}),
     };
     if (profileId === 'dragon-body') {
-      if (expression.backSpikeCount !== undefined) parameters['backSpikeCount'] = expression.backSpikeCount;
-      if (expression.backSpikeScale !== undefined) parameters['backSpikeScale'] = expression.backSpikeScale;
+      if (expression.backSpikeCount !== undefined)
+        parameters['backSpikeCount'] = expression.backSpikeCount;
+      if (expression.backSpikeScale !== undefined)
+        parameters['backSpikeScale'] = expression.backSpikeScale;
     }
     if (profileId.startsWith('dragon-head-')) {
       if (expression.crestScale !== undefined) parameters['crestScale'] = expression.crestScale;
@@ -443,18 +488,20 @@ export function createEducationalAssembly(
       parameters['clawScale'] = expression.clawScale;
     }
     if (
-      expression.tailClubForm
-      && (profileId === 'dragon-tail-stinger' || profileId === 'dragon-tail-club')
-      && part.visualProfile
+      expression.tailClubForm &&
+      (profileId === 'dragon-tail-stinger' || profileId === 'dragon-tail-club') &&
+      part.visualProfile
     ) {
       const form = expression.tailClubForm;
-      const size = form === 'large'
-        ? { x: 0.34, y: 0.46, z: 0.46, mass: 0.72 }
-        : form === 'intermediate'
-          ? { x: 0.26, y: 0.38, z: 0.32, mass: 0.52 }
-          : { x: 0.19, y: 0.3, z: 0.2, mass: 0.34 };
+      const size =
+        form === 'large'
+          ? { x: 0.34, y: 0.46, z: 0.46, mass: 0.72 }
+          : form === 'intermediate'
+            ? { x: 0.26, y: 0.38, z: 0.32, mass: 0.52 }
+            : { x: 0.19, y: 0.3, z: 0.2, mass: 0.34 };
       parameters['tailClubSpikeCount'] = form === 'large' ? 10 : form === 'intermediate' ? 5 : 0;
-      parameters['tailClubSpikeScale'] = form === 'large' ? 1.2 : form === 'intermediate' ? 0.78 : 0;
+      parameters['tailClubSpikeScale'] =
+        form === 'large' ? 1.2 : form === 'intermediate' ? 0.78 : 0;
       return {
         ...part,
         label: `${form[0].toUpperCase()}${form.slice(1)} tail club`,
@@ -476,13 +523,14 @@ export function createEducationalAssembly(
   if (expression.legPairs === 1) {
     const removedIds = new Set(
       blueprint.parts
-        .filter(part => part.id.includes('front') && part.roles?.includes('leg'))
-        .map(part => part.id),
+        .filter((part) => part.id.includes('front') && part.roles?.includes('leg'))
+        .map((part) => part.id),
     );
     blueprint = {
-      parts: blueprint.parts.filter(part => !removedIds.has(part.id)),
-      joints: blueprint.joints.filter(joint =>
-        !removedIds.has(joint.parentPartId) && !removedIds.has(joint.childPartId)),
+      parts: blueprint.parts.filter((part) => !removedIds.has(part.id)),
+      joints: blueprint.joints.filter(
+        (joint) => !removedIds.has(joint.parentPartId) && !removedIds.has(joint.childPartId),
+      ),
     };
   }
 
@@ -509,7 +557,7 @@ export function createEducationalAssembly(
   // The genome-tuned combat profile (armor from horns, damage from temperament)
   // travels with the assembly so the arena fights with these numbers instead of
   // regenerating defaults. Prune entries for parts removed by the genotype.
-  const partIds = new Set(blueprint.parts.map(part => part.id));
+  const partIds = new Set(blueprint.parts.map((part) => part.id));
   const combatProfile: AssemblyCombatProfile = {
     ...generated.combatProfile,
     parts: Object.fromEntries(
@@ -551,14 +599,18 @@ const HUE_STEP = 137.508;
  * default white. Every bred dragon rendered as a white blank because of it.
  */
 function offspringColor(clutchSeed: string, index: number): string {
-  const hue = Math.round((stableHash(clutchSeed) % 360 + index * HUE_STEP) % 360);
-  const saturation = 48 + stableHash(`${clutchSeed}:saturation:${index}`) % 20;
-  const lightness = 26 + stableHash(`${clutchSeed}:lightness:${index}`) % 10;
+  const hue = Math.round(((stableHash(clutchSeed) % 360) + index * HUE_STEP) % 360);
+  const saturation = 48 + (stableHash(`${clutchSeed}:saturation:${index}`) % 20);
+  const lightness = 26 + (stableHash(`${clutchSeed}:lightness:${index}`) % 10);
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
 function lightenColor(color: string): string {
-  if (color.startsWith('hsl(')) return color.replace(/(\d+)%\)$/, value => `${Math.min(76, Number(value.slice(0, -2)) + 24)}%)`);
+  if (color.startsWith('hsl('))
+    return color.replace(
+      /(\d+)%\)$/,
+      (value) => `${Math.min(76, Number(value.slice(0, -2)) + 24)}%)`,
+    );
   return color;
 }
 
@@ -613,5 +665,5 @@ function hueOf(color: string): number | null {
   else if (max === green) hue = (blue - red) / chroma + 2;
   else hue = (red - green) / chroma + 4;
 
-  return ((hue * 60) % 360 + 360) % 360;
+  return (((hue * 60) % 360) + 360) % 360;
 }

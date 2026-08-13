@@ -1,162 +1,329 @@
-<section class="sequence-analysis" aria-label="DNA comparison bench">
+<section class="sequence-analysis" aria-label="Aligned DNA comparison and repair instrument">
   <header class="analysis-head">
     <div>
-      <span class="analysis-kind">{{ activeTool() }}</span>
-      <h3>{{ analysisCase().geneLabel ?? analysisCase().sampleLabel }}</h3>
+      <span class="analysis-kind">ALIGNED DNA VIEWER</span>
+      <h3>{{ analysisCase().sampleLabel }}</h3>
     </div>
-    <output
-      [class.supported]="lastSupported() === true"
-      [class.unsupported]="lastSupported() === false"
-    >
-      {{ lastSupported() === null ? 'READY' : lastSupported() ? 'SUPPORTED' : 'NOT SUPPORTED' }}
-    </output>
+    <nav class="mode-switch" aria-label="DNA bench mode">
+      <button
+        type="button"
+        [class.active]="mode() === 'compare'"
+        [attr.aria-pressed]="mode() === 'compare'"
+        (click)="selectMode('compare')"
+      >
+        COMPARE
+      </button>
+      <button
+        type="button"
+        [class.active]="mode() === 'mutation'"
+        [attr.aria-pressed]="mode() === 'mutation'"
+        (click)="selectMode('mutation')"
+      >
+        CREATE MUTATION
+      </button>
+      <button
+        type="button"
+        [class.active]="mode() === 'repair'"
+        [attr.aria-pressed]="mode() === 'repair'"
+        (click)="selectMode('repair')"
+      >
+        TEST REPAIR
+      </button>
+    </nav>
   </header>
 
-  <div class="sequence-reader" [class.codon-view]="showCodons()">
-    <div class="strand-label">
-      <strong>{{ analysisCase().referenceSampleLabel ?? 'A' }}</strong
-      ><span>DNA</span>
+  <section class="comparison-readout" aria-label="DNA difference summary">
+    <div class="similarity-gauge">
+      <span>MATCH</span>
+      <strong>{{ similarity() }}%</strong>
+      <i><b [style.width.%]="similarity()"></b></i>
     </div>
-    <div class="base-track" aria-label="Sample A DNA">
-      @for (base of referenceBases(); track $index) {
-        <span class="base" [attr.data-base]="base"
-          ><small>{{ $index + 1 }}</small
-          >{{ base }}</span
-        >
-      }
+    <div>
+      <span>ALIGNED BASES</span><strong>{{ alignment().length }}</strong>
     </div>
-    <div class="strand-label">
-      <strong>{{ analysisCase().comparisonSampleLabel ?? 'B' }}</strong
-      ><span>DNA</span>
+    <div data-kind="substitution">
+      <span>SUBSTITUTIONS</span><strong>{{ differenceCounts().substitutions }}</strong>
     </div>
-    <div class="base-track sample-track" aria-label="Sample B DNA">
-      @for (base of sampleBases(); track $index) {
-        <button
-          type="button"
-          class="base"
-          [attr.data-base]="base"
-          [class.selected]="selectedPosition() === $index"
-          (click)="selectPosition($index)"
-        >
-          <small>{{ $index + 1 }}</small
-          >{{ base }}
-        </button>
-      }
+    <div data-kind="insertion">
+      <span>INSERTIONS</span><strong>{{ differenceCounts().insertions }}</strong>
     </div>
-    @if (activeTool() === 'pair' || activeTool() === 'copy' || activeTool() === 'repair') {
-      <div class="strand-label complement-label"><strong>PAIR</strong><span>Sample B</span></div>
-      <div class="base-track complement-track" aria-label="Complementary DNA">
-        @for (base of complement().split(''); track $index) {
-          <span class="base" [attr.data-base]="base"
-            ><small>{{ $index + 1 }}</small
-            >{{ base }}</span
+    <div data-kind="deletion">
+      <span>DELETIONS</span><strong>{{ differenceCounts().deletions }}</strong>
+    </div>
+  </section>
+
+  <section class="sequence-reader" aria-label="Base-by-base alignment">
+    <div class="reader-key">
+      <span><i class="marker substitution"></i>S substitution</span>
+      <span><i class="marker insertion"></i>+ insertion</span>
+      <span><i class="marker deletion"></i>− deletion</span>
+    </div>
+    <div class="sequence-scroll">
+      <div class="strand-label reference-label">
+        <strong>A · {{ analysisCase().referenceSampleLabel ?? 'REFERENCE' }}</strong>
+        <span>reference DNA</span>
+      </div>
+      <div
+        class="base-track reference-track"
+        [style.--column-count]="alignment().length"
+        aria-label="Reference DNA sequence"
+      >
+        @for (column of alignment(); track $index) {
+          <span
+            class="base"
+            [class.gap]="column.referenceBase === null"
+            [class.different]="column.kind !== 'match'"
+            [attr.data-base]="column.referenceBase"
           >
+            <small>{{ column.referenceIndex === null ? '' : column.referenceIndex + 1 }}</small>
+            {{ baseLabel(column.referenceBase) }}
+          </span>
         }
       </div>
-    }
-  </div>
 
-  <section class="test-console" aria-label="Active molecular test">
-    @switch (activeTool()) {
-      @case ('align') {
-        <strong>TEST POSITION</strong>
-        <button type="button" [disabled]="selectedPosition() === null" (click)="testPosition()">
-          {{
-            selectedPosition() === null
-              ? 'SELECT BASE'
-              : 'POSITION ' + ((selectedPosition() ?? 0) + 1)
-          }}
-        </button>
-      }
-      @case ('pair') {
-        <strong>TEST COMPLEMENT</strong>
-        <div class="choice-row transcript-choices">
-          @for (
-            sequence of [complement(), analysisCase().sample, analysisCase().reference];
-            track sequence
-          ) {
-            <button
-              type="button"
-              [class.selected]="selectedComplement() === sequence"
-              (click)="testComplement(sequence)"
-            >
-              {{ sequence }}
-            </button>
-          }
-        </div>
-      }
-      @case ('copy') {
-        <strong>DNA PRODUCTS</strong>
-        <div class="choice-row">
+      <div class="strand-label difference-label"><strong>Δ</strong><span>difference map</span></div>
+      <div
+        class="difference-track"
+        [style.--column-count]="alignment().length"
+        aria-label="DNA difference map"
+      >
+        @for (column of alignment(); track $index) {
+          <span [attr.data-kind]="column.kind">{{ differenceSymbol(column.kind) }}</span>
+        }
+      </div>
+
+      <div class="strand-label comparison-label">
+        <strong>B · {{ analysisCase().comparisonSampleLabel ?? 'COMPARISON' }}</strong>
+        <span>editable DNA</span>
+      </div>
+      <div
+        class="base-track comparison-track"
+        [style.--column-count]="alignment().length"
+        aria-label="Editable comparison DNA sequence"
+      >
+        @for (column of alignment(); track $index) {
           <button
             type="button"
-            [class.selected]="selectedCopyCount() === 1"
-            (click)="testCopyCount(1)"
+            class="base"
+            [class.gap]="column.comparisonBase === null"
+            [class.different]="column.kind !== 'match'"
+            [class.selected]="selectedColumn() === $index"
+            [attr.data-base]="column.comparisonBase"
+            [attr.aria-label]="columnLabel(column, $index)"
+            [attr.aria-pressed]="selectedColumn() === $index"
+            (click)="selectColumn($index)"
           >
-            1
+            <small>{{ column.comparisonIndex === null ? '' : column.comparisonIndex + 1 }}</small>
+            {{ baseLabel(column.comparisonBase) }}
           </button>
-          <button
-            type="button"
-            [class.selected]="selectedCopyCount() === 2"
-            (click)="testCopyCount(2)"
-          >
-            2
-          </button>
-          <button
-            type="button"
-            [class.selected]="selectedCopyCount() === 4"
-            (click)="testCopyCount(4)"
-          >
-            4
-          </button>
-        </div>
-      }
-      @case ('rna') {
-        <strong>TEST RNA</strong>
-        <div class="choice-row transcript-choices">
-          @for (sequence of transcriptOptions(); track sequence) {
-            <button
-              type="button"
-              [class.selected]="transcript() === sequence"
-              (click)="testTranscript(sequence)"
-            >
-              {{ sequence }}
-            </button>
-          }
-        </div>
-      }
-      @case ('mutation') {
-        <strong>TEST CHANGE</strong>
-        <div class="choice-row">
-          @for (type of ['substitution', 'insertion', 'deletion']; track type) {
-            <button
-              type="button"
-              [class.selected]="mutationType() === type"
-              (click)="testMutationType(type)"
-            >
-              {{ type }}
-            </button>
-          }
-        </div>
-      }
-      @case ('repair') {
-        <strong
-          >TEST REPAIR
-          {{ selectedPosition() === null ? '' : 'AT ' + ((selectedPosition() ?? 0) + 1) }}</strong
-        >
-        <div class="choice-row">
-          @for (base of bases; track base) {
-            <button
-              type="button"
-              [class.selected]="selectedRepairBase() === base"
-              [disabled]="selectedPosition() === null"
-              (click)="testRepairBase(base)"
-            >
-              {{ base }}
-            </button>
-          }
-        </div>
-      }
-    }
+        }
+      </div>
+    </div>
   </section>
+
+  <div class="instrument-floor">
+    <section class="animation-viewer" aria-label="DNA change animation">
+      @if (animationSnapshot(); as snapshot) {
+        <header>
+          <div>
+            <span>MOLECULAR VIEW</span><strong>{{ snapshot.label }}</strong>
+          </div>
+          <b>POSITION {{ snapshot.position }}</b>
+        </header>
+        <div
+          class="dna-animation"
+          [class.playing]="animationPlaying()"
+          [attr.data-animation]="snapshot.kind"
+        >
+          <div class="backbone backbone-top"></div>
+          <div class="backbone backbone-bottom"></div>
+          @if (snapshot.kind === 'repair') {
+            <div class="repair-complex"><i></i><span>REPAIR COMPLEX</span></div>
+          }
+          <div class="animated-pairs">
+            @for (cell of snapshot.cells; track $index) {
+              <div class="animated-pair" [class.focus-pair]="cell.focus">
+                @if (!cell.focus) {
+                  <span class="nucleotide top" [attr.data-base]="cell.base">
+                    {{ baseLabel(cell.base) }}
+                  </span>
+                  <i></i>
+                  <span class="nucleotide bottom" [attr.data-base]="complementBase(cell.base)">
+                    {{ baseLabel(complementBase(cell.base)) }}
+                  </span>
+                } @else {
+                  <div class="old-pair">
+                    <span class="nucleotide top" [attr.data-base]="snapshot.beforeBase">
+                      {{ baseLabel(snapshot.beforeBase) }}
+                    </span>
+                    <i></i>
+                    <span
+                      class="nucleotide bottom"
+                      [attr.data-base]="complementBase(snapshot.beforeBase)"
+                    >
+                      {{ baseLabel(complementBase(snapshot.beforeBase)) }}
+                    </span>
+                  </div>
+                  <div class="new-pair">
+                    <span class="nucleotide top" [attr.data-base]="snapshot.afterBase">
+                      {{ baseLabel(snapshot.afterBase) }}
+                    </span>
+                    <i></i>
+                    <span
+                      class="nucleotide bottom"
+                      [attr.data-base]="complementBase(snapshot.afterBase)"
+                    >
+                      {{ baseLabel(complementBase(snapshot.afterBase)) }}
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </section>
+
+    <section class="operation-console" [attr.data-mode]="mode()" aria-label="DNA operation console">
+      <header>
+        <span>{{
+          mode() === 'compare'
+            ? 'DIFFERENCE INSPECTOR'
+            : mode() === 'mutation'
+              ? 'MUTATION TOOL'
+              : 'REPAIR TOOL'
+        }}</span>
+        @if (selectedAlignment(); as selected) {
+          <strong>{{ selected.kind }} · aligned position {{ (selectedColumn() ?? 0) + 1 }}</strong>
+        }
+      </header>
+
+      @switch (mode()) {
+        @case ('compare') {
+          <div class="difference-navigation">
+            <button
+              type="button"
+              [disabled]="differenceCount() === 0"
+              (click)="moveToDifference(-1)"
+            >
+              ← PREVIOUS
+            </button>
+            <output>
+              {{
+                differenceCount() === 0
+                  ? 'NO DIFFERENCES'
+                  : selectedDifferenceOrdinal() < 0
+                    ? 'POSITION SELECTED'
+                    : selectedDifferenceOrdinal() + 1 + ' OF ' + differenceCount()
+              }}
+            </output>
+            <button
+              type="button"
+              [disabled]="differenceCount() === 0"
+              (click)="moveToDifference(1)"
+            >
+              NEXT →
+            </button>
+          </div>
+          <button type="button" class="primary-action" (click)="replayDifference()">
+            ANIMATE SELECTED BASE
+          </button>
+          <button type="button" class="record-action" (click)="recordComparison()">
+            RECORD COMPARISON
+          </button>
+        }
+        @case ('mutation') {
+          <div class="action-picker" role="group" aria-label="Mutation type">
+            @for (action of ['substitution', 'insertion', 'deletion']; track action) {
+              <button
+                type="button"
+                [class.active]="mutationAction() === action"
+                [attr.aria-pressed]="mutationAction() === action"
+                (click)="chooseMutationAction($any(action))"
+              >
+                {{ action }}
+              </button>
+            }
+          </div>
+          @if (mutationAction() !== 'deletion') {
+            <div class="base-picker" role="group" aria-label="Mutation base">
+              @for (base of bases; track base) {
+                <button
+                  type="button"
+                  [attr.data-base]="base"
+                  [class.active]="selectedBase() === base"
+                  [attr.aria-pressed]="selectedBase() === base"
+                  (click)="chooseBase(base)"
+                >
+                  {{ base }}
+                </button>
+              }
+            </div>
+          }
+          <button
+            type="button"
+            class="primary-action mutation-action"
+            [disabled]="!canApplyMutation()"
+            (click)="applyMutation()"
+          >
+            APPLY MUTATION
+          </button>
+        }
+        @case ('repair') {
+          <div class="action-picker" role="group" aria-label="Repair type">
+            <button
+              type="button"
+              [class.active]="repairAction() === 'replace'"
+              [attr.aria-pressed]="repairAction() === 'replace'"
+              (click)="chooseRepairAction('replace')"
+            >
+              REPLACE BASE
+            </button>
+            <button
+              type="button"
+              [class.active]="repairAction() === 'insert'"
+              [attr.aria-pressed]="repairAction() === 'insert'"
+              (click)="chooseRepairAction('insert')"
+            >
+              INSERT BASE
+            </button>
+            <button
+              type="button"
+              [class.active]="repairAction() === 'remove'"
+              [attr.aria-pressed]="repairAction() === 'remove'"
+              (click)="chooseRepairAction('remove')"
+            >
+              REMOVE BASE
+            </button>
+          </div>
+          @if (repairAction() !== 'remove') {
+            <div class="base-picker" role="group" aria-label="Repair base">
+              @for (base of bases; track base) {
+                <button
+                  type="button"
+                  [attr.data-base]="base"
+                  [class.active]="selectedBase() === base"
+                  [attr.aria-pressed]="selectedBase() === base"
+                  (click)="chooseBase(base)"
+                >
+                  {{ base }}
+                </button>
+              }
+            </div>
+          }
+          <button
+            type="button"
+            class="primary-action repair-action"
+            [disabled]="!canApplyRepair()"
+            (click)="applyRepair()"
+          >
+            RUN REPAIR
+          </button>
+        }
+      }
+      <button type="button" class="reset-action" (click)="resetComparison()">
+        RESTORE ORIGINAL RECORD B
+      </button>
+    </section>
+  </div>
 </section>

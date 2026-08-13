@@ -3,12 +3,7 @@ import { AssemblyCombatProfile } from '../../../../shared/assembly/combat/assemb
 import { DragonGenome } from './dragon-genetics.models';
 
 export type DragonLabStage =
-  | 'mission'
-  | 'traits'
-  | 'inheritance'
-  | 'hatchery'
-  | 'evidence'
-  | 'board';
+  'mission' | 'traits' | 'inheritance' | 'hatchery' | 'evidence' | 'board';
 
 export type DragonTraitId = 'wings' | 'fire' | 'scales' | 'horns';
 export type TraitSortCategory = 'inherited' | 'learned-environmental';
@@ -39,9 +34,13 @@ export interface DragonParentProfile {
   genome: DragonLabGenome;
 }
 
-export interface DragonOffspring extends DragonParentProfile {
+/** Lightweight bred specimen used by population instruments before a 3D build is needed. */
+export interface DragonBredProfile extends DragonParentProfile {
   parentIds: [string, string];
   generation: number;
+}
+
+export interface DragonOffspring extends DragonBredProfile {
   engineGenome: DragonGenome;
   assembly: AssemblyBlueprint;
   /** Genome-derived health/armor/damage numbers consumed by the battle arena. */

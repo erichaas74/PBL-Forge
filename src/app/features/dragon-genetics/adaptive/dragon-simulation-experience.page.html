@@ -83,7 +83,8 @@
       @if (
         simulation.id !== 'allele-workbench' &&
         simulation.id !== 'dragon-hatchery' &&
-        simulation.id !== 'punnett-composer'
+        simulation.id !== 'punnett-composer' &&
+        simulation.id !== 'incubator-sampler'
       ) {
         <nav class="phase-rail" aria-label="Simulation sections">
           @for (item of questions(); track item.id; let index = $index) {
@@ -135,6 +136,15 @@
             />
           </section>
         </main>
+      } @else if (simulation.id === 'incubator-sampler') {
+        <main class="experience-workspace incubator-workspace">
+          <section class="visual-stage incubator-stage">
+            <app-incubator-sampler
+              [studentId]="session.user()?.uid ?? 'local-student'"
+              [goal]="simulation.goal"
+            />
+          </section>
+        </main>
       } @else if (
         (!currentRun.complete || transferredDnaAnalysisCase()) && question();
         as currentQuestion
@@ -160,9 +170,12 @@
               />
             } @else if (simulation.id === 'dna-process-lab') {
               <app-dragon-dna-repair-lab
-                [focusQuestionId]="dnaLabFocusQuestionId()"
+                [studentId]="session.user()?.uid ?? 'local-student'"
+                [goal]="simulation.goal"
                 [analysisCase]="transferredDnaAnalysisCase()"
                 [chromosomeModel]="transferredDnaChromosomeModel()"
+                [genes]="availableAlleleGenes()"
+                [alleles]="availableAlleles()"
                 (modelSelected)="selectNode($event)"
               />
             } @else if (simulation.id === 'dragon-hatchery') {

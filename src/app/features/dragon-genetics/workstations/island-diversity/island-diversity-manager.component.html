@@ -277,13 +277,7 @@
                   <small>{{ locus.name }}</small>
                   <strong>{{ genotypeFor(dragon, locus.id) }}</strong>
                   @if (locus.id === 'moonfade') {
-                    <span>{{
-                      isMoonfadeAffected(dragon)
-                        ? 'Affected'
-                        : isMoonfadeCarrier(dragon)
-                          ? 'Unaffected carrier'
-                          : 'No d detected'
-                    }}</span>
+                    <span>{{ moonfadeStatus(dragon) }}</span>
                   }
                 </article>
               }

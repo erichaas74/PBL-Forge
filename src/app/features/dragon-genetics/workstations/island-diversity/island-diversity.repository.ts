@@ -51,6 +51,7 @@ export class IslandDiversityRepository {
 
 function isWorld(value: unknown): value is IslandDiversityWorld {
   if (!isRecord(value) || value['schemaVersion'] !== 1 || !isRecord(value['islands'])) return false;
+  const islands = value['islands'];
   return (
     typeof value['seed'] === 'string' &&
     typeof value['researchCredits'] === 'number' &&
@@ -58,7 +59,7 @@ function isWorld(value: unknown): value is IslandDiversityWorld {
     value['scannedDragonIds'].every((id) => typeof id === 'string') &&
     Array.isArray(value['admittedAccountDragonIds']) &&
     value['admittedAccountDragonIds'].every((id) => typeof id === 'string') &&
-    ISLAND_IDS.every((id) => isPopulation(value['islands'][id], id)) &&
+    ISLAND_IDS.every((id) => isPopulation(islands[id], id)) &&
     Array.isArray(value['relocations']) &&
     isRecord(value['notes']) &&
     typeof value['updatedAtIso'] === 'string'

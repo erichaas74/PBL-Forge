@@ -51,6 +51,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'dragon-genetics/companion-show',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/companion-show/companion-show.page').then(
+        (m) => m.CompanionShowPage,
+      ),
+  },
+  {
     path: 'dragon-genetics/island-diversity',
     loadComponent: () =>
       import('./features/dragon-genetics/workstations/island-diversity/island-diversity-manager.page').then(

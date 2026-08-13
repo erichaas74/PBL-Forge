@@ -25,20 +25,32 @@ export class AccountGeneticsFileComponent {
 
   readonly studentId = input('local-student');
   readonly selectedRecordId = input<string | null>(null);
+  /** Keep the existing account selector focused on whole dragons for phenotype-only labs. */
+  readonly dragonsOnly = input(false);
+  /** Compact selectors fit beside a workstation without changing the account-file interaction. */
+  readonly compact = input(false);
+  readonly disabled = input(false);
   readonly recordSelected = output<AccountGeneticsRecord>();
 
   readonly open = signal(true);
   readonly tab = signal<AccountGeneticsRecord['kind']>('dragon');
   readonly snapshot = computed(() => this.library.recordsFor(this.studentId()));
   readonly visibleRecords = computed<readonly AccountGeneticsRecord[]>(() =>
-    this.tab() === 'dragon' ? this.snapshot().dragons : this.snapshot().chromosomes,
+    this.dragonsOnly() || this.tab() === 'dragon'
+      ? this.snapshot().dragons
+      : this.snapshot().chromosomes,
   );
 
   select(record: AccountGeneticsRecord): void {
+    if (this.disabled()) return;
     this.recordSelected.emit(record);
   }
 
   startDrag(event: DragEvent, record: AccountGeneticsRecord): void {
+    if (this.disabled()) {
+      event.preventDefault();
+      return;
+    }
     if (!event.dataTransfer) return;
     event.dataTransfer.effectAllowed = 'copy';
     event.dataTransfer.setData(
