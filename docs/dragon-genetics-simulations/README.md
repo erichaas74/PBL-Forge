@@ -18,7 +18,7 @@ adaptive shell.
 | 5      | Punnett Composer        | Registry-driven generic workstation | [05](05-PUNNETT-COMPOSER.md)                |
 | 6      | Incubator Sampler       | Registry-driven generic workstation | [06](06-INCUBATOR-SAMPLER.md)               |
 | 8      | DNA Process Lab         | Dedicated workstation               | [08](08-DNA-PROCESS-LAB.md)                 |
-| 9      | Diversity Manager       | Registry-driven generic workstation | [09](09-DIVERSITY-MANAGER.md)               |
+| 9      | Island Diversity Manager | Dedicated workstation              | [09](09-DIVERSITY-MANAGER.md)               |
 | 10     | Protein & Diet Rescue   | Dedicated workstation               | [10](10-PROTEIN-DIET-RESCUE.md)             |
 | Shared | Dragon Hatchery         | Dedicated workstation               | [11](11-DRAGON-HATCHERY.md)                 |
 | Arena  | Dragon Arena Combat     | Dedicated experience                | [12](12-DRAGON-ARENA-COMBAT.md)             |

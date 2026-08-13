@@ -97,7 +97,7 @@ function challenge(
   };
 }
 
-export const DRAGON_SIMULATIONS: readonly DragonSimulationDefinition[] = [
+const DRAGON_SIMULATION_CATALOG: readonly DragonSimulationDefinition[] = [
   {
     id: 'trait-evidence',
     module: 1,
@@ -768,6 +768,10 @@ export const DRAGON_SIMULATIONS: readonly DragonSimulationDefinition[] = [
     },
   },
 ];
+
+/** Dedicated open workstations are excluded from the checkpoint-style instrument deck. */
+export const DRAGON_SIMULATIONS: readonly DragonSimulationDefinition[] =
+  DRAGON_SIMULATION_CATALOG.filter((simulation) => simulation.id !== 'diversity-manager');
 
 export const DRAGON_SIMULATION_BY_ID = Object.fromEntries(
   DRAGON_SIMULATIONS.map((simulation) => [simulation.id, simulation]),

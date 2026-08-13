@@ -15,6 +15,9 @@ sequence.
 - `dragon-hatchery/` owns account-parent loading, five-pair meiosis and gamete selection, selected
   fertilization records, parent canvases, the egg bench, Hatchery renderer, and scene adapter.
 - `genome-microscope/` owns the staged cell-to-allele SVG investigation.
+- `island-diversity/` owns the seven-island population model, field genotype scans, individual
+  relocation, protected-pair breeding, generation events, population metrics, and the persistent
+  conservation ledger. It has its own route at `/dragon-genetics/island-diversity`.
 - `pedigree-lab/` owns the historical dragon archive, the pedigree canvas, carrier deduction under a
   student-chosen inheritance model, the budgeted sequencing bay, and the breeding board. It is the
   only workstation with its own route (`/dragon-genetics/pedigree-lab`) rather than a registry entry.

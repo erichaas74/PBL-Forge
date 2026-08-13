@@ -24,7 +24,6 @@ describe('adaptive Dragon Genetics question generation', () => {
       'punnett-composer',
       'incubator-sampler',
       'dna-process-lab',
-      'diversity-manager',
       'dragon-hatchery',
       'dragon-arena',
     ]);

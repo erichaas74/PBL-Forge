@@ -303,6 +303,9 @@ main {
 .open-workstations .blood-lab-card {
   --simulation-accent: #e65e58;
 }
+.open-workstations .island-diversity-card {
+  --simulation-accent: #83d5af;
+}
 .rescue-preview {
   display: flex;
   flex-wrap: wrap;
@@ -365,6 +368,40 @@ main {
   color: #78929b;
   font-style: normal;
 }
+.island-preview {
+  position: relative;
+  min-height: 8rem;
+  margin: 0.7rem 1rem 0.7rem 0;
+  border: 1px solid color-mix(in srgb, var(--simulation-accent) 25%, transparent);
+  border-radius: 0.8rem;
+  background:
+    linear-gradient(25deg, transparent 48%, rgb(131 213 175 / 18%) 49% 51%, transparent 52%),
+    #0a2831;
+}
+.island-preview i {
+  position: absolute;
+  width: 1.65rem;
+  height: 1.25rem;
+  border: 1px solid var(--simulation-accent);
+  border-radius: 48% 52% 43% 57%;
+  background: color-mix(in srgb, var(--simulation-accent) 20%, #173b32);
+}
+.island-preview i:nth-child(1) { left: 10%; top: 20%; }
+.island-preview i:nth-child(2) { left: 42%; top: 12%; }
+.island-preview i:nth-child(3) { right: 10%; top: 25%; }
+.island-preview i:nth-child(4) { left: 22%; top: 57%; }
+.island-preview i:nth-child(5) { left: 50%; top: 50%; }
+.island-preview i:nth-child(6) { right: 16%; top: 61%; }
+.island-preview i:nth-child(7) { left: 46%; bottom: 4%; }
+.island-preview span {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.4rem;
+  color: var(--simulation-accent);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
 .simulation-grid article.complete {
   box-shadow: inset 4px 0 0 #64ce96;
 }
@@ -392,8 +429,12 @@ main {
     padding: 0 1rem 1rem;
   }
   .rescue-preview,
-  .blood-preview {
+  .blood-preview,
+  .island-preview {
     padding: 0 1rem 1rem;
+  }
+  .island-preview {
+    margin-left: 1rem;
   }
   .map-heading {
     align-items: start;
