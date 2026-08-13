@@ -5,7 +5,6 @@ import {
   DragonHatcheryInstrument,
   DragonVisualScene,
   GenomeMicroscopeInstrument,
-  GenotypeScannerInstrument,
   TraitInspectorInstrument,
 } from './dragon-visual.models';
 import { DragonTeachingSequence } from './teaching-sequence.models';
@@ -22,10 +21,10 @@ export function validateDragonVisualScene(scene: DragonVisualScene): string[] {
   if (scene.kind !== scene.instrument.kind) {
     errors.push('Scene kind must match the active instrument kind.');
   }
-  if (hasDuplicateIds(scene.samples.map(sample => sample.id))) {
+  if (hasDuplicateIds(scene.samples.map((sample) => sample.id))) {
     errors.push('Analysis sample IDs must be unique.');
   }
-  const sampleIds = new Set(scene.samples.map(sample => sample.id));
+  const sampleIds = new Set(scene.samples.map((sample) => sample.id));
   for (const referencedSampleId of instrumentSampleIds(scene)) {
     if (!sampleIds.has(referencedSampleId)) {
       errors.push(`Instrument references missing analysis sample ${referencedSampleId}.`);
@@ -36,9 +35,6 @@ export function validateDragonVisualScene(scene: DragonVisualScene): string[] {
   }
   if (scene.instrument.kind === 'genome-microscope') {
     errors.push(...validateGenomeMicroscope(scene, scene.instrument));
-  }
-  if (scene.instrument.kind === 'genotype-scanner') {
-    errors.push(...validateGenotypeScanner(scene, scene.instrument));
   }
   if (scene.instrument.kind === 'allele-switchboard') {
     errors.push(...validateAlleleSwitchboard(scene, scene.instrument));
@@ -56,11 +52,11 @@ function validateDragonHatchery(
   const errors: string[] = [];
   if (!instrument.clutchId.trim()) errors.push('Hatchery clutch ID is required.');
   if (!instrument.eggs.length) errors.push('A hatchery clutch needs at least one egg.');
-  if (hasDuplicateIds(instrument.eggs.map(egg => egg.eggId))) {
+  if (hasDuplicateIds(instrument.eggs.map((egg) => egg.eggId))) {
     errors.push('Hatchery egg IDs must be unique.');
   }
 
-  const eggIds = new Set(instrument.eggs.map(egg => egg.eggId));
+  const eggIds = new Set(instrument.eggs.map((egg) => egg.eggId));
   if (instrument.activeEggId && !eggIds.has(instrument.activeEggId)) {
     errors.push(`Active egg ${instrument.activeEggId} is not in the clutch.`);
   }
@@ -74,7 +70,8 @@ function validateDragonHatchery(
   }
 
   for (const remaining of [instrument.examinesRemaining, instrument.samplesRemaining]) {
-    if (remaining != null && remaining < 0) errors.push('Hatchery tool budgets cannot be negative.');
+    if (remaining != null && remaining < 0)
+      errors.push('Hatchery tool budgets cannot be negative.');
   }
   if (instrument.hatchLimit != null && instrument.hatchLimit < 0) {
     errors.push('The hatch limit cannot be negative.');
@@ -83,15 +80,17 @@ function validateDragonHatchery(
   const focusGeneId = instrument.focusGeneId;
   if (focusGeneId) {
     for (const egg of instrument.eggs) {
-      const sample = scene.samples.find(candidate => candidate.id === egg.sampleId);
-      if (sample && !sample.genes.some(gene =>
-        gene.geneId === focusGeneId || gene.traitId === focusGeneId)) {
+      const sample = scene.samples.find((candidate) => candidate.id === egg.sampleId);
+      if (
+        sample &&
+        !sample.genes.some((gene) => gene.geneId === focusGeneId || gene.traitId === focusGeneId)
+      ) {
         errors.push(`Hatchery focus gene ${focusGeneId} is missing from egg ${egg.eggId}.`);
       }
     }
   }
 
-  const markIds = (instrument.evidenceMarks ?? []).map(mark => mark.id);
+  const markIds = (instrument.evidenceMarks ?? []).map((mark) => mark.id);
   if (hasDuplicateIds(markIds)) errors.push('Hatchery evidence mark IDs must be unique.');
   if (instrument.evidenceMarkId && !new Set(markIds).has(instrument.evidenceMarkId)) {
     errors.push(`Pinned hatchery evidence ${instrument.evidenceMarkId} is not in the scene.`);
@@ -104,10 +103,16 @@ function validateAlleleSwitchboard(
   instrument: AlleleSwitchboardInstrument,
 ): string[] {
   const errors: string[] = [];
-  const sample = scene.samples.find(candidate => candidate.id === instrument.sampleId);
-  if (sample && !sample.genes.some(gene =>
-    gene.geneId === instrument.focusGeneId || gene.traitId === instrument.focusGeneId)) {
-    errors.push(`Allele switchboard focus gene ${instrument.focusGeneId} is missing from the sample.`);
+  const sample = scene.samples.find((candidate) => candidate.id === instrument.sampleId);
+  if (
+    sample &&
+    !sample.genes.some(
+      (gene) => gene.geneId === instrument.focusGeneId || gene.traitId === instrument.focusGeneId,
+    )
+  ) {
+    errors.push(
+      `Allele switchboard focus gene ${instrument.focusGeneId} is missing from the sample.`,
+    );
   }
   const allowed = new Set([instrument.dominantAllele, instrument.recessiveAllele]);
   for (const symbol of [
@@ -120,60 +125,12 @@ function validateAlleleSwitchboard(
   if (instrument.dominantAllele === instrument.recessiveAllele) {
     errors.push('Dominant and recessive allele symbols must be different.');
   }
-  const evidenceIds = (instrument.evidenceMarks ?? []).map(mark => mark.id);
+  const evidenceIds = (instrument.evidenceMarks ?? []).map((mark) => mark.id);
   const markIds = new Set(evidenceIds);
-  if (hasDuplicateIds(evidenceIds)) errors.push('Allele switchboard evidence mark IDs must be unique.');
+  if (hasDuplicateIds(evidenceIds))
+    errors.push('Allele switchboard evidence mark IDs must be unique.');
   if (instrument.evidenceMarkId && !markIds.has(instrument.evidenceMarkId)) {
     errors.push(`Pinned allele evidence ${instrument.evidenceMarkId} is not in the scene.`);
-  }
-  return errors;
-}
-
-function validateGenotypeScanner(
-  scene: DragonVisualScene,
-  instrument: GenotypeScannerInstrument,
-): string[] {
-  const errors: string[] = [];
-  const sample = scene.samples.find(candidate => candidate.id === instrument.sampleId);
-  if (sample && !sample.genes.some(gene =>
-    gene.geneId === instrument.focusGeneId || gene.traitId === instrument.focusGeneId)) {
-    errors.push(`Genotype scanner focus gene ${instrument.focusGeneId} is missing from the sample.`);
-  }
-  if (instrument.comparisonSampleId
-    && !scene.samples.some(candidate => candidate.id === instrument.comparisonSampleId)) {
-    errors.push(`Comparison sample ${instrument.comparisonSampleId} is not in the scene.`);
-  }
-
-  const options = instrument.options ?? [];
-  if (hasDuplicateIds(options.map(option => option.id))) {
-    errors.push('Scanner option IDs must be unique.');
-  }
-  const optionIds = new Set(options.map(option => option.id));
-  for (const selectedId of instrument.selectedOptionIds ?? []) {
-    if (!optionIds.has(selectedId)) {
-      errors.push(`Scanner selection references missing option ${selectedId}.`);
-    }
-  }
-  for (const status of instrument.optionStatuses ?? []) {
-    if (!optionIds.has(status.optionId)) {
-      errors.push(`Scanner status references missing option ${status.optionId}.`);
-    }
-  }
-  for (const option of options) {
-    if (option.kind === 'genotype' && !option.alleles) {
-      errors.push(`Genotype option ${option.id} requires an allele pair.`);
-    }
-    if (option.kind === 'phenotype' && !option.labelId) {
-      errors.push(`Phenotype option ${option.id} requires a label ID.`);
-    }
-  }
-
-  const markIds = new Set((instrument.evidenceMarks ?? []).map(mark => mark.id));
-  if (hasDuplicateIds((instrument.evidenceMarks ?? []).map(mark => mark.id))) {
-    errors.push('Evidence mark IDs must be unique.');
-  }
-  if (instrument.evidenceMarkId && !markIds.has(instrument.evidenceMarkId)) {
-    errors.push(`Pinned evidence mark ${instrument.evidenceMarkId} is not in the scene.`);
   }
   return errors;
 }
@@ -191,26 +148,31 @@ function validateGenomeMicroscope(
   instrument: GenomeMicroscopeInstrument,
 ): string[] {
   const errors: string[] = [];
-  const sample = scene.samples.find(candidate => candidate.id === instrument.sampleId);
-  if (instrument.focusGeneId && sample && !sample.genes.some(gene =>
-    gene.geneId === instrument.focusGeneId || gene.traitId === instrument.focusGeneId)) {
-    errors.push(`Genome microscope focus gene ${instrument.focusGeneId} is missing from the sample.`);
+  const sample = scene.samples.find((candidate) => candidate.id === instrument.sampleId);
+  if (
+    instrument.focusGeneId &&
+    sample &&
+    !sample.genes.some(
+      (gene) => gene.geneId === instrument.focusGeneId || gene.traitId === instrument.focusGeneId,
+    )
+  ) {
+    errors.push(
+      `Genome microscope focus gene ${instrument.focusGeneId} is missing from the sample.`,
+    );
   }
   const placements = instrument.labelPlacements ?? [];
-  if (hasDuplicateIds(placements.map(placement => placement.labelId))) {
+  if (hasDuplicateIds(placements.map((placement) => placement.labelId))) {
     errors.push('Genome microscope label IDs must be unique.');
   }
-  if (hasDuplicateIds(placements.map(placement => placement.levelId))) {
+  if (hasDuplicateIds(placements.map((placement) => placement.levelId))) {
     errors.push('Genome microscope level slots may contain only one label.');
   }
   for (const placement of placements) {
-    if (!GENOME_LEVELS.includes(placement.labelId)
-      || !GENOME_LEVELS.includes(placement.levelId)) {
+    if (!GENOME_LEVELS.includes(placement.labelId) || !GENOME_LEVELS.includes(placement.levelId)) {
       errors.push('Genome microscope placement references an unknown hierarchy level.');
     }
   }
-  if (instrument.evidenceLevelId
-    && !GENOME_LEVELS.includes(instrument.evidenceLevelId)) {
+  if (instrument.evidenceLevelId && !GENOME_LEVELS.includes(instrument.evidenceLevelId)) {
     errors.push('Genome microscope evidence references an unknown hierarchy level.');
   }
   return errors;
@@ -218,11 +180,11 @@ function validateGenomeMicroscope(
 
 function validateTraitInspector(instrument: TraitInspectorInstrument): string[] {
   const errors: string[] = [];
-  const observationIds = instrument.observations.map(observation => observation.id);
+  const observationIds = instrument.observations.map((observation) => observation.id);
   if (hasDuplicateIds(observationIds)) errors.push('Observation IDs must be unique.');
 
-  const clueIds = new Set((instrument.clues ?? []).map(clue => clue.id));
-  if (hasDuplicateIds((instrument.clues ?? []).map(clue => clue.id))) {
+  const clueIds = new Set((instrument.clues ?? []).map((clue) => clue.id));
+  if (hasDuplicateIds((instrument.clues ?? []).map((clue) => clue.id))) {
     errors.push('Evidence clue IDs must be unique.');
   }
   for (const observation of instrument.observations) {
@@ -239,7 +201,9 @@ function validateTraitInspector(instrument: TraitInspectorInstrument): string[] 
       errors.push(`Placement references missing observation ${placement.observationId}.`);
     }
     if (placement.pinnedClueId && !clueIds.has(placement.pinnedClueId)) {
-      errors.push(`Placement ${placement.observationId} pins missing clue ${placement.pinnedClueId}.`);
+      errors.push(
+        `Placement ${placement.observationId} pins missing clue ${placement.pinnedClueId}.`,
+      );
     }
   }
   if (instrument.activeObservationId && !knownObservationIds.has(instrument.activeObservationId)) {
@@ -259,7 +223,7 @@ export function validateDragonTeachingSequence(sequence: DragonTeachingSequence)
   if (sequence.supportedSurfaces.length === 0) {
     errors.push('A sequence must support at least one visual surface.');
   }
-  if (hasDuplicateIds(sequence.cues.map(cue => cue.id))) {
+  if (hasDuplicateIds(sequence.cues.map((cue) => cue.id))) {
     errors.push('Animation cue IDs must be unique.');
   }
   for (const cue of sequence.cues) {
@@ -284,17 +248,17 @@ export function validateDragonVisualPack(pack: DragonVisualPackManifest): string
   if (!pack.compatibleContractVersions.includes(DRAGON_VISUAL_CONTRACT_VERSION)) {
     errors.push(`Visual pack does not support contract version ${DRAGON_VISUAL_CONTRACT_VERSION}.`);
   }
-  if (hasDuplicateIds(pack.assets.map(asset => asset.id))) {
+  if (hasDuplicateIds(pack.assets.map((asset) => asset.id))) {
     errors.push('Visual asset IDs must be unique.');
   }
-  if (hasDuplicateIds(pack.motions.map(motion => motion.id))) {
+  if (hasDuplicateIds(pack.motions.map((motion) => motion.id))) {
     errors.push('Visual motion IDs must be unique.');
   }
-  if (hasDuplicateIds(pack.teachingSequences.map(sequence => sequence.sequenceId))) {
+  if (hasDuplicateIds(pack.teachingSequences.map((sequence) => sequence.sequenceId))) {
     errors.push('Teaching sequence IDs must be unique.');
   }
 
-  const motionIds = new Set(pack.motions.map(motion => motion.id));
+  const motionIds = new Set(pack.motions.map((motion) => motion.id));
   for (const sequence of pack.teachingSequences) {
     errors.push(...validateDragonTeachingSequence(sequence));
     for (const cue of sequence.cues) {
@@ -320,7 +284,6 @@ function instrumentSampleIds(scene: DragonVisualScene): readonly string[] {
   switch (instrument.kind) {
     case 'trait-inspector':
     case 'genome-microscope':
-    case 'genotype-scanner':
     case 'allele-switchboard':
       return [instrument.sampleId];
     case 'punnett-composer':
@@ -329,16 +292,7 @@ function instrumentSampleIds(scene: DragonVisualScene): readonly string[] {
         ? [...instrument.parentSampleIds, ...instrument.eggSampleIds]
         : instrument.parentSampleIds;
     case 'dragon-hatchery':
-      return [
-        ...(instrument.parentSampleIds ?? []),
-        ...instrument.eggs.map(egg => egg.sampleId),
-      ];
-    case 'reproduction-comparison':
-      return [
-        ...instrument.sourceSampleIds,
-        ...instrument.sexualOffspringSampleIds,
-        ...instrument.asexualOffspringSampleIds,
-      ];
+      return [...(instrument.parentSampleIds ?? []), ...instrument.eggs.map((egg) => egg.sampleId)];
     case 'sibling-tracer':
       return [...instrument.parentSampleIds, ...instrument.siblingSampleIds];
     case 'diversity-manager':
@@ -350,7 +304,9 @@ function instrumentSampleIds(scene: DragonVisualScene): readonly string[] {
 
 function isSafeAssetSource(source: string): boolean {
   const normalizedSource = source.trim().toLowerCase();
-  return !!normalizedSource
-    && !normalizedSource.startsWith('javascript:')
-    && !normalizedSource.startsWith('data:text/html');
+  return (
+    !!normalizedSource &&
+    !normalizedSource.startsWith('javascript:') &&
+    !normalizedSource.startsWith('data:text/html')
+  );
 }

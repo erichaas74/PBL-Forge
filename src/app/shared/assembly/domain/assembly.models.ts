@@ -31,8 +31,6 @@ export type AssemblyVisualProfileId =
   | 'robot-leg'
   | 'dragon-body'
   | 'dragon-head-horned'
-  | 'dragon-head-snout'
-  | 'dragon-head-armored'
   | 'dragon-upper-jaw'
   | 'dragon-lower-jaw'
   | 'dragon-leg'

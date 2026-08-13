@@ -40,13 +40,12 @@ verdicts until the record is saved. Reteach isolates one diagnosed misconception
 
 ## Module configurations
 
-| Host module                       | Tools               | Typical settings                                                        |
-| --------------------------------- | ------------------- | ----------------------------------------------------------------------- |
-| Module 1 - Traits                 | `examine`           | No prediction, unlimited candling, no hatching                          |
-| Module 3 - Genotype vs. phenotype | `examine`, `sample` | Scarce samples so two same-looking eggs must be chosen between          |
-| Module 6 - Probability vs. actual | all three           | Prediction required, 8-egg clutch, hatch limit matching the sample size |
-| Module 8 - Sibling variation      | `sample`, `hatch`   | Hatch two siblings and compare the sampled allele pairs                 |
-| Module 9 - Diversity              | `examine`, `hatch`  | Hatch limit forces a trade-off between traits and variation             |
+| Host module                       | Tools              | Typical settings                                                        |
+| --------------------------------- | ------------------ | ----------------------------------------------------------------------- |
+| Module 1 - Traits                 | `examine`          | No prediction, unlimited candling, no hatching                          |
+| Module 6 - Probability vs. actual | all three          | Prediction required, 8-egg clutch, hatch limit matching the sample size |
+| Module 8 - Sibling variation      | `sample`, `hatch`  | Hatch two siblings and compare the sampled allele pairs                 |
+| Module 9 - Diversity              | `examine`, `hatch` | Hatch limit forces a trade-off between traits and variation             |
 
 ## Hosting it in a module
 

@@ -15,7 +15,7 @@ import {
   DragonSimulationId,
   DragonSimulationRun,
 } from './dragon-simulation.models';
-import { DEFAULT_DRAGON_ASSIGNMENT } from './dragon-simulation.registry';
+import { DEFAULT_DRAGON_ASSIGNMENT, isDragonSimulationId } from './dragon-simulation.registry';
 import {
   GeneticsNotebookSnapshot,
   normalizeGeneticsNotebook,
@@ -187,6 +187,8 @@ function normalizeAssignment(id: string, value: Record<string, unknown>): Dragon
 }
 
 function normalizeRun(value: Record<string, unknown>): DragonSimulationRun | null {
-  if (value['schemaVersion'] !== 1 || typeof value['simulationId'] !== 'string') return null;
+  if (value['schemaVersion'] !== 1 || !isDragonSimulationId(String(value['simulationId'] ?? ''))) {
+    return null;
+  }
   return value as unknown as DragonSimulationRun;
 }

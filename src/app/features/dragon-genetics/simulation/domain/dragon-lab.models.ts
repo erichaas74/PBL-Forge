@@ -92,7 +92,6 @@ export interface DragonLabSnapshot {
   clutch: DragonOffspring[];
   selectedOffspringId: string | null;
   comparisonTraitId: DragonTraitId;
-  reproductionAnswer: 'sexual' | 'asexual' | null;
   claim: string;
   evidence: string;
   reasoning: string;

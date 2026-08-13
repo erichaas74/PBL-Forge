@@ -4,11 +4,9 @@ import { DRAGON_BODY_PROFILE, sampleDragonBodyRadius } from './dragon-body-profi
 import {
   DEFAULT_HEAD_SHAPE,
   DragonHeadShape,
-  HEAD_SHAPE_BY_PROFILE,
   dragonHeadExtent,
   dragonHeadEyeSocket,
   dragonHeadHornMount,
-  dragonHeadNostril,
   dragonHeadSection,
   dragonHeadSurfacePoint,
   headShapeFor,
@@ -49,10 +47,6 @@ export function createDragonProceduralObject(part: AssemblyPart): THREE.Object3D
     // radii, so they are converted before anything measures the skull.
     case 'dragon-head-horned':
       return buildHornedHead(part, dragonHeadExtent(dims, part.shape), palette);
-    case 'dragon-head-snout':
-      return buildSnoutHead(part, dragonHeadExtent(dims, part.shape), palette);
-    case 'dragon-head-armored':
-      return buildArmoredHead(part, dragonHeadExtent(dims, part.shape), palette);
     case 'dragon-upper-jaw':
       return buildJaw(part, palette, 'upper');
     case 'dragon-lower-jaw':
@@ -487,80 +481,24 @@ function buildHornedHead(
   const scaleRef = dims.y / 2;
   const horn = hornMaterial(palette);
   for (const side of [-1, 1] as const) {
-    const mount = dragonHeadHornMount(dims, side, shape);
-    const mainHorn = buildHorn(scaleRef * style.hornLength, scaleRef * style.hornRadius, horn, palette);
-    mainHorn.position.set(mount.x, mount.y, mount.z);
-    mainHorn.rotation.set(side * 0.5, 0, 0.55);
-    group.add(mainHorn);
+    // A length of zero means hornless, and is drawn as nothing at all: a
+    // zero-height cone still leaves its base disc sitting on the skull.
+    if (style.hornLength > 0) {
+      const mount = dragonHeadHornMount(dims, side, shape);
+      const mainHorn = buildHorn(scaleRef * style.hornLength, scaleRef * style.hornRadius, horn, palette);
+      mainHorn.position.set(mount.x, mount.y, mount.z);
+      mainHorn.rotation.set(side * 0.5, 0, 0.55);
+      group.add(mainHorn);
+    }
 
-    const browMount = dragonHeadSurfacePoint(dims, -0.02, side * 0.5, shape);
-    const browSpike = buildHorn(scaleRef * style.browLength, scaleRef * 0.08, horn, palette);
-    browSpike.position.set(browMount.x, browMount.y, browMount.z);
-    browSpike.rotation.set(side * 0.3, 0, 0.75);
-    group.add(browSpike);
+    if (style.browLength > 0) {
+      const browMount = dragonHeadSurfacePoint(dims, -0.02, side * 0.5, shape);
+      const browSpike = buildHorn(scaleRef * style.browLength, scaleRef * 0.08, horn, palette);
+      browSpike.position.set(browMount.x, browMount.y, browMount.z);
+      browSpike.rotation.set(side * 0.3, 0, 0.75);
+      group.add(browSpike);
+    }
 
-    group.add(buildEye(part, dims, side, shape));
-  }
-
-  addExpressiveHeadFeatures(group, part, dims, palette, shape);
-
-  return group;
-}
-
-function buildSnoutHead(
-  part: AssemblyPart,
-  dims: { x: number; y: number; z: number },
-  palette: DragonPalette,
-): THREE.Group {
-  const group = new THREE.Group();
-  const { skull, shape } = buildSkull(dims, palette, HEAD_SHAPE_BY_PROFILE['dragon-head-snout']);
-  group.add(skull);
-
-  const nostrilMaterial = new THREE.MeshStandardMaterial({ color: palette.scaleDeep, roughness: 0.7 });
-  for (const side of [-1, 1] as const) {
-    const nostril = mesh(new THREE.SphereGeometry(dims.y * 0.07, 10, 7), nostrilMaterial);
-    const at = dragonHeadNostril(dims, side, shape);
-    nostril.scale.set(1.3, 0.5, 1);
-    nostril.position.set(at.x, at.y, at.z);
-    group.add(nostril);
-
-    group.add(buildEye(part, dims, side, shape));
-  }
-
-  addExpressiveHeadFeatures(group, part, dims, palette, shape);
-
-  return group;
-}
-
-function buildArmoredHead(
-  part: AssemblyPart,
-  dims: { x: number; y: number; z: number },
-  palette: DragonPalette,
-): THREE.Group {
-  const group = new THREE.Group();
-  const { skull, shape } = buildSkull(dims, palette, HEAD_SHAPE_BY_PROFILE['dragon-head-armored']);
-  group.add(skull);
-
-  // Crest fins ride the crown line, so they follow the skull rather than
-  // hovering at a fixed fraction of the bounding box.
-  const crest = hornMaterial(palette);
-  for (const [axial, height] of [[-0.3, 0.34], [-0.08, 0.42], [0.14, 0.3]] as const) {
-    const crown = dragonHeadSurfacePoint(dims, axial, 0, shape);
-    const finHeight = dims.y * height;
-    // Built along +x and turned upright, so the taper runs to the tip: a plain
-    // box reads as a paddle balanced on the skull, not a crest growing from it.
-    const geometry = createTaperedBoxGeometry(finHeight, dims.x * 0.22, dims.z * 0.07, 0.3, 0.55);
-    geometry.rotateZ(Math.PI / 2);
-    const fin = mesh(boxUv(geometry, HORN_TILE, palette), crest);
-    // Sunk into the crown, so the fin grows out of the skull rather than
-    // balancing on it. The lean stays slight; much past 0.2 radians the tilt
-    // swings the base clear of the head and it reads detached again.
-    fin.position.set(crown.x, crown.y + finHeight * 0.06, 0);
-    fin.rotation.z = 0.16;
-    group.add(fin);
-  }
-
-  for (const side of [-1, 1] as const) {
     group.add(buildEye(part, dims, side, shape));
   }
 

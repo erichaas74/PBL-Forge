@@ -4,7 +4,7 @@ The laboratory visual redesign and per-question simulation coverage plan is docu
 Detailed renderer and teaching specifications are indexed in the
 [Dragon Genetics simulation build guides](dragon-genetics-simulations/README.md).
 
-This experience implements the supplied three-week lesson plan and teaching/assessment requirements as a ten-module student journey. It is designed for Grade 7 MS-LS3 heredity and variation, with supporting MS-LS1 reproduction concepts.
+This experience implements the supplied three-week lesson plan and teaching/assessment requirements through the eight remaining curriculum modules. It is designed for Grade 7 MS-LS3 heredity and variation, with supporting MS-LS1 reproduction concepts.
 
 ## Student route
 
@@ -14,18 +14,16 @@ Schema-v2 trial records are migrated without discarding prior responses. Their m
 
 Modules unlock in sequence. Local emulator mode includes a teacher-preview navigation switch, but it does not bypass evidence checks, the breeder license, prediction locks, or the official-attempt limit.
 
-| Week | Module | Student evidence | Primary skills |
-| --- | --- | --- | --- |
-| 1 | 1. Trait Detective | Impossible Hatchling diagnostic, rotating role, eight classifications, misconception correction | GEN-1 |
-| 1 | 2. Genome Decoder | Dragon-to-allele pathway plus four-question quick check | GEN-2 |
-| 1 | 3. Genotype → Phenotype | Phenotype-first and genotype-first evidence | GEN-3 |
-| 1 | 4. Trait Rule Lab | Four Allele Workbench construction, prediction, expression-trace, and rule-evidence records | GEN-4 |
-| 1 | 5. Breeding Predictor | Four locked genotype/phenotype distributions plus 10-question Week 1 mastery | GEN-1–5 |
-| 2 | 6. Probability vs. Actual | 8-offspring and 100-offspring comparisons | GEN-5, GEN-7 |
-| 2 | 7. Sexual vs. Asexual | Two-parent versus clone-style model | GEN-6, GEN-7 |
-| 2 | 8. Sibling Variation | Two-sibling allele-path explanation | GEN-5, GEN-7 |
-| 2 | 9. Diversity Manager | Two-strategy comparison, parent-pair evidence, peer review, 12-question Week 2 mastery | GEN-3–8 |
-| 3 | 10. License & Arena | License, official crosses, battle, evidence defense, five-part reflection | GEN-1–8 |
+| Week | Module                    | Student evidence                                                                                | Primary skills |
+| ---- | ------------------------- | ----------------------------------------------------------------------------------------------- | -------------- |
+| 1    | 1. Trait Detective        | Impossible Hatchling diagnostic, rotating role, eight classifications, misconception correction | GEN-1          |
+| 1    | 2. Genome Decoder         | Dragon-to-allele pathway plus four-question quick check                                         | GEN-2          |
+| 1    | 4. Trait Rule Lab         | Four Allele Workbench construction, prediction, expression-trace, and rule-evidence records     | GEN-4          |
+| 1    | 5. Breeding Predictor     | Four locked genotype/phenotype distributions plus 10-question Week 1 mastery                    | GEN-1–5        |
+| 2    | 6. Probability vs. Actual | 8-offspring and 100-offspring comparisons                                                       | GEN-5, GEN-7   |
+| 2    | 8. Sibling Variation      | Two-sibling allele-path explanation                                                             | GEN-5, GEN-7   |
+| 2    | 9. Diversity Manager      | Two-strategy comparison, parent-pair evidence, peer review, 12-question Week 2 mastery          | GEN-3–8        |
+| 3    | 10. License & Arena       | License, official crosses, battle, evidence defense, five-part reflection                       | GEN-1–8        |
 
 ## Non-negotiable assessment behavior
 

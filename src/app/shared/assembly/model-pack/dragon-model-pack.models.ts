@@ -23,8 +23,6 @@ export interface DragonModelPackV1 {
 export const SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS = [
   'dragon-body',
   'dragon-head-horned',
-  'dragon-head-snout',
-  'dragon-head-armored',
   'dragon-upper-jaw',
   'dragon-lower-jaw',
   'dragon-leg',

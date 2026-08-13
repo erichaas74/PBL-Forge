@@ -14,11 +14,9 @@ adaptive shell.
 | ------ | ----------------------- | ----------------------------------- | ----------------------------------- |
 | 1      | Trait Evidence Analyzer | Registry-driven generic workstation | [01](01-TRAIT-EVIDENCE-ANALYZER.md) |
 | 2      | Genome Microscope       | Dedicated workstation               | [02](02-GENOME-MICROSCOPE.md)       |
-| 3      | Genotype Scanner        | Registry-driven generic workstation | [03](03-GENOTYPE-SCANNER.md)        |
 | 4      | Allele Workbench        | Dedicated workstation               | [04](04-ALLELE-WORKBENCH.md)        |
 | 5      | Punnett Composer        | Registry-driven generic workstation | [05](05-PUNNETT-COMPOSER.md)        |
 | 6      | Incubator Sampler       | Registry-driven generic workstation | [06](06-INCUBATOR-SAMPLER.md)       |
-| 7      | Reproduction Comparison | Registry-driven generic workstation | [07](07-REPRODUCTION-COMPARISON.md) |
 | 8      | DNA Process Lab         | Dedicated workstation               | [08](08-DNA-PROCESS-LAB.md)         |
 | 9      | Diversity Manager       | Registry-driven generic workstation | [09](09-DIVERSITY-MANAGER.md)       |
 | Shared | Dragon Hatchery         | Dedicated workstation               | [11](11-DRAGON-HATCHERY.md)         |

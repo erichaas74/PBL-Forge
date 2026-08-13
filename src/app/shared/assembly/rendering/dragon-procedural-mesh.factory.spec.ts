@@ -134,7 +134,7 @@ describe('dragon part materials', () => {
 });
 
 function headPart(
-  profileId: 'dragon-head-horned' | 'dragon-head-snout' | 'dragon-head-armored',
+  profileId: 'dragon-head-horned',
   shape: 'sphere' | 'box',
   dimensions: AssemblyPart['dimensions'],
 ): AssemblyPart {
@@ -193,10 +193,10 @@ describe('dragon head mesh', () => {
    */
   it('lofts a skull that responds to all three dimensions', () => {
     const round = skullOf(createDragonProceduralObject(
-      headPart('dragon-head-snout', 'box', { x: 0.5, y: 0.4, z: 0.4 }),
+      headPart('dragon-head-horned', 'box', { x: 0.5, y: 0.4, z: 0.4 }),
     )!);
     const long = skullOf(createDragonProceduralObject(
-      headPart('dragon-head-snout', 'box', { x: 1.1, y: 0.4, z: 0.4 }),
+      headPart('dragon-head-horned', 'box', { x: 1.1, y: 0.4, z: 0.4 }),
     )!);
 
     const roundBox = new THREE.Box3().setFromObject(round);
@@ -214,8 +214,7 @@ describe('dragon head mesh', () => {
   it('winds its triangles outward', () => {
     for (const part of [
       headPart('dragon-head-horned', 'sphere', { x: 0.42, y: 0.42, z: 0.42 }),
-      headPart('dragon-head-snout', 'box', { x: 0.68, y: 0.38, z: 0.34 }),
-      headPart('dragon-head-armored', 'box', { x: 0.54, y: 0.48, z: 0.44 }),
+      headPart('dragon-head-horned', 'box', { x: 0.68, y: 0.38, z: 0.34 }),
     ]) {
       expect(signedVolume(skullOf(createDragonProceduralObject(part)!))).toBeGreaterThan(0);
     }
@@ -238,7 +237,7 @@ describe('dragon head mesh', () => {
   it('keeps the skull inside the physics volume', () => {
     const dims = { x: 0.54, y: 0.48, z: 0.44 };
     const bounds = new THREE.Box3().setFromObject(
-      skullOf(createDragonProceduralObject(headPart('dragon-head-armored', 'box', dims))!),
+      skullOf(createDragonProceduralObject(headPart('dragon-head-horned', 'box', dims))!),
     );
 
     expect(bounds.max.y).toBeLessThanOrEqual(dims.y / 2 + 1e-4);
@@ -248,7 +247,7 @@ describe('dragon head mesh', () => {
 
   it('gives the skull UVs so the scale texture lands on it', () => {
     const skull = skullOf(createDragonProceduralObject(
-      headPart('dragon-head-snout', 'box', { x: 0.68, y: 0.38, z: 0.34 }),
+      headPart('dragon-head-horned', 'box', { x: 0.68, y: 0.38, z: 0.34 }),
     )!);
     const uv = skull.geometry.getAttribute('uv');
 
@@ -256,17 +255,35 @@ describe('dragon head mesh', () => {
     expect(uv.count).toBe(skull.geometry.getAttribute('position').count);
   });
 
-  it('builds a distinct skull per head variant', () => {
+  /**
+   * The hornless phenotype used to be a second profile, `dragon-head-snout`.
+   * With one skull left it rides the horn lengths instead, so zero has to mean
+   * no mesh at all — a zero-height cone still leaves its base disc on the bone.
+   */
+  it('grows nothing where a hornless skull would carry horns', () => {
     const dims = { x: 0.6, y: 0.45, z: 0.42 };
-    const heights = (['dragon-head-horned', 'dragon-head-snout', 'dragon-head-armored'] as const).map(
-      profileId => {
-        const skull = skullOf(createDragonProceduralObject(headPart(profileId, 'box', dims))!);
-        const bounds = new THREE.Box3().setFromObject(skull);
-        return (bounds.max.y - bounds.min.y).toFixed(4);
+    const horned = createDragonProceduralObject(headPart('dragon-head-horned', 'box', dims))!;
+    const hornless = createDragonProceduralObject({
+      ...headPart('dragon-head-horned', 'box', dims),
+      visualProfile: {
+        profileId: 'dragon-head-horned',
+        meshType: 'procedural',
+        parameters: { hornLength: 0, browLength: 0 },
       },
-    );
+    })!;
 
-    expect(new Set(heights).size).toBe(3);
+    const meshes = (head: THREE.Object3D) => {
+      let count = 0;
+      head.traverse(child => { if (child instanceof THREE.Mesh) count += 1; });
+      return count;
+    };
+
+    // A main horn and a brow spike on each side stop being built. Counted as a
+    // difference rather than an exact number: a horn is a group of segments.
+    expect(meshes(hornless)).toBeLessThan(meshes(horned));
+    // And nothing is left standing above the bone where they were.
+    expect(new THREE.Box3().setFromObject(hornless).max.y)
+      .toBeLessThan(new THREE.Box3().setFromObject(horned).max.y);
   });
 });
 

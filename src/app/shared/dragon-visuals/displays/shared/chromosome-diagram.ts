@@ -69,8 +69,8 @@ export const CHROMOSOME_DIAGRAM: ChromosomeDiagramTheme = {
   /*
    * The four trait loci. These are the only saturated marks on the diagram and
    * they are load-bearing: a student learns "the red band is the wing locus"
-   * at the microscope and has to recognise it again at the scanner three
-   * stations later. See BERK_TRAIT_BANDS for why these four hues.
+   * at the microscope and has to recognise it again in other chromosome
+   * instruments. See BERK_TRAIT_BANDS for why these four hues.
    */
   geneBands: [
     { id: 'band-1', y: 25, height: 6, fill: BERK_TRAIT_BANDS[0] },

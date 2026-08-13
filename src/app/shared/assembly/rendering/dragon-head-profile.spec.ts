@@ -195,8 +195,8 @@ describe('head anchors', () => {
   });
 
   it('carries the jaw forward when a genome lengthens the skull', () => {
-    const short = dragonHeadJawMountFor('dragon-head-snout', { x: 0.5, y: 0.38, z: 0.34 }, 'box');
-    const long = dragonHeadJawMountFor('dragon-head-snout', { x: 0.9, y: 0.38, z: 0.34 }, 'box');
+    const short = dragonHeadJawMountFor('dragon-head-horned', { x: 0.5, y: 0.38, z: 0.34 }, 'box');
+    const long = dragonHeadJawMountFor('dragon-head-horned', { x: 0.9, y: 0.38, z: 0.34 }, 'box');
 
     expect(long.x).toBeGreaterThan(short.x);
   });
@@ -250,8 +250,7 @@ describe('head variant table', () => {
    * this module removes.
    */
   it('covers every head profile the factory builds', () => {
-    expect(Object.keys(HEAD_SHAPE_BY_PROFILE).sort())
-      .toEqual(['dragon-head-armored', 'dragon-head-horned', 'dragon-head-snout']);
+    expect(Object.keys(HEAD_SHAPE_BY_PROFILE).sort()).toEqual(['dragon-head-horned']);
   });
 
   it('falls back to the default for an unknown profile', () => {
@@ -259,12 +258,18 @@ describe('head variant table', () => {
       .toBeCloseTo(DEFAULT_HEAD_SHAPE.browRidge, 6);
   });
 
-  it('gives the three variants genuinely different skulls', () => {
+  /**
+   * One variant is left; the serpentine and brute skulls went with their
+   * profiles. This keeps the table honest as new phenotypes are added back:
+   * every profile in it has to loft a skull of its own.
+   */
+  it('gives every variant in the table a skull of its own', () => {
     const dims = { x: 0.7, y: 0.5, z: 0.45 };
-    const depths = Object.keys(HEAD_SHAPE_BY_PROFILE).map(
+    const profileIds = Object.keys(HEAD_SHAPE_BY_PROFILE);
+    const depths = profileIds.map(
       profileId => dragonHeadSection(dims, 0.42, headShapeForProfile(profileId, dims)).halfHeight,
     );
 
-    expect(new Set(depths.map(depth => depth.toFixed(4))).size).toBe(3);
+    expect(new Set(depths.map(depth => depth.toFixed(4))).size).toBe(profileIds.length);
   });
 });

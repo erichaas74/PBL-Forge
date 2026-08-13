@@ -356,15 +356,23 @@ export function createEducationalAssembly(
   }
 
   /*
-   * Horns: swap the skull's visual profile rather than bolting parts on. The
-   * procedural factory grows horns for `dragon-head-horned` and a bare muzzle
-   * for `dragon-head-snout`, both sized from the same physics volume, so a
-   * hornless dragon is a genuinely different silhouette at no collision cost.
+   * Horns: retract them on the one skull rather than bolting parts on or
+   * swapping the profile. This used to switch to `dragon-head-snout`, which no
+   * longer exists — the skull now carries the trait through the horn lengths it
+   * already reads, so a hornless dragon is smooth-headed at no collision cost.
+   * Interim: a hornless head deserves a silhouette of its own, not just the
+   * horned one with the horns taken off.
    */
   if (!showsDominantPhenotype(genome.horns, 'horns')) {
     blueprint.parts = blueprint.parts.map(part =>
       part.visualProfile?.profileId === 'dragon-head-horned'
-        ? { ...part, visualProfile: { ...part.visualProfile, profileId: 'dragon-head-snout' } }
+        ? {
+          ...part,
+          visualProfile: {
+            ...part.visualProfile,
+            parameters: { ...(part.visualProfile.parameters ?? {}), hornLength: 0, browLength: 0 },
+          },
+        }
         : part);
   }
 

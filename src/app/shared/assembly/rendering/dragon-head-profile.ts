@@ -85,8 +85,6 @@ export const DEFAULT_HEAD_SHAPE: DragonHeadShape = HEAD_SHAPES.drake;
  */
 export const HEAD_SHAPE_BY_PROFILE = {
   'dragon-head-horned': HEAD_SHAPES.drake,
-  'dragon-head-snout': HEAD_SHAPES.serpentine,
-  'dragon-head-armored': HEAD_SHAPES.brute,
 } as const satisfies Record<string, DragonHeadShape>;
 
 /** Trait-adjusted shape for a head variant, from the part's own proportions. */

@@ -35,6 +35,14 @@ function headProfileOf(assembly: { parts: { visualProfile?: { profileId: string 
   return head?.visualProfile?.profileId ?? 'none';
 }
 
+function hornLengthOf(assembly: {
+  parts: { visualProfile?: { profileId: string; parameters?: Record<string, unknown> } }[];
+}): number | undefined {
+  const head = assembly.parts.find(part => part.visualProfile?.profileId.startsWith('dragon-head-'));
+  const hornLength = head?.visualProfile?.parameters?.['hornLength'];
+  return typeof hornLength === 'number' ? hornLength : undefined;
+}
+
 describe('dragon inheritance bridge', () => {
   it('renders a heterozygote identically to a homozygous dominant', () => {
     // The lesson's central claim. If these ever diverge, the phenotype is
@@ -61,9 +69,12 @@ describe('dragon inheritance bridge', () => {
     expect(wingCount(winged.assembly.parts)).toBeGreaterThan(0);
     expect(wingCount(wingless.assembly.parts)).toBe(0);
 
-    // horns -> skull silhouette
+    // horns -> the skull's horns, retracted to nothing on a hornless dragon.
+    // There is one head profile now, so the trait rides its horn lengths.
     expect(headProfileOf(horned.assembly)).toBe('dragon-head-horned');
-    expect(headProfileOf(hornless.assembly)).toBe('dragon-head-snout');
+    expect(headProfileOf(hornless.assembly)).toBe('dragon-head-horned');
+    expect(hornLengthOf(horned.assembly)).toBeGreaterThan(0);
+    expect(hornLengthOf(hornless.assembly)).toBe(0);
   });
 
   it('shows scale pattern as two tones and a solid dragon as one', () => {

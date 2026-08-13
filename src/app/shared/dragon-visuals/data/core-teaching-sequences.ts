@@ -246,65 +246,6 @@ export const GENOME_ZOOM_SEQUENCE: DragonTeachingSequence = {
 };
 
 /**
- * Genotype Scanner reveal. The shield opens only after the student's selection is locked, then
- * the scanned allele pair is tied back to the phenotype readout that never changed.
- */
-export const GENOTYPE_SCAN_SEQUENCE: DragonTeachingSequence = {
-  contractVersion: DRAGON_VISUAL_CONTRACT_VERSION,
-  sequenceId: 'genotype-scan-v1',
-  conceptId: 'phenotype-versus-genotype',
-  supportedSurfaces: ['station', 'cutscene'],
-  durationMs: 4200,
-  cues: [
-    {
-      id: 'read-phenotype',
-      atMs: 0,
-      durationMs: 700,
-      action: 'focus',
-      targetIds: ['phenotype-readout'],
-      motionId: 'instrument-focus',
-      captionId: 'genotype-scan.read',
-    },
-    {
-      id: 'request-genotype-selection',
-      atMs: 800,
-      durationMs: 0,
-      action: 'pause-for-prediction',
-      targetIds: ['genotype-option'],
-      captionId: 'genotype-scan.predict',
-      checkpointId: 'genotype-selection',
-    },
-    {
-      id: 'sweep-scan',
-      atMs: 1000,
-      durationMs: 1200,
-      action: 'trace',
-      targetIds: ['concealed-allele-pair'],
-      motionId: 'scan-sweep',
-      captionId: 'genotype-scan.scan',
-    },
-    {
-      id: 'reveal-allele-pair',
-      atMs: 2200,
-      durationMs: 1000,
-      action: 'reveal',
-      targetIds: ['allele-slot-a', 'allele-slot-b'],
-      motionId: 'allele-reveal',
-      captionId: 'genotype-scan.reveal',
-    },
-    {
-      id: 'link-readout-to-alleles',
-      atMs: 3300,
-      durationMs: 900,
-      action: 'highlight',
-      targetIds: ['phenotype-readout', 'evidence-mark'],
-      motionId: 'evidence-highlight',
-      captionId: 'genotype-scan.compare',
-    },
-  ],
-};
-
-/**
  * Dragon Hatchery selection. Candling reads what an egg will show, sampling reads the alleles
  * behind it, and only the chosen eggs crack — so the two records stay distinct while the
  * student commits to a choice.
@@ -378,6 +319,5 @@ export const CORE_DRAGON_TEACHING_SEQUENCES = [
   PARENT_ALLELE_TRACE_SEQUENCE,
   EVIDENCE_PATH_SEQUENCE,
   GENOME_ZOOM_SEQUENCE,
-  GENOTYPE_SCAN_SEQUENCE,
   HATCHERY_SELECTION_SEQUENCE,
 ] as const;

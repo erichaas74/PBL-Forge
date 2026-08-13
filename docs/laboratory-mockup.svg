@@ -16,12 +16,6 @@
       <stop offset="100%" stop-color="#D946EF" />
     </linearGradient>
 
-    <linearGradient id="laserScan" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0" />
-      <stop offset="80%" stop-color="#38BDF8" stop-opacity="0.2" />
-      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.8" />
-    </linearGradient>
-
     <radialGradient id="platformGlow" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.4" />
       <stop offset="80%" stop-color="#06B6D4" stop-opacity="0.1" />
@@ -138,34 +132,6 @@
       <rect x="340" y="185" width="20" height="20" fill="#10B981" />
     </g>
 
-    <!-- Reproduction Comparison (Middle Left Floor Kiosk) -->
-    <g id="reproduction-comparison-screen">
-      <!-- Floor Pedestal / Kiosk Base -->
-      <polygon points="120,500 320,500 340,750 100,750" fill="#1E293B" stroke="#0F172A" stroke-width="3" />
-      <polygon points="320,500 340,510 360,750 340,750" fill="#0F172A" /> <!-- Stand depth -->
-      <path d="M 160 500 L 280 500 L 290 700 L 150 700 Z" fill="#334155" /> <!-- Stand inset -->
-
-      <!-- 3D Monitor Chassis -->
-      <polygon points="360,310 380,330 380,510 360,490" fill="#0F172A" /> <!-- Monitor right side -->
-      <polygon points="80,490 100,510 380,510 360,490" fill="#1E293B" /> <!-- Monitor bottom side -->
-
-      <!-- Main Monitor Bezel -->
-      <rect x="80" y="310" width="280" height="180" rx="8" fill="#334155" stroke="#475569" stroke-width="3" />
-      <rect x="85" y="315" width="270" height="170" rx="5" fill="#000000" fill-opacity="0.8" stroke="#F59E0B" stroke-width="2" />
-
-      <!-- Cloning / Asexual Icon (Left) -->
-      <circle cx="130" cy="370" r="15" fill="none" stroke="#FBBF24" stroke-width="2" />
-      <path d="M 130 385 L 130 420 M 130 420 L 110 450 M 130 420 L 150 450" stroke="#FBBF24" stroke-width="2" />
-      <circle cx="110" cy="450" r="8" fill="#D97706" />
-      <circle cx="150" cy="450" r="8" fill="#D97706" />
-
-      <!-- Mixing / Sexual Icon (Right) -->
-      <circle cx="280" cy="370" r="15" fill="none" stroke="#38BDF8" stroke-width="2" />
-      <circle cx="320" cy="370" r="15" fill="none" stroke="#F472B6" stroke-width="2" />
-      <path d="M 300 385 L 300 430" stroke="#94A3B8" stroke-width="2" />
-      <circle cx="300" cy="440" r="10" fill="#A855F7" />
-      <line x1="220" y1="330" x2="220" y2="470" stroke="#475569" stroke-width="2" stroke-dasharray="5 5" />
-    </g>
   </g>
 
   <!-- ================= SPECIMEN PLATFORM ================= -->
@@ -236,29 +202,6 @@
 
   <!-- ================= STATION EQUIPMENT ================= -->
   <g id="station-equipment">
-
-    <!-- Genotype Scanner (Arch) -->
-    <g id="genotype-scanner">
-      <!-- 3D Structural Arch Base Mounts -->
-      <rect x="400" y="720" width="80" height="30" fill="#0F172A" stroke="#1E293B" stroke-width="2" />
-      <polygon points="400,720 420,700 500,700 480,720" fill="#1E293B" />
-      <rect x="1120" y="720" width="80" height="30" fill="#0F172A" stroke="#1E293B" stroke-width="2" />
-      <polygon points="1120,720 1140,700 1220,700 1200,720" fill="#1E293B" />
-
-      <!-- Main Holographic Arch -->
-      <path d="M 450 710 A 350 250 0 0 1 1150 710" fill="none" stroke="#38BDF8" stroke-width="12" stroke-opacity="0.3" filter="url(#glow)"/>
-      <path d="M 450 710 A 350 250 0 0 1 1150 710" fill="none" stroke="#BAE6FD" stroke-width="2" stroke-dasharray="15 10" />
-
-      <!-- Downward Laser Scan Grid -->
-      <path d="M 650 465 L 550 740 M 700 461 L 650 740 M 750 460 L 750 740 M 800 460 L 850 740 M 850 461 L 950 740 M 900 465 L 1050 740" stroke="url(#laserScan)" stroke-width="3" />
-      <rect x="600" y="600" width="400" height="4" fill="#38BDF8" filter="url(#glow)" opacity="0.7" />
-
-      <!-- Floating DNA Scan indicator -->
-      <path d="M 800 320 Q 820 340 800 360 Q 780 380 800 400" fill="none" stroke="#BAE6FD" stroke-width="3" filter="url(#glow)"/>
-      <path d="M 800 320 Q 780 340 800 360 Q 820 380 800 400" fill="none" stroke="#7DD3FC" stroke-width="3" filter="url(#glow)"/>
-      <line x1="790" y1="340" x2="810" y2="340" stroke="#E0F2FE" stroke-width="1" />
-      <line x1="790" y1="380" x2="810" y2="380" stroke="#E0F2FE" stroke-width="1" />
-    </g>
 
     <!-- Incubator Sampler (Bottom Right) -->
     <g id="incubator-sampler">

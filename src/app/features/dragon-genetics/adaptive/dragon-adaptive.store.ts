@@ -13,6 +13,7 @@ import {
 import {
   DEFAULT_DRAGON_ASSIGNMENT,
   DRAGON_SIMULATION_CONTENT_VERSION,
+  isDragonSimulationId,
 } from './dragon-simulation.registry';
 import { evaluateSimulationAnswer, generateSimulationQuestions } from './dragon-question.generator';
 import { DragonAdaptiveRepository } from './dragon-adaptive.repository';
@@ -472,7 +473,12 @@ function loadLocalRuns(
 ): Partial<Record<DragonSimulationId, DragonSimulationRun>> {
   if (typeof localStorage === 'undefined') return {};
   try {
-    return JSON.parse(localStorage.getItem(`${LOCAL_RUNS_KEY_PREFIX}.${studentId}`) ?? '{}');
+    const stored = JSON.parse(
+      localStorage.getItem(`${LOCAL_RUNS_KEY_PREFIX}.${studentId}`) ?? '{}',
+    ) as Record<string, DragonSimulationRun>;
+    return Object.fromEntries(
+      Object.entries(stored).filter(([simulationId]) => isDragonSimulationId(simulationId)),
+    );
   } catch {
     return {};
   }

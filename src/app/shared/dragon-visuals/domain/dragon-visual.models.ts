@@ -3,20 +3,13 @@ export const DRAGON_VISUAL_CONTRACT_VERSION = 1 as const;
 export type DragonVisualContractVersion = typeof DRAGON_VISUAL_CONTRACT_VERSION;
 export type DragonVisualMode = 'learn' | 'practice' | 'official';
 export type DragonVisualPhase =
-  | 'observe'
-  | 'predict'
-  | 'manipulate'
-  | 'reveal'
-  | 'explain'
-  | 'review';
+  'observe' | 'predict' | 'manipulate' | 'reveal' | 'explain' | 'review';
 export type DragonVisualSceneKind =
   | 'trait-inspector'
   | 'genome-microscope'
-  | 'genotype-scanner'
   | 'allele-switchboard'
   | 'punnett-composer'
   | 'incubator-sampler'
-  | 'reproduction-comparison'
   | 'sibling-tracer'
   | 'diversity-manager'
   | 'evidence-replay'
@@ -133,49 +126,11 @@ export interface DragonGenomeLabelPlacement {
   revealed: boolean;
 }
 
-export type DragonScannerOptionKind = 'genotype' | 'phenotype';
-export type DragonScannerOptionStatusId = 'pending' | 'correct' | 'incorrect' | 'missed';
-
-/** One selectable record in a scanner multi-select. */
-export interface DragonScannerOption {
-  id: string;
-  kind: DragonScannerOptionKind;
-  /** Allele pair drawn on the chromosome graphic for genotype options. */
-  alleles?: readonly [string, string];
-  /** Curriculum label for phenotype options. */
-  labelId?: string;
-}
-
-/** Lesson-owned verdict. `missed` marks a supported record the student did not select. */
-export interface DragonScannerOptionStatus {
-  optionId: string;
-  status: DragonScannerOptionStatusId;
-}
-
 /** A pinnable proof anchored to a semantic target in the display. */
 export interface DragonEvidenceMark {
   id: string;
   labelId: string;
   anchorId?: string;
-}
-
-export interface GenotypeScannerInstrument {
-  kind: 'genotype-scanner';
-  sampleId: string;
-  focusGeneId: string;
-  genotypeRevealed: boolean;
-  /** What the shield covers until the scan runs. */
-  concealed?: DragonScannerOptionKind;
-  optionKind?: DragonScannerOptionKind;
-  options?: readonly DragonScannerOption[];
-  selectedOptionIds?: readonly string[];
-  optionStatuses?: readonly DragonScannerOptionStatus[];
-  selectionLocked?: boolean;
-  /** Second sample shown beside the first so equal phenotypes can be compared. */
-  comparisonSampleId?: string | null;
-  evidenceMarks?: readonly DragonEvidenceMark[];
-  evidenceMarkId?: string | null;
-  showHints?: boolean;
 }
 
 export interface AlleleSwitchboardInstrument {
@@ -216,7 +171,8 @@ export interface AlleleSwitchboardInstrument {
   dominantSignalPresent?: boolean;
   recessiveSignalPresent?: boolean;
   genotypeClassId?: 'homozygous-dominant' | 'heterozygous' | 'homozygous-recessive' | null;
-  interpretationGenotypeClassId?: 'homozygous-dominant' | 'heterozygous' | 'homozygous-recessive' | null;
+  interpretationGenotypeClassId?:
+    'homozygous-dominant' | 'heterozygous' | 'homozygous-recessive' | null;
   interpretedRecessiveRetained?: boolean | null;
   interpretationLocked?: boolean;
   carrierState?: boolean;
@@ -293,13 +249,6 @@ export interface IncubatorSamplerInstrument {
   observedPercent: number | null;
 }
 
-export interface ReproductionComparisonInstrument {
-  kind: 'reproduction-comparison';
-  sourceSampleIds: readonly string[];
-  sexualOffspringSampleIds: readonly string[];
-  asexualOffspringSampleIds: readonly string[];
-}
-
 export interface SiblingTracerInstrument {
   kind: 'sibling-tracer';
   parentSampleIds: readonly [string, string];
@@ -322,12 +271,10 @@ export interface EvidenceReplayInstrument {
 export type DragonInstrumentState =
   | TraitInspectorInstrument
   | GenomeMicroscopeInstrument
-  | GenotypeScannerInstrument
   | AlleleSwitchboardInstrument
   | PunnettComposerInstrument
   | DragonHatcheryInstrument
   | IncubatorSamplerInstrument
-  | ReproductionComparisonInstrument
   | SiblingTracerInstrument
   | DiversityManagerInstrument
   | EvidenceReplayInstrument;

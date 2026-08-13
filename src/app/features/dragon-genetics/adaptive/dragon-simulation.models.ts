@@ -14,11 +14,9 @@ export const INSTRUCTION_LEVEL_LABELS: Record<InstructionLevel, string> = {
 export type DragonSimulationId =
   | 'trait-evidence'
   | 'genome-microscope'
-  | 'genotype-scanner'
   | 'allele-workbench'
   | 'punnett-composer'
   | 'incubator-sampler'
-  | 'reproduction-comparison'
   | 'dna-process-lab'
   | 'diversity-manager'
   | 'dragon-hatchery'
@@ -69,11 +67,9 @@ export interface DragonSimulationDefinition {
   visualKind:
     | 'evidence'
     | 'microscope'
-    | 'scanner'
     | 'chromosome'
     | 'punnett'
     | 'sampler'
-    | 'comparison'
     | 'dna-process'
     | 'pedigree'
     | 'population'

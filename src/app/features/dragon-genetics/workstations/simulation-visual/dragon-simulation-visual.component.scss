@@ -138,12 +138,10 @@
 }
 .punnett-model,
 .sample-model,
-.comparison-model,
 .pedigree-model,
 .population-model,
 .timeline-model,
 .chromosome-model,
-.scanner-model,
 .evidence-model,
 .hatchery-model,
 .arena-model {
@@ -205,33 +203,6 @@
   transform: translateX(-50%);
   font-size: var(--text-xs);
   text-align: center;
-}
-.comparison-model {
-  display: flex;
-  gap: 2rem;
-}
-.comparison-model div {
-  display: grid;
-  grid-template-columns: repeat(3, 2.3rem);
-  gap: 0.45rem;
-  padding: 1rem;
-  border: 1px solid rgb(255 255 255 / 20%);
-  border-radius: 1rem;
-}
-.comparison-model b {
-  grid-column: 1 / -1;
-  color: var(--simulation-accent);
-  font-size: var(--text-sm);
-  text-align: center;
-}
-.comparison-model span {
-  display: grid;
-  height: 2.3rem;
-  place-items: center;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--simulation-accent) 30%, #152d3b);
-  font-size: var(--text-sm);
-  font-weight: 900;
 }
 .pedigree-model {
   display: grid;
@@ -335,33 +306,6 @@
   color: var(--simulation-accent);
   font-size: var(--text-xs);
   text-transform: uppercase;
-}
-.scanner-model {
-  display: grid;
-  grid-template-columns: repeat(2, 4rem);
-  gap: 1rem;
-  place-items: center;
-}
-.scanner-model span {
-  display: grid;
-  width: 4rem;
-  height: 4rem;
-  place-items: center;
-  border: 2px solid var(--simulation-accent);
-  border-radius: 0.8rem;
-  font-size: 1.3rem;
-  font-weight: 900;
-}
-.scanner-model i {
-  grid-column: 1 / -1;
-  width: 9rem;
-  height: 2px;
-  background: var(--simulation-accent);
-  box-shadow: 0 0 15px var(--simulation-accent);
-}
-.scanner-model b {
-  grid-column: 1 / -1;
-  font-size: 1.6rem;
 }
 .evidence-model {
   text-align: center;
@@ -499,10 +443,6 @@
   .visual-node small {
     display: none;
   }
-  .comparison-model {
-    gap: 0.6rem;
-    transform: translate(-50%, -70%) scale(0.8);
-  }
   .instrument-readout {
     right: 0.8rem;
     bottom: 0.8rem;
@@ -514,7 +454,6 @@
   .population-model,
   .timeline-model,
   .chromosome-model,
-  .scanner-model,
   .evidence-model,
   .hatchery-model,
   .arena-model {

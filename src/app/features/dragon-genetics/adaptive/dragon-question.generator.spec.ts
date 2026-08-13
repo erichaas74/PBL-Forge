@@ -15,15 +15,23 @@ describe('adaptive Dragon Genetics question generation', () => {
     };
   }
 
-  it('excludes retired stations from the active simulation registry', () => {
+  it('contains only the active simulation registry', () => {
     const activeIds = DRAGON_SIMULATIONS.map((definition) => definition.id as string);
-    expect(activeIds).not.toContain('sibling-tracer');
-    expect(activeIds).not.toContain('evidence-replay');
-    expect(activeIds).toContain('dna-process-lab');
+    expect(activeIds).toEqual([
+      'trait-evidence',
+      'genome-microscope',
+      'allele-workbench',
+      'punnett-composer',
+      'incubator-sampler',
+      'dna-process-lab',
+      'diversity-manager',
+      'dragon-hatchery',
+      'dragon-arena',
+    ]);
   });
 
   it('reconstructs exactly the same question set from a fixed seed', () => {
-    const definition = DRAGON_SIMULATIONS[4];
+    const definition = DRAGON_SIMULATIONS.find(({ id }) => id === 'incubator-sampler')!;
     const first = generateSimulationQuestions(
       definition,
       settings('high-school'),
@@ -59,7 +67,7 @@ describe('adaptive Dragon Genetics question generation', () => {
   });
 
   it('varies question order or option order for different student seeds', () => {
-    const definition = DRAGON_SIMULATIONS[8];
+    const definition = DRAGON_SIMULATIONS.find(({ id }) => id === 'dragon-hatchery')!;
     const first = generateSimulationQuestions(definition, settings('ap-biology'), 'student-a');
     const second = generateSimulationQuestions(definition, settings('ap-biology'), 'student-b');
     expect(JSON.stringify(second)).not.toBe(JSON.stringify(first));
