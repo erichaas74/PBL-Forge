@@ -82,6 +82,7 @@
     @if (run(); as currentRun) {
       @if (
         simulation.id !== 'allele-workbench' &&
+        simulation.id !== 'dna-process-lab' &&
         simulation.id !== 'dragon-hatchery' &&
         simulation.id !== 'punnett-composer' &&
         simulation.id !== 'incubator-sampler'
@@ -145,35 +146,37 @@
             />
           </section>
         </main>
+      } @else if (simulation.id === 'dna-process-lab') {
+        <main class="experience-workspace dna-workspace">
+          <section class="visual-stage dna-stage">
+            <app-dragon-dna-repair-lab
+              [studentId]="session.user()?.uid ?? 'local-student'"
+              [goal]="simulation.goal"
+              [analysisCase]="transferredDnaAnalysisCase()"
+              [chromosomeModel]="transferredDnaChromosomeModel()"
+              [genes]="availableAlleleGenes()"
+              [alleles]="availableAlleles()"
+              (modelSelected)="selectNode($event)"
+            />
+          </section>
+        </main>
       } @else if (
         (!currentRun.complete || transferredDnaAnalysisCase()) && question();
         as currentQuestion
       ) {
         <main
           class="experience-workspace"
-          [class.dna-workspace]="simulation.id === 'dna-process-lab'"
           [class.hatchery-workspace]="simulation.id === 'dragon-hatchery'"
           [class.genome-workspace]="simulation.id === 'genome-microscope'"
         >
           <section
             class="visual-stage"
-            [class.dna-stage]="simulation.id === 'dna-process-lab'"
             [class.arena-stage]="simulation.id === 'dragon-arena'"
             [class.hatchery-stage]="simulation.id === 'dragon-hatchery'"
             [class.genome-stage]="simulation.id === 'genome-microscope'"
           >
             @if (simulation.id === 'genome-microscope') {
               <app-genome-microscope
-                [genes]="availableAlleleGenes()"
-                [alleles]="availableAlleles()"
-                (modelSelected)="selectNode($event)"
-              />
-            } @else if (simulation.id === 'dna-process-lab') {
-              <app-dragon-dna-repair-lab
-                [studentId]="session.user()?.uid ?? 'local-student'"
-                [goal]="simulation.goal"
-                [analysisCase]="transferredDnaAnalysisCase()"
-                [chromosomeModel]="transferredDnaChromosomeModel()"
                 [genes]="availableAlleleGenes()"
                 [alleles]="availableAlleles()"
                 (modelSelected)="selectNode($event)"
@@ -222,7 +225,7 @@
             }
           </section>
 
-          @if (simulation.id !== 'dna-process-lab' && simulation.id !== 'dragon-hatchery') {
+          @if (simulation.id !== 'dragon-hatchery') {
             <aside class="question-dock" aria-label="Embedded simulation question">
               <header>
                 <span>{{ currentQuestion.skill }} · {{ levelLabels[currentRun.level] }}</span>
