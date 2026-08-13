@@ -5,6 +5,7 @@ import {
   computed,
   effect,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { complementaryDna, dnaSequence, transcribedRna } from './dna-process.models';
@@ -18,6 +19,7 @@ import { complementaryDna, dnaSequence, transcribedRna } from './dna-process.mod
 export class DnaTranscriptionAnimationComponent implements OnDestroy {
   readonly sequence = input('AGTCAT');
   readonly autoplay = input(false);
+  readonly transcriptionCompleted = output<void>();
   readonly coding = computed(() => dnaSequence(this.sequence()));
   readonly template = computed(() => complementaryDna(this.coding()));
   readonly mrna = computed(() => transcribedRna(this.coding()));
@@ -40,13 +42,21 @@ export class DnaTranscriptionAnimationComponent implements OnDestroy {
     this.timer = setInterval(() => {
       const next = this.progress() + 1;
       this.progress.set(next);
-      if (next >= this.coding().length) this.stop();
+      if (next >= this.coding().length) {
+        this.stop();
+        this.transcriptionCompleted.emit();
+      }
     }, 650);
   }
 
   setProgress(value: string | number): void {
     this.stop();
-    this.progress.set(Math.max(0, Math.min(this.coding().length, Number(value))));
+    const previous = this.progress();
+    const next = Math.max(0, Math.min(this.coding().length, Number(value)));
+    this.progress.set(next);
+    if (previous < this.coding().length && next >= this.coding().length) {
+      this.transcriptionCompleted.emit();
+    }
   }
 
   polymerasePosition(): number {

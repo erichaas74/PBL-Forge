@@ -80,7 +80,11 @@
     }
 
     @if (run(); as currentRun) {
-      @if (simulation.id !== 'allele-workbench' && simulation.id !== 'dragon-hatchery') {
+      @if (
+        simulation.id !== 'allele-workbench' &&
+        simulation.id !== 'dragon-hatchery' &&
+        simulation.id !== 'punnett-composer'
+      ) {
         <nav class="phase-rail" aria-label="Simulation sections">
           @for (item of questions(); track item.id; let index = $index) {
             <span
@@ -122,6 +126,15 @@
             </aside>
           }
         </main>
+      } @else if (simulation.id === 'punnett-composer') {
+        <main class="experience-workspace punnett-workspace">
+          <section class="visual-stage punnett-stage">
+            <app-punnett-composer
+              [studentId]="session.user()?.uid ?? 'local-student'"
+              [goal]="simulation.goal"
+            />
+          </section>
+        </main>
       } @else if (
         (!currentRun.complete || transferredDnaAnalysisCase()) && question();
         as currentQuestion
@@ -153,18 +166,9 @@
                 (modelSelected)="selectNode($event)"
               />
             } @else if (simulation.id === 'dragon-hatchery') {
-              <app-dragon-hatchery-station
-                [openLab]="true"
-                [clutch]="hatcheryClutch()"
-                [parents]="hatcheryParents"
-                clutchId="adaptive-hatchery"
-                clutchLabel="Family clutch"
-                focusTraitId="wings"
-                moduleId="adaptive-hatchery"
-                [requirePrediction]="false"
-                [examineBudget]="null"
-                [sampleBudget]="null"
-                [hatchLimit]="3"
+              <app-dragon-hatchery-breeding-lab
+                [studentId]="session.user()?.uid ?? 'local-student'"
+                [seed]="currentRun.seed"
               />
             } @else if (simulation.id === 'dragon-arena') {
               @if (arenaChampion(); as champion) {

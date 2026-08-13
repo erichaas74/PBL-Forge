@@ -312,7 +312,7 @@ export const DRAGON_SIMULATIONS: readonly DragonSimulationDefinition[] = [
     title: 'Punnett Composer',
     shortTitle: 'Punnett composer',
     skill: 'GEN-5',
-    goal: 'Compose offspring cells from one allele per parent and convert counts to probabilities.',
+    goal: 'Determine how one allele from each parent shapes possible offspring genotypes and probabilities.',
     visualKind: 'punnett',
     accent: '#5eb5e8',
     sections: SECTIONS,

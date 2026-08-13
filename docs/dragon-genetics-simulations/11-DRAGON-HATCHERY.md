@@ -12,6 +12,30 @@ Students hold a clutch of sealed eggs and decide what to find out before decidin
 Two records stay deliberately separate: candling reports the traits an egg will show, and a DNA
 sample reports the allele pair behind them. Hatching reveals a dragon, never its genotype.
 
+The open Dragon Hatchery also owns the upstream breeding instrument. Students load two account
+dragons, observe five chromosome pairs pass through replication, crossing over, Meiosis I, and
+Meiosis II, inspect the four resulting gametes from each parent, and choose the egg and sperm that
+will create each fertilized egg. The pre-generated clutch path remains available to hosted lesson
+modules that supply their own clutch.
+
+## Required pre-build decision: meiosis gamete selection
+
+1. **Scientific goal:** Determine how segregation, independent assortment, and crossing over
+   change which allele combinations a parent can contribute to an offspring.
+2. **Manipulable evidence:** Students choose either account dragon for each parent role, rerun or
+   step through meiosis, inspect four egg or sperm gametes, choose a target recessive allele, and
+   drag or select one gamete into the breeding chamber.
+3. **Observable consequence:** Chromosome segments and their locus labels move together at a
+   physical crossover boundary. Five chromosome pairs separate into four non-identical gametes;
+   fertilization combines only the two selected gametes into a new sealed Hatchery egg.
+4. **Student-built record:** Each fertilization persists both parent records, both complete meiosis
+   runs, crossover locations, the selected gametes, the student's selection notes, and the
+   resulting core genome under the current student identity.
+5. **Shared sources:** Parent records come from the account Genetics File; loci and inheritance
+   come from the expressive-genome and chromosome catalogs; the parent renderer and meiosis use
+   the same expanded parent profile; fertilized eggs use the existing inheritance and assembly
+   builder; the Hatchery remains the phenotype renderer.
+
 ## Scene inputs
 
 - clutch ID, optional parent sample IDs, and optional focus gene;
@@ -22,10 +46,15 @@ sample reports the allele pair behind them. Hatching reveals a dragon, never its
 
 ## Display model
 
-A numbered egg tray on the left, an examination bench on the right, and a hatch tray beneath. Eggs
-are generic shells that show instrument state only: candling light when examined, a sampling needle
-and strand when sampled, a crack when hatched. Trait rows and the chromosome pair appear on the
-bench; no hatchling body is drawn anywhere.
+Before the egg tray, a dark-cell meiosis stage follows the supplied five-pair reference: glowing
+membranes, replicated chromatids, paired tetrads, moving crossover segments, spindle separation,
+and four final gamete cells. The account file remains at upper-left and the breeding chamber keeps
+selected egg and sperm records visible.
+
+After fertilization, a numbered egg tray appears on the left, an examination bench on the right,
+and a hatch tray beneath. Eggs are generic shells that show instrument state only: candling light
+when examined, a sampling needle and strand when sampled, a crack when hatched. Trait rows and the
+chromosome pair appear on the bench; no hatchling body is drawn anywhere.
 
 ## Student sequence
 

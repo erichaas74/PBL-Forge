@@ -1,0 +1,473 @@
+<section class="protein-rescue-lab" aria-labelledby="protein-rescue-goal">
+  <header class="lab-intro">
+    <div>
+      <span class="eyebrow">BERK CLINICAL GENETICS · DRACOSE RESPONSE</span>
+      <h2 id="protein-rescue-goal">Trace a food response from gene to protein to patient.</h2>
+      <p>
+        Compare both patient gene copies, model what each protein does, and test diet options before
+        recording a rescue recommendation.
+      </p>
+    </div>
+    <nav aria-label="Related Dragon Genetics workstations">
+      <a routerLink="/dragon-genetics/pedigree-lab">Trace the bloodline</a>
+      <a routerLink="/dragon-genetics/dragon-hatchery">Open the Hatchery</a>
+    </nav>
+  </header>
+
+  <p class="live-status" role="status">{{ statusMessage() }}</p>
+
+  <div class="intake-grid">
+    <app-account-genetics-file
+      [studentId]="studentId()"
+      [selectedRecordId]="stagedAccountRecord()?.id ?? null"
+      (recordSelected)="selectAccountRecord($event)"
+    />
+
+    <section
+      class="patient-bay"
+      [class.loaded]="!!patient()"
+      (dragover)="allowAccountDrop($event)"
+      (drop)="dropPatient($event)"
+      aria-labelledby="patient-bay-title"
+    >
+      <header>
+        <div>
+          <span class="panel-code">PATIENT BAY</span>
+          <h3 id="patient-bay-title">Clinical intake</h3>
+        </div>
+        <button type="button" [disabled]="!stagedAccountRecord()" (click)="loadStagedPatient()">
+          Load patient
+        </button>
+      </header>
+
+      @if (patient(); as currentPatient) {
+        <div class="patient-card">
+          <span
+            class="patient-mark"
+            [style.--patient-color]="currentPatient.dragon.color"
+            [style.--patient-accent]="currentPatient.dragon.accentColor"
+            aria-hidden="true"
+            >{{ currentPatient.dragon.name.slice(0, 1) }}</span
+          >
+          <div>
+            <small>{{ currentPatient.dragon.title }}</small>
+            <strong>{{ currentPatient.dragon.name }}</strong>
+            <p>{{ currentPatient.chartSummary }}</p>
+          </div>
+        </div>
+        <div class="chromosome-badge">
+          <span aria-hidden="true"><i></i><i></i></span>
+          <div><small>SEALED SAMPLE SET</small><strong>Chromosome 4 · Dracase locus</strong></div>
+        </div>
+      } @else {
+        <div class="empty-patient">
+          <span aria-hidden="true">+</span>
+          <strong>Drop an account dragon here</strong>
+          <p>Chromosome records load the dragon they belong to. No diagnosis is revealed.</p>
+        </div>
+      }
+    </section>
+
+    <aside class="clinical-chart" aria-label="Patient observations and diet log">
+      <header>
+        <span class="panel-code">CHART</span>
+        <h3>Observed evidence</h3>
+      </header>
+      @if (patient(); as currentPatient) {
+        <h4>Symptoms and energy</h4>
+        <ul>
+          @for (observation of currentPatient.observations; track observation) {
+            <li>{{ observation }}</li>
+          }
+        </ul>
+        <h4>Recent diet log</h4>
+        <ul class="diet-log">
+          @for (entry of currentPatient.dietLog; track entry) {
+            <li>{{ entry }}</li>
+          }
+        </ul>
+      } @else {
+        <p class="panel-empty">Patient observations appear after intake.</p>
+      }
+    </aside>
+  </div>
+
+  <div class="molecular-bench" [class.inactive]="!patient()">
+    <aside class="sample-bank" aria-labelledby="sample-bank-title">
+      <header>
+        <span class="panel-code">GENE BANK</span>
+        <h3 id="sample-bank-title">Patient copies</h3>
+      </header>
+      <p>Labels identify chromosome copies only. Select a cartridge, then load the reader.</p>
+      @if (patient(); as currentPatient) {
+        <div class="sample-list">
+          @for (sample of currentPatient.samples; track sample.id) {
+            <button
+              type="button"
+              class="gene-sample"
+              [class.selected]="stagedSampleId() === sample.id"
+              [class.tested]="enzymeTested(sample.id)"
+              [attr.aria-pressed]="stagedSampleId() === sample.id"
+              draggable="true"
+              (click)="selectSample(sample)"
+              (dragstart)="startSampleDrag($event, sample)"
+            >
+              <span aria-hidden="true"><i></i><i></i></span>
+              <strong>{{ sample.sampleCode }}</strong>
+              <small>{{ sampleResultSummary(sample) }}</small>
+            </button>
+          }
+        </div>
+        <button
+          class="load-sample"
+          type="button"
+          [disabled]="!stagedSampleId()"
+          (click)="loadStagedSample()"
+        >
+          Load selected sample into reader
+        </button>
+      } @else {
+        <p class="panel-empty">Load a patient to release the two neutral samples.</p>
+      }
+    </aside>
+
+    <section
+      class="gene-reader"
+      [class.loaded]="!!loadedSample()"
+      (dragover)="allowSampleDrop($event)"
+      (drop)="dropSample($event)"
+      aria-labelledby="gene-reader-title"
+    >
+      <header>
+        <div>
+          <span class="panel-code">DNA → mRNA</span>
+          <h3 id="gene-reader-title">Transcription reader</h3>
+        </div>
+        @if (loadedSample(); as sample) {
+          <strong>{{ sample.sampleCode }}</strong>
+        }
+      </header>
+
+      @if (loadedSample(); as sample) {
+        <div class="sequence-readout">
+          <div>
+            <small>Coding DNA 5′ → 3′</small><code>{{ formatSequence(sample.codingDna) }}</code>
+          </div>
+          <div>
+            <small>Template DNA 3′ → 5′</small><code>{{ formatSequence(sample.templateDna) }}</code>
+          </div>
+        </div>
+        <app-dna-transcription-animation
+          [sequence]="sample.codingDna"
+          (transcriptionCompleted)="recordTranscript()"
+        />
+
+        @if (isTranscribed(sample.id)) {
+          @let translation = currentTranslation();
+          <section class="translation-bench" aria-labelledby="translation-title">
+            <header>
+              <div>
+                <span class="panel-code">mRNA → PROTEIN</span>
+                <h4 id="translation-title">Ribosome bench</h4>
+              </div>
+              <code>{{ formatSequence(sample.mrna) }}</code>
+            </header>
+            @if (translation) {
+              <div class="codon-track" aria-label="Messenger RNA codons">
+                @for (codon of translation.codons; track $index) {
+                  <span [class.stop]="codon === 'UAG'">{{ codon }}</span>
+                }
+              </div>
+              <div
+                class="ribosome-model"
+                [class.stopped]="
+                  translation.stoppedEarly && translationProgress() >= translation.steps.length
+                "
+              >
+                <div class="ribosome" aria-hidden="true"><span>RIBOSOME</span></div>
+                <div class="amino-chain" aria-label="Amino acids assembled so far">
+                  @for (step of visibleTranslationSteps(); track $index) {
+                    <span [class.stop]="step.stop"
+                      ><b>{{ step.shortName }}</b
+                      ><small>{{ step.codon }}</small></span
+                    >
+                  } @empty {
+                    <i>Move the transcript through the ribosome.</i>
+                  }
+                </div>
+              </div>
+              <div class="translation-controls">
+                <button type="button" (click)="playTranslation()">Run translation</button>
+                <label>
+                  Ribosome progress
+                  <input
+                    type="range"
+                    min="0"
+                    [max]="translation.steps.length"
+                    step="1"
+                    [value]="translationProgress()"
+                    (input)="setTranslationProgress($any($event.target).value)"
+                  />
+                </label>
+                <span>{{ translationProgress() }}/{{ translation.steps.length }} codons read</span>
+              </div>
+
+              @if (translationFor(sample.id); as product) {
+                <div class="protein-test" [class.truncated]="product.stoppedEarly">
+                  <div class="folded-protein" aria-hidden="true">
+                    @for (aminoAcid of product.aminoAcids; track $index) {
+                      <i></i>
+                    }
+                  </div>
+                  <div>
+                    <small>PROTEIN PRODUCT</small>
+                    <strong
+                      >{{ product.aminoAcids.length }} amino acids{{
+                        product.stoppedEarly ? ' · early stop observed' : ' · full chain observed'
+                      }}</strong
+                    >
+                    <p>Place the protein against a Dracose molecule to test its function.</p>
+                  </div>
+                  <button type="button" (click)="testProteinFunction()">Test with Dracose</button>
+                  @if (enzymeTested(sample.id)) {
+                    <div class="sugar-test" [class.split]="enzymeWorks(sample.id)" role="status">
+                      <span class="sugar left"></span><span class="bond"></span
+                      ><span class="sugar right"></span>
+                      <strong>{{
+                        enzymeWorks(sample.id) ? 'Dracose split' : 'Dracose remained intact'
+                      }}</strong>
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </section>
+        } @else {
+          <p class="reader-cue">
+            Play or scrub transcription to the end to release the mRNA to the ribosome.
+          </p>
+        }
+      } @else {
+        <div class="empty-reader">
+          <span aria-hidden="true">DNA</span>
+          <strong>Drop a CHR4 sample cartridge here</strong>
+          <p>DNA, RNA, and protein evidence remain blank until a sample is loaded.</p>
+        </div>
+      }
+    </section>
+
+    <aside class="comparison-tray" aria-labelledby="comparison-title">
+      <header>
+        <span class="panel-code">EVIDENCE LANES</span>
+        <h3 id="comparison-title">Copy A / Copy B</h3>
+      </header>
+      @if (patient(); as currentPatient) {
+        @for (sample of currentPatient.samples; track sample.id) {
+          <article [class.complete]="enzymeTested(sample.id)">
+            <header>
+              <strong>{{ sample.sampleCode }}</strong
+              ><span>{{ enzymeTested(sample.id) ? 'FUNCTION TESTED' : 'OPEN' }}</span>
+            </header>
+            @if (isTranscribed(sample.id)) {
+              <dl>
+                <div>
+                  <dt>mRNA</dt>
+                  <dd>
+                    <code>{{ formatSequence(sample.mrna) }}</code>
+                  </dd>
+                </div>
+                @if (translationFor(sample.id); as result) {
+                  <div>
+                    <dt>Protein</dt>
+                    <dd>
+                      {{ result.aminoAcids.length }} amino acids{{
+                        result.stoppedEarly ? ' + early stop' : ''
+                      }}
+                    </dd>
+                  </div>
+                }
+                @if (enzymeTested(sample.id)) {
+                  <div>
+                    <dt>Dracose</dt>
+                    <dd>{{ enzymeWorks(sample.id) ? 'Split' : 'Intact' }}</dd>
+                  </div>
+                }
+              </dl>
+            } @else {
+              <p>No molecular evidence captured.</p>
+            }
+          </article>
+        }
+      } @else {
+        <p class="panel-empty">The two pathway records collect here for comparison.</p>
+      }
+    </aside>
+  </div>
+
+  <div class="clinical-bench" [class.inactive]="!patient()">
+    <section class="digestion-lab" aria-labelledby="digestion-title">
+      <header>
+        <div>
+          <span class="panel-code">FUNCTION → PHYSIOLOGY</span>
+          <h3 id="digestion-title">Digestion chamber</h3>
+        </div>
+      </header>
+      <div class="food-shelf" aria-label="Foods available for a digestion trial">
+        @for (food of foods; track food.id) {
+          <button
+            type="button"
+            [class.selected]="selectedFoodId() === food.id"
+            [attr.aria-pressed]="selectedFoodId() === food.id"
+            (click)="selectFood(food.id)"
+          >
+            <span [attr.data-load]="food.dracoseLoad" aria-hidden="true"></span>
+            <strong>{{ food.name }}</strong>
+            <small>{{ food.description }}</small>
+          </button>
+        }
+      </div>
+      <div [class]="'digestion-chamber ' + digestionState()">
+        <div class="gut-model" aria-hidden="true">
+          <span class="dracose-pair"><i></i><b></b><i></i></span>
+          <span class="energy-meter"><i></i></span>
+        </div>
+        <div>
+          @if (latestDigestionTrial(); as trial) {
+            <small>{{ trial.foodName }} · {{ trial.energy }} energy</small>
+            <strong>{{
+              trial.result === 'no-dracose'
+                ? 'No Dracose entered the chamber'
+                : trial.sugarSplit
+                  ? 'Sugar products available'
+                  : 'Dracose remained undigested'
+            }}</strong>
+            <p>{{ trial.symptoms }}</p>
+            <p class="mechanism">{{ trial.explanation }}</p>
+          } @else {
+            <small>NO FOOD TEST RUN</small>
+            <strong>Choose a food and observe the patient response.</strong>
+            <p>The same patient can be tested repeatedly with different diet conditions.</p>
+          }
+        </div>
+      </div>
+      <button class="run-food" type="button" [disabled]="!patient()" (click)="runFoodTrial()">
+        Test {{ selectedFood().shortName }} with patient
+      </button>
+      @if (digestionTrials().length) {
+        <div class="trial-log" aria-label="Current food trial evidence">
+          @for (trial of digestionTrials().slice(0, 4); track trial.id) {
+            <span [attr.data-result]="trial.result"
+              ><strong>{{ trial.foodName }}</strong
+              >{{
+                trial.result === 'no-dracose'
+                  ? 'not present'
+                  : trial.sugarSplit
+                    ? 'split'
+                    : 'intact'
+              }}
+              · {{ trial.energy }} energy</span
+            >
+          }
+        </div>
+      }
+    </section>
+
+    <section class="case-builder" aria-labelledby="case-builder-title">
+      <header>
+        <div>
+          <span class="panel-code">CLINICAL NOTEBOOK</span>
+          <h3 id="case-builder-title">Rescue record</h3>
+        </div>
+        <button
+          type="button"
+          class="archive-toggle"
+          [attr.aria-expanded]="caseFileOpen()"
+          (click)="caseFileOpen.set(!caseFileOpen())"
+        >
+          Saved cases <b>{{ records().length }}</b>
+        </button>
+      </header>
+
+      @if (caseFileOpen()) {
+        <aside class="case-archive" aria-label="Saved protein rescue cases">
+          @for (record of records(); track record.id) {
+            <article>
+              <header>
+                <strong>{{ record.patientName }}</strong
+                ><time>{{ record.savedAtIso | date: 'mediumDate' }}</time>
+              </header>
+              <p>
+                <b>Claim {{ record.claimedGenotype }}</b> · {{ record.explanation }}
+              </p>
+              <small
+                >Diet:
+                @for (foodId of record.recommendedFoodIds; track foodId; let last = $last) {
+                  {{ foodName(foodId) }}{{ last ? '' : ', ' }}
+                }
+              </small>
+            </article>
+          } @empty {
+            <p>No saved clinical records yet.</p>
+          }
+        </aside>
+      }
+
+      <fieldset>
+        <legend>Likely Dracase genotype</legend>
+        <p>Make a claim from the two sample pathways and the patient response.</p>
+        <div class="genotype-claims">
+          @for (genotype of genotypeClaims; track genotype) {
+            <button
+              type="button"
+              [class.selected]="claimedGenotype() === genotype"
+              [attr.aria-pressed]="claimedGenotype() === genotype"
+              (click)="setClaim(genotype)"
+            >
+              {{ genotype }}
+            </button>
+          }
+        </div>
+        @if (testedSampleCount() === 2) {
+          <p class="genotype-key">
+            Evidence key: D marks a copy that makes working Dracase; d marks a copy with the early
+            stop. One D copy makes enough enzyme in this model, so Dd is a healthy carrier.
+          </p>
+        }
+      </fieldset>
+
+      <fieldset>
+        <legend>Diet management recommendation</legend>
+        <p>
+          Select any foods your evidence supports. Diet changes exposure; they do not repair DNA.
+        </p>
+        <div class="diet-recommendations">
+          @for (food of foods; track food.id) {
+            <button
+              type="button"
+              [class.selected]="recommendationSelected(food.id)"
+              [attr.aria-pressed]="recommendationSelected(food.id)"
+              (click)="toggleRecommendation(food.id)"
+            >
+              <span aria-hidden="true">{{ recommendationSelected(food.id) ? '✓' : '+' }}</span
+              >{{ food.name }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <label class="case-note">
+        Evidence explanation
+        <textarea
+          rows="5"
+          [value]="explanation()"
+          (input)="updateExplanation($any($event.target).value)"
+          placeholder="Connect DNA, mRNA, protein shape, enzyme function, digestion, and the diet recommendation."
+        ></textarea>
+      </label>
+      <p class="record-readiness">{{ recordReadiness() }}</p>
+      <button class="save-case" type="button" [disabled]="!canSaveCase()" (click)="saveCase()">
+        Save rescue record
+      </button>
+    </section>
+  </div>
+</section>

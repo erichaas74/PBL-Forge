@@ -8,6 +8,7 @@ import {
 } from './dragon-phenotype-builder';
 import {
   DragonLabGenome,
+  DragonGameteGenome,
   DragonOffspring,
   DragonParentProfile,
   DragonTraitDefinition,
@@ -157,7 +158,7 @@ export function breedLabClutch(
       selectAllele(parentB.genome[trait.id], `${seed}:${trait.id}:b`),
     ])])) as DragonLabGenome;
     const id = `clutch-${run}-${index + 1}`;
-    const color = offspringColor(genome, index);
+    const color = offspringColor(`${parentA.id}:${parentB.id}:${run}`, index);
     const engineGenome = createVisualGenome(id, genome, run);
     const build = createEducationalAssembly(genome, engineGenome);
 
@@ -175,6 +176,50 @@ export function breedLabClutch(
       combatProfile: build.combatProfile,
     };
   });
+}
+
+/**
+ * Fertilizes two student-selected gametes through the same phenotype and assembly
+ * pipeline used by the rest of the Dragon Genetics lab.
+ */
+export function fertilizeLabGametes(
+  eggParent: DragonParentProfile,
+  spermParent: DragonParentProfile,
+  egg: DragonGameteGenome,
+  sperm: DragonGameteGenome,
+  offspringId: string,
+  generation: number,
+  name = `Hatchling ${generation}`,
+  /**
+   * Position in the clutch this hatchling joins. Only the identity colour reads
+   * it, to space this dragon's hue off its siblings' — the hatchery fertilizes
+   * one gamete pair at a time, so there is no clutch-wide pass to do it later.
+   */
+  sequence = 1,
+): DragonOffspring {
+  const genome = Object.fromEntries(
+    DRAGON_TRAITS.map((trait) => [
+      trait.id,
+      normalizeGenotype([egg[trait.id], sperm[trait.id]]),
+    ]),
+  ) as DragonLabGenome;
+  const color = offspringColor(`${eggParent.id}:${spermParent.id}:${generation}`, sequence);
+  const engineGenome = createVisualGenome(offspringId, genome, generation);
+  const build = createEducationalAssembly(genome, engineGenome);
+
+  return {
+    id: offspringId,
+    name,
+    title: `Generation ${generation}`,
+    color,
+    accentColor: lightenColor(color),
+    genome,
+    parentIds: [eggParent.id, spermParent.id],
+    generation,
+    engineGenome,
+    assembly: build.assembly,
+    combatProfile: build.combatProfile,
+  };
 }
 
 export function countDominantPhenotypes(
@@ -475,10 +520,41 @@ export function createEducationalAssembly(
   return { assembly: blueprint, combatProfile };
 }
 
-function offspringColor(genome: DragonLabGenome, index: number): string {
-  const baseHue = showsDominantPhenotype(genome.scales, 'scales') ? 286 : 168;
-  const hue = (baseHue + stableHash(`${genotypeLabel(genome.fire)}:${index}`) % 66) % 360;
-  return `hsl(${hue} 52% 42%)`;
+/**
+ * Golden angle. Stepping a hue by this per hatchling walks the whole colour
+ * wheel without ever revisiting a neighbourhood, which is what makes a clutch
+ * come out as eight distinguishable animals rather than eight shades of two.
+ */
+const HUE_STEP = 137.508;
+
+/**
+ * A bred dragon's identity paint.
+ *
+ * The clutch seed picks where on the wheel the walk starts and the position in
+ * the clutch steps it, so no two hatchlings a student sees side by side share a
+ * colour, and two different clutches do not repeat the same run of them.
+ * Saturation and lightness jitter per dragon on top.
+ *
+ * Kept dark on purpose. These are lit by a bright overcast stage against pale
+ * sand, and a light pigment there comes back as pastel — the pigment has to
+ * start well below the sand to read as a coloured animal standing on it.
+ *
+ * Nothing here reads the genome, deliberately: colour is identity, not a trait
+ * readout (see the note on `pigment-hue` in {@link createVisualGenome}). The
+ * previous version keyed the hue off the scales phenotype *and* the fire
+ * genotype, which handed a student a way to tell `Ff` from `FF` by eye — the
+ * one thing the whole hatchery lesson rests on not being possible.
+ *
+ * Commas, not spaces. This string is handed straight to `THREE.Color`, whose
+ * `hsl()` parser only accepts the comma-separated form — the modern CSS
+ * `hsl(h s% l%)` syntax fails to match, and three leaves the colour at its
+ * default white. Every bred dragon rendered as a white blank because of it.
+ */
+function offspringColor(clutchSeed: string, index: number): string {
+  const hue = Math.round((stableHash(clutchSeed) % 360 + index * HUE_STEP) % 360);
+  const saturation = 48 + stableHash(`${clutchSeed}:saturation:${index}`) % 20;
+  const lightness = 26 + stableHash(`${clutchSeed}:lightness:${index}`) % 10;
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
 function lightenColor(color: string): string {

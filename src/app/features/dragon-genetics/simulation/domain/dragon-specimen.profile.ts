@@ -277,7 +277,28 @@ export function dragonParentCanvasSource(
   const cached = sexedParentSources.get(parent)?.[sex];
   if (cached) return cached;
 
-  const profile: ExpressiveDragonProfile = {
+  const profile = dragonParentExpressiveProfile(parent, sex);
+  const source = createExpressiveDragonBenchBuild(`${parent.id}-${sex}`, profile, {
+    label: `${parent.name} · ${sex}`,
+    identity: { color: parent.color, accentColor: parent.accentColor },
+  }).source;
+  const entries = sexedParentSources.get(parent) ?? {};
+  entries[sex] = source;
+  sexedParentSources.set(parent, entries);
+  return source;
+}
+
+/**
+ * The complete genome used by the Hatchery parent renderer and its meiosis instrument.
+ * Keeping this expansion in one function means chromosome labels, gametes, and the live parent
+ * dragon cannot silently disagree while the four-gene lab record is being migrated to the full
+ * expressive genome.
+ */
+export function dragonParentExpressiveProfile(
+  parent: DragonParentProfile,
+  sex: DragonSex,
+): ExpressiveDragonProfile {
+  return {
     sex,
     genome: {
       ...DEFAULT_EXPRESSIVE_DRAGON.genome,
@@ -288,14 +309,6 @@ export function dragonParentCanvasSource(
       'eye-color': sex === 'male' ? ['E', 'Y'] : ['E', 'e'],
     },
   };
-  const source = createExpressiveDragonBenchBuild(`${parent.id}-${sex}`, profile, {
-    label: `${parent.name} · ${sex}`,
-    identity: { color: parent.color, accentColor: parent.accentColor },
-  }).source;
-  const entries = sexedParentSources.get(parent) ?? {};
-  entries[sex] = source;
-  sexedParentSources.set(parent, entries);
-  return source;
 }
 
 function buildExpressiveTraitReadouts(profile: ExpressiveDragonProfile): SpecimenTraitReadout[] {

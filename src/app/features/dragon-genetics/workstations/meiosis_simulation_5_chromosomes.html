@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meiosis Full Cell Model (5 Pairs)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #030712; 
+            color: #f3f4f6;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        #canvas-wrapper {
+            position: relative;
+            box-shadow: 0 0 100px rgba(139, 92, 246, 0.15), inset 0 0 40px rgba(0, 0, 0, 0.8);
+            border-radius: 24px;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            max-width: 95vw;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-width: 1024px;
+        }
+
+        #step-label {
+            position: absolute;
+            top: 30px;
+            left: 40px;
+            font-size: 28px;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 15px rgba(167, 139, 250, 0.6), 0 0 30px rgba(167, 139, 250, 0.3);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #controls {
+            margin-top: 24px;
+            display: flex;
+            gap: 16px;
+            z-index: 20;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 14px 28px;
+            font-size: 14px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #5b21b6 0%, #8b5cf6 100%);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        button:hover:not(:disabled) {
+            background: linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(139, 92, 246, 0.4);
+        }
+        
+        button:disabled {
+            background: #1e293b;
+            color: #64748b;
+            box-shadow: none;
+            border-color: #334155;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #autoBtn.active {
+            background: linear-gradient(135deg, #be123c 0%, #fb7185 100%);
+            box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4);
+        }
+
+        @media (max-width: 640px) {
+            #step-label { font-size: 18px; top: 15px; left: 20px; }
+            button { padding: 10px 16px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-wrapper">
+        <div id="step-label">G1 Interphase</div>
+        <canvas id="meiosisCanvas" width="1024" height="680"></canvas>
+    </div>
+    
+    <div id="controls">
+        <button id="prevBtn" disabled>Previous</button>
+        <button id="autoBtn">Auto Play</button>
+        <button id="nextBtn">Next</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('meiosisCanvas');
+        const ctx = canvas.getContext('2d');
+        const stepLabel = document.getElementById('step-label');
+        
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        const CHROMATID_WIDTH = 18;
+        
+        const CHROM_STYLES = [
+            { body: '#e0ffff', border: '#1d4ed8' }, // 0: Paternal (Cyan)
+            { body: '#ffe4e1', border: '#be123c' }  // 1: Maternal (Pink)
+        ];
+
+        const BANDS = {
+            top: [
+                { y: 0.14, h: 0.04, color: '#dc2626' },
+                { y: 0.34, h: 0.04, color: '#16a34a' }
+            ],
+            bot: [
+                { y: 0.66, h: 0.04, color: '#1e3a8a' },
+                { y: 0.86, h: 0.04, color: '#9333ea' }
+            ]
+        };
+
+        const phases = [
+            'G1 Interphase', 
+            'S Phase (Replication)', 
+            'Prophase I', 
+            'Metaphase I', 
+            'Anaphase I', 
+            'Telophase I', 
+            'Prophase II',
+            'Metaphase II',
+            'Anaphase II',
+            'Telophase II & Cytokinesis'
+        ];
+
+        let currentPhase = 0;
+        let progress = 0; 
+        let isAnimating = false;
+        let autoPlay = false;
+
+        // We define the membranes, nuclei, centrioles, and spindles for each of the 10 phases.
+        // Chromosomes and organelles will be generated dynamically and injected.
+        const states = [
+            // 0: G1 Phase
+            {
+                mem1: { x1:cx, y1:cy, x2:cx, y2:cy, r1:210, r2:210, split:0, op:1 },
+                mem2L: { x1:cx-200, y1:cy, x2:cx-200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                mem2R: { x1:cx+200, y1:cy, x2:cx+200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                nuclei: [ { x:cx, y:cy, r:120, op:1, dash:0 }, { op:0 }, { op:0 }, { op:0 }, { op:0 } ],
+                centrioles: [
+                    { x:cx-40, y:cy-140, op:1 }, { x:cx-20, y:cy-140, op:1 },
+                    { op:0 }, { op:0 }, { op:0 }, { op:0 }
+                ],
+                spindles: [ { op:0, attachOp:0 }, { op:0, attachOp:0 }, { op:0, attachOp:0 } ]
+            },
+            // 1: S Phase
+            {
+                mem1: { x1:cx, y1:cy, x2:cx, y2:cy, r1:210, r2:210, split:0, op:1 },
+                mem2L: { x1:cx-200, y1:cy, x2:cx-200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                mem2R: { x1:cx+200, y1:cy, x2:cx+200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                nuclei: [ { x:cx, y:cy, r:120, op:1, dash:0 }, { op:0 }, { op:0 }, { op:0 }, { op:0 } ],
+                centrioles: [
+                    { x:cx-40, y:cy-140, op:1 }, { x:cx-20, y:cy-140, op:1 },
+                    { op:0 }, { op:0 }, { op:0 }, { op:0 }
+                ],
+                spindles: [ { op:0, attachOp:0 }, { op:0, attachOp:0 }, { op:0, attachOp:0 } ]
+            },
+            // 2: Prophase I
+            {
+                mem1: { x1:cx, y1:cy, x2:cx, y2:cy, r1:210, r2:210, split:0, op:1 },
+                mem2L: { x1:cx-200, y1:cy, x2:cx-200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                mem2R: { x1:cx+200, y1:cy, x2:cx+200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                nuclei: [ { x:cx, y:cy, r:125, op:0.2, dash:15 }, { op:0 }, { op:0 }, { op:0 }, { op:0 } ],
+                centrioles: [
+                    { x:cx-170, y:cy, op:1 }, { x:cx+170, y:cy, op:1 },
+                    { op:0 }, { op:0 }, { op:0 }, { op:0 }
+                ],
+                spindles: [ { op:0.3, attachOp:0 }, { op:0, attachOp:0 }, { op:0, attachOp:0 } ]
+            },
+            // 3: Metaphase I
+            {
+                mem1: { x1:cx, y1:cy, x2:cx, y2:cy, r1:210, r2:210, split:0, op:1 },
+                mem2L: { x1:cx-200, y1:cy, x2:cx-200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                mem2R: { x1:cx+200, y1:cy, x2:cx+200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                nuclei: [ { x:cx, y:cy, r:130, op:0, dash:20 }, { op:0 }, { op:0 }, { op:0 }, { op:0 } ],
+                centrioles: [
+                    { x:cx-180, y:cy, op:1 }, { x:cx+180, y:cy, op:1 },
+                    { op:0 }, { op:0 }, { op:0 }, { op:0 }
+                ],
+                spindles: [ { op:1, attachOp:1 }, { op:0, attachOp:0 }, { op:0, attachOp:0 } ]
+            },
+            // 4: Anaphase I
+            {
+                mem1: { x1:cx, y1:cy, x2:cx, y2:cy, r1:230, r2:230, split:0, op:1 },
+                mem2L: { x1:cx-200, y1:cy, x2:cx-200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                mem2R: { x1:cx+200, y1:cy, x2:cx+200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                nuclei: [ { x:cx, y:cy, r:130, op:0, dash:20 }, { op:0 }, { op:0 }, { op:0 }, { op:0 } ],
+                centrioles: [ 
+                    { x:cx-210, y:cy, op:1 }, { x:cx+210, y:cy, op:1 }, 
+                    { op:0 }, { op:0 }, { op:0 }, { op:0 } 
+                ],
+                spindles: [ { op:0.8, attachOp:1 }, { op:0, attachOp:0 }, { op:0, attachOp:0 } ]
+            },
+            // 5: Telophase I
+            {
+                mem1: { x1:cx-200, y1:cy, x2:cx+200, y2:cy, r1:150, r2:150, split:0.65, op:1 },
+                mem2L: { x1:cx-200, y1:cy, x2:cx-200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                mem2R: { x1:cx+200, y1:cy, x2:cx+200, y2:cy, r1:140, r2:140, split:0, op:0 },
+                nuclei: [ { op:0 }, { x:cx-200, y:cy, r:90, op:0.6, dash:5 }, { x:cx+200, y:cy, r:90, op:0.6, dash:5 }, { op:0 }, { op:0 } ],
+                centrioles: [ 
+                    { x:cx-220, y:cy-80, op:1 }, { x:cx+220, y:cy-80, op:1 }, 
+                    { op:0 }, { op:0 }, { op:0 }, { op:0 } 
+                ],
+                spindles: [ { op:0.1, attachOp:0 }, { op:0, attachOp:0 }, { op:0, attachOp:0 } ]
+            },
+            // 6: Prophase II (Horizontally split Meiosis II alignment)
+            {
+                mem1: { x1:cx-200, y1:cy, x2:cx+200, y2:cy, r1:150, r2:150, split:1, op:0 },
+                mem2L: { x1:cx-200, y1:cy, x2:cx-200, y2:cy, r1:145, r2:145, split:0, op:1 },
+                mem2R: { x1:cx+200, y1:cy, x2:cx+200, y2:cy, r1:145, r2:145, split:0, op:1 },
+                nuclei: [ { op:0 }, { x:cx-200, y:cy, r:90, op:0.2, dash:10 }, { x:cx+200, y:cy, r:90, op:0.2, dash:10 }, { op:0 }, { op:0 } ],
+                centrioles: [ 
+                    { op:0 }, { op:0 }, 
+                    { x:cx-320, y:cy, op:1 }, { x:cx-80, y:cy, op:1 }, // Left cell L/R poles
+                    { x:cx+80, y:cy, op:1 }, { x:cx+320, y:cy, op:1 }  // Right cell L/R poles
+                ],
+                spindles: [ { op:0, attachOp:0 }, { op:0.4, attachOp:0 }, { op:0.4, attachOp:0 } ]
+            },
+            // 7: Metaphase II
+            {
+                mem1: { x1:cx-200, y1:cy, x2:cx+200, y2:cy, r1:150, r2:150, split:1, op:0 },
+                mem2L: { x1:cx-200, y1:cy, x2:cx-200, y2:cy, r1:145, r2:145, split:0, op:1 },
+                mem2R: { x1:cx+200, y1:cy, x2:cx+200, y2:cy, r1:145, r2:145, split:0, op:1 },
+                nuclei: [ { op:0 }, { x:cx-200, y:cy, r:90, op:0, dash:15 }, { x:cx+200, y:cy, r:90, op:0, dash:15 }, { op:0 }, { op:0 } ],
+                centrioles: [ 
+                    { op:0 }, { op:0 },
+                    { x:cx-340, y:cy, op:1 }, { x:cx-60, y:cy, op:1 },
+                    { x:cx+60, y:cy, op:1 }, { x:cx+340, y:cy, op:1 } 
+                ],
+                spindles: [ { op:0, attachOp:0 }, { op:1, attachOp:1 }, { op:1, attachOp:1 } ]
+            },
+            // 8: Anaphase II
+            {
+                mem1: { x1:cx-200, y1:cy, x2:cx+200, y2:cy, r1:150, r2:150, split:1, op:0 },
+                mem2L: { x1:cx-280, y1:cy, x2:cx-120, y2:cy, r1:120, r2:120, split:0.6, op:1 },
+                mem2R: { x1:cx+120, y1:cy, x2:cx+280, y2:cy, r1:120, r2:120, split:0.6, op:1 },
+                nuclei: [ { op:0 }, { x:cx-200, y:cy, r:90, op:0, dash:15 }, { x:cx+200, y:cy, r:90, op:0, dash:15 }, { op:0 }, { op:0 } ],
+                centrioles: [ 
+                    { op:0 }, { op:0 },
+                    { x:cx-370, y:cy, op:1 }, { x:cx-30, y:cy, op:1 },
+                    { x:cx+30, y:cy, op:1 }, { x:cx+370, y:cy, op:1 } 
+                ],
+                spindles: [ { op:0, attachOp:0 }, { op:0.8, attachOp:1 }, { op:0.8, attachOp:1 } ]
+            },
+            // 9: Telophase II / Cytokinesis (4 cells horizontally)
+            {
+                mem1: { x1:cx-200, y1:cy, x2:cx+200, y2:cy, r1:150, r2:150, split:1, op:0 },
+                mem2L: { x1:cx-300, y1:cy, x2:cx-100, y2:cy, r1:100, r2:100, split:1, op:1 }, 
+                mem2R: { x1:cx+100, y1:cy, x2:cx+300, y2:cy, r1:100, r2:100, split:1, op:1 }, 
+                nuclei: [ 
+                    { op:0 }, 
+                    { x:cx-300, y:cy, r:65, op:1, dash:0 }, // Cell 1
+                    { x:cx-100, y:cy, r:65, op:1, dash:0 }, // Cell 2
+                    { x:cx+100, y:cy, r:65, op:1, dash:0 }, // Cell 3
+                    { x:cx+300, y:cy, r:65, op:1, dash:0 }  // Cell 4
+                ],
+                centrioles: [ 
+                    { op:0 }, { op:0 },
+                    { x:cx-330, y:cy-60, op:1 }, { x:cx-70, y:cy+60, op:1 },
+                    { x:cx+70, y:cy-60, op:1 }, { x:cx+330, y:cy+60, op:1 } 
+                ],
+                spindles: [ { op:0, attachOp:0 }, { op:0, attachOp:0 }, { op:0, attachOp:0 } ]
+            }
+        ];
+
+        function generateChromosomes() {
+            const C = Array(10).fill(0).map(() => ([]));
+            const LENS = [100, 85, 70, 55, 40]; // 5 distinct chromosome lengths
+            
+            // Baseline genetics (0: Paternal/Cyan, 1: Maternal/Pink)
+            let genes = [];
+            for(let i=0; i<5; i++) {
+                genes.push({ pL: {t:0,b:0}, pR: {t:0,b:0}, mL: {t:1,b:1}, mR: {t:1,b:1} });
+            }
+
+            // Crossing over state (Active from Prophase I onwards)
+            let crossGenes = JSON.parse(JSON.stringify(genes));
+            crossGenes[0].pR.b = 1; crossGenes[0].mL.b = 0; // Cross bot
+            crossGenes[1].pR.t = 1; crossGenes[1].mL.t = 0; // Cross top
+            crossGenes[2].pL.b = 1; crossGenes[2].mR.b = 0; // Cross bot outside
+            crossGenes[3].pR.b = 1; crossGenes[3].mL.b = 0; // Cross bot
+            // Pair 4 avoids crossing over for variety
+
+            // Assortment direction for Meiosis I
+            // -1: Paternal goes Left, Maternal goes Right. 1: Inverse.
+            const assort = [ -1, 1, -1, 1, -1 ];
+
+            for(let s=0; s<10; s++) {
+                let g = (s >= 2) ? crossGenes : genes;
+
+                for(let i=0; i<5; i++) {
+                    let len = LENS[i];
+                    let pL = { op: 1, top: g[i].pL.t, bot: g[i].pL.b, len: len };
+                    let pR = { op: 1, top: g[i].pR.t, bot: g[i].pR.b, len: len };
+                    let mL = { op: 1, top: g[i].mL.t, bot: g[i].mL.b, len: len };
+                    let mR = { op: 1, top: g[i].mR.t, bot: g[i].mR.b, len: len };
+
+                    if (s === 0) { pR.op = 0; mR.op = 0; } // Hide sister chromatids in G1
+
+                    if (s === 0 || s === 1) { // G1 & S Phase
+                        const g1Pos = [
+                            {px: cx-40, py: cy-60, pa: 0.2, mx: cx+40, my: cy+60, ma: -0.3},
+                            {px: cx+50, py: cy-40, pa: 1.1, mx: cx-50, my: cy+40, ma: 0.8},
+                            {px: cx-60, py: cy+10, pa: -0.5, mx: cx+60, my: cy-10, ma: 0.5},
+                            {px: cx-20, py: cy+70, pa: 0.1, mx: cx+30, my: cy-70, ma: -0.2},
+                            {px: cx+10, py: cy-20, pa: -0.8, mx: cx-10, my: cy+20, ma: 0.7}
+                        ];
+                        let pos = g1Pos[i];
+                        pL.x = pos.px - 4; pR.x = pos.px + 4; pL.y = pR.y = pos.py;
+                        mL.x = pos.mx - 4; mR.x = pos.mx + 4; mL.y = mR.y = pos.my;
+                        pL.a = pos.pa - 0.1; pR.a = pos.pa + 0.1;
+                        mL.a = pos.ma - 0.1; mR.a = pos.ma + 0.1;
+                    }
+                    else if (s === 2) { // Prophase I (Tetrads)
+                        const proPos = [
+                            {x: cx-50, y: cy-40, a: 0.2},
+                            {x: cx+40, y: cy-50, a: -0.4},
+                            {x: cx-10, y: cy+10, a: 0.5},
+                            {x: cx-40, y: cy+60, a: -0.2},
+                            {x: cx+50, y: cy+50, a: 0.8}
+                        ];
+                        let pos = proPos[i];
+                        pL.x = pos.x - 12; pR.x = pos.x - 4; mL.x = pos.x + 4; mR.x = pos.x + 12;
+                        pL.y = pR.y = mL.y = mR.y = pos.y;
+                        pL.a = pos.a - 0.1; pR.a = pos.a; mL.a = pos.a; mR.a = pos.a + 0.1;
+                    }
+                    else if (s === 3 || s === 4) { // Metaphase I & Anaphase I
+                        let alignY = cy + (i - 2) * 40; // Spaced vertically along equator
+                        let patDir = assort[i];
+                        
+                        let xSpread = (s === 3) ? 15 : 100; // Pull further in Anaphase
+                        
+                        pL.x = cx + patDir*xSpread; pR.x = cx + patDir*(xSpread - 8);
+                        mL.x = cx - patDir*(xSpread - 8); mR.x = cx - patDir*xSpread;
+                        
+                        pL.y = pR.y = mL.y = mR.y = alignY;
+                        pL.a = -0.1; pR.a = 0.1; mL.a = -0.1; mR.a = 0.1;
+                    }
+                    else if (s === 5) { // Telophase I
+                        let patDir = assort[i];
+                        const offset = [
+                            {x: -10, y: -35}, {x: 10, y: -15}, {x: -5, y: 5}, {x: 15, y: 25}, {x: -15, y: 35}
+                        ];
+                        
+                        let pCx = patDir === -1 ? cx-200 : cx+200;
+                        let mCx = patDir === 1 ? cx-200 : cx+200;
+                        
+                        pL.x = pCx + offset[i].x - 4; pR.x = pCx + offset[i].x + 4;
+                        mL.x = mCx + offset[i].x - 4; mR.x = mCx + offset[i].x + 4;
+                        pL.y = pR.y = mL.y = mR.y = cy + offset[i].y;
+                        
+                        let a = (i % 2 === 0 ? 0.3 : -0.3);
+                        pL.a = a - 0.1; pR.a = a + 0.1; mL.a = a - 0.1; mR.a = a + 0.1;
+                    }
+                    else if (s === 6 || s === 7 || s === 8) { // Prophase II, Meta II, Ana II
+                        let patDir = assort[i];
+                        let pCx = patDir === -1 ? cx-200 : cx+200;
+                        let mCx = patDir === 1 ? cx-200 : cx+200;
+                        let alignY = cy + (i - 2) * 35; // Vertical alignment
+                        
+                        let xSpread = 0;
+                        if(s === 6) { xSpread = 0; } // Near center
+                        else if(s === 7) { xSpread = 4; } // Slightly separated sisters
+                        else if(s === 8) { xSpread = 70; } // Pulling apart to poles
+                        
+                        // In Meiosis II, the sisters separate horizontally
+                        pL.x = pCx - xSpread; pR.x = pCx + xSpread;
+                        mL.x = mCx - xSpread; mR.x = mCx + xSpread;
+                        
+                        pL.y = pR.y = mL.y = mR.y = alignY;
+                        
+                        let a = (s === 6) ? 0.5 : 0; // Rotate to vertical for alignment
+                        pL.a = pR.a = mL.a = mR.a = a;
+                    }
+                    else if (s === 9) { // Telophase II (4 Cells Horizontally)
+                        let patDir = assort[i];
+                        let pCx = patDir === -1 ? cx-200 : cx+200; // Base cell
+                        let mCx = patDir === 1 ? cx-200 : cx+200;  // Base cell
+                        
+                        const offset = [
+                            {x: -10, y: -25}, {x: 10, y: -10}, {x: 5, y: 10}, {x: -10, y: 20}, {x: 15, y: 30}
+                        ];
+                        
+                        // Sisters partitioned left and right to form the 4 cells
+                        pL.x = (pCx - 100) + offset[i].x; pR.x = (pCx + 100) + offset[i].x;
+                        mL.x = (mCx - 100) + offset[i].x; mR.x = (mCx + 100) + offset[i].x;
+                        
+                        pL.y = pR.y = mL.y = mR.y = cy + offset[i].y;
+                        
+                        let a = 0.5 - (i * 0.2);
+                        pL.a = pR.a = mL.a = mR.a = a;
+                    }
+                    C[s].push(pL, pR, mL, mR);
+                }
+            }
+            return C;
+        }
+
+        // Inject chromosomes into states
+        const computedChroms = generateChromosomes();
+        states.forEach((state, i) => { state.chroms = computedChroms[i]; });
+
+        function generateOrganelles() {
+            const statesOrgs = [];
+            const base = [
+                {x:-120, y:-140, a:0.5}, {x:120, y:-140, a:-0.4},
+                {x:-120, y:140, a:1.2}, {x:120, y:140, a:-1.0},
+                {x:-160, y:-30, a:0.8}, {x:160, y:-30, a:0.2},
+                {x:-70, y:-170, a:-0.2}, {x:70, y:170, a:0.6},
+                {x:-100, y:150, a:0.3}, {x:100, y:-150, a:-0.5},
+                {x:-170, y:60, a:1.0}, {x:170, y:60, a:-0.8}
+            ];
+            
+            for (let phase = 0; phase <= 9; phase++) {
+                let orgs = [];
+                for(let i=0; i<12; i++) {
+                    let type = i < 8 ? 0 : 1;
+                    let isLeft = i % 2 === 0;
+                    let bx = base[i].x;
+                    let by = base[i].y;
+                    let ba = base[i].a;
+                    
+                    let nx, ny, na = ba;
+                    
+                    if (phase <= 3) {
+                        nx = cx + bx + (phase * (isLeft ? -4 : 4));
+                        ny = cy + by;
+                        na = ba + (phase * 0.1);
+                    } else if (phase === 4) {
+                        nx = cx + bx + (isLeft ? -50 : 50);
+                        ny = cy + by;
+                    } else if (phase >= 5 && phase <= 7) {
+                        let cx2 = isLeft ? cx - 200 : cx + 200;
+                        nx = cx2 + (bx * 0.5);
+                        ny = cy + (by * 0.8);
+                        na = ba + (phase * 0.2);
+                    } else {
+                        // 4 distinct cells horizontally (cx-300, cx-100, cx+100, cx+300)
+                        let cellCenters = [cx-300, cx-100, cx+100, cx+300];
+                        let targetCx = cellCenters[i % 4];
+                        nx = targetCx + (bx * 0.3);
+                        ny = cy + (by * 0.4);
+                        if (phase === 9) na += 0.5;
+                    }
+                    orgs.push({x: nx, y: ny, a: na, type: type, op: 1});
+                }
+                statesOrgs.push(orgs);
+            }
+            return statesOrgs;
+        }
+
+        const allOrgs = generateOrganelles();
+        states.forEach((state, i) => { state.orgs = allOrgs[i]; });
+
+        const lerp = (a, b, t) => a + (b - a) * t;
+        const ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        function getInterpolatedState(idxA, idxB, t) {
+            const A = states[idxA];
+            const B = states[idxB];
+            const e = ease(t);
+
+            const interpMem = (mA, mB) => ({
+                x1: lerp(mA.x1, mB.x1, e), y1: lerp(mA.y1, mB.y1, e),
+                x2: lerp(mA.x2, mB.x2, e), y2: lerp(mA.y2, mB.y2, e),
+                r1: lerp(mA.r1, mB.r1, e), r2: lerp(mA.r2, mB.r2, e),
+                split: lerp(mA.split, mB.split, e), op: lerp(mA.op, mB.op, e)
+            });
+
+            return {
+                mem1: interpMem(A.mem1, B.mem1),
+                mem2L: interpMem(A.mem2L, B.mem2L),
+                mem2R: interpMem(A.mem2R, B.mem2R),
+                nuclei: A.nuclei.map((nA, i) => {
+                    const nB = B.nuclei[i] || { op: 0 };
+                    return {
+                        x: lerp(nA.x || cx, nB.x || cx, e), y: lerp(nA.y || cy, nB.y || cy, e), 
+                        r: lerp(nA.r || 0, nB.r || 0, e), op: lerp(nA.op || 0, nB.op || 0, e),
+                        dash: lerp(nA.dash || 0, nB.dash || 0, e)
+                    };
+                }),
+                centrioles: A.centrioles.map((cA, i) => {
+                    const cB = B.centrioles[i] || { op: 0 };
+                    return { x: lerp(cA.x || cx, cB.x || cx, e), y: lerp(cA.y || cy, cB.y || cy, e), op: lerp(cA.op || 0, cB.op || 0, e) };
+                }),
+                spindles: A.spindles.map((sA, i) => {
+                    const sB = B.spindles[i] || { op: 0, attachOp: 0 };
+                    return { op: lerp(sA.op || 0, sB.op || 0, e), attachOp: lerp(sA.attachOp || 0, sB.attachOp || 0, e) };
+                }),
+                orgs: A.orgs.map((oA, i) => {
+                    const oB = B.orgs[i];
+                    return { x: lerp(oA.x, oB.x, e), y: lerp(oA.y, oB.y, e), a: lerp(oA.a, oB.a, e), type: oA.type, op: lerp(oA.op, oB.op, e) };
+                }),
+                chroms: A.chroms.map((cA, i) => {
+                    const cB = B.chroms[i];
+                    return {
+                        x: lerp(cA.x, cB.x, e), y: lerp(cA.y, cB.y, e), a: lerp(cA.a, cB.a, e),
+                        op: lerp(cA.op, cB.op, e), len: lerp(cA.len, cB.len, e),
+                        top: t > 0.5 ? cB.top : cA.top, bot: t > 0.5 ? cB.bot : cA.bot
+                    };
+                })
+            };
+        }
+
+        function drawMitochondrion(x, y, a, op) {
+            if(op <= 0.01) return;
+            ctx.save();
+            ctx.translate(x, y); ctx.rotate(a); ctx.globalAlpha = op;
+            ctx.shadowColor = '#ea580c'; ctx.shadowBlur = 10;
+            ctx.fillStyle = 'rgba(234, 88, 12, 0.4)';
+            ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.ellipse(0, 0, 18, 9, 0, 0, Math.PI*2); 
+            ctx.fill(); ctx.stroke();
+            ctx.shadowBlur = 0; ctx.strokeStyle = '#fdba74'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(-13, 0); ctx.lineTo(-8, -5); ctx.lineTo(-3, 5); ctx.lineTo(2, -5); ctx.lineTo(7, 5); ctx.lineTo(13, 0); ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawGolgi(x, y, a, op) {
+            if(op <= 0.01) return;
+            ctx.save();
+            ctx.translate(x, y); ctx.rotate(a); ctx.globalAlpha = op;
+            ctx.shadowColor = '#059669'; ctx.shadowBlur = 10;
+            ctx.strokeStyle = '#34d399'; ctx.lineCap = 'round';
+            for(let i = -1.5; i <= 1.5; i++) {
+                ctx.lineWidth = 4 - Math.abs(i);
+                ctx.beginPath(); let r = 16 + (i + 1.5)*5; ctx.arc(0, r - 20, r, Math.PI + 0.5, Math.PI*2 - 0.5); ctx.stroke();
+            }
+            ctx.fillStyle = '#6ee7b7';
+            ctx.beginPath(); ctx.arc(-14, -12, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(16, -8, 2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(6, -16, 2.5, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+        }
+
+        function drawMembrane(mem, axis) {
+            if (mem.op <= 0.01) return;
+            ctx.save();
+            ctx.globalAlpha = mem.op;
+            ctx.shadowColor = '#6d28d9'; ctx.shadowBlur = 35; ctx.lineWidth = 6;
+            ctx.strokeStyle = 'rgba(167, 139, 250, 0.6)'; 
+            
+            const grad = ctx.createRadialGradient((mem.x1+mem.x2)/2, (mem.y1+mem.y2)/2, 0, (mem.x1+mem.x2)/2, (mem.y1+mem.y2)/2, 300);
+            grad.addColorStop(0, 'rgba(46, 16, 101, 0.25)');
+            grad.addColorStop(1, 'rgba(2, 6, 23, 0.1)');
+            ctx.fillStyle = grad;
+
+            ctx.beginPath();
+            if (mem.split >= 1) {
+                ctx.arc(mem.x1, mem.y1, mem.r1, 0, Math.PI * 2);
+                ctx.arc(mem.x2, mem.y2, mem.r2, 0, Math.PI * 2);
+            } else if (mem.split > 0) {
+                const dist = axis === 'h' ? Math.abs(mem.x2 - mem.x1) : Math.abs(mem.y2 - mem.y1);
+                const pinch = (dist || 1) * mem.split * 0.48;
+
+                if (axis === 'h') {
+                    ctx.arc(mem.x1 - pinch, mem.y1, mem.r1, Math.PI/2 - 0.7, Math.PI*1.5 + 0.7);
+                    ctx.arc(mem.x2 + pinch, mem.y2, mem.r2, Math.PI*1.5 - 0.7, Math.PI/2 + 0.7);
+                } else { 
+                    ctx.arc(mem.x1, mem.y1 - pinch, mem.r1, 0 - 0.7, Math.PI + 0.7);
+                    ctx.arc(mem.x2, mem.y2 + pinch, mem.r2, Math.PI - 0.7, 0 + 0.7);
+                }
+                ctx.closePath();
+            } else {
+                ctx.arc(mem.x1, mem.y1, mem.r1, 0, Math.PI * 2);
+            }
+            ctx.fill(); ctx.stroke();
+            ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(237, 233, 254, 0.3)'; ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawChromatid(x, y, a, op, topType, botType, length) {
+            if (op <= 0.01) return;
+            ctx.save();
+            ctx.translate(x, y); ctx.rotate(a); ctx.globalAlpha = op;
+
+            const w = CHROMATID_WIDTH; const h = length;
+            const topStyle = CHROM_STYLES[topType]; const botStyle = CHROM_STYLES[botType];
+
+            ctx.shadowColor = topType === 0 ? 'rgba(29, 78, 216, 0.4)' : 'rgba(190, 18, 60, 0.4)'; ctx.shadowBlur = 10;
+
+            // Top Half
+            ctx.save(); ctx.beginPath(); ctx.rect(-w/2 - 2, -h/2 - 2, w + 4, h/2 + 2); ctx.clip();
+            ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(-w/2, -h/2, w, h, w/2); else ctx.rect(-w/2, -h/2, w, h);
+            ctx.fillStyle = topStyle.body; ctx.fill();
+            BANDS.top.forEach(band => { ctx.fillStyle = band.color; ctx.fillRect(-w/2, -h/2 + h * band.y, w, h * band.h); });
+            ctx.restore();
+
+            // Bottom Half
+            ctx.save(); ctx.beginPath(); ctx.rect(-w/2 - 2, 0, w + 4, h/2 + 2); ctx.clip();
+            ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(-w/2, -h/2, w, h, w/2); else ctx.rect(-w/2, -h/2, w, h);
+            ctx.fillStyle = botStyle.body; ctx.fill();
+            BANDS.bot.forEach(band => { ctx.fillStyle = band.color; ctx.fillRect(-w/2, -h/2 + h * band.y, w, h * band.h); });
+            ctx.restore();
+
+            // Outlines
+            ctx.shadowColor = 'transparent'; ctx.lineWidth = 1.5;
+            ctx.save(); ctx.beginPath(); ctx.rect(-w/2 - 4, -h/2 - 4, w + 8, h/2 + 4); ctx.clip();
+            ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(-w/2, -h/2, w, h, w/2); ctx.strokeStyle = topStyle.border; ctx.stroke(); ctx.restore();
+            ctx.save(); ctx.beginPath(); ctx.rect(-w/2 - 4, 0, w + 8, h/2 + 4); ctx.clip();
+            ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(-w/2, -h/2, w, h, w/2); ctx.strokeStyle = botStyle.border; ctx.stroke(); ctx.restore();
+
+            // Centromere connection
+            ctx.beginPath(); ctx.moveTo(-w/2 - 2, 0); ctx.lineTo(w/2 + 2, 0); ctx.lineWidth = 1.5;
+            if (topType === botType) { ctx.strokeStyle = topStyle.border; } else {
+                const grad = ctx.createLinearGradient(-w/2, 0, w/2, 0);
+                grad.addColorStop(0, topStyle.border); grad.addColorStop(1, botStyle.border); ctx.strokeStyle = grad;
+            }
+            ctx.stroke(); ctx.restore();
+        }
+
+        function drawCentrioles(cents) {
+            cents.forEach(c => {
+                if (c.op <= 0.01) return;
+                ctx.save(); ctx.globalAlpha = c.op; ctx.translate(c.x, c.y);
+                ctx.shadowColor = '#fb923c'; ctx.shadowBlur = 12; ctx.fillStyle = '#fef08a'; ctx.strokeStyle = '#ea580c'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.rect(-5, -12, 10, 24); ctx.fill(); ctx.stroke();
+                ctx.rotate(Math.PI / 2); ctx.beginPath(); ctx.rect(-5, -12, 10, 24); ctx.fill(); ctx.stroke();
+                ctx.restore();
+            });
+        }
+
+        function drawSpindles(spindleData, c1, c2, activeChroms) {
+            if (spindleData.op <= 0.01 || !c1 || !c2) return;
+            ctx.save(); ctx.globalAlpha = spindleData.op; ctx.strokeStyle = 'rgba(167, 139, 250, 0.2)'; ctx.lineWidth = 1;
+            ctx.shadowColor = '#c4b5fd'; ctx.shadowBlur = 8;
+
+            for(let i = -5; i <= 5; i++) {
+                ctx.beginPath(); ctx.moveTo(c1.x, c1.y);
+                const dx = c2.x - c1.x; const dy = c2.y - c1.y; const len = Math.hypot(dx, dy);
+                const nx = -dy / len * (i * 12); const ny = dx / len * (i * 12);
+                ctx.bezierCurveTo(c1.x + dx*0.3 + nx, c1.y + dy*0.3 + ny, c1.x + dx*0.7 + nx, c1.y + dy*0.7 + ny, c2.x, c2.y);
+                ctx.stroke();
+            }
+
+            if (spindleData.attachOp > 0.01) {
+                ctx.strokeStyle = `rgba(196, 181, 253, ${spindleData.attachOp * 0.7})`; ctx.lineWidth = 1.5;
+                activeChroms.forEach(chrom => {
+                    if(chrom.op < 0.1) return;
+                    let d1 = Math.hypot(chrom.x - c1.x, chrom.y - c1.y);
+                    let d2 = Math.hypot(chrom.x - c2.x, chrom.y - c2.y);
+                    // Connect nearest kinetochore to proper pole dynamically
+                    if (d1 < d2 + 30) { ctx.beginPath(); ctx.moveTo(c1.x, c1.y); ctx.lineTo(chrom.x, chrom.y); ctx.stroke(); }
+                    if (d2 < d1 + 30) { ctx.beginPath(); ctx.moveTo(c2.x, c2.y); ctx.lineTo(chrom.x, chrom.y); ctx.stroke(); }
+                });
+            }
+            ctx.restore();
+        }
+
+        function drawNucleus(n) {
+            if (n.op <= 0.01) return;
+            ctx.save(); ctx.globalAlpha = n.op; ctx.lineWidth = 3; ctx.strokeStyle = '#f472b6'; ctx.fillStyle = 'rgba(244, 114, 182, 0.1)'; 
+            ctx.shadowColor = '#ec4899'; ctx.shadowBlur = 15;
+            if (n.dash > 0) ctx.setLineDash([8, n.dash]);
+            ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.restore();
+        }
+
+        function render(state) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // All cell membranes dynamically split horizontally to form the 4 cells smoothly
+            drawMembrane(state.mem1, 'h');
+            drawMembrane(state.mem2L, 'h');
+            drawMembrane(state.mem2R, 'h');
+
+            // Spindle attachment systems (auto filter chromosomes by their general cell area)
+            drawSpindles(state.spindles[0], state.centrioles[0], state.centrioles[1], state.chroms); // Meiosis I
+            drawSpindles(state.spindles[1], state.centrioles[2], state.centrioles[3], state.chroms.filter(c => c.x < cx)); // Left Cell Meiosis II
+            drawSpindles(state.spindles[2], state.centrioles[4], state.centrioles[5], state.chroms.filter(c => c.x > cx)); // Right Cell Meiosis II
+
+            if (state.orgs) {
+                state.orgs.forEach(o => {
+                    if (o.type === 0) drawMitochondrion(o.x, o.y, o.a, o.op);
+                    else if (o.type === 1) drawGolgi(o.x, o.y, o.a, o.op);
+                });
+            }
+
+            state.nuclei.forEach(n => {
+                if (n.op > 0) drawNucleus(n);
+            });
+
+            // Draw all 20 chromatids!
+            state.chroms.forEach(c => {
+                drawChromatid(c.x, c.y, c.a, c.op, c.top, c.bot, c.len);
+            });
+
+            drawCentrioles(state.centrioles);
+        }
+
+        function updateUI() {
+            stepLabel.textContent = phases[currentPhase];
+            document.getElementById('prevBtn').disabled = currentPhase === 0 || isAnimating;
+            document.getElementById('nextBtn').disabled = currentPhase === phases.length - 1 || isAnimating;
+            
+            const autoBtn = document.getElementById('autoBtn');
+            if (autoPlay) {
+                autoBtn.textContent = "Stop";
+                autoBtn.classList.add('active');
+            } else {
+                autoBtn.textContent = "Auto Play";
+                autoBtn.classList.remove('active');
+            }
+        }
+
+        function stepAnimation() {
+            if (!isAnimating) return;
+            progress += 0.012; // Controls transition speed
+
+            if (progress >= 1) {
+                progress = 1;
+                isAnimating = false;
+                render(states[currentPhase]);
+                updateUI();
+                
+                if (autoPlay && currentPhase < phases.length - 1) {
+                    setTimeout(() => { if (autoPlay) goNext(); }, 1400); 
+                } else if (autoPlay && currentPhase === phases.length - 1) {
+                    autoPlay = false;
+                    updateUI();
+                }
+            } else {
+                render(getInterpolatedState(currentPhase - 1, currentPhase, progress));
+                requestAnimationFrame(stepAnimation);
+            }
+        }
+
+        function goNext() {
+            if (currentPhase < phases.length - 1 && !isAnimating) {
+                currentPhase++;
+                progress = 0;
+                isAnimating = true;
+                updateUI();
+                stepAnimation();
+            }
+        }
+
+        function goPrev() {
+            if (currentPhase > 0 && !isAnimating) {
+                autoPlay = false;
+                currentPhase--;
+                render(states[currentPhase]);
+                updateUI();
+            }
+        }
+
+        function toggleAuto() {
+            autoPlay = !autoPlay;
+            updateUI();
+            if (autoPlay && !isAnimating) {
+                if (currentPhase === phases.length - 1) {
+                    currentPhase = 0;
+                    render(states[0]);
+                }
+                goNext();
+            }
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', () => { autoPlay = false; goNext(); });
+        document.getElementById('prevBtn').addEventListener('click', goPrev);
+        document.getElementById('autoBtn').addEventListener('click', toggleAuto);
+
+        // Initial Render Load
+        render(states[0]);
+        updateUI();
+    </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<aside class="account-file" [class.closed]="!open()" aria-label="Account genetics file">
+  <button
+    class="file-handle"
+    type="button"
+    [attr.aria-expanded]="open()"
+    (click)="open.set(!open())"
+  >
+    <span class="folder-mark" aria-hidden="true"><i></i></span>
+    <span><small>ACCOUNT</small><strong>Genetics file</strong></span>
+    <b aria-hidden="true">{{ open() ? '‹' : '›' }}</b>
+  </button>
+
+  @if (open()) {
+    <div class="file-body">
+      <nav aria-label="Genetics file record types">
+        <button
+          type="button"
+          [class.active]="tab() === 'dragon'"
+          [attr.aria-pressed]="tab() === 'dragon'"
+          (click)="tab.set('dragon')"
+        >
+          Dragons <span>{{ snapshot().dragons.length }}</span>
+        </button>
+        <button
+          type="button"
+          [class.active]="tab() === 'chromosome'"
+          [attr.aria-pressed]="tab() === 'chromosome'"
+          (click)="tab.set('chromosome')"
+        >
+          Chromosomes <span>{{ snapshot().chromosomes.length }}</span>
+        </button>
+      </nav>
+
+      <p class="file-cue">
+        Select a record, then choose a destination. Records can also be dragged.
+      </p>
+
+      <div class="record-list" [attr.data-tab]="tab()">
+        @for (record of visibleRecords(); track record.id) {
+          <button
+            type="button"
+            class="account-record"
+            [class.selected]="selectedRecordId() === record.id"
+            [attr.aria-pressed]="selectedRecordId() === record.id"
+            draggable="true"
+            (click)="select(record)"
+            (dragstart)="startDrag($event, record)"
+          >
+            @if (record.kind === 'dragon') {
+              <span
+                class="dragon-record-mark"
+                [style.--record-color]="record.color"
+                [style.--record-accent]="record.accentColor"
+                aria-hidden="true"
+                >{{ record.name.slice(0, 1) }}</span
+              >
+            } @else {
+              <span class="chromosome-record-mark" aria-hidden="true"
+                ><i></i><i></i><b>{{ record.chromosome.replace('Chr ', '') }}</b></span
+              >
+            }
+            <span class="record-copy">
+              <strong>{{ recordTitle(record) }}</strong>
+              <small>{{ recordDetail(record) }}</small>
+            </span>
+            <span class="record-grip" aria-hidden="true">⠿</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+</aside>

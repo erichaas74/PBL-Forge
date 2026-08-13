@@ -10,17 +10,19 @@ The routed runtime is documented in
 deterministic generation, reviewed questions, evidence, and persistence are coordinated by the
 adaptive shell.
 
-| Module | Student-facing display  | Current surface                     | Build guide                         |
-| ------ | ----------------------- | ----------------------------------- | ----------------------------------- |
-| 1      | Trait Evidence Analyzer | Registry-driven generic workstation | [01](01-TRAIT-EVIDENCE-ANALYZER.md) |
-| 2      | Genome Microscope       | Dedicated workstation               | [02](02-GENOME-MICROSCOPE.md)       |
-| 4      | Allele Workbench        | Dedicated workstation               | [04](04-ALLELE-WORKBENCH.md)        |
-| 5      | Punnett Composer        | Registry-driven generic workstation | [05](05-PUNNETT-COMPOSER.md)        |
-| 6      | Incubator Sampler       | Registry-driven generic workstation | [06](06-INCUBATOR-SAMPLER.md)       |
-| 8      | DNA Process Lab         | Dedicated workstation               | [08](08-DNA-PROCESS-LAB.md)         |
-| 9      | Diversity Manager       | Registry-driven generic workstation | [09](09-DIVERSITY-MANAGER.md)       |
-| Shared | Dragon Hatchery         | Dedicated workstation               | [11](11-DRAGON-HATCHERY.md)         |
-| Arena  | Dragon Arena Combat     | Dedicated experience                | [12](12-DRAGON-ARENA-COMBAT.md)     |
+| Module | Student-facing display  | Current surface                     | Build guide                                 |
+| ------ | ----------------------- | ----------------------------------- | ------------------------------------------- |
+| 1      | Trait Evidence Analyzer | Registry-driven generic workstation | [01](01-TRAIT-EVIDENCE-ANALYZER.md)         |
+| 2      | Genome Microscope       | Dedicated workstation               | [02](02-GENOME-MICROSCOPE.md)               |
+| 4      | Allele Workbench        | Dedicated workstation               | [04](04-ALLELE-WORKBENCH.md)                |
+| 5      | Punnett Composer        | Registry-driven generic workstation | [05](05-PUNNETT-COMPOSER.md)                |
+| 6      | Incubator Sampler       | Registry-driven generic workstation | [06](06-INCUBATOR-SAMPLER.md)               |
+| 8      | DNA Process Lab         | Dedicated workstation               | [08](08-DNA-PROCESS-LAB.md)                 |
+| 9      | Diversity Manager       | Registry-driven generic workstation | [09](09-DIVERSITY-MANAGER.md)               |
+| 10     | Protein & Diet Rescue   | Dedicated workstation               | [10](10-PROTEIN-DIET-RESCUE.md)             |
+| Shared | Dragon Hatchery         | Dedicated workstation               | [11](11-DRAGON-HATCHERY.md)                 |
+| Arena  | Dragon Arena Combat     | Dedicated experience                | [12](12-DRAGON-ARENA-COMBAT.md)             |
+| 13     | Blood Compatibility Lab | Dedicated workstation               | [13](13-DRAGON-BLOOD-TYPE-COMPATIBILITY.md) |
 
 ## Source layout
 

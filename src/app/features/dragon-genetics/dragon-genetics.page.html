@@ -87,5 +87,82 @@
         </article>
       }
     </section>
+
+    <div class="map-heading">
+      <div>
+        <span class="eyebrow">Open workstations</span>
+        <h2>Investigate without a checkpoint set</h2>
+      </div>
+      <p>
+        These instruments have no question sequence. You choose the records, the tests, and when you
+        have enough evidence.
+      </p>
+    </div>
+    <section class="open-workstations" aria-label="Open Dragon Genetics workstations">
+      <article>
+        <div class="card-copy">
+          <small>Bloodline archive · limited DNA tests</small>
+          <h3>Pedigree Lab</h3>
+          <p>
+            Trace a trait that stopped being visible generations ago through the historical dragon
+            register, and decide which living dragons still carry it.
+          </p>
+        </div>
+        <nav class="bloodline-links" aria-label="Bloodline investigations">
+          @for (bloodline of bloodlines; track bloodline.id) {
+            <a
+              routerLink="/dragon-genetics/pedigree-lab"
+              [queryParams]="{ investigation: bloodline.id }"
+            >
+              <strong>{{ bloodline.archiveTitle }}</strong>
+              <span>{{ bloodline.bloodline }} bloodline · {{ bloodline.lostPhenotype }}</span>
+            </a>
+          }
+        </nav>
+        <footer>
+          <span>{{ bloodlines.length }} bloodlines · no checkpoint set</span>
+          <a routerLink="/dragon-genetics/pedigree-lab">Open the archive →</a>
+        </footer>
+      </article>
+      <article class="protein-rescue-card">
+        <div class="card-copy">
+          <small>Clinical genetics · open food trials</small>
+          <h3>Protein Synthesis &amp; Diet Rescue</h3>
+          <p>
+            Follow two patient gene copies through mRNA and protein, test Dracase function, and
+            design a diet response from the evidence.
+          </p>
+        </div>
+        <div class="rescue-preview" aria-hidden="true">
+          <span>DNA</span><i>→</i><span>mRNA</span><i>→</i><span>protein</span><i>→</i
+          ><span>diet</span>
+        </div>
+        <footer>
+          <span>Patient cases · no checkpoint set</span>
+          <a routerLink="/dragon-genetics/protein-rescue">Open the rescue bay →</a>
+        </footer>
+      </article>
+      <article class="blood-lab-card">
+        <div class="card-copy">
+          <small>Emergency medicine · multiple alleles</small>
+          <h3>Blood Type Compatibility Lab</h3>
+          <p>
+            Test patient and donor blood markers, infer possible genotypes, and use compatible
+            red-cell evidence to stabilize an injured dragon.
+          </p>
+        </div>
+        <div class="blood-preview" aria-hidden="true">
+          <span class="vial">AF</span><span class="vial">AT</span>
+          <i>+</i>
+          <span class="blood-drop">●</span>
+          <i>→</i>
+          <span class="chamber">HEAL</span>
+        </div>
+        <footer>
+          <span>Patient cases · supply challenge · no checkpoint set</span>
+          <a routerLink="/dragon-genetics/blood-type-lab">Open the healing station →</a>
+        </footer>
+      </article>
+    </section>
   </main>
 </div>

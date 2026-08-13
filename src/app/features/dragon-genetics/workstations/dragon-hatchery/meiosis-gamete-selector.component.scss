@@ -1,0 +1,121 @@
+:host { display: block; min-width: 0; }
+
+.meiosis-selector {
+  color: #f4efff;
+  background: #111126;
+  border: 1px solid #3d3764;
+  border-radius: 1.2rem;
+  overflow: hidden;
+  box-shadow: 0 1.5rem 4rem rgba(6, 7, 20, .28);
+}
+
+.selector-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.15rem 1.3rem .9rem;
+  background: linear-gradient(110deg, rgba(98, 69, 159, .25), rgba(18, 18, 43, .2));
+}
+
+.eyebrow { color: #bcaee9; font-size: .76rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.selector-head h3, .gamete-workbench h4 { margin: .25rem 0; font-size: clamp(1.1rem, 2vw, 1.45rem); }
+.selector-head p, .gamete-workbench header p { margin: 0; color: #c8c2df; font-size: .86rem; }
+
+.legend { display: flex; align-items: center; align-content: center; flex-wrap: wrap; justify-content: flex-end; gap: .55rem 1rem; font-size: .75rem; color: #d7d1eb; }
+.legend span { display: flex; align-items: center; gap: .35rem; }
+.legend i { width: 1.7rem; height: .36rem; border-radius: 99px; }
+.legend .origin-a { background: #29c8e8; }
+.legend .origin-b { background: #f06ca9; }
+.legend b { display: grid; place-items: center; width: 1.45rem; height: 1.45rem; color: #241d35; background: #fff7cf; border-radius: 50%; }
+
+.phase-track {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(3.1rem, 1fr));
+  gap: .3rem;
+  margin: 0;
+  padding: .65rem 1rem;
+  list-style: none;
+  background: #0c0d1e;
+  border-block: 1px solid #312d50;
+  overflow-x: auto;
+}
+.phase-track li { display: grid; justify-items: center; gap: .25rem; min-width: 3.3rem; color: #79758f; font-size: .75rem; text-align: center; }
+.phase-track i { display: grid; place-items: center; width: 1.45rem; height: 1.45rem; border: 1px solid #45415e; border-radius: 50%; font-style: normal; }
+.phase-track li.active { color: #fff; font-weight: 800; }
+.phase-track li.active i { color: #161224; background: #ffe28a; border-color: #ffe28a; box-shadow: 0 0 0 .22rem rgba(255, 226, 138, .13); }
+.phase-track li.complete { color: #8cddc4; }
+.phase-track li.complete i { border-color: #63c8ab; }
+
+.cell-stage { position: relative; background: #090b1b; }
+canvas { display: block; width: 100%; aspect-ratio: 1000 / 560; }
+.phase-readout { position: absolute; inset: 1rem auto auto 1rem; display: grid; padding: .55rem .75rem; background: rgba(8, 9, 24, .82); border: 1px solid rgba(181, 160, 231, .33); border-radius: .65rem; backdrop-filter: blur(8px); }
+.phase-readout small { color: #b9ade4; font-size: .75rem; letter-spacing: .1em; }
+.phase-readout strong { font-size: .9rem; }
+
+.animation-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; padding: .8rem 1rem; background: #0c0d1e; border-top: 1px solid #312d50; }
+button { color: inherit; font: inherit; }
+.animation-controls button, .animation-controls label { min-height: 2.45rem; padding: .55rem .75rem; color: #ddd8ef; background: #1b1a35; border: 1px solid #474264; border-radius: .55rem; font-size: .75rem; font-weight: 750; }
+.animation-controls button:hover:not(:disabled) { border-color: #a795df; }
+.animation-controls button:disabled { opacity: .42; }
+.animation-controls .play { color: #1b1825; background: #ffe28a; border-color: #ffe28a; }
+.animation-controls .rerun { margin-left: auto; }
+.animation-controls label { display: flex; align-items: center; gap: .42rem; cursor: pointer; }
+.animation-controls input { accent-color: #ffe28a; }
+
+.gamete-workbench { padding: 1.15rem; border-top: 1px solid #3d3764; background: linear-gradient(180deg, #17152d, #101022); }
+.gamete-workbench > header { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: .85rem; }
+.gamete-workbench > header p { max-width: 28rem; text-align: right; }
+.gamete-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.gamete-card { overflow: hidden; background: #1b1932; border: 1px solid #464161; border-radius: .9rem; transition: border-color .15s, transform .15s; }
+.gamete-card.inspected { border-color: #a99be2; }
+.gamete-card.chosen { border-color: #ffe28a; box-shadow: 0 0 0 2px rgba(255, 226, 138, .15); transform: translateY(-2px); }
+.gamete-card.target::before { content: 'TARGET ALLELE'; display: block; padding: .25rem; color: #332a18; background: #ffe28a; font-size: .75rem; font-weight: 900; letter-spacing: .08em; text-align: center; }
+.gamete-card button { width: 100%; border: 0; cursor: pointer; }
+.gamete-card .inspect { display: grid; justify-items: center; gap: .3rem; padding: .8rem .6rem; background: transparent; }
+.gamete-card .inspect small { min-height: 2.1rem; color: #bdb6d3; font-size: .75rem; line-height: 1.45; text-align: center; }
+.gamete-card .inspect > b { color: #8ee2c8; font-size: .75rem; letter-spacing: .07em; text-transform: uppercase; }
+.gamete-card .choose { padding: .55rem; background: #282544; border-top: 1px solid #464161; font-size: .75rem; font-weight: 800; }
+.gamete-card.chosen .choose { color: #251f2f; background: #ffe28a; }
+
+.gamete-orb { display: flex; align-items: center; justify-content: center; gap: .34rem; width: 4.3rem; height: 4.3rem; background: radial-gradient(circle, rgba(104, 83, 160, .5), rgba(42, 36, 78, .5)); border: 2px solid #736a99; border-radius: 50%; }
+.gamete-orb i { display: block; width: .26rem; height: 1.65rem; background: linear-gradient(#29c8e8 0 50%, #29c8e8 50%); border-radius: 99px; }
+.gamete-orb i:nth-child(2) { height: 1.4rem; background: #f06ca9; }
+.gamete-orb i:nth-child(3) { height: 1.18rem; }
+.gamete-orb i:nth-child(4) { height: .96rem; background: #f06ca9; }
+.gamete-orb i:nth-child(5) { height: .75rem; }
+.gamete-orb i.recombinant { background: linear-gradient(#29c8e8 0 50%, #f06ca9 50%); }
+
+.gamete-inspector { margin-top: .9rem; padding: .9rem; background: rgba(9, 10, 26, .76); border: 1px solid #464161; border-radius: .9rem; }
+.gamete-inspector > header { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+.gamete-inspector > header div { display: grid; }
+.gamete-inspector > header small { color: #a99be2; font-size: .75rem; letter-spacing: .1em; }
+.gamete-inspector > header > span { padding: .35rem .6rem; color: #2c2417; background: #ffe28a; border-radius: 99px; font-size: .75rem; font-weight: 850; }
+.chromosome-records { display: grid; grid-template-columns: repeat(5, 1fr); gap: .55rem; margin-top: .75rem; }
+.chromosome-records section { padding: .55rem; background: #201e39; border-radius: .55rem; }
+.chromosome-records section > small { display: block; margin-bottom: .35rem; color: #9b94b2; font-size: .75rem; }
+.chromosome-records section div { display: flex; flex-wrap: wrap; gap: .25rem; }
+.chromosome-records span { display: flex; gap: .2rem; padding: .18rem .3rem; background: rgba(41, 200, 232, .12); border-radius: .25rem; font-size: .75rem; }
+.chromosome-records span.recessive { background: rgba(240, 108, 169, .13); }
+
+.selection-commit { display: grid; grid-template-columns: 1fr auto; gap: .8rem; align-items: end; margin-top: .9rem; }
+.selection-commit label { display: grid; gap: .3rem; color: #d9d3e9; font-size: .75rem; font-weight: 750; }
+.selection-commit label span { color: #8f89a5; font-weight: 500; }
+.selection-commit textarea { resize: vertical; min-height: 3rem; padding: .55rem; color: #f5f1ff; background: #0b0c1d; border: 1px solid #494464; border-radius: .45rem; font: inherit; }
+.selection-commit button { min-height: 3.15rem; padding: .7rem 1rem; color: #211c28; background: #ffe28a; border: 0; border-radius: .55rem; font-size: .78rem; font-weight: 900; cursor: pointer; }
+
+@media (max-width: 900px) {
+  .selector-head, .gamete-workbench > header { align-items: start; flex-direction: column; }
+  .legend { justify-content: flex-start; }
+  .gamete-workbench > header p { text-align: left; }
+  .gamete-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chromosome-records { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .gamete-grid, .selection-commit { grid-template-columns: 1fr; }
+  .animation-controls .rerun { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gamete-card { transition: none; }
+}

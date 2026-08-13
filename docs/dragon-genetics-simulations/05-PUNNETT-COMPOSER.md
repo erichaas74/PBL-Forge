@@ -3,48 +3,53 @@
 **Curriculum:** Module 5, Breeding Predictor · **Skill:** GEN-5 ·
 **Contract:** `punnett-composer`
 
-## Teaching purpose
+This dedicated workstation follows
+[`DRAGON_GENETICS_WORKSTATION_RULES.md`](../DRAGON_GENETICS_WORKSTATION_RULES.md). It is an open
+inheritance investigation, not the earlier registry-driven question screen.
 
-Students model one allele from each parent in every offspring cell, then convert genotype counts
-into phenotype probabilities. The square predicts possibilities; it does not guarantee a batch.
+## Required pre-build decision
 
-## Scene inputs
+1. **Scientific goal:** Determine how one allele from each parent combines in possible offspring.
+2. **Manipulable evidence:** Students may load any available dragon or chromosome record into
+   either parent bay, change the focus locus, and drag or select either parent's gametes into the
+   corresponding column or row boxes.
+3. **Observable consequence:** Each offspring cell remains incomplete until both of its axes are
+   loaded. It then displays the resulting genotype and exposes allele origin and predicted
+   phenotype in its inspector. The complete grid produces counts and probabilities.
+4. **Student-built record:** Students may save any completed cross. Saved records retain both
+   parent identities, the locus, and the genotype and phenotype counts and restore on the device
+   for the current student.
+5. **Shared sources:** Founder dragons and trait inheritance come from
+   `simulation/domain/dragon-inheritance.ts`; chromosome identity and geometry remain in the
+   shared chromosome catalog; the reusable account file derives each chromosome record from its
+   dragon's genome; local account and cross repositories provide the replaceable mock persistence
+   boundary.
 
-- two parent sample IDs and a focus gene;
-- each parent's allele pair;
-- four offspring allele-pair cells; and
-- student genotype and phenotype distributions.
+## Investigation surface
 
-## Display model
+- The account Genetics File opens at the upper-left and exposes the current user's dragon and
+  chromosome records. It is shared UI intended for other workstations that need specimen access.
+- A dragon record loads the selected parent bay. A chromosome record loads its dragon into that
+  bay and focuses the chromosome's modeled locus.
+- Parent 1 gametes occupy the two column boxes and Parent 2 gametes occupy the two row boxes.
+- Drag-and-drop and select-then-place change the same state.
+- All four offspring cells are buttons and can be examined before or after completion.
+- Replacing a parent, changing the locus, or clearing the square is allowed in any order and never
+  removes saved cross records.
 
-Show parent A alleles across the top, parent B alleles down the side, and a classic 2 × 2 grid.
-Cells contain allele tokens and genotype labels, never miniature dragons. Below the grid, group equal
-genotypes and display phenotype probability bars that total 100%.
+## Persistence
 
-## Student sequence
-
-1. Place each parent's alleles on the axes.
-2. Predict at least one offspring genotype.
-3. Move one allele from each parent into all four cells.
-4. Group genotypes and calculate phenotype probabilities.
-5. Lock both distributions before the lesson enables breeding.
-
-Learn mode demonstrates one cell before students complete three. Practice varies crosses and traits.
-Official mode requires all four genes and locks predictions before generation. Reteach traces a
-single cell back to both source alleles.
-
-## Semantic targets and events
-
-Targets: `parent-a-alleles`, `parent-b-alleles`, `offspring-cell-1` through
-`offspring-cell-4`, `offspring-slot-a`, `offspring-slot-b`, `genotype-groups`,
-`phenotype-probability`, `probability-total`.
-
-Emit `allele-moved`, `prediction-locked`, `evidence-pinned`, and checkpoint events. Save the complete
-grid and both distributions, not only the final percentage.
+During the mock-data period, the account library begins with released founder records and merges
+student dragons stored under `pbl-forge.dragon-genetics.account-library.v1.<studentId>`.
+Chromosome records are derived rather than stored as duplicate scientific truth. Punnett state and
+saved crosses use `pbl-forge.dragon-genetics.punnett-composer.v1.<studentId>`.
 
 ## Acceptance checks
 
-- Every cell visibly contains one allele from each parent.
-- Parent-source meaning uses labels/shapes in addition to color.
-- Percentages cannot be submitted unless their distribution totals 100%.
-- The display distinguishes predicted probability from observed results.
+- The dedicated route has no question dock, phase rail, fixed sequence, or Continue button.
+- A cell shows a genotype only after its column and row gametes are loaded.
+- Every gamete and account-record drag has a click/keyboard-equivalent path.
+- Parent-source meaning uses labels and P1/P2 token styling in addition to color.
+- All four cells expose their source alleles and current completion state to assistive technology.
+- Counts and percentages are derived from the four cells and cannot be saved while incomplete.
+- Reloading restores the current cross and saved cross records for the current student.

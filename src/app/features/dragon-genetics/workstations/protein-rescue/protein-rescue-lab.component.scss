@@ -1,0 +1,1309 @@
+:host {
+  --clinic-ink: #e8f3f1;
+  --clinic-muted: #91aaa9;
+  --clinic-line: #29494b;
+  --clinic-panel: #0c2529;
+  --clinic-panel-deep: #071b20;
+  --clinic-teal: #58d1be;
+  --clinic-coral: #ff8b72;
+  --clinic-gold: #e8bd61;
+  --line: #cbd9d8;
+  --surface-raised: #eff6f4;
+  --stone: #738691;
+  --sea: #479dad;
+  --muted: #587075;
+  display: block;
+  min-width: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+textarea,
+input {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.protein-rescue-lab {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+  color: var(--clinic-ink);
+}
+
+.lab-intro,
+.intake-grid > section,
+.intake-grid > aside,
+.molecular-bench > section,
+.molecular-bench > aside,
+.clinical-bench > section {
+  border: 1px solid var(--clinic-line);
+  border-radius: 1rem;
+  background: linear-gradient(155deg, rgb(14 44 48 / 98%), rgb(6 25 30 / 98%));
+  box-shadow: 0 1rem 2.7rem rgb(0 0 0 / 16%);
+}
+
+.lab-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.2rem 1.35rem;
+  border-color: color-mix(in srgb, var(--clinic-teal) 45%, var(--clinic-line));
+  background:
+    radial-gradient(circle at 92% 10%, rgb(88 209 190 / 14%), transparent 20rem),
+    linear-gradient(145deg, #103239, #081e24 72%);
+}
+
+.eyebrow,
+.panel-code {
+  color: var(--clinic-teal);
+  font-size: var(--text-xs);
+  font-weight: 950;
+  letter-spacing: 0.13em;
+}
+
+.lab-intro h2 {
+  margin: 0.35rem 0 0.45rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 3vw, 2.7rem);
+  line-height: 1;
+}
+
+.lab-intro p {
+  max-width: 48rem;
+  margin: 0;
+  color: var(--clinic-muted);
+  line-height: 1.5;
+}
+
+.lab-intro nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: end;
+}
+
+.lab-intro a {
+  padding: 0.62rem 0.78rem;
+  border: 1px solid #386066;
+  border-radius: 0.65rem;
+  color: #b9cecc;
+  font-size: var(--text-sm);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.lab-intro a:hover,
+.lab-intro a:focus-visible {
+  border-color: var(--clinic-teal);
+  color: white;
+}
+
+.live-status {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-left: 4px solid var(--clinic-gold);
+  background: rgb(232 189 97 / 10%);
+  color: #d8c99e;
+  font-size: var(--text-sm);
+}
+
+.intake-grid {
+  display: grid;
+  grid-template-columns: minmax(15rem, 18rem) minmax(20rem, 1fr) minmax(17rem, 21rem);
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.intake-grid app-account-genetics-file {
+  --simulation-accent: var(--clinic-teal);
+}
+
+.patient-bay,
+.clinical-chart,
+.sample-bank,
+.comparison-tray,
+.digestion-lab,
+.case-builder {
+  padding: 0.9rem;
+}
+
+.patient-bay > header,
+.clinical-chart > header,
+.sample-bank > header,
+.gene-reader > header,
+.comparison-tray > header,
+.digestion-lab > header,
+.case-builder > header,
+.translation-bench > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+h3,
+h4 {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-display);
+}
+
+h3 {
+  font-size: var(--text-lg);
+}
+
+h4 {
+  font-size: var(--text-base);
+}
+
+.patient-bay > header button,
+.load-sample,
+.translation-controls button,
+.protein-test > button,
+.run-food,
+.save-case {
+  padding: 0.58rem 0.78rem;
+  border: 1px solid var(--clinic-teal);
+  border-radius: 0.58rem;
+  background: var(--clinic-teal);
+  color: #062024;
+  font-size: var(--text-sm);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.patient-bay {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  min-height: 22rem;
+  border-style: dashed !important;
+}
+
+.patient-bay.loaded {
+  border-style: solid !important;
+  border-color: color-mix(in srgb, var(--clinic-teal) 60%, var(--clinic-line));
+}
+
+.empty-patient,
+.empty-reader {
+  display: grid;
+  min-height: 15rem;
+  place-items: center;
+  align-content: center;
+  gap: 0.45rem;
+  border: 1px dashed #3a5b60;
+  border-radius: 0.9rem;
+  color: var(--clinic-muted);
+  text-align: center;
+}
+
+.empty-patient > span {
+  display: grid;
+  width: 3.6rem;
+  height: 3.6rem;
+  place-items: center;
+  border: 2px dashed var(--clinic-teal);
+  border-radius: 50%;
+  color: var(--clinic-teal);
+  font-size: 2rem;
+}
+
+.empty-patient strong,
+.empty-reader strong {
+  color: var(--clinic-ink);
+}
+
+.empty-patient p,
+.empty-reader p {
+  max-width: 25rem;
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.patient-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #36595d;
+  border-radius: 0.9rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.patient-mark {
+  display: grid;
+  width: 5.2rem;
+  height: 5.2rem;
+  place-items: center;
+  border: 0.3rem solid var(--patient-accent);
+  border-radius: 52% 48% 43% 57%;
+  background: var(--patient-color);
+  color: white;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 950;
+  box-shadow: inset -0.8rem -0.5rem rgb(0 0 0 / 18%);
+}
+
+.patient-card div {
+  display: grid;
+}
+
+.patient-card small,
+.chromosome-badge small {
+  color: var(--clinic-muted);
+  font-size: var(--text-xs);
+  font-weight: 850;
+}
+
+.patient-card strong {
+  margin: 0.1rem 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+}
+
+.patient-card p {
+  margin: 0;
+  color: #b1c6c4;
+  line-height: 1.4;
+}
+
+.chromosome-badge {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.8rem;
+  border-radius: 0.7rem;
+  background: rgb(88 209 190 / 9%);
+}
+
+.chromosome-badge > span,
+.gene-sample > span {
+  display: flex;
+  gap: 0.18rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.chromosome-badge i,
+.gene-sample i {
+  width: 0.38rem;
+  height: 2.3rem;
+  border-radius: 99px;
+  background: linear-gradient(#5ed2be 0 40%, #e8bd61 40% 52%, #5ed2be 52%);
+}
+
+.chromosome-badge div {
+  display: grid;
+}
+
+.clinical-chart {
+  overflow: auto;
+}
+
+.clinical-chart h4 {
+  margin-top: 1rem;
+  color: var(--clinic-gold);
+}
+
+.clinical-chart ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.55rem 0 0;
+  padding-left: 1.1rem;
+  color: #b5c8c6;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.clinical-chart .diet-log li::marker {
+  color: var(--clinic-coral);
+}
+
+.panel-empty {
+  margin: 1.2rem 0 0;
+  color: var(--clinic-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.molecular-bench {
+  display: grid;
+  grid-template-columns: minmax(14rem, 17rem) minmax(35rem, 1fr) minmax(17rem, 20rem);
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.molecular-bench.inactive > * {
+  opacity: 0.78;
+}
+
+.sample-bank > p,
+.reader-cue,
+.comparison-tray article > p {
+  color: var(--clinic-muted);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.sample-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.8rem 0;
+}
+
+.gene-sample {
+  display: grid;
+  grid-template-columns: 2.3rem 1fr;
+  gap: 0.1rem 0.7rem;
+  align-items: center;
+  min-height: 4.8rem;
+  padding: 0.65rem;
+  border: 1px solid #36565b;
+  border-radius: 0.7rem;
+  background: #081f25;
+  color: var(--clinic-ink);
+  text-align: left;
+  cursor: grab;
+}
+
+.gene-sample > span {
+  grid-row: 1 / 3;
+}
+
+.gene-sample.selected {
+  border-color: var(--clinic-teal);
+  box-shadow: inset 3px 0 var(--clinic-teal);
+}
+
+.gene-sample.tested {
+  background: rgb(88 209 190 / 9%);
+}
+
+.gene-sample strong,
+.gene-sample small {
+  display: block;
+}
+
+.gene-sample small {
+  color: var(--clinic-muted);
+  font-size: var(--text-xs);
+  line-height: 1.3;
+}
+
+.load-sample {
+  width: 100%;
+}
+
+.gene-reader {
+  min-width: 0;
+  padding: 0.9rem;
+  overflow: hidden;
+  border-style: dashed !important;
+}
+
+.gene-reader.loaded {
+  border-style: solid !important;
+  border-color: color-mix(in srgb, #ad7bef 46%, var(--clinic-line));
+}
+
+.gene-reader > header {
+  margin-bottom: 0.8rem;
+}
+
+.gene-reader > header > strong {
+  padding: 0.35rem 0.55rem;
+  border-radius: 99px;
+  background: #5e3d86;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+}
+
+.empty-reader > span {
+  display: grid;
+  width: 5.2rem;
+  height: 5.2rem;
+  place-items: center;
+  border: 2px solid #9c70d7;
+  border-radius: 50%;
+  color: #c4a3eb;
+  font-weight: 950;
+}
+
+.sequence-readout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-bottom: 0.7rem;
+}
+
+.sequence-readout > div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.6rem;
+  border: 1px solid #34555a;
+  border-radius: 0.55rem;
+  background: #061a20;
+}
+
+.sequence-readout small,
+.translation-bench header small {
+  color: var(--clinic-muted);
+  font-size: var(--text-xs);
+  font-weight: 850;
+}
+
+code {
+  color: #f4d485;
+  font-size: var(--text-sm);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.gene-reader app-dna-transcription-animation {
+  display: block;
+  color: #163039;
+}
+
+.translation-bench {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #34565b;
+}
+
+.translation-bench > header {
+  align-items: end;
+}
+
+.translation-bench > header code {
+  text-align: right;
+}
+
+.codon-track {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.35rem;
+}
+
+.codon-track span {
+  padding: 0.45rem;
+  border: 1px solid #3d6268;
+  border-radius: 0.45rem;
+  background: #0a2a31;
+  color: #9be3d9;
+  font-weight: 900;
+  text-align: center;
+}
+
+.codon-track span.stop {
+  border-color: var(--clinic-coral);
+  background: rgb(255 139 114 / 13%);
+  color: #ffad9c;
+}
+
+.ribosome-model {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: center;
+  min-height: 7.5rem;
+  padding: 0.75rem;
+  border-radius: 0.8rem;
+  background: linear-gradient(90deg, rgb(173 123 239 / 12%), transparent 45%), #071d23;
+}
+
+.ribosome {
+  display: grid;
+  width: 8.2rem;
+  height: 5rem;
+  place-items: center;
+  border-radius: 54% 46% 48% 52%;
+  background: #875bc2;
+  box-shadow: inset 0 -1.1rem #5e3d86;
+}
+
+.ribosome span {
+  color: white;
+  font-size: var(--text-xs);
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+
+.ribosome-model.stopped .ribosome {
+  box-shadow:
+    inset 0 -1.1rem #714154,
+    0 0 0 3px var(--clinic-coral);
+}
+
+.amino-chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.amino-chain span {
+  position: relative;
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  border: 2px solid #70c6b8;
+  border-radius: 50%;
+  background: #12423f;
+}
+
+.amino-chain span + span::before {
+  position: absolute;
+  width: 0.45rem;
+  border-top: 2px solid #70c6b8;
+  transform: translateX(-2rem);
+  content: '';
+}
+
+.amino-chain span.stop {
+  border-color: var(--clinic-coral);
+  border-radius: 0.4rem;
+  background: #542d31;
+}
+
+.amino-chain b,
+.amino-chain small {
+  grid-area: 1 / 1;
+}
+
+.amino-chain b {
+  transform: translateY(-0.35rem);
+  font-size: var(--text-sm);
+}
+
+.amino-chain small {
+  transform: translateY(0.6rem);
+  color: #9dc2bd;
+  font-size: var(--text-xs);
+}
+
+.amino-chain i {
+  color: var(--clinic-muted);
+  font-size: var(--text-sm);
+  font-style: normal;
+}
+
+.translation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.translation-controls label {
+  display: flex;
+  flex: 1;
+  min-width: 14rem;
+  gap: 0.55rem;
+  align-items: center;
+  color: var(--clinic-muted);
+  font-size: var(--text-sm);
+  font-weight: 850;
+}
+
+.translation-controls input {
+  flex: 1;
+  accent-color: #9c70d7;
+}
+
+.translation-controls > span {
+  color: var(--clinic-muted);
+  font-size: var(--text-sm);
+}
+
+.protein-test {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid #37605d;
+  border-radius: 0.75rem;
+  background: rgb(88 209 190 / 7%);
+}
+
+.protein-test.truncated {
+  border-color: rgb(255 139 114 / 48%);
+  background: rgb(255 139 114 / 7%);
+}
+
+.folded-protein {
+  position: relative;
+  width: 5.6rem;
+  height: 4.4rem;
+}
+
+.folded-protein i {
+  position: absolute;
+  display: block;
+  width: 2.4rem;
+  height: 2.1rem;
+  border: 0.35rem solid var(--clinic-teal);
+  border-radius: 50%;
+}
+
+.folded-protein i:nth-child(1) {
+  left: 0.2rem;
+  top: 0.2rem;
+}
+.folded-protein i:nth-child(2) {
+  right: 0.2rem;
+  top: 0.3rem;
+}
+.folded-protein i:nth-child(3) {
+  left: 1.6rem;
+  bottom: 0;
+}
+.folded-protein i:nth-child(4) {
+  right: 0.4rem;
+  bottom: 0.15rem;
+}
+.folded-protein i:nth-child(5) {
+  left: 0.1rem;
+  bottom: 0.05rem;
+}
+
+.truncated .folded-protein i:nth-child(n + 3) {
+  display: none;
+}
+
+.protein-test > div:nth-child(2) {
+  display: grid;
+}
+
+.protein-test small {
+  color: var(--clinic-teal);
+  font-size: var(--text-xs);
+  font-weight: 950;
+}
+
+.protein-test p {
+  margin: 0.2rem 0 0;
+  color: var(--clinic-muted);
+  font-size: var(--text-sm);
+}
+
+.sugar-test {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0.7rem;
+  border-top: 1px solid #36575a;
+}
+
+.sugar {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--clinic-gold);
+  background: rgb(232 189 97 / 14%);
+  clip-path: polygon(25% 7%, 75% 7%, 100% 50%, 75% 93%, 25% 93%, 0 50%);
+}
+
+.bond {
+  width: 1.1rem;
+  border-top: 4px solid var(--clinic-gold);
+}
+
+.sugar-test.split .left {
+  transform: translateX(-0.45rem) rotate(-12deg);
+}
+
+.sugar-test.split .right {
+  transform: translateX(0.45rem) rotate(12deg);
+}
+
+.sugar-test.split .bond {
+  border-top-style: dashed;
+  opacity: 0.2;
+}
+
+.sugar-test strong {
+  margin-left: 0.5rem;
+  font-size: var(--text-sm);
+}
+
+.comparison-tray {
+  min-width: 0;
+}
+
+.comparison-tray article {
+  margin-top: 0.65rem;
+  overflow: hidden;
+  border: 1px solid #34555a;
+  border-radius: 0.7rem;
+  background: #071d23;
+}
+
+.comparison-tray article.complete {
+  border-color: color-mix(in srgb, var(--clinic-teal) 60%, #34555a);
+}
+
+.comparison-tray article > header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid #2b494d;
+}
+
+.comparison-tray article > header span {
+  color: var(--clinic-muted);
+  font-size: var(--text-xs);
+  font-weight: 900;
+}
+
+.comparison-tray article > p {
+  margin: 0;
+  padding: 0.75rem;
+}
+
+.comparison-tray dl {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.65rem;
+}
+
+.comparison-tray dl div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.comparison-tray dt {
+  color: var(--clinic-muted);
+  font-size: var(--text-xs);
+  font-weight: 850;
+}
+
+.comparison-tray dd {
+  margin: 0;
+  color: #c8d9d7;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.comparison-tray code {
+  font-size: var(--text-xs);
+}
+
+.clinical-bench {
+  display: grid;
+  grid-template-columns: minmax(30rem, 1.2fr) minmax(26rem, 0.8fr);
+  gap: 0.8rem;
+}
+
+.clinical-bench.inactive > * {
+  opacity: 0.8;
+}
+
+.food-shelf {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin: 0.8rem 0;
+}
+
+.food-shelf button {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.55rem;
+  align-items: center;
+  min-height: 5.8rem;
+  padding: 0.6rem;
+  border: 1px solid #34565a;
+  border-radius: 0.65rem;
+  background: #071f25;
+  color: var(--clinic-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.food-shelf button.selected {
+  border-color: var(--clinic-gold);
+  background: rgb(232 189 97 / 10%);
+}
+
+.food-shelf button > span {
+  grid-row: 1 / 3;
+  width: 1.6rem;
+  height: 2.8rem;
+  border: 2px solid #7ba6a3;
+  border-radius: 0.25rem 0.25rem 0.55rem 0.55rem;
+  background: linear-gradient(to top, #d7b45d 45%, transparent 45%);
+}
+
+.food-shelf button > span[data-load='none'] {
+  background: linear-gradient(to top, #85ae6b 45%, transparent 45%);
+}
+
+.food-shelf button > span[data-load='low'] {
+  background: linear-gradient(to top, #71b8ad 45%, transparent 45%);
+}
+
+.food-shelf button small {
+  color: var(--clinic-muted);
+  font-size: var(--text-xs);
+  line-height: 1.3;
+}
+
+.digestion-chamber {
+  display: grid;
+  grid-template-columns: 12rem 1fr;
+  gap: 1rem;
+  align-items: center;
+  min-height: 11rem;
+  padding: 1rem;
+  border: 1px solid #36595c;
+  border-radius: 0.8rem;
+  background: #061b21;
+}
+
+.digestion-chamber.undigested {
+  border-color: var(--clinic-coral);
+  background: rgb(255 139 114 / 8%);
+}
+
+.digestion-chamber.managed,
+.digestion-chamber.digested,
+.digestion-chamber.no-dracose {
+  border-color: var(--clinic-teal);
+  background: rgb(88 209 190 / 8%);
+}
+
+.gut-model {
+  position: relative;
+  display: grid;
+  width: 11rem;
+  height: 8.5rem;
+  place-items: center;
+  border: 0.5rem solid #a9686d;
+  border-radius: 48% 52% 46% 54%;
+  background: #3b252a;
+}
+
+.dracose-pair {
+  display: flex;
+  align-items: center;
+}
+
+.dracose-pair i {
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 3px solid var(--clinic-gold);
+  background: #705a2c;
+  clip-path: polygon(25% 7%, 75% 7%, 100% 50%, 75% 93%, 25% 93%, 0 50%);
+}
+
+.dracose-pair b {
+  width: 0.8rem;
+  border-top: 3px solid var(--clinic-gold);
+}
+
+.digested .dracose-pair i,
+.managed .dracose-pair i {
+  transform: translateX(-0.35rem) rotate(-9deg);
+}
+
+.digested .dracose-pair i:last-child,
+.managed .dracose-pair i:last-child {
+  transform: translateX(0.35rem) rotate(9deg);
+}
+
+.digested .dracose-pair b,
+.managed .dracose-pair b {
+  border-top-style: dashed;
+  opacity: 0.2;
+}
+
+.no-dracose .dracose-pair {
+  opacity: 0.12;
+}
+
+.energy-meter {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  width: 0.65rem;
+  height: 4rem;
+  border: 1px solid #71918f;
+  border-radius: 99px;
+  background: #132f31;
+}
+
+.energy-meter i {
+  position: absolute;
+  inset: auto 0 0;
+  height: 85%;
+  border-radius: inherit;
+  background: var(--clinic-teal);
+}
+
+.undigested .energy-meter i {
+  height: 28%;
+  background: var(--clinic-coral);
+}
+
+.digestion-chamber > div:last-child {
+  display: grid;
+}
+
+.digestion-chamber small {
+  color: var(--clinic-muted);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.digestion-chamber strong {
+  margin: 0.15rem 0;
+  font-size: var(--text-lg);
+}
+
+.digestion-chamber p {
+  margin: 0.2rem 0;
+  color: #c1d1cf;
+  line-height: 1.4;
+}
+
+.digestion-chamber .mechanism {
+  color: var(--clinic-muted);
+  font-size: var(--text-sm);
+}
+
+.run-food {
+  width: 100%;
+  margin-top: 0.65rem;
+  border-color: var(--clinic-gold);
+  background: var(--clinic-gold);
+}
+
+.trial-log {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.trial-log span {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #36575a;
+  border-radius: 99px;
+  color: var(--clinic-muted);
+  font-size: var(--text-xs);
+}
+
+.trial-log span[data-result='undigested'] {
+  border-color: rgb(255 139 114 / 50%);
+  color: #ffb4a5;
+}
+
+.trial-log strong {
+  margin-right: 0.25rem;
+  color: var(--clinic-ink);
+}
+
+.archive-toggle {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #426468;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: #b8cdcb;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.archive-toggle b {
+  display: inline-grid;
+  min-width: 1.5rem;
+  place-items: center;
+  margin-left: 0.2rem;
+  border-radius: 99px;
+  background: rgb(255 255 255 / 8%);
+}
+
+.case-archive {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 17rem;
+  overflow-y: auto;
+  margin: 0.7rem 0;
+  padding: 0.6rem;
+  border: 1px solid #38575a;
+  border-radius: 0.7rem;
+  background: #061b20;
+}
+
+.case-archive article {
+  padding: 0.6rem;
+  border-radius: 0.55rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.case-archive article header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.case-archive time,
+.case-archive small {
+  color: var(--clinic-muted);
+  font-size: var(--text-xs);
+}
+
+.case-archive p {
+  margin: 0.3rem 0;
+  color: #b9cdcb;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.case-builder fieldset {
+  margin: 0.8rem 0 0;
+  padding: 0.7rem;
+  border: 1px solid #36575b;
+  border-radius: 0.7rem;
+}
+
+.case-builder legend {
+  padding: 0 0.3rem;
+  color: var(--clinic-gold);
+  font-weight: 900;
+}
+
+.case-builder fieldset > p {
+  margin: 0 0 0.6rem;
+  color: var(--clinic-muted);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.genotype-claims {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.case-builder fieldset > .genotype-key {
+  margin-top: 0.65rem;
+  padding: 0.55rem;
+  border-left: 3px solid var(--clinic-teal);
+  background: rgb(88 209 190 / 8%);
+  color: #b7cfcc;
+}
+
+.genotype-claims button,
+.diet-recommendations button {
+  padding: 0.55rem;
+  border: 1px solid #3c5e62;
+  border-radius: 0.55rem;
+  background: #071f24;
+  color: #c3d4d2;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.genotype-claims button.selected,
+.diet-recommendations button.selected {
+  border-color: var(--clinic-teal);
+  background: rgb(88 209 190 / 13%);
+  color: white;
+}
+
+.genotype-claims button {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.diet-recommendations {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.diet-recommendations button {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  text-align: left;
+  font-size: var(--text-sm);
+}
+
+.diet-recommendations span {
+  display: grid;
+  width: 1.4rem;
+  height: 1.4rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #54767a;
+  border-radius: 0.3rem;
+}
+
+.case-note {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  color: var(--clinic-gold);
+  font-weight: 900;
+}
+
+.case-note textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #3c5d61;
+  border-radius: 0.6rem;
+  background: #061b20;
+  color: var(--clinic-ink);
+  line-height: 1.45;
+  padding: 0.65rem;
+}
+
+.case-note textarea:focus {
+  outline: 2px solid var(--clinic-teal);
+  outline-offset: 2px;
+}
+
+.record-readiness {
+  margin: 0.6rem 0;
+  color: var(--clinic-muted);
+  font-size: var(--text-sm);
+}
+
+.save-case {
+  width: 100%;
+}
+
+@media (max-width: 1280px) {
+  .intake-grid {
+    grid-template-columns: minmax(15rem, 18rem) 1fr;
+  }
+
+  .clinical-chart {
+    grid-column: 2;
+  }
+
+  .molecular-bench {
+    grid-template-columns: minmax(14rem, 17rem) minmax(30rem, 1fr);
+  }
+
+  .comparison-tray {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .comparison-tray > header,
+  .comparison-tray > .panel-empty {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 980px) {
+  .lab-intro {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .lab-intro nav {
+    justify-content: start;
+  }
+
+  .intake-grid,
+  .molecular-bench,
+  .clinical-bench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .clinical-chart,
+  .comparison-tray {
+    grid-column: auto;
+  }
+
+  .sample-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .clinical-chart {
+    max-height: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .lab-intro,
+  .patient-bay,
+  .clinical-chart,
+  .sample-bank,
+  .gene-reader,
+  .comparison-tray,
+  .digestion-lab,
+  .case-builder {
+    border-radius: 0.75rem;
+  }
+
+  .sequence-readout,
+  .sample-list,
+  .comparison-tray,
+  .food-shelf,
+  .diet-recommendations {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .translation-bench > header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .translation-bench > header code {
+    text-align: left;
+  }
+
+  .ribosome-model,
+  .protein-test,
+  .digestion-chamber {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ribosome,
+  .gut-model {
+    justify-self: center;
+  }
+
+  .protein-test > button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

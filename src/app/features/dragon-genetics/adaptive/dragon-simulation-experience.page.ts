@@ -11,16 +11,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { SessionService } from '../../../core/firebase/session.service';
 import { DragonArenaComponent } from '../dragon-arena.component';
-import { DragonHatcheryStationComponent } from '../workstations/dragon-hatchery/dragon-hatchery-station.component';
+import { DragonHatcheryBreedingLabComponent } from '../workstations/dragon-hatchery/dragon-hatchery-breeding-lab.component';
 import { DragonDnaRepairLabComponent } from '../workstations/dna-process-lab/dragon-dna-repair-lab.component';
 import { DnaAnalysisCase } from '../workstations/dna-process-lab/dna-sequence-analysis.component';
 import { findParent, runDragonBatch } from '../dragon-genetics.domain';
 import { DragonBattleResult, StudentDragonRecord } from '../dragon-genetics.models';
-import {
-  breedLabClutch,
-  DRAGON_TRAITS,
-  genotypeLabel,
-} from '../simulation/domain/dragon-inheritance';
+import { DRAGON_TRAITS, genotypeLabel } from '../simulation/domain/dragon-inheritance';
 import { AlleleVaultWorkbenchComponent } from '../workstations/allele-workbench/allele-vault-workbench.component';
 import {
   chromosomeVisual,
@@ -49,6 +45,7 @@ import {
 } from './dragon-simulation.registry';
 import { DragonSimulationVisualComponent } from '../workstations/simulation-visual/dragon-simulation-visual.component';
 import { GenomeMicroscopeComponent } from '../workstations/genome-microscope/genome-microscope.component';
+import { PunnettComposerComponent } from '../workstations/punnett-composer/punnett-composer.component';
 
 @Component({
   selector: 'app-dragon-simulation-experience-page',
@@ -59,8 +56,9 @@ import { GenomeMicroscopeComponent } from '../workstations/genome-microscope/gen
     GeneticsNotebookComponent,
     DragonDnaRepairLabComponent,
     DragonArenaComponent,
-    DragonHatcheryStationComponent,
+    DragonHatcheryBreedingLabComponent,
     GenomeMicroscopeComponent,
+    PunnettComposerComponent,
   ],
   templateUrl: './dragon-simulation-experience.page.html',
   styleUrl: './dragon-simulation-experience.page.scss',
@@ -216,18 +214,6 @@ export class DragonSimulationExperiencePage {
     const seed = this.arenaSeed();
     if (seed === null) return null;
     return runDragonBatch(findParent('ember'), findParent('tide'), seed, 1).sample[0] ?? null;
-  });
-  readonly hatcheryParents = [findParent('ember'), findParent('tide')] as const;
-  readonly hatcheryClutch = computed(() => {
-    if (this.definition()?.id !== 'dragon-hatchery') return [];
-    const seed = this.run()?.seed;
-    if (!seed) return [];
-    return breedLabClutch(
-      this.hatcheryParents[0],
-      this.hatcheryParents[1],
-      seedToRunNumber(seed),
-      6,
-    );
   });
   /** The most recent completed trial, or null before the first battle ends. */
   readonly arenaTrial = signal<DragonBattleResult | null>(null);

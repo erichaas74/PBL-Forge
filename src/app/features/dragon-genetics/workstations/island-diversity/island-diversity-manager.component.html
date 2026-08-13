@@ -1,0 +1,343 @@
+<section class="diversity-station" aria-labelledby="diversity-goal">
+  <header class="station-intro">
+    <div>
+      <span class="eyebrow">DRAGON ARCHIPELAGO CONSERVATION STATION · POPULATION GENETICS</span>
+      <h2 id="diversity-goal">
+        Determine when gene flow helps a population and when an island's distinct variation should
+        remain protected.
+      </h2>
+      <p>
+        Population evidence changes as dragons move, reproduce, survive habitat events, and carry
+        alleles into new generations.
+      </p>
+    </div>
+    <div class="station-actions">
+      <span><b>{{ world().researchCredits }}</b> genotype scans available</span>
+      <button type="button" [attr.aria-expanded]="guideOpen()" (click)="guideOpen.set(!guideOpen())">
+        Population model guide
+      </button>
+    </div>
+  </header>
+
+  @if (guideOpen()) {
+    <aside class="model-guide" aria-label="Island diversity population model guide">
+      <header>
+        <div>
+          <span class="panel-code">FIELD REFERENCE</span>
+          <h3>Three-locus conservation model</h3>
+        </div>
+        <button type="button" aria-label="Close population model guide" (click)="guideOpen.set(false)">
+          ×
+        </button>
+      </header>
+      <div class="locus-guide">
+        @for (locus of loci; track locus.id) {
+          <article>
+            <strong>{{ locus.name }}</strong>
+            <code>{{ locus.upperAllele }} / {{ locus.lowerAllele }}</code>
+            <p>{{ locus.evidence }}</p>
+          </article>
+        }
+      </div>
+      <p>
+        Diversity combines retained alleles with observed heterozygosity. Relatedness is estimated
+        from pedigree-line concentration. Both are simplified model estimates, not complete genome
+        measurements.
+      </p>
+    </aside>
+  }
+
+  <p class="live-status" role="status">{{ statusMessage() }}</p>
+
+  <div class="world-grid">
+    <aside class="account-intake">
+      <app-account-genetics-file
+        [studentId]="studentId()"
+        [selectedRecordId]="stagedAccountRecord()?.id ?? null"
+        (recordSelected)="selectAccountRecord($event)"
+      />
+      <section>
+        <span class="panel-code">SANCTUARY INTAKE</span>
+        @if (stagedAccountRecord(); as record) {
+          <strong>{{ record.kind === 'dragon' ? record.name : record.dragonName }}</strong>
+          <p>Account record selected. Conservation-locus data remain sealed.</p>
+          <button type="button" (click)="admitStagedAccountDragon()">Admit to Sanctuary</button>
+        } @else {
+          <strong>No rescue record selected</strong>
+          <p>Select a dragon or chromosome record, or drag it onto Sanctuary Island.</p>
+        }
+      </section>
+    </aside>
+
+    <section class="archipelago" aria-labelledby="archipelago-title">
+      <header>
+        <div>
+          <span class="panel-code">LIVE ARCHIPELAGO MAP</span>
+          <h3 id="archipelago-title">Seven managed populations</h3>
+        </div>
+        <span>Drag a field dragon onto another island to relocate it</span>
+      </header>
+      <div class="map-surface">
+        <svg viewBox="0 0 100 100" role="img" aria-label="Connections among seven Dragon Archipelago islands">
+          <path d="M18 25 L47 14 L77 28 L73 62 L52 88 L45 67 L25 58 Z" />
+          <path d="M25 58 L45 67 L52 88" />
+          <path d="M47 14 L45 67" />
+          <path d="M77 28 L45 67" />
+        </svg>
+        @for (island of islandDefinitions; track island.id) {
+          @let metrics = islandMetrics(island.id);
+          <button
+            type="button"
+            class="island-marker"
+            [class.active]="selectedIslandId() === island.id"
+            [class.warning]="metrics.population <= 12 || metrics.diversityPercent < 48 || metrics.affectedDragons > 0"
+            [style.--island-accent]="island.accent"
+            [style.left.%]="island.mapX"
+            [style.top.%]="island.mapY"
+            (click)="visitIsland(island.id)"
+            (dragover)="allowIslandDrop($event)"
+            (drop)="dropOnIsland($event, island.id)"
+          >
+            <span class="island-shape" aria-hidden="true">
+              @for (dot of populationDots; track dot) {
+                <i [class.visible]="dot < Math.min(12, metrics.population)"></i>
+              }
+            </span>
+            <strong>{{ island.name }}</strong>
+            <small>{{ metrics.population }} dragons · G{{ world().islands[island.id].generation }}</small>
+            <b>{{ metrics.diversityPercent }}% diversity</b>
+          </button>
+        }
+      </div>
+      <footer>
+        <span><i class="key-current"></i> Open field station</span>
+        <span><i class="key-alert"></i> Evidence alert</span>
+        <span>Migration paths are choices, not required routes.</span>
+      </footer>
+    </section>
+
+    <aside class="field-alerts" aria-labelledby="field-alerts-title">
+      <header>
+        <span class="panel-code">FIELD ALERTS</span>
+        <h3 id="field-alerts-title">{{ selectedDefinition().name }}</h3>
+      </header>
+      <strong>{{ selectedDefinition().caseStudy }}</strong>
+      <p>{{ selectedDefinition().summary }}</p>
+      <ul>
+        @for (alert of alerts(); track alert) {
+          <li>{{ alert }}</li>
+        }
+      </ul>
+      <small>{{ selectedDefinition().habitat }}</small>
+    </aside>
+  </div>
+
+  <section class="island-dashboard" aria-labelledby="island-dashboard-title">
+    <header>
+      <div>
+        <span class="panel-code">CURRENT FIELD CENSUS · GENERATION {{ selectedPopulation().generation }}</span>
+        <h3 id="island-dashboard-title">{{ selectedDefinition().name }} genetics dashboard</h3>
+      </div>
+      <span>Model estimates recalculate after every relocation and generation</span>
+    </header>
+    <div class="metric-grid">
+      <article><small>Population</small><strong>{{ selectedMetrics().population }}</strong><span>{{ selectedMetrics().trend }}</span></article>
+      <article><small>Genetic diversity</small><strong>{{ selectedMetrics().diversityPercent }}%</strong><span>Allele retention + heterozygosity</span></article>
+      <article><small>Relatedness</small><strong>{{ selectedMetrics().relatedness }}</strong><span>Lineage concentration</span></article>
+      <article><small>Rare alleles</small><strong>{{ selectedMetrics().rareAlleles }}</strong><span>At or below 15%</span></article>
+      <article><small>Affected dragons</small><strong>{{ selectedMetrics().affectedDragons }}</strong><span>Visible Moonfade symptoms</span></article>
+      <article><small>Population trend</small><strong>{{ selectedMetrics().trend }}</strong><span>{{ selectedMetrics().breedingAdults }} breeding adults</span></article>
+    </div>
+  </section>
+
+  <div class="field-work-grid">
+    <section class="field-roster" aria-labelledby="field-roster-title">
+      <header>
+        <div><span class="panel-code">INDIVIDUAL FIELD RECORDS</span><h3 id="field-roster-title">{{ selectedDefinition().fieldCode }} population</h3></div>
+        <span>{{ selectedPopulation().dragons.length }} records</span>
+      </header>
+      <div class="dragon-list">
+        @for (dragon of selectedPopulation().dragons; track dragon.id) {
+          <article
+            class="dragon-record"
+            [class.selected]="selectedDragonId() === dragon.id"
+            [class.scanned]="isScanned(dragon)"
+            draggable="true"
+            (dragstart)="startDragonDrag($event, dragon)"
+          >
+            <header>
+              <span
+                class="dragon-token"
+                [style.--dragon-color]="dragon.color"
+                [style.--dragon-accent]="dragon.accentColor"
+                aria-hidden="true"
+                >{{ dragon.name.slice(0, 1) }}</span
+              >
+              <div><strong>{{ dragon.name }}</strong><small>{{ dragon.id }} · {{ dragon.sex }}</small></div>
+              <b>{{ isScanned(dragon) ? 'SCANNED' : 'SEALED' }}</b>
+            </header>
+            <p>{{ phenotypeFor(dragon) }}</p>
+            <dl>
+              <div><dt>Age</dt><dd>{{ ageLabel(dragon) }}</dd></div>
+              <div><dt>Health</dt><dd>{{ healthFor(dragon) }}</dd></div>
+              <div><dt>Parents</dt><dd>{{ parentNames(dragon) }}</dd></div>
+            </dl>
+            <footer>
+              <button type="button" (click)="selectDragon(dragon)">Select record</button>
+              <button type="button" [disabled]="isScanned(dragon) || world().researchCredits <= 0" (click)="selectDragon(dragon); scanSelectedDragon()">
+                {{ isScanned(dragon) ? 'Scan recorded' : 'Use genotype scan' }}
+              </button>
+            </footer>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="genetics-console" aria-labelledby="genetics-console-title">
+      <header>
+        <div><span class="panel-code">GENOTYPE &amp; FREQUENCY CONSOLE</span><h3 id="genetics-console-title">Evidence under investigation</h3></div>
+        <span>{{ world().researchCredits }} scans</span>
+      </header>
+
+      <div class="scanner-readout">
+        @if (selectedDragon(); as dragon) {
+          <header><strong>{{ dragon.name }}</strong><span>{{ dragon.id }}</span></header>
+          <p>{{ phenotypeFor(dragon) }} · {{ healthFor(dragon) }}</p>
+          @if (selectedDragonScanned()) {
+            <div class="genotype-grid">
+              @for (locus of loci; track locus.id) {
+                <article>
+                  <small>{{ locus.name }}</small>
+                  <strong>{{ genotypeFor(dragon, locus.id) }}</strong>
+                  @if (locus.id === 'moonfade') {
+                    <span>{{ isMoonfadeAffected(dragon) ? 'Affected' : isMoonfadeCarrier(dragon) ? 'Unaffected carrier' : 'No d detected' }}</span>
+                  }
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="sealed-genotype">
+              <span aria-hidden="true">DNA</span>
+              <div><strong>Genotype sealed</strong><p>A scan reveals all three locus pairs and carrier evidence.</p></div>
+              <button type="button" [disabled]="world().researchCredits <= 0" (click)="scanSelectedDragon()">Run genotype scan</button>
+            </div>
+          }
+        } @else {
+          <div class="empty-console"><span aria-hidden="true">◎</span><strong>Select any field record</strong><p>Phenotype and health remain visible before genotype testing.</p></div>
+        }
+      </div>
+
+      <div class="frequency-panel">
+        <header><strong>Whole-population allele frequencies</strong><span>Current census</span></header>
+        @for (frequency of selectedMetrics().alleleFrequencies; track frequency.locusId) {
+          <article>
+            <div><strong>{{ frequency.locusName }}</strong><span>{{ frequency.upperAllele }} {{ frequencyWidth(frequency.upperFrequency) }}% · {{ frequency.lowerAllele }} {{ frequencyWidth(frequency.lowerFrequency) }}%</span></div>
+            <div class="frequency-bar" [attr.aria-label]="frequency.locusName + ' allele frequencies'">
+              <i [style.width.%]="frequencyWidth(frequency.upperFrequency)"></i><b [style.width.%]="frequencyWidth(frequency.lowerFrequency)"></b>
+            </div>
+          </article>
+        }
+      </div>
+
+      <div class="known-evidence">
+        <span><b>{{ knownMoonfade().tested }}</b> scanned here</span>
+        <span><b>{{ knownMoonfade().carriers }}</b> known healthy carriers</span>
+        <span><b>{{ knownMoonfade().affected }}</b> scanned affected</span>
+      </div>
+    </section>
+
+    <aside class="management-tools" aria-labelledby="management-tools-title">
+      <header><span class="panel-code">CONSERVATION ACTIONS</span><h3 id="management-tools-title">Management bench</h3></header>
+
+      <section class="relocation-tool">
+        <header><strong>Relocation permits</strong><span>{{ selectedDragon()?.name ?? 'No dragon selected' }}</span></header>
+        <div class="destination-list">
+          @for (island of islandDefinitions; track island.id) {
+            @if (island.id !== selectedIslandId()) {
+              <button type="button" [disabled]="!selectedDragon()" (click)="relocateSelected(island.id)">
+                <span [style.background]="island.accent"></span><strong>{{ island.name }}</strong><small>{{ islandMetrics(island.id).population }} dragons · {{ islandMetrics(island.id).diversityPercent }}%</small>
+              </button>
+            }
+          }
+        </div>
+      </section>
+
+      <section class="pair-tool">
+        <header><strong>Protected breeding pair</strong><button type="button" (click)="clearPair()">Clear</button></header>
+        <div class="pair-slots">
+          @for (parent of protectedParents(); track $index) {
+            <button
+              type="button"
+              class="pair-slot"
+              [class.loaded]="!!parent"
+              (click)="placeSelectedParent($index === 0 ? 0 : 1)"
+              (dragover)="allowParentDrop($event)"
+              (drop)="dropProtectedParent($event, $index === 0 ? 0 : 1)"
+            >
+              <small>BERTH {{ $index === 0 ? 'A' : 'B' }}</small>
+              @if (parent) { <strong>{{ parent.name }}</strong><span>{{ parent.sex }} · {{ parent.id }}</span> }
+              @else { <strong>Drop or place selected adult</strong> }
+            </button>
+          }
+        </div>
+        <p>{{ pairIssue() }}</p>
+        <button class="advance" type="button" [disabled]="!canAdvance()" (click)="advanceGeneration()">
+          Advance {{ selectedDefinition().name }} one generation
+        </button>
+      </section>
+    </aside>
+  </div>
+
+  <section class="timeline-lab" aria-labelledby="timeline-title">
+    <header>
+      <div><span class="panel-code">POPULATION TIMELINE</span><h3 id="timeline-title">{{ selectedDefinition().name }} across generations</h3></div>
+      <span>Management choices and wild events remain in the evidence trail</span>
+    </header>
+    <div class="timeline-table" role="table" aria-label="Population metrics by generation">
+      <div role="row" class="table-header"><span role="columnheader">Generation</span><span role="columnheader">Population</span><span role="columnheader">Diversity</span><span role="columnheader">Affected</span><span role="columnheader">Rare alleles</span><span role="columnheader">Event evidence</span></div>
+      @for (record of selectedPopulation().timeline; track record.generation) {
+        <div role="row"><strong role="cell">G{{ record.generation }}</strong><span role="cell">{{ record.population }}</span><span role="cell">{{ record.diversityPercent }}%</span><span role="cell">{{ record.affectedDragons }}</span><span role="cell">{{ record.rareAlleles }}</span><p role="cell">{{ record.event }}</p></div>
+      }
+    </div>
+  </section>
+
+  <section class="conservation-ledger" aria-labelledby="ledger-title">
+    <header>
+      <div><span class="panel-code">ARCHIPELAGO LEDGER</span><h3 id="ledger-title">Conservation evidence record</h3></div>
+      <button type="button" [attr.aria-expanded]="ledgerOpen()" (click)="ledgerOpen.set(!ledgerOpen())">
+        {{ ledgerOpen() ? 'Hide ledger' : 'Review saved evidence' }}
+      </button>
+    </header>
+    <div class="note-builder">
+      <label>
+        {{ selectedDefinition().name }} field note
+        <textarea
+          rows="4"
+          [value]="noteDraft()"
+          (input)="updateNote($any($event.target).value)"
+          placeholder="Record the population evidence, tradeoff, and management outcome you are tracking."
+        ></textarea>
+      </label>
+      <button type="button" [disabled]="!canSaveNote()" (click)="saveFieldNote()">Save field note</button>
+    </div>
+    @if (ledgerOpen()) {
+      <div class="ledger-grid">
+        <section>
+          <h4>Island notes</h4>
+          @for (island of islandDefinitions; track island.id) {
+            @if (world().notes[island.id]; as note) {
+              <article><header><strong>{{ island.name }}</strong><time>{{ note.savedAtIso | date: 'short' }}</time></header><p>{{ note.text }}</p></article>
+            }
+          } @empty { <p>No field notes saved yet.</p> }
+        </section>
+        <section>
+          <h4>Recent relocations</h4>
+          @for (move of world().relocations; track move.id) {
+            <article><header><strong>{{ move.dragonName }}</strong><time>{{ move.recordedAtIso | date: 'short' }}</time></header><p>{{ islandDefinition(move.fromIslandId)?.name }} → {{ islandDefinition(move.toIslandId)?.name }}</p></article>
+          } @empty { <p>No dragons relocated yet.</p> }
+        </section>
+      </div>
+    }
+  </section>
+</section>
+

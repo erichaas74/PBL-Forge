@@ -1,0 +1,778 @@
+<section class="pedigree-lab" aria-labelledby="pedigree-goal">
+  <header class="instrument-header">
+    <div class="goal-block">
+      <span>SCIENTIFIC GOAL</span>
+      <h2 id="pedigree-goal">{{ goal() }}</h2>
+    </div>
+    <div class="header-readouts">
+      <div class="readout">
+        <small>TRACED LOCUS</small>
+        <strong>{{ gene().name }}</strong>
+        <span>{{ gene().chromosome }} · hunting {{ investigation().lostPhenotype }}</span>
+      </div>
+      <div class="readout" [class.spent]="testsRemaining() === 0">
+        <small>SEQUENCING RUNS</small>
+        <strong>{{ testsRemaining() }} / {{ investigation().dnaTestBudget }}</strong>
+        <span>{{ testsSpent() }} spent</span>
+      </div>
+      <button
+        class="guide-toggle"
+        type="button"
+        [attr.aria-expanded]="guideOpen()"
+        (click)="guideOpen.set(!guideOpen())"
+      >
+        Guide
+      </button>
+    </div>
+  </header>
+
+  @if (guideOpen()) {
+    <aside class="guide-panel" aria-label="Optional pedigree investigation guide">
+      <header>
+        <strong>Available lab actions</strong>
+        <button type="button" aria-label="Close guide" (click)="guideOpen.set(false)">×</button>
+      </header>
+      <ul>
+        <li>Open any bloodline in the archive and read the register in any order.</li>
+        <li>
+          Selecting a dragon redraws the canvas around their own line. The whole-bloodline button
+          brings the rest back.
+        </li>
+        <li>
+          Choose an inheritance model. The console then lists the records that model cannot
+          explain.
+        </li>
+        <li>
+          Sequencing is limited. Deduce what the pedigree already forces before spending a run.
+        </li>
+        <li>Stage two living dragons on the breeding board and record a prediction before hatching.</li>
+      </ul>
+    </aside>
+  }
+
+  @if (message()) {
+    <p class="lab-message" role="status" aria-live="polite">{{ message() }}</p>
+  }
+
+  <div class="lab-layout">
+    <!-- 1 · Legendary archive ------------------------------------------------->
+    <aside class="archive-column">
+      <section class="legend-archive">
+        <header>
+          <span>HALL OF LEGENDARY DRAGONS</span>
+          <button
+            type="button"
+            class="collapse-toggle"
+            [attr.aria-expanded]="archiveOpen()"
+            (click)="archiveOpen.set(!archiveOpen())"
+          >
+            {{ archiveOpen() ? 'Hide list' : 'Show list' }}
+          </button>
+        </header>
+
+        @if (archiveOpen()) {
+          <div class="archive-list" role="group" aria-label="Bloodline investigations">
+            @for (candidate of investigations; track candidate.id) {
+              <button
+                type="button"
+                class="archive-entry"
+                [class.active]="candidate.id === investigation().id"
+                [attr.aria-pressed]="candidate.id === investigation().id"
+                (click)="openInvestigation(candidate.id)"
+              >
+                <strong>{{ candidate.archiveTitle }}</strong>
+                <span>{{ candidate.bloodline }} · {{ candidate.lostPhenotype }}</span>
+              </button>
+            }
+          </div>
+        }
+
+        <article class="archive-dossier">
+          <div class="dossier-portrait">
+            @if (ancestorSpecimen(); as specimen) {
+              <app-specimen-thumb [source]="specimen" [size]="180" [showLabel]="false" />
+            }
+          </div>
+          <div class="dossier-copy">
+            <h3>{{ investigation().archiveTitle }}</h3>
+            @if (ancestor(); as legend) {
+              <small>
+                Born {{ legend.birthYear }} · {{ legend.bloodline }} · {{ legend.breed }}
+              </small>
+              @if (legend.historicalNote) {
+                <p>{{ legend.historicalNote }}</p>
+              }
+              @if (legend.achievements.length) {
+                <ul class="achievements">
+                  @for (achievement of legend.achievements; track achievement) {
+                    <li>{{ achievement }}</li>
+                  }
+                </ul>
+              }
+            }
+            <p class="brief">{{ investigation().brief }}</p>
+          </div>
+        </article>
+
+        <dl class="bloodline-stats">
+          <div>
+            <dt>Last recorded</dt>
+            <dd>
+              @if (stats().lastObservedYear !== null) {
+                Year {{ stats().lastObservedYear }} ·
+                {{ stats().yearsSinceObserved }} years ago
+              } @else {
+                Never recorded
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Recorded descendants</dt>
+            <dd>{{ stats().recordedDescendants }}</dd>
+          </div>
+          <div>
+            <dt>Living descendants</dt>
+            <dd>{{ stats().livingDescendants }}</dd>
+          </div>
+          <div>
+            <dt>Carriers proven</dt>
+            <dd>{{ stats().confirmedCarriers }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- 2 · Living register -------------------------------------------------->
+      <section class="living-register">
+        <header>
+          <span>LIVING REGISTER</span>
+          <small>{{ livingRegister().length }} in this bloodline</small>
+        </header>
+        <ul>
+          @for (entry of livingRegister(); track entry.dragon.id) {
+            <li>
+              <button
+                type="button"
+                class="register-entry"
+                [class.selected]="selectedId() === entry.dragon.id"
+                [attr.data-status]="entry.state?.status ?? 'no-model'"
+                draggable="true"
+                (click)="selectDragon(entry.dragon.id)"
+                (dragstart)="startDragonDrag($event, entry.dragon.id)"
+              >
+                <i aria-hidden="true">{{ entry.dragon.sex === 'male' ? '□' : '○' }}</i>
+                <span class="register-name">
+                  <strong>{{ entry.dragon.name }}</strong>
+                  <small>Gen {{ entry.dragon.generation }} · age {{ archiveYear - entry.dragon.birthYear }}</small>
+                </span>
+                @if (entry.state; as state) {
+                  <span class="register-status">
+                    <b aria-hidden="true">{{ statusGlyphs[state.status] }}</b>
+                    <small>{{ statusLabels[state.status] }}</small>
+                  </span>
+                } @else {
+                  <span class="register-status"><small>No model</small></span>
+                }
+              </button>
+              <button
+                type="button"
+                class="stage-button"
+                [disabled]="entry.inTray"
+                [attr.aria-label]="'Stage ' + entry.dragon.name + ' on the breeding board'"
+                (click)="addToTray(entry.dragon.id)"
+              >
+                {{ entry.inTray ? 'Staged' : 'Stage' }}
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    </aside>
+
+    <!-- 3 · Pedigree canvas ---------------------------------------------------->
+    <main class="pedigree-canvas">
+      <!-- The model governs everything the canvas draws, so it sits on top of it. -->
+      <section class="model-console">
+        <header>
+          <span>INHERITANCE MODEL UNDER TEST</span>
+          @if (deduction(); as result) {
+            <small class="notation">
+              traced allele <b>{{ result.symbols.traced }}</b> · alternative
+              <b>{{ result.symbols.alternate }}</b> · recorded with the trait:
+              {{ result.affectedMales }} male, {{ result.affectedFemales }} female
+            </small>
+            <button type="button" class="collapse-toggle" (click)="clearModel()">Clear</button>
+          }
+        </header>
+        <div class="model-buttons" role="group" aria-label="Inheritance model under test">
+          @for (candidate of inheritanceModels; track candidate) {
+            <button
+              type="button"
+              [class.active]="model() === candidate"
+              [attr.aria-pressed]="model() === candidate"
+              (click)="chooseModel(candidate)"
+            >
+              <strong>{{ modelLabels[candidate] }}</strong>
+              <small>{{ modelSummaries[candidate] }}</small>
+            </button>
+          }
+        </div>
+
+        @if (deduction(); as result) {
+          <div class="model-verdict">
+            @if (result.unexplainedPhenotypes.length) {
+              <div class="conflict" role="status">
+                <strong>
+                  {{ result.unexplainedPhenotypes.length }} recorded appearance(s) have no genotype
+                  under this model
+                </strong>
+                <ul>
+                  @for (phenotype of result.unexplainedPhenotypes; track phenotype) {
+                    <li>{{ phenotype }}</li>
+                  }
+                </ul>
+              </div>
+            }
+            @if (result.contradictions.length) {
+              <div class="conflict" role="status">
+                <strong>{{ result.contradictions.length }} record(s) this model cannot explain</strong>
+                <ul>
+                  @for (conflict of contradictions(); track conflict.dragonId) {
+                    <li>
+                      <button type="button" (click)="selectDragon(conflict.dragonId)">
+                        {{ conflict.dragonName }}
+                      </button>
+                      {{ conflict.reason }}
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+            @if (!result.contradictions.length && !result.unexplainedPhenotypes.length) {
+              <p class="clean">Every surviving record can be explained under this model.</p>
+            }
+          </div>
+        } @else {
+          <p class="model-empty">
+            The canvas shows recorded appearances only. Carrier status needs a model to deduce from.
+          </p>
+        }
+      </section>
+
+      <header class="canvas-controls">
+        <div class="control-group" role="group" aria-label="Pedigree depth">
+          <small>ANCESTORS</small>
+          <button type="button" (click)="collapseAncestors()" aria-label="Show fewer ancestor generations">−</button>
+          <b>{{ ancestorDepth() }}</b>
+          <button type="button" (click)="expandAncestors()" aria-label="Show more ancestor generations">+</button>
+        </div>
+        <div class="control-group" role="group" aria-label="Descendant depth">
+          <small>DESCENDANTS</small>
+          <button type="button" (click)="collapseDescendants()" aria-label="Show fewer descendant generations">−</button>
+          <b>{{ descendantDepth() }}</b>
+          <button type="button" (click)="expandDescendants()" aria-label="Show more descendant generations">+</button>
+        </div>
+        <div class="control-group" role="group" aria-label="Canvas zoom">
+          <small>ZOOM</small>
+          <button type="button" (click)="zoomOut()" aria-label="Zoom out">−</button>
+          <b>{{ zoom() }}×</b>
+          <button type="button" (click)="zoomIn()" aria-label="Zoom in">+</button>
+        </div>
+        <button
+          type="button"
+          class="trace-toggle"
+          [class.active]="traceMode()"
+          [attr.aria-pressed]="traceMode()"
+          (click)="toggleTrace()"
+        >
+          Trait trace
+        </button>
+        <button type="button" class="recentre" (click)="selectDragon(investigation().ancestorId)">
+          Whole bloodline · {{ ancestor()?.name }}
+        </button>
+      </header>
+
+      <div
+        class="canvas-scroller"
+        tabindex="0"
+        role="group"
+        [attr.aria-label]="
+          'Pedigree canvas showing the line of ' +
+          (selectedDragon()?.name ?? ancestor()?.name ?? 'the archive') +
+          '. Scroll to pan. Selecting a dragon redraws the canvas around them.'
+        "
+      >
+        <svg
+          class="pedigree-svg"
+          [attr.viewBox]="canvasViewBox()"
+          [attr.width]="canvasWidth()"
+          [attr.height]="canvasHeight()"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          @for (row of rows(); track row.generation) {
+            <text class="row-label" x="12" [attr.y]="row.y - 44">
+              GEN {{ row.generation }}
+            </text>
+            <line
+              class="row-rule"
+              x1="0"
+              [attr.y1]="row.y - 52"
+              [attr.x2]="layout().width"
+              [attr.y2]="row.y - 52"
+            />
+          }
+
+          @for (union of unions(); track union.id) {
+            <g class="union" [class.union--traced]="unionOnTraceLine(union)">
+              <line
+                class="mating-line"
+                [attr.x1]="union.motherX"
+                [attr.y1]="union.parentY"
+                [attr.x2]="union.fatherX"
+                [attr.y2]="union.parentY"
+              />
+              <line
+                class="descent-line"
+                [attr.x1]="unionMidX(union)"
+                [attr.y1]="union.parentY"
+                [attr.x2]="unionMidX(union)"
+                [attr.y2]="sibBarY(union)"
+              />
+              <line
+                class="sib-bar"
+                [attr.x1]="sibBarStart(union)"
+                [attr.y1]="sibBarY(union)"
+                [attr.x2]="sibBarEnd(union)"
+                [attr.y2]="sibBarY(union)"
+              />
+              @for (childX of union.childXs; track $index) {
+                <line
+                  class="descent-line"
+                  [attr.x1]="childX"
+                  [attr.y1]="sibBarY(union)"
+                  [attr.x2]="childX"
+                  [attr.y2]="union.childY"
+                />
+              }
+            </g>
+          }
+
+          @for (node of canvasNodes(); track node.dragonId) {
+            <g
+              class="pedigree-node"
+              role="button"
+              tabindex="0"
+              [attr.data-status]="node.state?.status ?? 'no-model'"
+              [attr.data-dragon]="node.dragonId"
+              [class.selected]="node.isSelected"
+              [class.focus-node]="node.isFocus"
+              [class.off-lineage]="!node.inLineage"
+              [class.traced]="traceMode() && node.onTraceLine"
+              [class.staged]="node.inTray"
+              [attr.aria-label]="node.ariaLabel"
+              [attr.transform]="'translate(' + node.x + ' ' + node.y + ')'"
+              (click)="selectDragon(node.dragonId)"
+              (keydown.enter)="selectDragon(node.dragonId)"
+              (keydown.space)="selectDragon(node.dragonId)"
+            >
+              @if (node.symbol === 'square') {
+                <rect class="node-shape" x="-22" y="-22" width="44" height="44" rx="4" />
+              } @else {
+                <circle class="node-shape" r="23" />
+              }
+              @if (node.dragon.legendary) {
+                <circle class="legend-ring" r="30" />
+              }
+              @if (!node.dragon.alive) {
+                <line class="deceased-mark" x1="-30" y1="30" x2="30" y2="-30" />
+              }
+              <text class="node-glyph" y="6">
+                {{ node.state ? statusGlyphs[node.state.status] : '·' }}
+              </text>
+              <text class="node-name" y="42">{{ node.dragon.name }}</text>
+              @if (node.state?.sequenced) {
+                <text class="node-genotype" y="58">{{ sequencedGenotype(node.dragonId) }}</text>
+              }
+            </g>
+          }
+        </svg>
+      </div>
+
+      <footer class="canvas-legend">
+        <span><i aria-hidden="true">□</i> male</span>
+        <span><i aria-hidden="true">○</i> female</span>
+        <span><i aria-hidden="true">╱</i> deceased</span>
+        @for (status of legendStatuses; track status) {
+          <span class="legend-status" [attr.data-status]="status">
+            <i aria-hidden="true">{{ statusGlyphs[status] }}</i> {{ statusLabels[status] }}
+          </span>
+        }
+      </footer>
+    </main>
+
+    <!-- 4 · Inspector, notebook, breeding board -------------------------------->
+    <aside class="inspector-column">
+      <section class="dragon-inspector">
+        <header>
+          <span>DRAGON INSPECTOR</span>
+          @if (selectedDragon(); as dragon) {
+            <small>canvas showing {{ dragon.name }}’s line</small>
+          }
+        </header>
+
+        @if (selectedDragon(); as dragon) {
+          <div class="inspector-identity">
+            <div class="inspector-portrait">
+              @if (selectedSpecimen(); as specimen) {
+                <app-specimen-thumb [source]="specimen" [size]="200" [showLabel]="false" />
+              } @else {
+                <p class="no-portrait">
+                  The record for this dragon is incomplete, so no appearance can be reconstructed.
+                </p>
+              }
+            </div>
+            <div>
+              <h3>{{ displayName(dragon) }}</h3>
+              <small>{{ lifespan(dragon) }} · {{ dragon.alive ? 'living' : 'deceased' }}</small>
+              <small>{{ dragon.bloodline }} · {{ dragon.breed }}</small>
+              <small>Generation {{ dragon.generation }} · {{ dragon.sex }}</small>
+              @if (dragon.historicalNote) {
+                <p class="note">{{ dragon.historicalNote }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="evidence-block">
+            <div class="evidence-row">
+              <small>RECORDED APPEARANCE</small>
+              <strong>{{ observed(dragon) ?? 'Record lost' }}</strong>
+            </div>
+            @if (selectedState(); as state) {
+              <div class="evidence-row">
+                <small>STATUS</small>
+                <strong [attr.data-status]="state.status">
+                  <b aria-hidden="true">{{ statusGlyphs[state.status] }}</b>
+                  {{ statusLabels[state.status] }}
+                </strong>
+                <span>from {{ state.evidence.replace('-', ' ') }}</span>
+              </div>
+              <div class="evidence-row">
+                <small>POSSIBLE GENOTYPES</small>
+                <strong class="genotype-list">
+                  @for (genotype of state.possibleGenotypes; track genotype) {
+                    <b>{{ genotype }}</b>
+                  }
+                </strong>
+              </div>
+            } @else {
+              <p class="evidence-empty">Choose an inheritance model to deduce this dragon's genotype.</p>
+            }
+            @if (riskGene(); as risk) {
+              <div class="evidence-row risk">
+                <small>{{ risk.name.toUpperCase() }} (SECOND LOCUS)</small>
+                <strong>{{ observed(dragon, risk.id) ?? 'Record lost' }}</strong>
+                @if (selectedRiskState(); as riskState) {
+                  <span>
+                    {{ statusLabels[riskState.status] }} for {{ risk.recessivePhenotype.toLowerCase() }},
+                    read as autosomal recessive
+                  </span>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="family-block">
+            <div>
+              <small>PARENTS</small>
+              @if (selectedParents().length) {
+                @for (parent of selectedParents(); track parent.id) {
+                  <button type="button" class="family-link" (click)="selectDragon(parent.id)">
+                    {{ parent.name }}
+                  </button>
+                }
+              } @else {
+                <span class="unknown">Not recorded</span>
+              }
+            </div>
+            <div>
+              <small>OFFSPRING ({{ selectedOffspring().length }})</small>
+              @for (child of selectedOffspring(); track child.id) {
+                <button type="button" class="family-link" (click)="selectDragon(child.id)">
+                  {{ child.name }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="testing-block">
+            <small>SEQUENCING BAY</small>
+            <div class="locus-choice" role="group" aria-label="Locus to sequence">
+              <button
+                type="button"
+                [class.active]="testGeneId() === investigation().geneId"
+                [attr.aria-pressed]="testGeneId() === investigation().geneId"
+                (click)="selectTestGene(investigation().geneId)"
+              >
+                {{ gene().name }}
+              </button>
+              @if (riskGene(); as risk) {
+                <button
+                  type="button"
+                  [class.active]="testGeneId() === risk.id"
+                  [attr.aria-pressed]="testGeneId() === risk.id"
+                  (click)="selectTestGene(risk.id)"
+                >
+                  {{ risk.name }}
+                </button>
+              }
+            </div>
+            <button
+              type="button"
+              class="sequence-button"
+              [disabled]="!dragon.dnaAvailable || testsRemaining() === 0"
+              (click)="runDnaTest(dragon.id)"
+            >
+              @if (!dragon.dnaAvailable) {
+                No sample survives
+              } @else {
+                Sequence {{ dragon.name }} ({{ testsRemaining() }} left)
+              }
+            </button>
+            @if (sequencedGenotype(dragon.id); as genotype) {
+              <p class="sequenced-result">Sequencer result: <b>{{ genotype }}</b></p>
+            }
+          </div>
+
+          <div class="call-block">
+            <small>YOUR CALL</small>
+            <div class="call-buttons" role="group" aria-label="Your carrier call for this dragon">
+              @for (option of callOptions; track option) {
+                <button
+                  type="button"
+                  [class.active]="selectedNote()?.status === option"
+                  [attr.aria-pressed]="selectedNote()?.status === option"
+                  (click)="markCarrier(option)"
+                >
+                  {{ option === 'not-carrier' ? 'not a carrier' : option }}
+                </button>
+              }
+            </div>
+            <label class="note-field">
+              <span>Why?</span>
+              <textarea
+                rows="2"
+                [value]="selectedNote()?.note ?? ''"
+                placeholder="The evidence that supports this call"
+                (input)="onNoteInput($event)"
+              ></textarea>
+            </label>
+          </div>
+        } @else {
+          <p class="inspector-idle">Select a dragon on the canvas or in the register.</p>
+        }
+      </section>
+
+      <!-- 5 · Gene notebook ---------------------------------------------------->
+      <section class="gene-notebook">
+        <header>
+          <span>GENE NOTEBOOK</span>
+          <small>{{ investigation().lostPhenotype }}</small>
+        </header>
+        @if (notebookRows().length) {
+          <div class="notebook-scroller">
+            <table>
+              <caption class="sr-only">
+                Dragons you have sequenced, marked, or staged in this investigation
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Dragon</th>
+                  <th scope="col">Evidence</th>
+                  <th scope="col">Possible</th>
+                  <th scope="col">Your call</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of notebookRows(); track row.dragon.id) {
+                  <tr>
+                    <th scope="row">
+                      <button type="button" (click)="selectDragon(row.dragon.id)">
+                        {{ row.dragon.name }}
+                      </button>
+                    </th>
+                    <td>{{ row.state ? row.state.evidence.replace('-', ' ') : 'no model' }}</td>
+                    <td>{{ row.state ? row.state.possibleGenotypes.join(' / ') : '—' }}</td>
+                    <td>{{ row.note?.status ?? '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="notebook-empty">
+            Sequencing a dragon, marking a call, or staging a candidate adds a row here.
+          </p>
+        }
+        <label class="hypothesis-field">
+          <span>My hypothesis</span>
+          <textarea
+            rows="3"
+            [value]="record().hypothesis"
+            placeholder="I think … carries the traced allele because …"
+            (input)="onHypothesisInput($event)"
+          ></textarea>
+        </label>
+      </section>
+
+      <!-- 6 · Breeding board --------------------------------------------------->
+      <section
+        class="breeding-board"
+        (dragover)="allowDragonDrop($event)"
+        (drop)="dropDragon($event)"
+      >
+        <header>
+          <span>BREEDING BOARD</span>
+          <small>{{ trayDragons().length }} / 2 staged</small>
+        </header>
+
+        <div class="tray">
+          @for (dragon of trayDragons(); track dragon.id) {
+            <article class="tray-card">
+              <strong>{{ dragon.name }}</strong>
+              <small>{{ dragon.sex }} · gen {{ dragon.generation }}</small>
+              <small>{{ observed(dragon) ?? 'Record lost' }}</small>
+              @if (deduction()?.states?.get(dragon.id); as state) {
+                <span class="tray-status" [attr.data-status]="state.status">
+                  {{ statusLabels[state.status] }}
+                </span>
+              }
+              <button type="button" (click)="removeFromTray(dragon.id)">Remove</button>
+            </article>
+          }
+          @if (trayDragons().length < 2) {
+            <button type="button" class="tray-slot" (click)="placeStagedDragon()">
+              <span aria-hidden="true">+</span>
+              <small>
+                Drop a living dragon here, or select one in the register and choose this slot.
+              </small>
+            </button>
+          }
+        </div>
+
+        @if (relatedness(); as related) {
+          <div class="relatedness" [attr.data-level]="related.level">
+            <strong>{{ related.label }} · kinship {{ related.percent }}%</strong>
+            <p>{{ related.detail }}</p>
+          </div>
+        }
+
+        @if (breedingPair(); as pair) {
+          <div class="authorization">
+            <div class="prediction-grid">
+              <label>
+                <span>{{ pair.mother.name }} genotype</span>
+                <select
+                  [value]="predictedMotherGenotype()"
+                  [disabled]="!model()"
+                  (change)="onGenotypeSelect($event, 'mother')"
+                >
+                  <option value="">Predict…</option>
+                  @for (option of genotypeOptions().mother; track option) {
+                    <option [value]="option">{{ option }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                <span>{{ pair.father.name }} genotype</span>
+                <select
+                  [value]="predictedFatherGenotype()"
+                  [disabled]="!model()"
+                  (change)="onGenotypeSelect($event, 'father')"
+                >
+                  <option value="">Predict…</option>
+                  @for (option of genotypeOptions().father; track option) {
+                    <option [value]="option">{{ option }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                <span>Predicted share showing the trait</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  [value]="predictedPercent() ?? ''"
+                  (input)="onPercentInput($event)"
+                />
+              </label>
+            </div>
+            <label class="justification-field">
+              <span>Why should this breeding happen?</span>
+              <textarea
+                rows="3"
+                [value]="justification()"
+                placeholder="Evidence for each candidate, the ancestor the allele is traced from, and the genetic risk you accept"
+                (input)="onJustificationInput($event)"
+              ></textarea>
+            </label>
+
+            @if (authorizationBlockers().length) {
+              <ul class="blockers">
+                @for (blocker of authorizationBlockers(); track blocker) {
+                  <li>{{ blocker }}</li>
+                }
+              </ul>
+            }
+            <button
+              type="button"
+              class="authorize"
+              [disabled]="!canAuthorize()"
+              (click)="authorizeBreeding()"
+            >
+              Authorise breeding · hatch {{ clutchSize }} eggs
+            </button>
+          </div>
+        }
+
+        @if (hatchRecords().length) {
+          <div class="hatch-log">
+            <small>CLUTCH LOG</small>
+            @for (log of hatchRecords(); track log.id) {
+              <article>
+                <strong>{{ log.motherName }} × {{ log.fatherName }}</strong>
+                <span>
+                  clutch {{ log.attempt }} · predicted {{ log.predictedPercent }}% · observed
+                  {{ log.observedPercent }}% ({{ log.recoveredCount }}/{{ log.hatchlingIds.length }})
+                </span>
+                <span>
+                  inbreeding {{ (log.inbreedingCoefficient * 100).toFixed(1) }}%
+                  @if (log.affectedByRiskCount) {
+                    · {{ log.affectedByRiskCount }} hatchling(s) affected by the second locus
+                  }
+                </span>
+              </article>
+            }
+          </div>
+        }
+      </section>
+
+      @if (recovered()) {
+        <section class="recovery" role="status">
+          <strong>LOST BLOODLINE RECOVERED</strong>
+          <p>
+            {{ investigation().lostPhenotype }} has appeared for the first time in
+            {{ archiveGapYears() }} years.
+          </p>
+          <ol class="recovery-line">
+            @for (dragon of recoveryLine(); track dragon.id) {
+              <li>
+                <button type="button" (click)="selectDragon(dragon.id)">{{ dragon.name }}</button>
+                <small>gen {{ dragon.generation }}</small>
+              </li>
+            }
+          </ol>
+        </section>
+      }
+    </aside>
+  </div>
+</section>

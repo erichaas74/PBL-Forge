@@ -27,6 +27,8 @@ export interface DragonTraitDefinition {
 
 export type DragonTraitGenotype = [string, string];
 export type DragonLabGenome = Record<DragonTraitId, DragonTraitGenotype>;
+/** The one allele for each modeled autosomal trait carried by a single gamete. */
+export type DragonGameteGenome = Record<DragonTraitId, string>;
 
 export interface DragonParentProfile {
   id: string;

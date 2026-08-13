@@ -1,0 +1,1113 @@
+:host {
+  display: block;
+  color: #edf5f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+button:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #f1c96c;
+  outline-offset: 2px;
+}
+
+.diversity-station {
+  --station-border: rgb(213 233 221 / 14%);
+  --station-panel: rgb(10 31 37 / 92%);
+  display: grid;
+  gap: 1rem;
+  width: min(1500px, 100%);
+  margin: 0 auto;
+}
+
+.station-intro,
+.archipelago > header,
+.island-dashboard > header,
+.field-roster > header,
+.genetics-console > header,
+.management-tools > header,
+.timeline-lab > header,
+.conservation-ledger > header,
+.model-guide > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.station-intro {
+  align-items: flex-end;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--station-border);
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgb(55 123 105 / 18%), rgb(10 27 35 / 92%));
+}
+
+.eyebrow,
+.panel-code {
+  display: block;
+  color: #83d5af;
+  font-size: var(--text-xs);
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+h2,
+h3,
+h4,
+p {
+  margin-top: 0;
+}
+
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+}
+
+.station-intro h2 {
+  max-width: 58rem;
+  margin: 0.35rem 0 0.4rem;
+  font-size: clamp(1.65rem, 3vw, 2.7rem);
+  line-height: 1.05;
+}
+
+.station-intro p {
+  max-width: 55rem;
+  margin-bottom: 0;
+  color: #a7bbb4;
+  line-height: 1.5;
+}
+
+.station-actions {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.55rem;
+  min-width: 14rem;
+}
+
+.station-actions span {
+  color: #b9cbc5;
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.station-actions span b {
+  color: #f1c96c;
+  font-size: var(--text-lg);
+}
+
+.station-actions button,
+.account-intake section button,
+.conservation-ledger > header button,
+.note-builder > button {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #4e8172;
+  border-radius: 0.65rem;
+  background: #173c39;
+  color: #e9f5ee;
+  font-size: var(--text-sm);
+  font-weight: 850;
+}
+
+.model-guide,
+.island-dashboard,
+.timeline-lab,
+.conservation-ledger {
+  padding: 1rem;
+  border: 1px solid var(--station-border);
+  border-radius: 1rem;
+  background: var(--station-panel);
+}
+
+.model-guide > header h3,
+.island-dashboard > header h3,
+.timeline-lab > header h3,
+.conservation-ledger > header h3 {
+  margin: 0.2rem 0 0;
+  font-size: var(--text-xl);
+}
+
+.model-guide > header > button {
+  border: 0;
+  background: transparent;
+  color: #dae9e2;
+  font-size: var(--text-xl);
+}
+
+.locus-guide {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+  margin: 0.8rem 0;
+}
+
+.locus-guide article {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid var(--station-border);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.locus-guide code {
+  color: #f1c96c;
+  font-size: var(--text-md);
+  font-weight: 900;
+}
+
+.locus-guide p,
+.model-guide > p {
+  margin: 0;
+  color: #a6bbb4;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.live-status {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #83d5af;
+  border-radius: 0 0.7rem 0.7rem 0;
+  background: rgb(36 88 77 / 35%);
+  color: #d9e9e2;
+  font-size: var(--text-sm);
+}
+
+.world-grid {
+  display: grid;
+  grid-template-columns: minmax(15rem, 18rem) minmax(42rem, 1fr) minmax(16rem, 20rem);
+  gap: 0.85rem;
+  align-items: stretch;
+}
+
+.account-intake {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+}
+
+.account-intake section,
+.field-alerts,
+.field-roster,
+.genetics-console,
+.management-tools,
+.archipelago {
+  overflow: hidden;
+  border: 1px solid var(--station-border);
+  border-radius: 1rem;
+  background: var(--station-panel);
+}
+
+.account-intake section {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.8rem;
+}
+
+.account-intake section strong {
+  color: #f0d894;
+}
+
+.account-intake section p {
+  margin: 0;
+  color: #99afa7;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.archipelago {
+  min-height: 36rem;
+}
+
+.archipelago > header {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--station-border);
+}
+
+.archipelago > header h3 {
+  margin: 0.2rem 0 0;
+  font-size: var(--text-lg);
+}
+
+.archipelago > header > span,
+.island-dashboard > header > span,
+.timeline-lab > header > span {
+  max-width: 18rem;
+  color: #8ca59c;
+  font-size: var(--text-xs);
+  text-align: right;
+}
+
+.map-surface {
+  position: relative;
+  min-height: 31rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 30%, rgb(97 179 168 / 14%), transparent 21rem),
+    repeating-radial-gradient(circle at 60% 60%, transparent 0 2.7rem, rgb(105 170 167 / 5%) 2.8rem 2.9rem),
+    linear-gradient(150deg, #0a303a, #071d2b 62%, #0c2933);
+}
+
+.map-surface::before,
+.map-surface::after {
+  position: absolute;
+  width: 14rem;
+  height: 14rem;
+  border: 1px solid rgb(154 209 200 / 8%);
+  border-radius: 46% 54% 58% 42%;
+  content: '';
+}
+
+.map-surface::before {
+  top: -7rem;
+  left: 30%;
+}
+
+.map-surface::after {
+  right: -6rem;
+  bottom: -8rem;
+}
+
+.map-surface svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.map-surface path {
+  fill: none;
+  stroke: rgb(124 181 172 / 25%);
+  stroke-dasharray: 1.2 2.3;
+  stroke-width: 0.45;
+}
+
+.island-marker {
+  --island-accent: #83d5af;
+  position: absolute;
+  display: grid;
+  width: clamp(7.1rem, 14vw, 10.2rem);
+  min-height: 6.1rem;
+  padding: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--island-accent) 55%, transparent);
+  border-radius: 45% 55% 48% 52% / 56% 42% 58% 44%;
+  background: linear-gradient(155deg, color-mix(in srgb, var(--island-accent) 28%, #17382f), #10281f);
+  box-shadow: 0 0.7rem 1.6rem rgb(0 0 0 / 32%);
+  color: #eef5f0;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  z-index: 1;
+}
+
+.island-marker:hover,
+.island-marker:focus-visible {
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.island-marker.active {
+  border-width: 3px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--island-accent) 25%, transparent), 0 0.8rem 2rem rgb(0 0 0 / 35%);
+}
+
+.island-marker.warning::after {
+  position: absolute;
+  top: -0.25rem;
+  right: 0.3rem;
+  display: grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 2px solid #271711;
+  border-radius: 50%;
+  background: #f0ad65;
+  color: #2a1710;
+  content: '!';
+  font-weight: 950;
+  place-items: center;
+}
+
+.island-marker strong {
+  max-width: 9rem;
+  font-size: var(--text-sm);
+  line-height: 1.05;
+}
+
+.island-marker small,
+.island-marker b {
+  font-size: var(--text-xs);
+}
+
+.island-marker small {
+  color: #bdd0c9;
+}
+
+.island-marker b {
+  color: var(--island-accent);
+}
+
+.island-shape {
+  display: grid;
+  grid-template-columns: repeat(4, 0.36rem);
+  gap: 0.14rem;
+  min-height: 1rem;
+  place-content: center;
+}
+
+.island-shape i {
+  width: 0.36rem;
+  height: 0.36rem;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.island-shape i.visible {
+  background: var(--island-accent);
+}
+
+.archipelago > footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.6rem 0.85rem;
+  border-top: 1px solid var(--station-border);
+  color: #93aaa2;
+  font-size: var(--text-xs);
+}
+
+.archipelago > footer i {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: 0.3rem;
+  border-radius: 50%;
+}
+
+.key-current {
+  border: 2px solid #83d5af;
+}
+
+.key-alert {
+  background: #f0ad65;
+}
+
+.field-alerts {
+  padding: 0.9rem;
+}
+
+.field-alerts h3 {
+  margin: 0.25rem 0 0.8rem;
+  font-size: var(--text-lg);
+}
+
+.field-alerts > strong {
+  color: #f1c96c;
+}
+
+.field-alerts > p,
+.field-alerts li,
+.field-alerts > small {
+  color: #a0b6ae;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.field-alerts ul {
+  display: grid;
+  gap: 0.55rem;
+  padding-left: 1.1rem;
+}
+
+.field-alerts li::marker {
+  color: #ee9a69;
+}
+
+.island-dashboard > header,
+.timeline-lab > header,
+.conservation-ledger > header {
+  margin-bottom: 0.8rem;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.metric-grid article {
+  display: grid;
+  gap: 0.2rem;
+  min-height: 6.6rem;
+  padding: 0.7rem;
+  border: 1px solid var(--station-border);
+  border-radius: 0.75rem;
+  background: linear-gradient(155deg, rgb(46 104 88 / 18%), rgb(255 255 255 / 3%));
+}
+
+.metric-grid small,
+.metric-grid span {
+  color: #91a79f;
+  font-size: var(--text-xs);
+}
+
+.metric-grid strong {
+  align-self: end;
+  color: #f1d786;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+}
+
+.field-work-grid {
+  display: grid;
+  grid-template-columns: minmax(20rem, 24rem) minmax(30rem, 1fr) minmax(19rem, 23rem);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.field-roster > header,
+.genetics-console > header,
+.management-tools > header {
+  padding: 0.8rem;
+  border-bottom: 1px solid var(--station-border);
+}
+
+.field-roster > header h3,
+.genetics-console > header h3,
+.management-tools > header h3 {
+  margin: 0.2rem 0 0;
+  font-size: var(--text-lg);
+}
+
+.field-roster > header > span,
+.genetics-console > header > span {
+  color: #f1c96c;
+  font-size: var(--text-sm);
+  font-weight: 900;
+}
+
+.dragon-list {
+  display: grid;
+  gap: 0.55rem;
+  max-height: 53rem;
+  overflow-y: auto;
+  padding: 0.7rem;
+}
+
+.dragon-record {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  border: 1px solid var(--station-border);
+  border-radius: 0.8rem;
+  background: rgb(255 255 255 / 3%);
+}
+
+.dragon-record.selected {
+  border-color: #f1c96c;
+  box-shadow: inset 3px 0 0 #f1c96c;
+}
+
+.dragon-record.scanned {
+  background: linear-gradient(120deg, rgb(70 133 113 / 15%), rgb(255 255 255 / 3%));
+}
+
+.dragon-record > header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.dragon-record > header div {
+  display: grid;
+}
+
+.dragon-record > header small,
+.dragon-record > header b {
+  color: #8fa69e;
+  font-size: var(--text-xs);
+}
+
+.dragon-record > header b {
+  color: #83d5af;
+}
+
+.dragon-token {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid var(--dragon-accent);
+  border-radius: 55% 45% 50% 50%;
+  background: var(--dragon-color);
+  color: var(--dragon-accent);
+  font-weight: 950;
+  place-items: center;
+}
+
+.dragon-record > p {
+  margin: 0;
+  color: #c3d1cc;
+  font-size: var(--text-sm);
+}
+
+.dragon-record dl {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.dragon-record dl div {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  gap: 0.35rem;
+}
+
+.dragon-record dt,
+.dragon-record dd {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.dragon-record dt {
+  color: #809990;
+}
+
+.dragon-record dd {
+  color: #b6c8c1;
+}
+
+.dragon-record > footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.dragon-record button,
+.sealed-genotype button,
+.pair-tool button,
+.destination-list button {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #426a61;
+  border-radius: 0.55rem;
+  background: #15322f;
+  color: #dceae4;
+  font-size: var(--text-xs);
+  font-weight: 850;
+}
+
+.genetics-console {
+  min-height: 35rem;
+}
+
+.scanner-readout,
+.frequency-panel,
+.known-evidence {
+  margin: 0.75rem;
+}
+
+.scanner-readout {
+  min-height: 13rem;
+  padding: 0.8rem;
+  border: 1px solid #41685f;
+  border-radius: 0.85rem;
+  background: linear-gradient(145deg, rgb(38 93 78 / 25%), rgb(4 24 30 / 75%));
+}
+
+.scanner-readout > header,
+.frequency-panel > header,
+.pair-tool > header,
+.relocation-tool > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.scanner-readout > header span,
+.frequency-panel > header span,
+.relocation-tool > header span {
+  color: #8da69d;
+  font-size: var(--text-xs);
+}
+
+.scanner-readout > p {
+  color: #b0c2bc;
+  font-size: var(--text-sm);
+}
+
+.genotype-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+
+.genotype-grid article {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 6rem;
+  padding: 0.65rem;
+  border: 1px solid var(--station-border);
+  border-radius: 0.7rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.genotype-grid small,
+.genotype-grid span {
+  color: #91a79f;
+  font-size: var(--text-xs);
+}
+
+.genotype-grid strong {
+  color: #f1c96c;
+  font-family: ui-monospace, monospace;
+  font-size: var(--text-xl);
+}
+
+.sealed-genotype,
+.empty-console {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 8rem;
+}
+
+.sealed-genotype > span,
+.empty-console > span {
+  display: grid;
+  flex: 0 0 auto;
+  width: 4.2rem;
+  height: 4.2rem;
+  border: 1px dashed #6d8c82;
+  border-radius: 50%;
+  color: #83d5af;
+  font-weight: 900;
+  place-items: center;
+}
+
+.sealed-genotype div,
+.empty-console {
+  flex: 1;
+}
+
+.sealed-genotype p,
+.empty-console p {
+  margin: 0.2rem 0 0;
+  color: #8fa79e;
+  font-size: var(--text-sm);
+}
+
+.empty-console {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.frequency-panel {
+  display: grid;
+  gap: 0.65rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--station-border);
+}
+
+.frequency-panel article {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.frequency-panel article > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.frequency-panel article span {
+  color: #a6bbb3;
+  font-size: var(--text-xs);
+}
+
+.frequency-bar {
+  display: flex;
+  height: 0.8rem;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #253b3b;
+}
+
+.frequency-bar i {
+  background: #e3bf67;
+}
+
+.frequency-bar b {
+  background: #579a98;
+}
+
+.known-evidence {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+}
+
+.known-evidence span {
+  display: grid;
+  min-height: 4.7rem;
+  padding: 0.55rem;
+  border: 1px solid var(--station-border);
+  border-radius: 0.65rem;
+  color: #93aaa2;
+  font-size: var(--text-xs);
+  text-align: center;
+  place-content: center;
+}
+
+.known-evidence b {
+  color: #f1c96c;
+  font-size: var(--text-lg);
+}
+
+.management-tools {
+  display: grid;
+}
+
+.relocation-tool,
+.pair-tool {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+}
+
+.relocation-tool {
+  border-bottom: 1px solid var(--station-border);
+}
+
+.destination-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.destination-list button {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0 0.5rem;
+  text-align: left;
+}
+
+.destination-list button > span {
+  grid-row: 1 / 3;
+  align-self: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+}
+
+.destination-list small {
+  color: #8fa69e;
+  font-size: var(--text-xs);
+}
+
+.pair-tool > header button {
+  border: 0;
+  background: transparent;
+  color: #9bb1a9;
+}
+
+.pair-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.pair-slot {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 6.5rem;
+  place-content: center;
+  text-align: center;
+}
+
+.pair-slot.loaded {
+  border-color: #83d5af;
+  background: rgb(63 121 102 / 25%);
+}
+
+.pair-slot small,
+.pair-slot span {
+  color: #8fa69e;
+  font-size: var(--text-xs);
+}
+
+.pair-tool > p {
+  margin: 0;
+  color: #a5b8b1;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.pair-tool .advance {
+  padding-block: 0.75rem;
+  border-color: #a38139;
+  background: #59471f;
+  color: #fff0bd;
+}
+
+.timeline-table {
+  display: grid;
+  overflow-x: auto;
+}
+
+.timeline-table > div {
+  display: grid;
+  grid-template-columns: 6rem 6rem 6rem 6rem 7rem minmax(20rem, 1fr);
+  min-width: 55rem;
+  border-top: 1px solid var(--station-border);
+}
+
+.timeline-table > div > * {
+  margin: 0;
+  padding: 0.6rem;
+  color: #b7c8c2;
+  font-size: var(--text-sm);
+}
+
+.timeline-table .table-header {
+  border-top: 0;
+  background: rgb(255 255 255 / 4%);
+}
+
+.timeline-table .table-header span {
+  color: #89a198;
+  font-size: var(--text-xs);
+  font-weight: 900;
+}
+
+.timeline-table strong {
+  color: #f1c96c;
+}
+
+.note-builder {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.note-builder label {
+  display: grid;
+  gap: 0.4rem;
+  color: #c4d3ce;
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.note-builder textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #41675e;
+  border-radius: 0.65rem;
+  background: #071d22;
+  color: #edf5f0;
+  padding: 0.7rem;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.ledger-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--station-border);
+}
+
+.ledger-grid section {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+}
+
+.ledger-grid h4 {
+  margin: 0;
+}
+
+.ledger-grid article {
+  padding: 0.65rem;
+  border: 1px solid var(--station-border);
+  border-radius: 0.65rem;
+  background: rgb(255 255 255 / 3%);
+}
+
+.ledger-grid article header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ledger-grid time,
+.ledger-grid p {
+  color: #93aaa2;
+  font-size: var(--text-xs);
+}
+
+.ledger-grid p {
+  margin: 0.35rem 0 0;
+  line-height: 1.4;
+}
+
+@media (max-width: 1220px) {
+  .world-grid {
+    grid-template-columns: minmax(15rem, 18rem) 1fr;
+  }
+
+  .field-alerts {
+    grid-column: 1 / -1;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .field-work-grid {
+    grid-template-columns: minmax(20rem, 24rem) 1fr;
+  }
+
+  .management-tools {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .relocation-tool {
+    border-right: 1px solid var(--station-border);
+    border-bottom: 0;
+  }
+
+  .destination-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .station-intro,
+  .world-grid,
+  .field-work-grid,
+  .management-tools,
+  .ledger-grid,
+  .note-builder {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .station-intro {
+    align-items: start;
+  }
+
+  .station-actions {
+    width: 100%;
+  }
+
+  .field-alerts,
+  .management-tools {
+    grid-column: auto;
+  }
+
+  .archipelago {
+    min-height: 41rem;
+  }
+
+  .map-surface {
+    min-height: 36rem;
+  }
+
+  .island-marker {
+    width: 7.3rem;
+  }
+
+  .metric-grid,
+  .locus-guide {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .relocation-tool {
+    border-right: 0;
+    border-bottom: 1px solid var(--station-border);
+  }
+}
+
+@media (max-width: 560px) {
+  .station-intro,
+  .model-guide,
+  .island-dashboard,
+  .timeline-lab,
+  .conservation-ledger {
+    padding: 0.75rem;
+  }
+
+  .station-intro,
+  .archipelago > header,
+  .island-dashboard > header,
+  .timeline-lab > header,
+  .conservation-ledger > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .archipelago > header > span,
+  .island-dashboard > header > span,
+  .timeline-lab > header > span {
+    text-align: left;
+  }
+
+  .map-surface {
+    min-height: 43rem;
+  }
+
+  .island-marker {
+    width: 6.3rem;
+    min-height: 5.5rem;
+  }
+
+  .island-marker strong,
+  .island-marker small,
+  .island-marker b {
+    font-size: var(--text-xs);
+  }
+
+  .locus-guide,
+  .metric-grid,
+  .genotype-grid,
+  .known-evidence,
+  .destination-list,
+  .pair-slots {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sealed-genotype {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .island-marker {
+    transition: none;
+  }
+}
+

@@ -171,6 +171,15 @@ export class DragonArenaComponent implements OnChanges {
       id: 'arena-warden',
       name: 'The Arena Warden',
       title: 'Balanced AI challenger',
+      // Authored paint, not the bred colour that came with the seed genome.
+      // Student dragons take a saturated hue off the identity wheel, and two of
+      // those can land in the same family by chance — which is exactly what
+      // happened here, a champion at hue 249 against a challenger at 238. The
+      // house dragon sits off that wheel entirely, in desaturated iron: it can
+      // never collide with a hatchling, and the fight always reads as a student
+      // animal against the arena's own.
+      color: '#4a5058',
+      accentColor: '#8c939b',
     };
     const opponent = materializeDragon(this.opponentRecord);
     const studentAsset = this.library.saveAssemblyAsset({

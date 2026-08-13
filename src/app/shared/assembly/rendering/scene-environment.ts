@@ -30,6 +30,19 @@ export interface StageTheme {
   fillIntensity: number;
   rimColor: string;
   rimIntensity: number;
+  /**
+   * Weight of the image-based lighting, and a number to be stingy with.
+   *
+   * The probe is three's `RoomEnvironment` — a white studio with area lights in
+   * it, bright enough at intensity 1 to light a scene on its own. Every theme
+   * here also runs a full three-point rig, so anything near 1 means the rig is
+   * a rounding error and the neutral studio *is* the lighting: measured on the
+   * arena at 1.05, the probe outweighed key, fill, rim and hemisphere combined
+   * by roughly four to one, and the overcast Berk palette came out as pastel
+   * under a white light. Kept low so the probe does what it is actually needed
+   * for — opening the shadow side and giving roughness something to reflect —
+   * while the rig carries the look.
+   */
   environmentIntensity: number;
 }
 
@@ -59,7 +72,7 @@ export const BERK_STAGE_THEME: StageTheme = {
   fillIntensity: 0.8,
   rimColor: '#dbe7f0',
   rimIntensity: 0.5,
-  environmentIntensity: 1.05,
+  environmentIntensity: 0.3,
 };
 
 /**
@@ -81,7 +94,7 @@ export const STUDIO_STAGE_THEME: StageTheme = {
   fillIntensity: 0.65,
   rimColor: '#f2ece0',
   rimIntensity: 1,
-  environmentIntensity: 0.9,
+  environmentIntensity: 0.3,
 };
 
 /**
@@ -107,7 +120,7 @@ export const SPECIMEN_STAGE_THEME: StageTheme = {
   fillIntensity: 0.85,
   rimColor: '#eceef0',
   rimIntensity: 1.45,
-  environmentIntensity: 1,
+  environmentIntensity: 0.4,
 };
 
 export function configureStageRenderer(renderer: THREE.WebGLRenderer, quality: RenderQuality): void {

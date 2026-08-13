@@ -41,7 +41,7 @@ export function dnaSequence(value: string): readonly DnaBase[] {
   const normalized = value
     .toUpperCase()
     .replace(/[^ACGT]/g, '')
-    .slice(0, 12);
+    .slice(0, 18);
   return (normalized || 'AGTCAT').split('') as DnaBase[];
 }
 

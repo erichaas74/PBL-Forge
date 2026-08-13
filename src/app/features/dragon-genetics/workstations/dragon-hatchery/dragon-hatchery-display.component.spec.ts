@@ -298,6 +298,15 @@ describe('DragonHatcheryDisplayComponent', () => {
     );
   });
 
+  it('removes lesson captions as well as the phase rail in open-lab mode', () => {
+    fixture.componentRef.setInput('openLab', true);
+    render(scene('manipulate'));
+
+    expect(host().querySelector('.caption')).toBeNull();
+    expect(host().querySelector('.phase-rail')).toBeNull();
+    expect(host().querySelector('.evidence-row')).toBeNull();
+  });
+
   it('renders a placeholder when the bridge holds another station scene', () => {
     fixture.detectChanges();
 

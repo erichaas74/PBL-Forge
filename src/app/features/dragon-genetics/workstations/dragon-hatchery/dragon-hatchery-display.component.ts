@@ -90,7 +90,9 @@ export class DragonHatcheryDisplayComponent {
     const scene = this.scene();
     return scene ? buildDragonHatcheryViewModel(scene, this.copy(), this.theme()) : null;
   });
-  readonly caption = computed(() => resolveStationCopy(this.copy(), this.player.activeCaptionId()));
+  readonly caption = computed(() =>
+    this.openLab() ? null : resolveStationCopy(this.copy(), this.player.activeCaptionId()),
+  );
   readonly themeVariables = computed(() => {
     const theme = this.theme();
     const palette = theme.palette;

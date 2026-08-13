@@ -1,0 +1,326 @@
+<section class="punnett-workstation" aria-labelledby="punnett-goal">
+  <header class="instrument-header">
+    <div>
+      <span>SCIENTIFIC GOAL</span>
+      <h2 id="punnett-goal">{{ goal() }}</h2>
+    </div>
+    <div class="placement-status" role="status" aria-live="polite">
+      <i aria-hidden="true"></i>{{ placementStatus() }}
+    </div>
+  </header>
+
+  <div class="workstation-layout">
+    <app-account-genetics-file
+      [studentId]="studentId()"
+      [selectedRecordId]="stagedAccountRecord()?.id ?? null"
+      (recordSelected)="selectAccountRecord($event)"
+    />
+
+    <main class="composer-surface">
+      <header class="locus-console">
+        <div>
+          <small>FOCUS LOCUS</small>
+          <strong>{{ activeTrait().name }}</strong>
+          <span
+            >Chr {{ activeTrait().chromosomeModel }} · {{ activeTrait().geneSymbol }} locus</span
+          >
+        </div>
+        <div class="trait-selector" role="group" aria-label="Focus locus">
+          @for (trait of traits; track trait.id) {
+            <button
+              type="button"
+              [class.active]="snapshot().traitId === trait.id"
+              [attr.aria-pressed]="snapshot().traitId === trait.id"
+              (click)="selectTrait(trait.id)"
+            >
+              <span>Chr {{ trait.chromosomeModel }}</span
+              >{{ trait.name }}
+            </button>
+          }
+        </div>
+        <button class="clear-button" type="button" (click)="clearSquare()">Clear square</button>
+      </header>
+
+      <div class="matrix-scroller">
+        <div class="punnett-matrix" aria-label="Two by two Punnett square">
+          <div class="matrix-corner">
+            <span aria-hidden="true">P2 ↓</span>
+            <strong>Gamete axes</strong>
+            <span aria-hidden="true">P1 →</span>
+          </div>
+
+          <section
+            class="parent-bank parent-one"
+            [class.ready]="!!parent1()"
+            (dragover)="allowAccountDrop($event)"
+            (drop)="dropAccountRecord($event, 'parent1')"
+          >
+            <button
+              class="parent-load-target"
+              type="button"
+              [class.awaiting]="!!stagedAccountRecord()"
+              [attr.aria-label]="
+                parent1()
+                  ? 'Parent 1 is ' + parent1()!.name + '. Select a file record to replace it.'
+                  : 'Empty Parent 1 bay. Select a file record, then choose this bay.'
+              "
+              (click)="loadStagedRecord('parent1')"
+            >
+              <small>PARENT 1 · COLUMNS</small>
+              @if (parent1(); as parent) {
+                <strong>{{ parent.name }}</strong
+                ><span>{{ parent.title }}</span>
+              } @else {
+                <strong>Load dragon or chromosome</strong><span>Drop a file record here</span>
+              }
+            </button>
+            <div class="gamete-source-row" aria-label="Parent 1 available gametes">
+              @for (allele of parent1Alleles(); track $index; let index = $index) {
+                <button
+                  type="button"
+                  class="gamete-token parent-one-token"
+                  [class.selected]="
+                    pendingGamete()?.parent === 'parent1' && pendingGamete()?.sourceIndex === index
+                  "
+                  [attr.aria-pressed]="
+                    pendingGamete()?.parent === 'parent1' && pendingGamete()?.sourceIndex === index
+                  "
+                  draggable="true"
+                  (click)="selectGamete('parent1', index)"
+                  (dragstart)="startGameteDrag($event, 'parent1', index)"
+                >
+                  <small>Gamete {{ index + 1 }}</small
+                  ><strong>{{ allele }}</strong
+                  ><i>→</i>
+                </button>
+              }
+            </div>
+          </section>
+
+          @for (slot of [0, 1]; track slot) {
+            <button
+              type="button"
+              class="axis-slot parent-one-axis"
+              [class.filled]="!!slotValue('parent1', slot)"
+              [class.compatible]="pendingGamete()?.parent === 'parent1'"
+              [attr.aria-label]="slotAriaLabel('parent1', slot)"
+              [style.grid-column]="slot + 3"
+              (click)="placePendingGamete('parent1', slot)"
+              (dragover)="allowGameteDrop($event, 'parent1')"
+              (drop)="dropGamete($event, 'parent1', slot)"
+            >
+              <small>P1 · {{ slot + 1 }}</small>
+              @if (slotValue('parent1', slot); as allele) {
+                <strong>{{ allele }}</strong>
+              } @else {
+                <span>Drop gamete</span>
+              }
+            </button>
+          }
+
+          <section
+            class="parent-bank parent-two"
+            [class.ready]="!!parent2()"
+            (dragover)="allowAccountDrop($event)"
+            (drop)="dropAccountRecord($event, 'parent2')"
+          >
+            <button
+              class="parent-load-target"
+              type="button"
+              [class.awaiting]="!!stagedAccountRecord()"
+              [attr.aria-label]="
+                parent2()
+                  ? 'Parent 2 is ' + parent2()!.name + '. Select a file record to replace it.'
+                  : 'Empty Parent 2 bay. Select a file record, then choose this bay.'
+              "
+              (click)="loadStagedRecord('parent2')"
+            >
+              <small>PARENT 2 · ROWS</small>
+              @if (parent2(); as parent) {
+                <strong>{{ parent.name }}</strong
+                ><span>{{ parent.title }}</span>
+              } @else {
+                <strong>Load dragon or chromosome</strong><span>Drop a file record here</span>
+              }
+            </button>
+            <div class="gamete-source-column" aria-label="Parent 2 available gametes">
+              @for (allele of parent2Alleles(); track $index; let index = $index) {
+                <button
+                  type="button"
+                  class="gamete-token parent-two-token"
+                  [class.selected]="
+                    pendingGamete()?.parent === 'parent2' && pendingGamete()?.sourceIndex === index
+                  "
+                  [attr.aria-pressed]="
+                    pendingGamete()?.parent === 'parent2' && pendingGamete()?.sourceIndex === index
+                  "
+                  draggable="true"
+                  (click)="selectGamete('parent2', index)"
+                  (dragstart)="startGameteDrag($event, 'parent2', index)"
+                >
+                  <small>Gamete {{ index + 1 }}</small
+                  ><strong>{{ allele }}</strong
+                  ><i>→</i>
+                </button>
+              }
+            </div>
+          </section>
+
+          @for (slot of [0, 1]; track slot) {
+            <button
+              type="button"
+              class="axis-slot parent-two-axis"
+              [class.filled]="!!slotValue('parent2', slot)"
+              [class.compatible]="pendingGamete()?.parent === 'parent2'"
+              [attr.aria-label]="slotAriaLabel('parent2', slot)"
+              [style.grid-row]="slot + 3"
+              (click)="placePendingGamete('parent2', slot)"
+              (dragover)="allowGameteDrop($event, 'parent2')"
+              (drop)="dropGamete($event, 'parent2', slot)"
+            >
+              <small>P2 · {{ slot + 1 }}</small>
+              @if (slotValue('parent2', slot); as allele) {
+                <strong>{{ allele }}</strong>
+              } @else {
+                <span>Drop gamete</span>
+              }
+            </button>
+          }
+
+          @for (cell of cells(); track cell.index) {
+            <button
+              type="button"
+              class="offspring-cell"
+              [class.complete]="!!cell.genotype"
+              [class.selected]="selectedCellIndex() === cell.index"
+              [attr.aria-label]="cellAriaLabel(cell)"
+              [attr.aria-pressed]="selectedCellIndex() === cell.index"
+              [style.grid-column]="cell.column + 3"
+              [style.grid-row]="cell.row + 3"
+              (click)="selectCell(cell.index)"
+            >
+              <span class="cell-number">{{ cell.index + 1 }}</span>
+              @if (cell.genotype) {
+                <span class="allele-pair" aria-hidden="true">
+                  <i class="from-one">{{ cell.parent1Allele }}</i>
+                  <i class="from-two">{{ cell.parent2Allele }}</i>
+                </span>
+                <strong>{{ cell.genotype }}</strong>
+                <small>Examine outcome</small>
+              } @else {
+                <span class="cell-empty-mark" aria-hidden="true">+</span>
+                <strong>Incomplete</strong>
+                <small>Select to examine</small>
+              }
+            </button>
+          }
+        </div>
+      </div>
+    </main>
+
+    <aside class="evidence-inspector" aria-label="Punnett outcome inspector">
+      <header>
+        <span>CELL INSPECTOR</span>
+        @if (selectedCell(); as cell) {
+          <strong>Outcome {{ cell.index + 1 }}</strong>
+        } @else {
+          <strong>No cell selected</strong>
+        }
+      </header>
+
+      @if (selectedCell(); as cell) {
+        @if (cell.genotype) {
+          <div class="origin-readout">
+            <div>
+              <i class="from-one">P1</i><span>{{ parent1()?.name }}</span
+              ><b>{{ cell.parent1Allele }}</b>
+            </div>
+            <div>
+              <i class="from-two">P2</i><span>{{ parent2()?.name }}</span
+              ><b>{{ cell.parent2Allele }}</b>
+            </div>
+          </div>
+          <div class="genotype-readout">
+            <small>COMBINED GENOTYPE</small>
+            <strong>{{ cell.genotype }}</strong>
+            <span>{{ activeTrait().name }} · {{ cell.phenotype }}</span>
+          </div>
+          <p>This cell combines the gamete above its column with the gamete beside its row.</p>
+        } @else {
+          <div class="incomplete-readout">
+            <span aria-hidden="true">◇</span>
+            <strong>Waiting for gametes</strong>
+            <p>
+              @if (!cell.parent1Allele && !cell.parent2Allele) {
+                This outcome needs one Parent 1 gamete and one Parent 2 gamete.
+              } @else if (!cell.parent1Allele) {
+                The Parent 2 row is loaded; its Parent 1 column is still empty.
+              } @else {
+                The Parent 1 column is loaded; its Parent 2 row is still empty.
+              }
+            </p>
+          </div>
+        }
+      } @else {
+        <div class="inspector-idle">
+          <span aria-hidden="true">⌗</span>
+          <p>Every offspring box is inspectable, even while the square is incomplete.</p>
+        </div>
+      }
+
+      <section class="cross-record" [class.ready]="squareComplete()">
+        <header>
+          <div><small>CROSS RECORD</small><strong>Predicted outcomes</strong></div>
+          <span>{{ squareComplete() ? '4 / 4 cells' : 'Incomplete' }}</span>
+        </header>
+        @if (squareComplete()) {
+          <div class="count-group">
+            <small>GENOTYPES</small>
+            @for (entry of countEntries(genotypeCounts()); track entry[0]) {
+              <div>
+                <strong>{{ entry[0] }}</strong
+                ><span>{{ entry[1] }} of 4</span><b>{{ entry[1] * 25 }}%</b>
+              </div>
+            }
+          </div>
+          <div class="count-group phenotypes">
+            <small>PHENOTYPES</small>
+            @for (entry of countEntries(phenotypeCounts()); track entry[0]) {
+              <div>
+                <strong>{{ entry[0] }}</strong
+                ><span>{{ entry[1] }} of 4</span><b>{{ entry[1] * 25 }}%</b>
+              </div>
+            }
+          </div>
+          <button class="save-cross" type="button" (click)="saveCross()">
+            Save cross to record
+          </button>
+        } @else {
+          <p>Load both gamete axes to build a four-cell probability record.</p>
+        }
+        @if (recordMessage()) {
+          <p class="record-message" role="status">{{ recordMessage() }}</p>
+        }
+      </section>
+
+      @if (savedCrosses().length) {
+        <details class="saved-crosses">
+          <summary>
+            Saved crosses <span>{{ savedCrosses().length }}</span>
+          </summary>
+          @for (cross of savedCrosses(); track cross.id) {
+            <article>
+              <strong>{{ cross.parent1Name }} × {{ cross.parent2Name }}</strong>
+              <span>{{ cross.traitName }}</span>
+              <small>
+                @for (entry of countEntries(cross.genotypeCounts); track entry[0]) {
+                  {{ entry[0] }} {{ entry[1] }}/4
+                }
+              </small>
+            </article>
+          }
+        </details>
+      }
+    </aside>
+  </div>
+</section>

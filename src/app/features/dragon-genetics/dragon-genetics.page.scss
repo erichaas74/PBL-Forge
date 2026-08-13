@@ -223,6 +223,148 @@ main {
   font-weight: 900;
   text-decoration: none;
 }
+.open-workstations {
+  display: grid;
+  gap: 0.8rem;
+}
+.open-workstations article {
+  --simulation-accent: var(--gold);
+  display: grid;
+  grid-template-columns: minmax(0, 21rem) minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--simulation-accent) 34%, transparent);
+  border-radius: 1.2rem;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--simulation-accent) 9%, #10232e),
+    #0b1c25 72%
+  );
+}
+.open-workstations .card-copy {
+  padding: 1rem;
+}
+.bloodline-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 1rem 1rem 1rem 0;
+}
+.bloodline-links a {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgb(255 255 255 / 11%);
+  border-radius: 0.7rem;
+  background: rgb(255 255 255 / 4%);
+  text-decoration: none;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+.bloodline-links a:hover,
+.bloodline-links a:focus-visible {
+  border-color: color-mix(in srgb, var(--gold) 60%, transparent);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+}
+.bloodline-links strong {
+  color: var(--gold);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+.bloodline-links span {
+  color: #91a8b2;
+  font-size: var(--text-xs);
+}
+.open-workstations article > footer {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgb(255 255 255 / 9%);
+}
+.open-workstations article > footer span {
+  color: #89a2ad;
+  font-size: var(--text-sm);
+}
+.open-workstations article > footer a {
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.55rem;
+  background: var(--simulation-accent);
+  color: #07151e;
+  font-size: var(--text-sm);
+  font-weight: 900;
+  text-decoration: none;
+}
+.open-workstations .protein-rescue-card {
+  --simulation-accent: #58d1be;
+}
+.open-workstations .blood-lab-card {
+  --simulation-accent: #e65e58;
+}
+.rescue-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+.rescue-preview span {
+  display: grid;
+  min-width: 4.3rem;
+  min-height: 3.5rem;
+  place-items: center;
+  padding: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--simulation-accent) 50%, transparent);
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--simulation-accent) 10%, transparent);
+  color: var(--simulation-accent);
+  font-size: var(--text-xs);
+  font-weight: 900;
+}
+.rescue-preview i {
+  color: #6f8e98;
+  font-style: normal;
+}
+.blood-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  min-height: 7rem;
+  padding: 1rem;
+}
+.blood-preview span {
+  display: grid;
+  min-width: 3.5rem;
+  min-height: 3.5rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--simulation-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--simulation-accent) 10%, transparent);
+  color: var(--simulation-accent);
+  font-size: var(--text-xs);
+  font-weight: 900;
+}
+.blood-preview .vial {
+  border-radius: 0.35rem 0.35rem 1rem 1rem;
+}
+.blood-preview .blood-drop {
+  border-radius: 52% 48% 55% 45%;
+  font-size: var(--text-xl);
+  transform: rotate(45deg);
+}
+.blood-preview .chamber {
+  min-width: 5rem;
+  border-radius: 1.2rem;
+}
+.blood-preview i {
+  color: #78929b;
+  font-style: normal;
+}
 .simulation-grid article.complete {
   box-shadow: inset 4px 0 0 #64ce96;
 }
@@ -241,6 +383,17 @@ main {
   }
   .simulation-grid {
     grid-template-columns: 1fr;
+  }
+  .open-workstations article,
+  .bloodline-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bloodline-links {
+    padding: 0 1rem 1rem;
+  }
+  .rescue-preview,
+  .blood-preview {
+    padding: 0 1rem 1rem;
   }
   .map-heading {
     align-items: start;

@@ -1,0 +1,105 @@
+:host { display: block; width: 100%; min-width: 0; }
+
+.breeding-lab {
+  --ink: #eae5f9;
+  --muted: #a9a3bb;
+  min-height: 100%;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 70% 5%, rgba(105, 77, 168, .2), transparent 30rem),
+    #0c0d1a;
+}
+
+.lab-head { display: flex; justify-content: space-between; align-items: end; gap: 1rem; padding: 1.2rem 1.45rem; border-bottom: 1px solid #302d49; }
+.eyebrow { color: #a99bdd; font-size: .75rem; font-weight: 850; letter-spacing: .12em; }
+.lab-head h2 { margin: .25rem 0; font-size: clamp(1.35rem, 2.5vw, 2rem); }
+.lab-head p { max-width: 53rem; margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.55; }
+.new-family { padding: .65rem .9rem; color: #dcd6ee; background: #211e35; border: 1px solid #514b6b; border-radius: .6rem; font-weight: 750; white-space: nowrap; }
+
+.lab-layout { display: grid; grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr); align-items: start; }
+app-account-genetics-file { position: sticky; top: 0; z-index: 3; }
+.breeding-workspace { display: grid; gap: 1rem; min-width: 0; padding: 1rem; }
+
+.parent-setup, .allele-objective, .fertilization-bench, .hatchery-output { background: rgba(21, 20, 38, .88); border: 1px solid #383451; border-radius: 1rem; }
+.parent-setup { padding: 1rem; }
+.parent-setup > header, .fertilization-bench > header, .hatchery-output > header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: .8rem; }
+.parent-setup > header > div, .fertilization-bench > header, .hatchery-output > header { display: flex; gap: .7rem; }
+.parent-setup h3, .fertilization-bench h3, .hatchery-output h3 { margin: 0; font-size: 1.05rem; }
+.parent-setup p, .fertilization-bench p, .hatchery-output p { margin: .15rem 0 0; color: var(--muted); font-size: .8rem; }
+.step-number { display: grid; place-items: center; flex: 0 0 auto; width: 2rem; height: 2rem; color: #191424; background: #ffe28a; border-radius: .55rem; font-size: .75rem; font-weight: 900; }
+.record-in-hand { padding: .35rem .65rem; color: #a9e2d2; background: rgba(82, 188, 155, .09); border: 1px solid rgba(82, 188, 155, .32); border-radius: 99px; font-size: .75rem; }
+
+.parent-chambers { display: grid; grid-template-columns: 1fr auto 1fr; gap: .75rem; align-items: stretch; }
+.parent-chamber { display: grid; align-content: center; gap: .6rem; min-height: 10rem; padding: .9rem; background: #111120; border: 1px dashed #514b6c; border-radius: .8rem; }
+.parent-chamber.loaded { border-style: solid; }
+.parent-chamber.female.loaded { border-color: #d9629e; box-shadow: inset .25rem 0 #d9629e; }
+.parent-chamber.male.loaded { border-color: #35bad8; box-shadow: inset .25rem 0 #35bad8; }
+.parent-chamber .role { color: #9d95b8; font-size: .75rem; font-weight: 850; letter-spacing: .09em; }
+.parent-chamber > small { color: #918ba4; font-size: .75rem; }
+.parent-chamber button { justify-self: start; min-height: 2.25rem; padding: .45rem .65rem; color: #e8e2f7; background: #28243d; border: 1px solid #514b6b; border-radius: .45rem; font-size: .75rem; font-weight: 750; }
+.parent-chamber button:disabled { opacity: .38; }
+.parent-chamber code { justify-self: start; padding: .25rem .45rem; color: #fff0b5; background: #242135; border-radius: .3rem; font-size: .78rem; }
+.parent-identity { display: flex; align-items: center; gap: .7rem; }
+.parent-identity i { display: grid; place-items: center; width: 3rem; height: 3rem; color: #fff; background: radial-gradient(circle at 34% 30%, var(--dragon-accent), var(--dragon-color) 62%); border: 2px solid var(--dragon-accent); border-radius: 50% 50% 45% 55%; font-style: normal; font-weight: 900; }
+.parent-identity div { display: grid; }
+.parent-identity small { color: #928ca7; font-size: .75rem; }
+.pair-mark { display: grid; place-content: center; justify-items: center; color: #726b88; }
+.pair-mark span { font-size: 1.8rem; }
+.pair-mark small { writing-mode: vertical-rl; font-size: .75rem; letter-spacing: .09em; }
+
+.allele-objective { display: grid; grid-template-columns: 1fr auto; gap: .7rem 1rem; align-items: center; padding: .85rem 1rem; }
+.allele-objective.possible { border-color: #517e71; background: linear-gradient(105deg, rgba(48, 121, 100, .13), rgba(21, 20, 38, .88)); }
+.objective-copy { display: flex; align-items: start; gap: .7rem; }
+.objective-copy div { display: grid; }
+.objective-copy small { color: #a99bdd; font-size: .75rem; font-weight: 850; letter-spacing: .09em; }
+.objective-copy strong { margin-top: .15rem; }
+.objective-copy p { margin: .2rem 0 0; color: var(--muted); font-size: .78rem; }
+.allele-objective label { display: grid; gap: .3rem; color: #b8b1ca; font-size: .75rem; font-weight: 750; }
+.allele-objective select { min-height: 2.4rem; padding: .4rem .6rem; color: #eee9fb; background: #121122; border: 1px solid #514b6b; border-radius: .45rem; }
+.possibility { grid-column: 1 / -1; padding-top: .55rem; color: #c7c0d7; border-top: 1px solid #353149; font-size: .75rem; }
+
+.fertilization-bench { padding: .9rem 1rem; }
+.gamete-chambers { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(11rem, auto); gap: .65rem; align-items: stretch; }
+.gamete-slot { display: flex; align-items: center; gap: .65rem; min-width: 0; padding: .65rem; color: #c9c3d9; background: #111120; border: 1px dashed #514b6b; border-radius: .65rem; text-align: left; }
+.gamete-slot.active { border-color: #ffe28a; }
+.gamete-slot.filled { border-style: solid; background: #1b1930; }
+.gamete-slot > span { display: grid; place-items: center; flex: 0 0 auto; width: 2.5rem; height: 2.5rem; border: 1px solid currentColor; border-radius: 50%; font-size: 1.2rem; }
+.egg-slot > span { color: #ee77af; }
+.sperm-slot > span { color: #4dc8e4; }
+.gamete-slot div { display: grid; min-width: 0; }
+.gamete-slot small { color: #9690aa; font-size: .75rem; letter-spacing: .06em; }
+.gamete-slot strong { overflow: hidden; font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+.fusion { display: flex; align-items: center; gap: .2rem; color: #827b97; }
+.fusion i { width: .7rem; border-top: 1px solid #514b6b; }
+.fertilize { display: grid; align-content: center; min-height: 4.2rem; padding: .7rem .9rem; color: #241d28; background: #ffe28a; border: 0; border-radius: .6rem; font-weight: 900; }
+.fertilize small { color: #5b4d37; font-size: .75rem; font-weight: 650; }
+.fertilize:disabled { color: #817c8b; background: #2c2939; }
+
+.waiting-cell { display: grid; grid-template-columns: repeat(5, 1rem); justify-content: center; justify-items: center; gap: .4rem; padding: 2rem; color: #aaa3bd; background: #111120; border: 1px dashed #3f3a55; border-radius: 1rem; text-align: center; }
+.waiting-cell i { width: .35rem; height: 2.5rem; background: #514b6c; border-radius: 99px; }
+.waiting-cell i:nth-child(even) { background: #765274; }
+.waiting-cell strong, .waiting-cell span { grid-column: 1 / -1; }
+.waiting-cell strong { color: #e1dbee; }
+.waiting-cell span { font-size: .8rem; }
+
+.hatchery-output { overflow: hidden; padding-top: 1rem; }
+.hatchery-output > header { padding-inline: 1rem; }
+.hatchery-output > header small { color: #8dd7c0; font-size: .75rem; font-weight: 800; letter-spacing: .08em; }
+.hatchery-output app-dragon-hatchery-station { display: block; border-top: 1px solid #383451; }
+
+@media (max-width: 1050px) {
+  .lab-layout { grid-template-columns: 1fr; }
+  app-account-genetics-file { position: relative; }
+  .gamete-chambers { grid-template-columns: 1fr auto 1fr; }
+  .fertilize { grid-column: 1 / -1; }
+}
+
+@media (max-width: 700px) {
+  .lab-head { align-items: start; flex-direction: column; }
+  .parent-chambers { grid-template-columns: 1fr; }
+  .pair-mark small { writing-mode: horizontal-tb; }
+  .allele-objective { grid-template-columns: 1fr; }
+  .gamete-chambers { grid-template-columns: 1fr; }
+  .fusion { justify-content: center; }
+  .fertilize { grid-column: auto; }
+}

@@ -1,0 +1,142 @@
+<section class="meiosis-selector" [attr.data-role]="sex()">
+  <header class="selector-head">
+    <div>
+      <span class="eyebrow">{{ roleLabel() }} meiosis · {{ parent().name }}</span>
+      <h3>Make four {{ sex() === 'female' ? 'egg cells' : 'sperm cells' }}</h3>
+      <p>{{ phase().cue }}</p>
+    </div>
+    <div class="legend" aria-label="Chromosome origin legend">
+      <span><i class="origin-a"></i> Homolog A</span>
+      <span><i class="origin-b"></i> Homolog B</span>
+      <span><b>{{ targetTrait().recessiveAllele }}</b> target allele</span>
+    </div>
+  </header>
+
+  <ol class="phase-track" aria-label="Meiosis phases">
+    @for (item of phases; track trackPhase($index); let index = $index) {
+      <li [class.active]="index === phaseIndex()" [class.complete]="index < phaseIndex()">
+        <i>{{ index < phaseIndex() ? '✓' : index + 1 }}</i>
+        <span>{{ item.name }}</span>
+      </li>
+    }
+  </ol>
+
+  <div class="cell-stage">
+    <canvas
+      #meiosisCanvas
+      role="img"
+      [attr.aria-label]="phase().name + ': ' + phase().cue"
+    ></canvas>
+    <div class="phase-readout" aria-live="polite">
+      <small>PHASE {{ phaseIndex() + 1 }} / {{ phases.length }}</small>
+      <strong>{{ phase().name }}</strong>
+    </div>
+  </div>
+
+  <div class="animation-controls" aria-label="Meiosis animation controls">
+    <button type="button" (click)="previous()" [disabled]="phaseIndex() === 0">← Previous</button>
+    <button type="button" class="play" (click)="togglePlaying()">
+      {{ playing() ? 'Pause' : complete() ? 'Replay' : 'Start' }}
+    </button>
+    <button type="button" (click)="next()" [disabled]="complete()">Next →</button>
+    <button type="button" (click)="finishMeiosis()" [disabled]="complete()">Show outcome</button>
+    <label>
+      <input
+        type="checkbox"
+        [checked]="slowCrossing()"
+        (change)="slowCrossing.set(!slowCrossing())"
+      />
+      Slow crossing over
+    </label>
+    <button type="button" class="rerun" (click)="rerunMeiosis()">New random meiosis ↻</button>
+  </div>
+
+  @if (complete(); as isComplete) {
+    <section class="gamete-workbench" aria-label="Four gametes available for inspection">
+      <header>
+        <div>
+          <span class="eyebrow">MEIOSIS COMPLETE</span>
+          <h4>Inspect all four. Choose one {{ sex() === 'female' ? 'egg' : 'sperm' }}.</h4>
+        </div>
+        <p>Each card carries one chromosome from every pair. Recombinant chromosomes are marked.</p>
+      </header>
+      <div class="gamete-grid">
+        @for (gamete of run()?.gametes ?? []; track gamete.id) {
+          <article
+            class="gamete-card"
+            [class.inspected]="inspectedGameteIndex() === gamete.index"
+            [class.chosen]="chosenGameteIndex() === gamete.index"
+            [class.target]="gamete.targetAllelePresent"
+            draggable="true"
+            (dragstart)="startGameteDrag($event, gamete)"
+          >
+            <button type="button" class="inspect" (click)="inspect(gamete.index)">
+              <span class="gamete-orb" aria-hidden="true">
+                @for (chromosome of gamete.chromosomes; track chromosome.chromosome) {
+                  <i
+                    [class.recombinant]="chromosome.recombinant"
+                    [attr.data-sex]="chromosome.sexChromosome"
+                  ></i>
+                }
+              </span>
+              <strong>Gamete {{ gamete.index + 1 }}</strong>
+              <small>{{ alleleSummary(gamete) }}</small>
+              @if (isRecombinant(gamete)) {
+                <b>Recombinant</b>
+              }
+            </button>
+            <button type="button" class="choose" (click)="choose(gamete.index)">
+              {{ chosenGameteIndex() === gamete.index ? 'Selected' : 'Choose gamete' }}
+            </button>
+          </article>
+        }
+      </div>
+
+      @if (inspectedGamete(); as gamete) {
+        <aside class="gamete-inspector">
+          <header>
+            <div>
+              <small>GAMETE {{ gamete.index + 1 }} · ALLELE RECORD</small>
+              <strong>{{ gamete.chromosomes.length }} haploid chromosomes</strong>
+            </div>
+            @if (gamete.targetAllelePresent) {
+              <span>Contains target {{ targetTrait().recessiveAllele }}</span>
+            }
+          </header>
+          <div class="chromosome-records">
+            @for (chromosome of gamete.chromosomes; track chromosome.chromosome) {
+              <section>
+                <strong>{{ chromosome.chromosome }}</strong>
+                <small>{{ chromosome.sexChromosome ?? (chromosome.recombinant ? 'recombinant' : 'parental') }}</small>
+                <div>
+                  @for (locus of chromosome.loci; track locus.traitId) {
+                    <span [class.recessive]="locus.dominance === 'recessive'">
+                      <b>{{ locus.allele }}</b>{{ locus.traitName }}
+                    </span>
+                  }
+                </div>
+              </section>
+            }
+          </div>
+        </aside>
+      }
+
+      @if (chosenGamete(); as gamete) {
+        <div class="selection-commit">
+          <label>
+            Selection note <span>(optional evidence)</span>
+            <textarea
+              rows="2"
+              [value]="reason()"
+              (input)="reason.set($any($event.target).value)"
+              placeholder="What allele combination influenced your choice?"
+            ></textarea>
+          </label>
+          <button type="button" (click)="sendChosenGamete()">
+            Send gamete {{ gamete.index + 1 }} to {{ sex() === 'female' ? 'egg chamber' : 'fertilization chamber' }} →
+          </button>
+        </div>
+      }
+    </section>
+  }
+</section>
