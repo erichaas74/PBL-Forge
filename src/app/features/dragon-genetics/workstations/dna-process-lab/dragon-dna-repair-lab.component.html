@@ -49,7 +49,9 @@
           <span>Select DNA record A</span>
           <select [value]="specimenAId() ?? ''" (change)="selectSpecimen('a', $event)">
             @for (specimen of availableSpecimens(); track specimen.id) {
-              <option [value]="specimen.id">{{ specimen.label }}</option>
+              <option [value]="specimen.id" [selected]="specimen.id === specimenAId()">
+                {{ specimen.label }}
+              </option>
             }
           </select>
         </label>
@@ -79,7 +81,9 @@
           <span>Select DNA record B</span>
           <select [value]="specimenBId() ?? ''" (change)="selectSpecimen('b', $event)">
             @for (specimen of availableSpecimens(); track specimen.id) {
-              <option [value]="specimen.id">{{ specimen.label }}</option>
+              <option [value]="specimen.id" [selected]="specimen.id === specimenBId()">
+                {{ specimen.label }}
+              </option>
             }
           </select>
         </label>
