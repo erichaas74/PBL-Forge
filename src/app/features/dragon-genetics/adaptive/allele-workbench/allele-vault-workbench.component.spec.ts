@@ -46,6 +46,15 @@ describe('AlleleVaultWorkbenchComponent', () => {
         (band) => band.getAttribute('data-pattern-placement'),
       ),
     ).toEqual(['center', 'center']);
+    expect(
+      [...element.querySelectorAll('.allele-token-chromosome [data-pattern]')].map((band) => [
+        band.getAttribute('y'),
+        band.getAttribute('height'),
+      ]),
+    ).toEqual([
+      ['12', '8'],
+      ['12', '8'],
+    ]);
     expect(element.querySelectorAll('.phenotype-preview').length).toBe(0);
     expect(element.querySelectorAll('app-specimen-viewport').length).toBe(1);
     expect(element.querySelector('.phenotype-stage.empty')).not.toBeNull();

@@ -19,13 +19,26 @@
     >
       <line x1="0" y1="0" x2="0" y2="1.8" stroke="var(--hatch-line)" stroke-width="0.45" />
     </pattern>
-    <pattern [attr.id]="crosshatchId" width="2.2" height="2.2" patternUnits="userSpaceOnUse">
-      <path d="M 0 0 L 2.2 2.2 M 2.2 0 L 0 2.2" stroke="var(--hatch-line)" stroke-width="0.42" />
-      <circle cx="1.1" cy="1.1" r="0.28" fill="var(--pattern-accent)" />
+    <pattern
+      [attr.id]="stripeAId"
+      width="4"
+      height="4"
+      patternUnits="userSpaceOnUse"
+      patternTransform="rotate(35)"
+    >
+      <rect width="2" height="4" fill="var(--stripe-pink)" />
+      <rect x="2" width="2" height="4" fill="var(--stripe-yellow)" />
     </pattern>
-    <pattern [attr.id]="dotsId" width="2.4" height="2.4" patternUnits="userSpaceOnUse">
-      <circle cx="0.6" cy="0.6" r="0.48" fill="var(--hatch-line)" />
-      <circle cx="1.8" cy="1.8" r="0.3" fill="var(--pattern-accent)" />
+    <pattern
+      [attr.id]="stripeBId"
+      width="4.8"
+      height="4"
+      patternUnits="userSpaceOnUse"
+      patternTransform="rotate(-35)"
+    >
+      <rect width="1.2" height="4" fill="var(--stripe-blue)" />
+      <rect x="1.2" width="2.4" height="4" fill="var(--stripe-green)" />
+      <rect x="3.6" width="1.2" height="4" fill="var(--stripe-blue)" />
     </pattern>
     <filter [attr.id]="glowId" x="-100%" y="-100%" width="300%" height="300%">
       <feGaussianBlur stdDeviation="1.2" result="blur" />
@@ -53,11 +66,12 @@
         <rect
           class="chromosome-band-pattern"
           [attr.x]="band.x"
-          y="8"
+          [attr.y]="band.patternPlacement === 'center' ? 12 : 8"
           [attr.width]="band.width"
-          height="16"
+          [attr.height]="band.patternPlacement === 'center' ? 8 : 16"
           [attr.fill]="patternFill(band.pattern)"
           [attr.data-pattern]="band.pattern"
+          [attr.data-pattern-placement]="band.patternPlacement ?? 'full'"
         />
       }
     }

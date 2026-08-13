@@ -30,6 +30,7 @@ describe('ChromosomeSvgComponent', () => {
     expect(element.querySelectorAll('[data-band-start]').length).toBe(3);
     expect(element.querySelectorAll('pattern').length).toBe(3);
     expect(element.querySelector('[data-pattern="hatch"]')).not.toBeNull();
+    expect(element.querySelector('[data-pattern="hatch"]')?.getAttribute('height')).toBe('16');
     expect(element.querySelector('.gene-locus--active')).not.toBeNull();
     expect(element.querySelector('.allele-symbol')?.textContent?.trim()).toBe('CH1-G1a');
     expect(element.textContent).toContain('1p');
