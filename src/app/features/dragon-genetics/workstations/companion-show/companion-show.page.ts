@@ -18,7 +18,7 @@ import { CompanionShowComponent } from './companion-show.component';
         >
         <div>
           <span>DRAGON GENETICS · ROYAL MINI DRAGON SOCIETY</span>
-          <h1>Companion Dragon Show</h1>
+          <h1>Mini Dragon Show</h1>
         </div>
       </header>
       <app-companion-show [studentId]="studentId()" />

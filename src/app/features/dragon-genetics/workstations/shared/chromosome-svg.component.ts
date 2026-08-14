@@ -49,6 +49,8 @@ export class ChromosomeSvgComponent {
   readonly placeholder = input(false);
   readonly interactive = input(false);
   readonly compact = input(false);
+  /** Reveal loaded loci in read-only scientific diagrams without making them interactive. */
+  readonly showAllLoci = input(false);
   readonly locusSelected = output<string>();
 
   readonly instanceId = `chromosome-svg-${nextChromosomeSvgId++}`;
@@ -111,7 +113,12 @@ export class ChromosomeSvgComponent {
       return `${model.leftLabel} to ${model.rightLabel} chromosome placeholder; no allele sample loaded.`;
     }
     const active = model.loci.find((locus) => locus.label === this.selectedLocus());
-    return `${model.leftLabel} to ${model.rightLabel} chromosome, ${model.bands.length} bands${active ? `; active locus ${active.label}, allele ${active.symbol ?? 'not loaded'}` : ''}.`;
+    const visibleLoci = this.showAllLoci()
+      ? model.loci
+          .map((locus) => `${locus.label}, allele ${locus.symbol ?? 'not loaded'}`)
+          .join('; ')
+      : '';
+    return `${model.leftLabel} to ${model.rightLabel} chromosome, ${model.bands.length} bands${active ? `; active locus ${active.label}, allele ${active.symbol ?? 'not loaded'}` : visibleLoci ? `; loci ${visibleLoci}` : ''}.`;
   });
 
   private toX(position: number): number {

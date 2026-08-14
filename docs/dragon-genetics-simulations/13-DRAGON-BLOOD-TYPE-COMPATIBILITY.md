@@ -1,8 +1,8 @@
 # Dragon Blood Type Compatibility Lab
 
 The Emergency Healing Station is an open clinical-genetics investigation. Students load an injured
-dragon from the account Genetics File, test patient and donor blood with anti-Flame and anti-Tide
-sera, compare marker evidence to a three-allele inheritance model, and stage a donor in the Healing
+dragon from the account Genetics File, test patient and donor blood with anti-A and anti-B
+sera, compare antigen evidence to a three-allele inheritance model, and stage a donor in the Healing
 Chamber. The station has no question dock, numbered procedure, score, or forced lesson sequence.
 
 ## Required design decisions
@@ -10,35 +10,36 @@ Chamber. The station has no question dock, numbered procedure, score, or forced 
 | Decision               | Emergency Healing Station answer                                                                                                                                                                                                                                                                            |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Scientific goal        | Investigate how three alleles create four blood-marker phenotypes through codominance and how marker evidence determines safe red-cell compatibility.                                                                                                                                                       |
-| Manipulable evidence   | Account dragons, neutral patient and donor blood samples, anti-Flame and anti-Tide reagents, reaction wells, donor records, finite donor units in challenge mode, and the Healing Chamber.                                                                                                                  |
-| Observable consequence | Matching antiserum produces visible agglutination; nonmatching serum remains smooth. A donor whose surface markers are all present in the recipient remains dispersed in the chamber, while an unfamiliar donor marker produces antibody binding and cell clumping.                                         |
+| Manipulable evidence   | Account dragons, neutral patient and donor blood samples, anti-A and anti-B reagents, reaction wells, donor records, finite donor units in challenge mode, and the Healing Chamber.                                                                                                                              |
+| Observable consequence | Matching antiserum produces visible agglutination; nonmatching serum remains smooth. A donor whose surface antigens are all present in the recipient remains dispersed in the chamber, while an unfamiliar donor antigen produces antibody binding and cell clumping.                                     |
 | Student-built record   | A persistent emergency record containing patient and donor test evidence, derived phenotypes and possible genotypes, every attempted transfusion, supply constraints, the selected donor, and the student's compatibility explanation.                                                                      |
 | Shared sources         | The account Genetics File supplies patient identities; this workstation's blood catalog owns the fictional blood-locus, clinic-donor, and donor-constraint truth; the compatibility domain owns marker reactions and transfusion outcomes; and a replaceable repository owns per-student emergency records. |
 
 ## Teaching model
 
-This is a fictional, deliberately simplified red-cell model. It does not model Rh factors,
-crossmatching, plasma compatibility, or real transfusion practice.
+This is a deliberately simplified red-cell model. It models ABO compatibility for Rh-positive
+blood only; it does not model Rh-negative blood, crossmatching, plasma compatibility, or real
+transfusion practice.
 
 The blood locus has three alleles:
 
-- `F` produces the Flame surface marker;
-- `T` produces the Tide surface marker; and
-- `o` produces no surface marker.
+- `A` produces the A surface antigen;
+- `B` produces the B surface antigen; and
+- `O` produces no A or B surface antigen.
 
-`F` and `T` are codominant, so genotype `FT` visibly carries both markers. Both marker-producing
-alleles are expressed over `o` in this model.
+`A` and `B` are codominant, so genotype `AB` visibly carries both antigens. Both antigen-producing
+alleles are expressed over `O` in this model. Every displayed blood type is Rh positive.
 
 | Marker phenotype | Surface markers | Possible genotypes |
 | ---------------- | --------------- | ------------------ |
-| Flame            | Flame           | `FF`, `Fo`         |
-| Tide             | Tide            | `TT`, `To`         |
-| Dual             | Flame and Tide  | `FT`               |
-| Clear            | none            | `oo`               |
+| A+               | A antigen       | `AA`, `AO`         |
+| B+               | B antigen       | `BB`, `BO`         |
+| AB+              | A and B antigens | `AB`              |
+| O+               | none            | `OO`               |
 
-For the modeled red-cell transfusion, a donor is compatible only when every marker on the donor's
-cells is already present on the recipient's cells. A Clear donor therefore has no unfamiliar marker
-in this model. A Dual donor can be used only for a Dual recipient.
+For the modeled red-cell transfusion, a donor is compatible only when every antigen on the donor's
+cells is already present on the recipient's cells. An O+ donor therefore has no unfamiliar A or B
+antigen in this model. An AB+ donor can be used only for an AB+ recipient.
 
 ## Open interaction and concealment
 

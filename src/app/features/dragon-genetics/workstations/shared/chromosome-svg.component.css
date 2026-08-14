@@ -76,7 +76,8 @@
   vector-effect: non-scaling-stroke;
 }
 
-.gene-locus--active .gene-marker {
+.gene-locus--active .gene-marker,
+.gene-locus--visible .gene-marker {
   opacity: 1;
   stroke-width: 1.15;
 }

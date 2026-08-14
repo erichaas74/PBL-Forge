@@ -175,21 +175,6 @@ export class DragonSimulationExperiencePage {
       })),
     };
   });
-  readonly dnaLabFocusQuestionId = computed(() => {
-    const definition = this.definition();
-    const currentQuestion = this.question();
-    if (definition?.id !== 'dna-process-lab' || !currentQuestion) return null;
-    const focusNodeId = currentQuestion.options.find(
-      (option) => option.id === currentQuestion.correctOptionId,
-    )?.nodeId;
-    const questionByNode: Record<string, string> = {
-      replication: 'replication-template',
-      transcription: 'transcription-uracil',
-      mutation: 'mutation-substitution',
-      repair: 'copying-error-repair',
-    };
-    return questionByNode[focusNodeId ?? ''] ?? questionByNode['replication'];
-  });
   /**
    * Breeding seed for the arena champion, isolated from the rest of the run.
    *

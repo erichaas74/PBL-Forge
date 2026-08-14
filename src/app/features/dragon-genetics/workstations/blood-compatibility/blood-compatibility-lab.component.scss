@@ -652,7 +652,7 @@ button:disabled {
   font-weight: 950;
 }
 
-.reagent-vial > span[data-marker='tide'] {
+.reagent-vial > span[data-marker='b'] {
   background: linear-gradient(to top, #4895c8 48%, transparent 48%);
 }
 
@@ -717,75 +717,283 @@ button:disabled {
   position: relative;
   width: min(11rem, 100%);
   aspect-ratio: 1;
-  border: 0.55rem solid #cfdad8;
-  border-radius: 50%;
-  background: radial-gradient(circle, #6a2c30 0 48%, #401f24 49% 100%);
-  box-shadow: inset 0 0 1.5rem rgb(0 0 0 / 40%);
+  overflow: hidden;
+  border: 1px solid #395b62;
+  border-radius: 0.7rem;
+  background:
+    radial-gradient(circle at 48% 42%, rgb(223 238 235 / 18%), transparent 42%),
+    linear-gradient(145deg, #d4e2df, #90aaa9);
 }
 
-.well-visual i {
+.well-dish {
   position: absolute;
-  display: block;
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 0.18rem solid #f18a7c;
+  width: 78%;
+  aspect-ratio: 1;
+  left: 50%;
+  top: 57%;
+  transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: #a93f43;
+  border: 0.5rem solid rgb(232 241 239 / 68%);
+  background:
+    radial-gradient(circle at 38% 30%, rgb(255 255 255 / 45%), transparent 24%),
+    radial-gradient(circle at center, rgb(113 21 27 / 16%), rgb(90 10 17 / 27%));
+  box-shadow:
+    inset 0 0 0 2px rgb(51 77 77 / 22%),
+    inset 0 0.7rem 1.1rem rgb(255 255 255 / 16%),
+    0 0.45rem 1rem rgb(8 20 24 / 28%);
 }
 
-.well-visual i:nth-child(1) {
-  left: 18%;
-  top: 22%;
-}
-.well-visual i:nth-child(2) {
-  left: 48%;
-  top: 16%;
-}
-.well-visual i:nth-child(3) {
-  right: 14%;
-  top: 38%;
-}
-.well-visual i:nth-child(4) {
-  left: 24%;
-  top: 52%;
-}
-.well-visual i:nth-child(5) {
-  left: 53%;
-  top: 48%;
-}
-.well-visual i:nth-child(6) {
-  left: 42%;
-  bottom: 12%;
-}
-.well-visual i:nth-child(7) {
-  right: 10%;
-  bottom: 16%;
-}
-.well-visual i:nth-child(8) {
-  left: 9%;
-  bottom: 18%;
+.well-liquid {
+  position: absolute;
+  inset: 0.65rem;
+  overflow: hidden;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 45% 38%, rgb(198 48 54 / 28%), transparent 48%),
+    rgb(126 19 25 / 18%);
 }
 
-.agglutination .well-visual i:nth-child(1),
-.agglutination .well-visual i:nth-child(2),
-.agglutination .well-visual i:nth-child(3),
-.agglutination .well-visual i:nth-child(4) {
-  left: 38%;
-  top: 32%;
+.serum-vial {
+  position: absolute;
+  z-index: 4;
+  width: 1.65rem;
+  height: 2.65rem;
+  left: 50%;
+  top: 0.4rem;
+  transform: translateX(-50%);
+  border: 2px solid #577178;
+  border-radius: 0.3rem 0.3rem 0.55rem 0.55rem;
+  background: rgb(235 244 242 / 92%);
+  box-shadow: 0 0.25rem 0.45rem rgb(0 0 0 / 18%);
 }
 
-.agglutination .well-visual i:nth-child(5),
-.agglutination .well-visual i:nth-child(6),
-.agglutination .well-visual i:nth-child(7) {
-  right: 18%;
-  bottom: 18%;
-  left: auto;
-  top: auto;
+.serum-vial::before {
+  position: absolute;
+  width: 1.15rem;
+  height: 0.35rem;
+  left: 50%;
+  top: -0.45rem;
+  transform: translateX(-50%);
+  border-radius: 0.15rem;
+  background: #344e56;
+  content: '';
+}
+
+.serum-vial::after {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.18rem;
+  left: 0.2rem;
+  height: 42%;
+  border-radius: 0.2rem 0.2rem 0.4rem 0.4rem;
+  background: linear-gradient(#a7eff6, #56c7d8);
+  content: '';
+}
+
+.well-visual[data-marker='b'] .serum-vial::after {
+  background: linear-gradient(#ffe0ac, #d7a15a);
+}
+
+.serum-vial span {
+  position: absolute;
+  z-index: 1;
+  top: 1.15rem;
+  width: 100%;
+  color: #16323a;
+  font-size: 0.46rem;
+  font-weight: 950;
+  text-align: center;
+}
+
+.serum-drop {
+  position: absolute;
+  z-index: 5;
+  width: 0.75rem;
+  height: 0.95rem;
+  left: 50%;
+  top: 1.9rem;
+  transform: translateX(-50%) rotate(45deg) scale(0.6);
+  border-radius: 55% 45% 62% 38%;
+  opacity: 0;
+  background: linear-gradient(135deg, #a7eff6, #56c7d8);
+  box-shadow: 0 0.15rem 0.3rem rgb(0 0 0 / 25%);
+}
+
+.well-visual[data-marker='b'] .serum-drop {
+  background: linear-gradient(135deg, #ffe0ac, #d7a15a);
+}
+
+.mix-ring {
+  position: absolute;
+  z-index: 1;
+  inset: 0.55rem;
+  border: 2px dashed transparent;
+  border-radius: 50%;
+}
+
+.test-cell {
+  position: absolute;
+  z-index: 2;
+  width: 1.2rem;
+  height: 0.88rem;
+  left: var(--cell-x);
+  top: var(--cell-y);
+  transform: translate(-50%, -50%) rotate(var(--cell-r));
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #7d151c 0 19%, #bb3037 24% 57%, #7f161d 68% 100%);
+  box-shadow:
+    inset 0 1px 2px rgb(255 255 255 / 26%),
+    0 2px 3px rgb(49 5 9 / 25%);
+  transition:
+    left 0.8s cubic-bezier(0.2, 0.75, 0.25, 1),
+    top 0.8s cubic-bezier(0.2, 0.75, 0.25, 1),
+    transform 0.8s cubic-bezier(0.2, 0.75, 0.25, 1);
+  transition-delay: var(--cell-delay);
+ }
+
+.test-cell::after {
+  position: absolute;
+  width: 0.45rem;
+  height: 0.28rem;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #7f151c;
+  content: '';
+  opacity: 0.7;
+}
+
+.agglutination .test-cell:nth-of-type(2),
+.agglutination .test-cell:nth-of-type(3),
+.agglutination .test-cell:nth-of-type(4) {
+  left: 36%;
+  top: 39%;
+}
+
+.agglutination .test-cell:nth-of-type(5),
+.agglutination .test-cell:nth-of-type(6),
+.agglutination .test-cell:nth-of-type(7),
+.agglutination .test-cell:nth-of-type(8) {
+  left: 65%;
+  top: 64%;
+}
+
+.agglutination .test-cell:nth-of-type(9) {
+  left: 47%;
+  top: 63%;
+}
+
+.agglutination .test-cell:nth-of-type(10) {
+  left: 30%;
+  top: 61%;
+}
+
+.agglutination .test-cell:nth-of-type(11) {
+  left: 70%;
+  top: 34%;
 }
 
 .untested .well-visual {
   filter: grayscale(1);
   opacity: 0.35;
+}
+
+.agglutination .serum-drop,
+.smooth .serum-drop {
+  animation: serum-drop 0.7s cubic-bezier(0.2, 0.75, 0.25, 1) 0.1s both;
+}
+
+.agglutination .mix-ring,
+.smooth .mix-ring {
+  animation: mix-ring 1s ease 0.65s;
+}
+
+.agglutination .well-liquid,
+.smooth .well-liquid {
+  animation: liquid-pulse 1.1s ease 0.68s;
+}
+
+.agglutination .test-cell,
+.smooth .test-cell {
+  animation: cell-swirl 1.05s ease-in-out 0.7s;
+}
+
+.smooth .test-cell {
+  animation:
+    cell-swirl 1.05s ease-in-out 0.7s,
+    cell-drift 3.2s ease-in-out 1.8s infinite alternate;
+  animation-delay: 0.7s, calc(1.8s + var(--cell-delay));
+}
+
+@keyframes serum-drop {
+  0% {
+    opacity: 0;
+    top: 2.1rem;
+    transform: translateX(-50%) rotate(45deg) scale(0.6);
+  }
+  18%,
+  75% {
+    opacity: 1;
+  }
+  78% {
+    top: 57%;
+    transform: translateX(-50%) rotate(45deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    top: 67%;
+    transform: translateX(-50%) rotate(45deg) scale(0.5);
+  }
+}
+
+@keyframes mix-ring {
+  0% {
+    border-color: transparent;
+    transform: rotate(0) scale(0.8);
+  }
+  35% {
+    border-color: rgb(255 255 255 / 42%);
+  }
+  100% {
+    border-color: transparent;
+    transform: rotate(160deg) scale(1.08);
+  }
+}
+
+@keyframes liquid-pulse {
+  0%,
+  100% {
+    filter: saturate(1);
+  }
+  45% {
+    filter: saturate(1.25) brightness(1.08);
+  }
+}
+
+@keyframes cell-swirl {
+  0%,
+  100% {
+    margin-left: 0;
+    margin-top: 0;
+  }
+  35% {
+    margin-left: 0.3rem;
+    margin-top: -0.25rem;
+  }
+  70% {
+    margin-left: -0.25rem;
+    margin-top: 0.2rem;
+  }
+}
+
+@keyframes cell-drift {
+  from {
+    transform: translate(-50%, -50%) rotate(var(--cell-r)) translate(-2px, 1px);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(calc(var(--cell-r) + 11deg)) translate(3px, -2px);
+  }
 }
 
 .reaction-well > span {
@@ -1098,13 +1306,13 @@ button:disabled {
   font-weight: 950;
 }
 
-.flame-marker {
+.a-marker {
   top: -0.9rem;
   left: 0.15rem;
   background: var(--blood-gold);
 }
 
-.tide-marker {
+.b-marker {
   right: -0.85rem;
   bottom: 0.25rem;
   background: var(--blood-blue);

@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
 import { DRAGON_PARENTS, DRAGON_TRAITS } from '../../simulation/domain/dragon-inheritance';
 import { DragonLabGenome, DragonTraitId } from '../../simulation/domain/dragon-lab.models';
 import {
@@ -11,6 +12,12 @@ import {
 
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.account-library.v1';
 const FOUNDATION_DATE = '2026-01-01T00:00:00.000Z';
+const FOUNDATION_SEX: Readonly<Record<string, DragonSex>> = {
+  ember: 'female',
+  tide: 'male',
+  moss: 'female',
+  quartz: 'male',
+};
 
 /**
  * User-scoped source for dragons and their chromosome records.
@@ -59,6 +66,7 @@ function foundationDragons(): AccountDragonRecord[] {
     ...dragon,
     genome: cloneDragonGenome(dragon.genome),
     kind: 'dragon' as const,
+    sex: FOUNDATION_SEX[dragon.id] ?? legacyDragonSex(dragon.id),
     source: 'foundation' as const,
     storedAtIso: FOUNDATION_DATE,
   }));
@@ -120,7 +128,8 @@ function isAccountDragonRecord(value: unknown): value is AccountDragonRecord {
     typeof value['title'] !== 'string' ||
     typeof value['color'] !== 'string' ||
     typeof value['accentColor'] !== 'string' ||
-    typeof value['storedAtIso'] !== 'string'
+    typeof value['storedAtIso'] !== 'string' ||
+    (value['sex'] !== undefined && value['sex'] !== 'female' && value['sex'] !== 'male')
   ) {
     return false;
   }
@@ -137,7 +146,16 @@ function isAllelePair(value: unknown): value is readonly [string, string] {
 }
 
 function cloneDragon(dragon: AccountDragonRecord): AccountDragonRecord {
-  return { ...dragon, genome: cloneDragonGenome(dragon.genome) };
+  return {
+    ...dragon,
+    sex: dragon.sex ?? legacyDragonSex(dragon.id),
+    genome: cloneDragonGenome(dragon.genome),
+  };
+}
+
+function legacyDragonSex(id: string): DragonSex {
+  const parity = [...id].reduce((total, character) => total + character.charCodeAt(0), 0) % 2;
+  return parity === 0 ? 'female' : 'male';
 }
 
 function cloneDragonGenome(genome: DragonLabGenome): DragonLabGenome {

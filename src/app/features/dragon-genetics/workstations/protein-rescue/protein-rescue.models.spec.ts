@@ -68,6 +68,7 @@ describe('protein rescue scientific model', () => {
 function dragon(id: string): AccountDragonRecord {
   return {
     kind: 'dragon',
+    sex: 'female',
     source: 'foundation',
     storedAtIso: '2026-01-01T00:00:00.000Z',
     id,

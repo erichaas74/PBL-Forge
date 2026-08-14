@@ -1,3 +1,4 @@
+import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
 import { DragonTraitId } from '../../simulation/domain/dragon-lab.models';
 import { DragonParentProfile } from '../../simulation/domain/dragon-lab.models';
 
@@ -5,6 +6,7 @@ export type AccountGeneticsRecord = AccountDragonRecord | AccountChromosomeRecor
 
 export interface AccountDragonRecord extends DragonParentProfile {
   kind: 'dragon';
+  sex: DragonSex;
   source: 'foundation' | 'student';
   storedAtIso: string;
 }

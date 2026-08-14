@@ -8,7 +8,6 @@ import {
   signal,
 } from '@angular/core';
 import {
-  DRAGON_TRAITS,
   fertilizeLabGametes,
   genotypeLabel,
   getTrait,
@@ -21,11 +20,10 @@ import {
 import {
   ACCOUNT_GENETICS_RECORD_DRAG_TYPE,
   AccountDragonRecord,
-  AccountGeneticsRecord,
+  accountGeneticsDragPayload,
   parseAccountGeneticsDragPayload,
 } from '../shared/account-genetics-library.models';
 import { AccountGeneticsLibraryService } from '../shared/account-genetics-library.service';
-import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
 import { DragonHatcheryBreedingRepository } from './dragon-hatchery-breeding.repository';
 import {
   DragonHatcheryBreedingSnapshot,
@@ -44,11 +42,7 @@ type ParentRole = 'female' | 'male';
 
 @Component({
   selector: 'app-dragon-hatchery-breeding-lab',
-  imports: [
-    AccountGeneticsFileComponent,
-    MeiosisGameteSelectorComponent,
-    DragonHatcheryStationComponent,
-  ],
+  imports: [MeiosisGameteSelectorComponent, DragonHatcheryStationComponent],
   templateUrl: './dragon-hatchery-breeding-lab.component.html',
   styleUrl: './dragon-hatchery-breeding-lab.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,8 +54,6 @@ export class DragonHatcheryBreedingLabComponent {
   readonly studentId = input('local-student');
   readonly seed = input('dragon-hatchery');
 
-  readonly traits = DRAGON_TRAITS;
-  readonly selectedAccountRecord = signal<AccountGeneticsRecord | null>(null);
   readonly eggParentId = signal<string | null>(null);
   readonly spermParentId = signal<string | null>(null);
   readonly targetTraitId = signal<DragonTraitId>('scales');
@@ -72,27 +64,19 @@ export class DragonHatcheryBreedingLabComponent {
   readonly maleRun = signal<MeiosisRun | null>(null);
   readonly fertilizations = signal<readonly HatcheryFertilizationRecord[]>([]);
   readonly clutch = signal<readonly DragonOffspring[]>([]);
-  readonly statusMessage = signal('Choose a dragon record, then load it into a parent chamber.');
+  readonly statusMessage = signal('Choose one female dragon and one male dragon for this family.');
 
   readonly account = computed(() => this.accountLibrary.recordsFor(this.studentId()));
+  readonly femaleDragons = computed(() =>
+    this.account().dragons.filter((dragon) => dragon.sex === 'female'),
+  );
+  readonly maleDragons = computed(() =>
+    this.account().dragons.filter((dragon) => dragon.sex === 'male'),
+  );
   readonly eggParent = computed(() => this.findDragon(this.eggParentId()));
   readonly spermParent = computed(() => this.findDragon(this.spermParentId()));
   readonly parentsReady = computed(() => Boolean(this.eggParent() && this.spermParent()));
-  readonly selectedDragon = computed(() => {
-    const record = this.selectedAccountRecord();
-    return record?.kind === 'dragon' ? record : null;
-  });
   readonly targetTrait = computed(() => getTrait(this.targetTraitId()));
-  readonly targetPossible = computed(() => {
-    const eggParent = this.eggParent();
-    const spermParent = this.spermParent();
-    const target = this.targetTrait();
-    if (!eggParent || !spermParent) return false;
-    return (
-      eggParent.genome[target.id].includes(target.recessiveAllele) &&
-      spermParent.genome[target.id].includes(target.recessiveAllele)
-    );
-  });
   readonly selectedPair = computed<readonly [DragonParentProfile, DragonParentProfile] | null>(() => {
     const eggParent = this.eggParent();
     const spermParent = this.spermParent();
@@ -107,22 +91,18 @@ export class DragonHatcheryBreedingLabComponent {
     effect(() => this.restore(this.studentId()));
   }
 
-  selectAccountRecord(record: AccountGeneticsRecord): void {
-    this.selectedAccountRecord.set(record);
-    this.statusMessage.set(
-      record.kind === 'dragon'
-        ? `${record.name} is ready. Choose the egg-parent or sperm-parent chamber.`
-        : `${record.dragonName}'s ${record.chromosome} record can be examined here, but meiosis starts from the whole dragon.`,
-    );
+  selectParent(role: ParentRole, dragon: AccountDragonRecord): void {
+    this.assignParent(role, dragon);
   }
 
-  loadSelectedParent(role: ParentRole): void {
-    const dragon = this.selectedDragon();
-    if (!dragon) {
-      this.statusMessage.set('Select a whole dragon record from the account file first.');
-      return;
-    }
-    this.assignParent(role, dragon);
+  startParentDrag(event: DragEvent, dragon: AccountDragonRecord): void {
+    if (!event.dataTransfer) return;
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData(
+      ACCOUNT_GENETICS_RECORD_DRAG_TYPE,
+      JSON.stringify(accountGeneticsDragPayload(dragon)),
+    );
+    event.dataTransfer.setData('text/plain', `dragon:${dragon.id}`);
   }
 
   allowDrop(event: DragEvent): void {
@@ -141,19 +121,7 @@ export class DragonHatcheryBreedingLabComponent {
       this.statusMessage.set('A parent chamber accepts a whole dragon record, not one chromosome.');
       return;
     }
-    this.selectedAccountRecord.set(record);
     this.assignParent(role, record);
-  }
-
-  setTarget(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value as DragonTraitId;
-    if (!DRAGON_TRAITS.some((trait) => trait.id === value)) return;
-    this.targetTraitId.set(value);
-    this.eggSelection.set(null);
-    this.spermSelection.set(null);
-    this.activeRole.set('female');
-    this.statusMessage.set('The target changed. Run both parent cells again for this allele hunt.');
-    this.persist();
   }
 
   selectGamete(role: ParentRole, selection: SelectedMeiosisGamete): void {
@@ -257,6 +225,12 @@ export class DragonHatcheryBreedingLabComponent {
       this.statusMessage.set('Start a new family before changing parents for this clutch.');
       return;
     }
+    if (dragon.sex !== role) {
+      this.statusMessage.set(
+        `Choose a ${role} dragon for the ${role === 'female' ? 'egg' : 'sperm'} parent.`,
+      );
+      return;
+    }
     const otherId = role === 'female' ? this.spermParentId() : this.eggParentId();
     if (otherId === dragon.id) {
       this.statusMessage.set('Choose two different account dragons for this family.');
@@ -273,14 +247,16 @@ export class DragonHatcheryBreedingLabComponent {
 
   private restore(studentId: string): void {
     const snapshot = this.repository.load(studentId);
-    this.eggParentId.set(snapshot.eggParentId);
-    this.spermParentId.set(snapshot.spermParentId);
+    const eggParent = this.findDragon(snapshot.eggParentId);
+    const spermParent = this.findDragon(snapshot.spermParentId);
+    this.eggParentId.set(eggParent?.sex === 'female' ? eggParent.id : null);
+    this.spermParentId.set(spermParent?.sex === 'male' ? spermParent.id : null);
     this.targetTraitId.set(snapshot.targetTraitId);
-    this.eggSelection.set(snapshot.pendingEggSelection);
-    this.spermSelection.set(snapshot.pendingSpermSelection);
+    this.eggSelection.set(eggParent?.sex === 'female' ? snapshot.pendingEggSelection : null);
+    this.spermSelection.set(spermParent?.sex === 'male' ? snapshot.pendingSpermSelection : null);
     this.fertilizations.set(snapshot.fertilizations);
     this.clutch.set(this.restoreClutch(snapshot.fertilizations));
-    this.activeRole.set(snapshot.pendingEggSelection ? 'male' : 'female');
+    this.activeRole.set(this.eggSelection() ? 'male' : 'female');
   }
 
   private restoreClutch(

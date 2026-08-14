@@ -17,6 +17,8 @@ describe('AccountGeneticsLibraryService', () => {
     const snapshot = library.recordsFor(studentId);
 
     expect(snapshot.dragons.length).toBe(4);
+    expect(snapshot.dragons.filter((dragon) => dragon.sex === 'female').length).toBe(2);
+    expect(snapshot.dragons.filter((dragon) => dragon.sex === 'male').length).toBe(2);
     expect(snapshot.chromosomes.length).toBe(snapshot.dragons.length * 4);
     const ember = snapshot.dragons.find((dragon) => dragon.id === 'ember')!;
     const emberChr1 = snapshot.chromosomes.find((record) => record.id === 'ember:chr-1')!;

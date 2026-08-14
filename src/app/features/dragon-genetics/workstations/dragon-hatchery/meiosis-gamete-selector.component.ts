@@ -12,16 +12,20 @@ import {
   signal,
 } from '@angular/core';
 import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
-import {
-  DragonParentProfile,
-  DragonTraitId,
-} from '../../simulation/domain/dragon-lab.models';
+import { DragonParentProfile, DragonTraitId } from '../../simulation/domain/dragon-lab.models';
 import { getTrait } from '../../simulation/domain/dragon-inheritance';
+import {
+  ChromosomeBand,
+  ChromosomeSvgComponent,
+  ChromosomeSvgModel,
+} from '../shared/chromosome-svg.component';
+import { chromosomeVisual, DRAGON_LOCUS_COLORS } from '../shared/dragon-chromosome.catalog';
 import { generateMeiosisRun, gameteAlleleSummary } from './meiosis-gamete.domain';
 import {
   MEIOSIS_GAMETE_DRAG_TYPE,
   MeiosisChromosomePair,
   MeiosisGamete,
+  MeiosisGameteChromosome,
   MeiosisLocusAllele,
   MeiosisRun,
   SelectedMeiosisGamete,
@@ -47,6 +51,7 @@ const PHASES: readonly MeiosisPhase[] = [
 
 @Component({
   selector: 'app-meiosis-gamete-selector',
+  imports: [ChromosomeSvgComponent],
   templateUrl: './meiosis-gamete-selector.component.html',
   styleUrl: './meiosis-gamete-selector.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -67,16 +72,11 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
   readonly playing = signal(false);
   readonly slowCrossing = signal(false);
   readonly runNumber = signal(1);
-  readonly inspectedGameteIndex = signal<number | null>(null);
   readonly chosenGameteIndex = signal<number | null>(null);
   readonly reason = signal('');
   readonly run = signal<MeiosisRun | null>(null);
   readonly phase = computed(() => PHASES[this.phaseIndex()]);
   readonly complete = computed(() => this.phaseIndex() === PHASES.length - 1);
-  readonly inspectedGamete = computed(() => {
-    const index = this.inspectedGameteIndex();
-    return index === null ? null : (this.run()?.gametes[index] ?? null);
-  });
   readonly chosenGamete = computed(() => {
     const index = this.chosenGameteIndex();
     return index === null ? null : (this.run()?.gametes[index] ?? null);
@@ -98,7 +98,6 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
       this.run.set(nextRun);
       this.phaseIndex.set(0);
       this.playing.set(false);
-      this.inspectedGameteIndex.set(null);
       this.chosenGameteIndex.set(null);
       this.reason.set('');
       this.runChanged.emit(nextRun);
@@ -156,15 +155,14 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     this.runNumber.update((value) => value + 1);
   }
 
-  inspect(index: number): void {
-    if (!this.complete()) return;
-    this.inspectedGameteIndex.set(index);
-  }
-
   choose(index: number): void {
     if (!this.complete()) return;
     this.chosenGameteIndex.set(index);
-    this.inspectedGameteIndex.set(index);
+  }
+
+  chooseAndSend(index: number): void {
+    this.choose(index);
+    this.sendChosenGamete();
   }
 
   sendChosenGamete(): void {
@@ -194,6 +192,33 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
   /** Angular templates cannot hold a predicate, so the crossover check lives here. */
   isRecombinant(gamete: MeiosisGamete): boolean {
     return gamete.chromosomes.some((chromosome) => chromosome.recombinant);
+  }
+
+  gameteChromosomeModel(chromosome: MeiosisGameteChromosome): ChromosomeSvgModel {
+    const label = this.chromosomeLabel(chromosome.chromosome, chromosome.sexChromosome);
+    const visual = chromosomeVisual(label);
+    const arm = label.replace('Chr ', '');
+    const highlightBands: ChromosomeBand[] = chromosome.loci.map((locus, index) => ({
+      start: Math.max(0, locus.position - 0.055),
+      end: Math.min(1, locus.position + 0.055),
+      color: this.locusColor(label, locus.position, index),
+      pattern: locus.dominance === 'dominant' ? 'stripe-a' : 'stripe-b',
+      patternPlacement: 'center',
+    }));
+
+    return {
+      length: visual.length,
+      leftLabel: `${arm}p`,
+      rightLabel: `${arm}q`,
+      centromere: visual.centromere,
+      bands: [...visual.bands, ...highlightBands],
+      loci: chromosome.loci.map((locus, index) => ({
+        position: locus.position,
+        label: locus.geneSymbol,
+        symbol: locus.allele,
+        color: this.locusColor(label, locus.position, index),
+      })),
+    };
   }
 
   trackPhase(index: number): number {
@@ -244,7 +269,7 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     }
     const context = canvas.getContext('2d');
     if (!context) return;
-    context.setTransform(ratio * width / 1000, 0, 0, ratio * height / 560, 0, 0);
+    context.setTransform((ratio * width) / 1000, 0, 0, (ratio * height) / 560, 0, 0);
     this.drawBackground(context);
     this.drawPhase(context, run, time);
 
@@ -263,19 +288,15 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     context.fillRect(0, 0, 1000, 560);
     context.fillStyle = 'rgba(145, 119, 205, 0.12)';
     for (let index = 0; index < 32; index += 1) {
-      const x = (index * 197) % 980 + 10;
-      const y = (index * 83) % 535 + 12;
+      const x = ((index * 197) % 980) + 10;
+      const y = ((index * 83) % 535) + 12;
       context.beginPath();
-      context.arc(x, y, 2 + index % 4, 0, Math.PI * 2);
+      context.arc(x, y, 2 + (index % 4), 0, Math.PI * 2);
       context.fill();
     }
   }
 
-  private drawPhase(
-    context: CanvasRenderingContext2D,
-    run: MeiosisRun,
-    time: number,
-  ): void {
+  private drawPhase(context: CanvasRenderingContext2D, run: MeiosisRun, time: number): void {
     const phase = this.phaseIndex();
     if (phase <= 4) {
       this.drawCell(context, 500, 292, 430, 225, phase < 1);
@@ -322,9 +343,36 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
   private drawUnreplicatedPairs(context: CanvasRenderingContext2D, run: MeiosisRun): void {
     run.chromosomePairs.forEach((pair, index) => {
       const x = 245 + index * 128;
-      const height = pair.length * 1.35;
-      this.drawRod(context, x - 17, 292 - height / 2, height, '#29c8e8', pair.chromatids[0].loci);
-      this.drawRod(context, x + 17, 292 - height / 2, height, '#f06ca9', pair.chromatids[3].loci);
+      const homologA = pair.chromatids[0];
+      const homologB = pair.chromatids[3];
+      const heightA = this.chromatidHeight(
+        pair.length * 1.35,
+        pair.chromosome,
+        homologA.sexChromosome,
+      );
+      const heightB = this.chromatidHeight(
+        pair.length * 1.35,
+        pair.chromosome,
+        homologB.sexChromosome,
+      );
+      this.drawRod(
+        context,
+        x - 17,
+        292 - heightA / 2,
+        heightA,
+        this.chromosomeLabel(pair.chromosome, homologA.sexChromosome),
+        homologA.loci,
+        homologA.origin,
+      );
+      this.drawRod(
+        context,
+        x + 17,
+        292 - heightB / 2,
+        heightB,
+        this.chromosomeLabel(pair.chromosome, homologB.sexChromosome),
+        homologB.loci,
+        homologB.origin,
+      );
       this.drawLabel(context, pair.chromosome.replace('Chr ', ''), x, 402);
     });
   }
@@ -337,11 +385,38 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     run.chromosomePairs.forEach((pair, index) => {
       const centerX = 245 + index * 128;
       const spread = paired ? 16 : 30;
-      const height = pair.length * 1.35;
-      this.drawXChromosome(context, centerX - spread, 292, height, '#29c8e8', pair.chromatids[0].loci);
-      this.drawXChromosome(context, centerX + spread, 292, height, '#f06ca9', pair.chromatids[3].loci);
+      const homologA = pair.chromatids[0];
+      const homologB = pair.chromatids[3];
+      const heightA = this.chromatidHeight(
+        pair.length * 1.35,
+        pair.chromosome,
+        homologA.sexChromosome,
+      );
+      const heightB = this.chromatidHeight(
+        pair.length * 1.35,
+        pair.chromosome,
+        homologB.sexChromosome,
+      );
+      this.drawXChromosome(
+        context,
+        centerX - spread,
+        292,
+        heightA,
+        this.chromosomeLabel(pair.chromosome, homologA.sexChromosome),
+        homologA.loci,
+        homologA.origin,
+      );
+      this.drawXChromosome(
+        context,
+        centerX + spread,
+        292,
+        heightB,
+        this.chromosomeLabel(pair.chromosome, homologB.sexChromosome),
+        homologB.loci,
+        homologB.origin,
+      );
       if (paired && pair.crossoverPosition !== null) {
-        const crossoverY = 292 - height / 2 + height * pair.crossoverPosition;
+        const crossoverY = 292 - heightA / 2 + heightA * pair.crossoverPosition;
         context.fillStyle = '#ffe99a';
         context.beginPath();
         context.arc(centerX, crossoverY, 5, 0, Math.PI * 2);
@@ -351,11 +426,7 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     });
   }
 
-  private drawCrossingOver(
-    context: CanvasRenderingContext2D,
-    run: MeiosisRun,
-    time: number,
-  ): void {
+  private drawCrossingOver(context: CanvasRenderingContext2D, run: MeiosisRun, time: number): void {
     const duration = this.slowCrossing() ? 3000 : 1250;
     const raw = Math.min(1, Math.max(0, (time - this.phaseStartedAt) / duration));
     const progress = raw * raw * (3 - 2 * raw);
@@ -366,29 +437,81 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
       const positions = [centerX - 27, centerX - 9, centerX + 9, centerX + 27];
       const crossover = pair.crossoverPosition;
       if (crossover === null || pair.chromatids[1].loci.length === 0) {
-        pair.chromatids.forEach((chromatid, chromatidIndex) =>
-          this.drawSegmentedRod(context, positions[chromatidIndex], top, height, chromatid.loci),
-        );
+        pair.chromatids.forEach((chromatid, chromatidIndex) => {
+          const chromatidHeight = this.chromatidHeight(
+            height,
+            pair.chromosome,
+            chromatid.sexChromosome,
+          );
+          this.drawSegmentedRod(
+            context,
+            positions[chromatidIndex],
+            292 - chromatidHeight / 2,
+            chromatidHeight,
+            this.chromosomeLabel(pair.chromosome, chromatid.sexChromosome),
+            chromatid.loci,
+            chromatid.origin,
+          );
+        });
       } else {
-        this.drawSegmentedRod(context, positions[0], top, height, pair.chromatids[0].loci);
-        this.drawSegmentedRod(context, positions[3], top, height, pair.chromatids[3].loci);
-        const splitY = top + height * crossover;
-        this.drawRodSection(context, positions[1], top, splitY, '#29c8e8');
-        this.drawRodSection(context, positions[2], top, splitY, '#f06ca9');
+        this.drawSegmentedRod(
+          context,
+          positions[0],
+          top,
+          height,
+          pair.chromosome,
+          pair.chromatids[0].loci,
+          pair.chromatids[0].origin,
+        );
+        this.drawSegmentedRod(
+          context,
+          positions[3],
+          top,
+          height,
+          pair.chromosome,
+          pair.chromatids[3].loci,
+          pair.chromatids[3].origin,
+        );
+        this.drawChromosomeSegment(
+          context,
+          positions[1],
+          top,
+          height,
+          pair.chromosome,
+          0,
+          crossover,
+          'homolog-a',
+        );
+        this.drawChromosomeSegment(
+          context,
+          positions[2],
+          top,
+          height,
+          pair.chromosome,
+          0,
+          crossover,
+          'homolog-b',
+        );
         const arc = Math.sin(progress * Math.PI) * 20;
-        this.drawRodSection(
+        this.drawChromosomeSegment(
           context,
           positions[1] + (positions[2] - positions[1]) * progress,
-          splitY + arc,
-          top + height + arc,
-          '#29c8e8',
+          top + arc,
+          height,
+          pair.chromosome,
+          crossover,
+          1,
+          'homolog-a',
         );
-        this.drawRodSection(
+        this.drawChromosomeSegment(
           context,
           positions[2] + (positions[1] - positions[2]) * progress,
-          splitY - arc,
-          top + height - arc,
-          '#f06ca9',
+          top - arc,
+          height,
+          pair.chromosome,
+          crossover,
+          1,
+          'homolog-b',
         );
         this.drawMovingLoci(context, pair, positions[1], positions[2], top, height, progress, arc);
       }
@@ -417,6 +540,7 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
         leftX + (rightX - leftX) * progress,
         top + height * locus.position + arc,
         locus,
+        pair.chromosome,
       );
     });
     pair.chromatids[3].loci.slice(split).forEach((locus) => {
@@ -425,20 +549,30 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
         rightX + (leftX - rightX) * progress,
         top + height * locus.position - arc,
         locus,
+        pair.chromosome,
       );
     });
   }
 
-  private drawRecombinantComparison(
-    context: CanvasRenderingContext2D,
-    run: MeiosisRun,
-  ): void {
+  private drawRecombinantComparison(context: CanvasRenderingContext2D, run: MeiosisRun): void {
     run.chromosomePairs.forEach((pair, index) => {
       const centerX = 245 + index * 128;
       const height = pair.length * 1.24;
-      const top = 284 - height / 2;
       pair.chromatids.forEach((chromatid, chromatidIndex) => {
-        this.drawSegmentedRod(context, centerX - 27 + chromatidIndex * 18, top, height, chromatid.loci);
+        const chromatidHeight = this.chromatidHeight(
+          height,
+          pair.chromosome,
+          chromatid.sexChromosome,
+        );
+        this.drawSegmentedRod(
+          context,
+          centerX - 27 + chromatidIndex * 18,
+          284 - chromatidHeight / 2,
+          chromatidHeight,
+          this.chromosomeLabel(pair.chromosome, chromatid.sexChromosome),
+          chromatid.loci,
+          chromatid.origin,
+        );
       });
       if (pair.crossoverPosition !== null) {
         context.fillStyle = '#ffe99a';
@@ -465,19 +599,46 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
       const height = pair.length * 0.46;
       const leftX = phase === 7 ? 280 : 245 + (index % 2) * 56;
       const rightX = phase === 7 ? 720 : 685 + (index % 2) * 56;
-      this.drawXChromosome(context, leftX, y, height, '#29c8e8', pair.chromatids[1].loci, 5);
-      this.drawXChromosome(context, rightX, y, height, '#f06ca9', pair.chromatids[2].loci, 5);
+      const leftChromatid = pair.chromatids[1];
+      const rightChromatid = pair.chromatids[2];
+      const leftHeight = this.chromatidHeight(height, pair.chromosome, leftChromatid.sexChromosome);
+      const rightHeight = this.chromatidHeight(
+        height,
+        pair.chromosome,
+        rightChromatid.sexChromosome,
+      );
+      this.drawXChromosome(
+        context,
+        leftX,
+        y,
+        leftHeight,
+        this.chromosomeLabel(pair.chromosome, leftChromatid.sexChromosome),
+        leftChromatid.loci,
+        leftChromatid.origin,
+        5,
+      );
+      this.drawXChromosome(
+        context,
+        rightX,
+        y,
+        rightHeight,
+        this.chromosomeLabel(pair.chromosome, rightChromatid.sexChromosome),
+        rightChromatid.loci,
+        rightChromatid.origin,
+        5,
+      );
     });
     this.drawSpindle(context, 280, 292, 170);
     this.drawSpindle(context, 720, 292, 170);
   }
 
-  private drawFourCells(
-    context: CanvasRenderingContext2D,
-    run: MeiosisRun,
-    final: boolean,
-  ): void {
-    const centers = [[260, 175], [740, 175], [260, 400], [740, 400]] as const;
+  private drawFourCells(context: CanvasRenderingContext2D, run: MeiosisRun, final: boolean): void {
+    const centers = [
+      [260, 175],
+      [740, 175],
+      [260, 400],
+      [740, 400],
+    ] as const;
     centers.forEach(([x, y], gameteIndex) => {
       this.drawCell(context, x, y, final ? 145 : 170, final ? 90 : 105, final);
       const gamete = run.gametes[gameteIndex];
@@ -485,13 +646,20 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
         const chromatid = run.chromosomePairs[chromosomeIndex].chromatids.find(
           (candidate) => candidate.id === chromosome.sourceChromatidId,
         );
-        const height = run.chromosomePairs[chromosomeIndex].length * 0.48;
+        const pair = run.chromosomePairs[chromosomeIndex];
+        const height = this.chromatidHeight(
+          pair.length * 0.48,
+          pair.chromosome,
+          chromosome.sexChromosome,
+        );
         this.drawSegmentedRod(
           context,
           x - 58 + chromosomeIndex * 29,
           y - height / 2,
           height,
+          this.chromosomeLabel(chromosome.chromosome, chromosome.sexChromosome),
           chromatid?.loci ?? chromosome.loci,
+          chromatid?.origin ?? chromosome.loci[0]?.origin ?? 'homolog-b',
           6,
         );
       });
@@ -528,22 +696,40 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     x: number,
     y: number,
     height: number,
-    color: string,
+    chromosome: string,
     loci: readonly MeiosisLocusAllele[],
+    origin: 'homolog-a' | 'homolog-b',
     lineWidth = 8,
   ): void {
-    context.save();
-    context.strokeStyle = color;
-    context.lineWidth = lineWidth;
-    context.lineCap = 'round';
-    context.beginPath();
-    context.moveTo(x - 7, y - height / 2);
-    context.lineTo(x + 7, y + height / 2);
-    context.moveTo(x + 7, y - height / 2);
-    context.lineTo(x - 7, y + height / 2);
-    context.stroke();
-    loci.forEach((locus) => this.drawAlleleMarker(context, x + 14, y - height / 2 + height * locus.position, locus));
-    context.restore();
+    const angle = Math.atan2(14, Math.max(height, 1));
+    [-angle, angle].forEach((rotation) => {
+      context.save();
+      context.translate(x, y);
+      context.rotate(rotation);
+      this.drawChromosomeSegment(
+        context,
+        0,
+        -height / 2,
+        height,
+        chromosome,
+        0,
+        1,
+        origin,
+        lineWidth,
+      );
+      context.restore();
+    });
+    loci.forEach((locus, index) => {
+      this.drawAlleleMarker(
+        context,
+        x,
+        y - height / 2 + height * locus.position,
+        locus,
+        chromosome,
+        lineWidth,
+        index,
+      );
+    });
   }
 
   private drawRod(
@@ -551,11 +737,13 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     x: number,
     top: number,
     height: number,
-    color: string,
+    chromosome: string,
     loci: readonly MeiosisLocusAllele[],
+    origin: 'homolog-a' | 'homolog-b',
+    lineWidth = 8,
   ): void {
-    this.drawRodSection(context, x, top, top + height, color);
-    loci.forEach((locus) => this.drawAlleleMarker(context, x + 10, top + height * locus.position, locus));
+    this.drawChromosomeSegment(context, x, top, height, chromosome, 0, 1, origin, lineWidth);
+    this.drawLocusHighlights(context, x, top, height, chromosome, loci, lineWidth);
   }
 
   private drawSegmentedRod(
@@ -563,12 +751,23 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     x: number,
     top: number,
     height: number,
+    chromosome: string,
     loci: readonly MeiosisLocusAllele[],
+    fallbackOrigin: 'homolog-a' | 'homolog-b',
     lineWidth = 8,
   ): void {
     if (!loci.length) {
-      this.drawRodSection(context, x, top, top + height, '#f06ca9', lineWidth);
-      this.drawLabel(context, 'Y', x, top + height / 2 + 5);
+      this.drawChromosomeSegment(
+        context,
+        x,
+        top,
+        height,
+        chromosome,
+        0,
+        1,
+        fallbackOrigin,
+        lineWidth,
+      );
       return;
     }
     const ordered = [...loci].sort((left, right) => left.position - right.position);
@@ -578,16 +777,96 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     let start = 0;
     ordered.forEach((locus, index) => {
       const end = boundaries[index];
-      this.drawRodSection(
+      this.drawChromosomeSegment(
         context,
         x,
-        top + height * start,
-        top + height * end,
-        locus.origin === 'homolog-a' ? '#29c8e8' : '#f06ca9',
+        top,
+        height,
+        chromosome,
+        start,
+        end,
+        locus.origin,
         lineWidth,
       );
-      this.drawAlleleMarker(context, x + 9, top + height * locus.position, locus);
       start = end;
+    });
+    this.drawLocusHighlights(context, x, top, height, chromosome, ordered, lineWidth);
+  }
+
+  private drawChromosomeSegment(
+    context: CanvasRenderingContext2D,
+    x: number,
+    top: number,
+    height: number,
+    chromosome: string,
+    start: number,
+    end: number,
+    origin: 'homolog-a' | 'homolog-b',
+    lineWidth = 8,
+  ): void {
+    const visual = chromosomeVisual(chromosome);
+    const segmentStart = Math.max(0, Math.min(1, start));
+    const segmentEnd = Math.max(segmentStart, Math.min(1, end));
+    const startY = top + height * segmentStart;
+    const endY = top + height * segmentEnd;
+    this.drawRodSection(
+      context,
+      x,
+      startY,
+      endY,
+      origin === 'homolog-a' ? '#29c8e8' : '#f06ca9',
+      lineWidth + 4,
+    );
+
+    visual.bands.forEach((band) => {
+      const bandStart = Math.max(segmentStart, band.start);
+      const bandEnd = Math.min(segmentEnd, band.end);
+      if (bandEnd <= bandStart) return;
+      const bandStartY = top + height * bandStart;
+      const bandEndY = top + height * bandEnd;
+      this.drawRodSection(context, x, bandStartY, bandEndY, band.color, lineWidth);
+      if (band.pattern === 'hatch') {
+        this.drawHatch(context, x, bandStartY, bandEndY, lineWidth);
+      }
+    });
+
+    if (visual.centromere >= segmentStart && visual.centromere <= segmentEnd) {
+      const centromereY = top + height * visual.centromere;
+      context.save();
+      context.strokeStyle = '#564b40';
+      context.lineWidth = Math.max(1, lineWidth * 0.16);
+      context.beginPath();
+      context.moveTo(x - lineWidth * 0.62, centromereY);
+      context.lineTo(x + lineWidth * 0.62, centromereY);
+      context.stroke();
+      context.restore();
+    }
+  }
+
+  private drawLocusHighlights(
+    context: CanvasRenderingContext2D,
+    x: number,
+    top: number,
+    height: number,
+    chromosome: string,
+    loci: readonly MeiosisLocusAllele[],
+    lineWidth: number,
+  ): void {
+    loci.forEach((locus, index) => {
+      const color = this.locusColor(chromosome, locus.position, index);
+      const startY = top + height * Math.max(0, locus.position - 0.055);
+      const endY = top + height * Math.min(1, locus.position + 0.055);
+      this.drawRodSection(context, x, startY, endY, color, lineWidth);
+      this.drawAlleleStripe(context, x, startY, endY, lineWidth, locus.dominance === 'dominant');
+      this.drawAlleleMarker(
+        context,
+        x,
+        top + height * locus.position,
+        locus,
+        chromosome,
+        lineWidth,
+        index,
+      );
     });
   }
 
@@ -608,16 +887,105 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     context.stroke();
   }
 
+  private drawHatch(
+    context: CanvasRenderingContext2D,
+    x: number,
+    startY: number,
+    endY: number,
+    lineWidth: number,
+  ): void {
+    context.save();
+    context.beginPath();
+    context.rect(x - lineWidth / 2, startY, lineWidth, Math.max(0.5, endY - startY));
+    context.clip();
+    context.strokeStyle = '#a46947';
+    context.lineWidth = 0.8;
+    for (let y = startY - lineWidth; y <= endY + lineWidth; y += 3.5) {
+      context.beginPath();
+      context.moveTo(x - lineWidth / 2, y + lineWidth / 2);
+      context.lineTo(x + lineWidth / 2, y - lineWidth / 2);
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  private drawAlleleStripe(
+    context: CanvasRenderingContext2D,
+    x: number,
+    startY: number,
+    endY: number,
+    lineWidth: number,
+    dominant: boolean,
+  ): void {
+    context.save();
+    context.beginPath();
+    context.rect(x - lineWidth / 2, startY, lineWidth, Math.max(0.5, endY - startY));
+    context.clip();
+    context.strokeStyle = 'rgba(255, 255, 255, .72)';
+    context.lineWidth = Math.max(0.7, lineWidth * 0.12);
+    const direction = dominant ? 1 : -1;
+    for (let y = startY - lineWidth; y <= endY + lineWidth; y += 3.2) {
+      context.beginPath();
+      context.moveTo(x - lineWidth / 2, y);
+      context.lineTo(x + lineWidth / 2, y + direction * lineWidth);
+      context.stroke();
+    }
+    context.restore();
+  }
+
   private drawAlleleMarker(
     context: CanvasRenderingContext2D,
     x: number,
     y: number,
     locus: MeiosisLocusAllele,
+    chromosome: string,
+    lineWidth = 8,
+    fallbackIndex = 0,
   ): void {
-    context.fillStyle = '#fff7cf';
-    context.font = '800 10px ui-monospace, monospace';
-    context.textAlign = 'left';
-    context.fillText(locus.allele, x, y + 3);
+    const color = this.locusColor(chromosome, locus.position, fallbackIndex);
+    const radius = lineWidth <= 6 ? 3.6 : 4.5;
+    const markerX = x + lineWidth / 2 + radius + 2;
+    context.save();
+    context.strokeStyle = color;
+    context.lineWidth = 1.4;
+    context.beginPath();
+    context.moveTo(x - lineWidth * 0.62, y);
+    context.lineTo(markerX, y);
+    context.stroke();
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(markerX, y, radius, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = '#101126';
+    context.font = `800 ${lineWidth <= 6 ? 7 : 9}px ui-monospace, monospace`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(locus.allele, markerX, y + 0.25);
+    context.restore();
+  }
+
+  private chromosomeLabel(chromosome: string, sexChromosome: 'X' | 'Y' | null): string {
+    return sexChromosome === 'Y' ? 'Chr Y' : chromosome;
+  }
+
+  private chromatidHeight(
+    baseHeight: number,
+    chromosome: string,
+    sexChromosome: 'X' | 'Y' | null,
+  ): number {
+    const displayChromosome = this.chromosomeLabel(chromosome, sexChromosome);
+    if (displayChromosome === chromosome) return baseHeight;
+    return (
+      (baseHeight * chromosomeVisual(displayChromosome).length) /
+      chromosomeVisual(chromosome).length
+    );
+  }
+
+  private locusColor(chromosome: string, position: number, fallbackIndex: number): string {
+    const positions = chromosomeVisual(chromosome).locusPositions;
+    const matchedIndex = positions.findIndex((candidate) => Math.abs(candidate - position) < 0.001);
+    const index = matchedIndex >= 0 ? matchedIndex : fallbackIndex;
+    return DRAGON_LOCUS_COLORS[index % DRAGON_LOCUS_COLORS.length];
   }
 
   private drawLabel(context: CanvasRenderingContext2D, label: string, x: number, y: number): void {

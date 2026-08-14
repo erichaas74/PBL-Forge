@@ -414,11 +414,25 @@ export function miniFounder(id: string): MiniFounderDefinition | null {
   return MINI_FOUNDERS.find((founder) => founder.id === id) ?? null;
 }
 
+/**
+ * FNV-1a with an avalanche finalizer.
+ *
+ * The finalizer is load-bearing, not decoration. Plain FNV-1a mixes its low bits
+ * terribly — because the prime is odd, the lowest bit of the result is just the
+ * parity of the low bits of the input — so `hash(seed) % 2`, which is how an
+ * allele is drawn, does not segregate: seeds that differ only in a trailing
+ * index alternate in lockstep instead. A twelve-pup litter from two
+ * heterozygous parents came back twelve-for-twelve dominant before this was
+ * added, which is not Mendelian inheritance, it is a counter.
+ */
 function stableHash(value: string): number {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
     hash ^= value.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 2246822507);
+  hash ^= hash >>> 13;
   return hash >>> 0;
 }

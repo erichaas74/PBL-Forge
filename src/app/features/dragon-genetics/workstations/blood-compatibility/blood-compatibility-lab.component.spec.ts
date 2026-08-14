@@ -37,15 +37,15 @@ describe('BloodCompatibilityLabComponent', () => {
     component.loadPatientRecord(accountDragon('ember'));
     component.loadPatientSample();
 
-    component.selectReagent('flame');
+    component.selectReagent('a');
     component.applyPendingReagent();
-    component.dropReagent(dragEvent('application/x-pbl-blood-reagent', 'tide'));
+    component.dropReagent(dragEvent('application/x-pbl-blood-reagent', 'b'));
 
     const test = component.patientTest();
-    expect(test?.antiFlame).toBeTrue();
-    expect(test?.antiTide).toBeTrue();
-    expect(component.patientBloodType()?.id).toBe('dual');
-    expect(component.patientBloodType()?.possibleGenotypes).toEqual(['FT']);
+    expect(test?.antiA).toBeTrue();
+    expect(test?.antiB).toBeTrue();
+    expect(component.patientBloodType()?.id).toBe('ab-positive');
+    expect(component.patientBloodType()?.possibleGenotypes).toEqual(['AB']);
   });
 
   it('gives donor selection a click path equivalent to dropping a donor card', () => {
@@ -68,7 +68,7 @@ describe('BloodCompatibilityLabComponent', () => {
     component.authorizeTransfusion();
 
     expect(component.latestChamberTrial()?.compatible).toBeFalse();
-    expect(component.latestChamberTrial()?.unfamiliarMarkers).toEqual(['flame']);
+    expect(component.latestChamberTrial()?.unfamiliarMarkers).toEqual(['a']);
     expect(component.patientCondition()).toBe('reaction');
   });
 
@@ -85,14 +85,14 @@ describe('BloodCompatibilityLabComponent', () => {
     expect(component.patientCondition()).toBe('stable');
 
     component.updateExplanation(
-      'Cinder has no Flame or Tide markers, so the patient recognizes every donor-cell marker.',
+      'Cinder has no A or B antigens, so the patient recognizes every donor-cell antigen.',
     );
     expect(component.canSaveRecord()).toBeTrue();
     component.saveEmergencyRecord();
 
     expect(component.records().length).toBe(1);
-    expect(component.records()[0].patientPhenotype).toBe('dual');
-    expect(component.records()[0].donorPhenotype).toBe('clear');
+    expect(component.records()[0].patientPhenotype).toBe('ab-positive');
+    expect(component.records()[0].donorPhenotype).toBe('o-positive');
     expect(component.records()[0].mode).toBe('challenge');
   });
 
@@ -106,8 +106,8 @@ describe('BloodCompatibilityLabComponent', () => {
     } else {
       component.loadDonorSample(specimenId);
     }
-    component.applyReagent('flame');
-    component.applyReagent('tide');
+    component.applyReagent('a');
+    component.applyReagent('b');
   }
 });
 

@@ -91,4 +91,17 @@ describe('ChromosomeSvgComponent', () => {
 
     expect(selected).toBe('WNG-17');
   });
+
+  it('can reveal every loaded locus in a read-only chromosome diagram', () => {
+    fixture.componentRef.setInput('selectedLocus', null);
+    fixture.componentRef.setInput('showAllLoci', true);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('.gene-locus--visible')).not.toBeNull();
+    expect(element.querySelector('.allele-symbol')?.textContent?.trim()).toBe('CH1-G1a');
+    expect(element.querySelector('svg')?.getAttribute('aria-label')).toContain(
+      'WNG-17, allele CH1-G1a',
+    );
+  });
 });

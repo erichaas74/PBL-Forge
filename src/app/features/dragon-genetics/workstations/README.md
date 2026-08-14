@@ -11,9 +11,15 @@ sequence.
 - `blood-compatibility/` owns antiserum testing, the multiple-allele blood catalog, donor supply
   constraints, transfusion compatibility, the Healing Chamber, and persistent emergency records.
   It has its own open-workstation route at `/dragon-genetics/blood-type-lab`.
-- `companion-show/` owns the student-written breed standard, the kennel and its pedigree, litters and
-  the nursery, the pedigree-only bloodline meter, and the breed registry. It is the open-workstation
-  alternative to the arena and has its own route at `/dragon-genetics/companion-show`.
+- `companion-show/` owns the **mini dragon** — a separate species from the four-gene lab dragon, with
+  its own six loci across five inheritance patterns (`mini-dragon.genetics.ts`), its own genome →
+  blueprint builder (`mini-dragon.anatomy.ts`), and its own judged show-ring trials
+  (`mini-dragon.events.ts`) — plus the student-written breed standard, the kennel and its pedigree,
+  litters and the nursery, the pedigree-only bloodline meter, and the breed registry. It is the
+  open-workstation alternative to the arena and has its own route at
+  `/dragon-genetics/companion-show`. Its anatomy is rendered by
+  `src/app/shared/assembly/rendering/mini-dragon-procedural-mesh.factory.ts`, which shares nothing
+  with the classic dragon factory.
 - `dna-process-lab/` owns DNA sequence comparison, mutation, and repair tools.
 - `dragon-hatchery/` owns account-parent loading, five-pair meiosis and gamete selection, selected
   fertilization records, parent canvases, the egg bench, Hatchery renderer, and scene adapter.

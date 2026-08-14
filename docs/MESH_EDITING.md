@@ -25,6 +25,11 @@ will try to reshape a skull by scaling primitives and get nowhere.
 
 ## Where everything lives
 
+There are **two** procedural species. Everything below describes the classic dragon. The
+domesticated mini dragon of the Mini Dragon Show is a separate animal in
+`src/app/shared/assembly/rendering/mini-dragon-procedural-mesh.factory.ts`, sharing no builder,
+silhouette, palette, or texture with it — see the table row at the end of the map.
+
 | Concern | Path |
 | --- | --- |
 | **All part geometry** — every `build*` function, `DEFAULT_DRAGON_STYLE`, the `profileId` switch | `src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.ts` |
@@ -39,6 +44,17 @@ will try to reshape a skull by scaling primitives and get nowhere.
 | Genome → visual parameters | `src/app/features/dragon-genetics/simulation/domain/dragon-inheritance.ts` |
 | Style → parameters at export | `designer/src/app/dragon-model-pack-export.ts` |
 | Published-model assertions | `scripts/check-dragon-model-compatibility.mjs` |
+| **Mini dragon** — all six of its builders, its own palette, materials, and profile ids | `src/app/shared/assembly/rendering/mini-dragon-procedural-mesh.factory.ts` |
+| Mini dragon genome → blueprint (no published pack involved) | `src/app/features/dragon-genetics/workstations/companion-show/mini-dragon.anatomy.ts` |
+
+### The mini dragon is not in the model pack
+
+The classic dragon is stamped from `model-packs/dragon-model-pack.v1.json`, validated against
+`SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS`, and rescaled per genome. The mini dragon is assembled part
+by part in code instead, because its genes change *which parts exist* and their proportions relative
+to each other — a uniform rescale of one authored skeleton cannot express that. It therefore needs no
+pack entry and no supported-profile-id registration, and `npm run build` does not check it. Its
+parameter keys are all `mini`-prefixed so the two species' `parameters` contracts stay disjoint.
 
 ## What a change drags along
 

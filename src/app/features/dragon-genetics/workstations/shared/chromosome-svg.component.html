@@ -91,6 +91,7 @@
       <g
         class="gene-locus"
         [class.gene-locus--active]="locus.active"
+        [class.gene-locus--visible]="showAllLoci()"
         [class.gene-locus--interactive]="interactive()"
         [attr.data-locus]="locus.label"
         (click)="selectLocus(locus.label)"
@@ -107,7 +108,7 @@
           [attr.stroke]="locus.color"
           [attr.filter]="locus.active ? 'url(#' + glowId + ')' : null"
         />
-        @if (locus.active || interactive()) {
+        @if (locus.active || interactive() || showAllLoci()) {
           <circle
             [attr.cx]="locus.x"
             cy="16"

@@ -45,7 +45,7 @@
       <header>
         <div>
           <span class="panel-code">REFERENCE MODEL</span>
-          <h3>Three alleles, four marker phenotypes</h3>
+          <h3>Three alleles, four Rh-positive blood types</h3>
         </div>
         <button
           type="button"
@@ -56,13 +56,13 @@
         </button>
       </header>
       <div class="allele-key">
-        <span><b>F</b>Flame marker</span>
-        <span><b>T</b>Tide marker</span>
-        <span><b>o</b>No surface marker</span>
+        <span><b>A</b>A antigen</span>
+        <span><b>B</b>B antigen</span>
+        <span><b>O</b>No A or B antigen</span>
       </div>
       <p>
-        F and T are codominant: an FT dragon displays both markers. F and T are each expressed over
-        o. In this simplified red-cell model, every donor marker must already be present on the
+        A and B are codominant: an AB dragon displays both antigens. A and B are each expressed over
+        O. Every blood type in this lab is Rh positive. In this simplified red-cell model, every donor antigen must already be present on the
         recipient's cells.
       </p>
       <div class="type-reference">
@@ -75,8 +75,8 @@
         }
       </div>
       <small>
-        Fictional teaching model only: Rh factors, plasma compatibility, and clinical crossmatching
-        are outside this simulation.
+        Simplified teaching model: all blood types shown are Rh positive; plasma compatibility and
+        clinical crossmatching are outside this simulation.
       </small>
     </aside>
   }
@@ -309,10 +309,34 @@
                 [class.agglutination]="reaction === true"
                 [class.smooth]="reaction === false"
               >
-                <div class="well-visual" aria-hidden="true">
-                  @for (drop of [0, 1, 2, 3, 4, 5, 6, 7]; track drop) {
-                    <i></i>
-                  }
+                <div class="well-visual" [attr.data-marker]="reagent.marker" aria-hidden="true">
+                  <div class="serum-vial"><span>{{ reagent.code }}</span></div>
+                  <i class="serum-drop"></i>
+                  <div class="well-dish">
+                    <div class="well-liquid">
+                      <i class="mix-ring"></i>
+                      @for (cell of [
+                        { x: '22%', y: '23%', r: '12deg', d: '0ms' },
+                        { x: '48%', y: '18%', r: '-15deg', d: '35ms' },
+                        { x: '74%', y: '28%', r: '25deg', d: '70ms' },
+                        { x: '25%', y: '51%', r: '-30deg', d: '105ms' },
+                        { x: '55%', y: '46%', r: '8deg', d: '140ms' },
+                        { x: '78%', y: '53%', r: '-20deg', d: '175ms' },
+                        { x: '20%', y: '74%', r: '22deg', d: '210ms' },
+                        { x: '47%', y: '72%', r: '-8deg', d: '245ms' },
+                        { x: '72%', y: '76%', r: '15deg', d: '280ms' },
+                        { x: '84%', y: '40%', r: '-24deg', d: '315ms' },
+                      ]; track $index) {
+                        <i
+                          class="test-cell"
+                          [style.--cell-x]="cell.x"
+                          [style.--cell-y]="cell.y"
+                          [style.--cell-r]="cell.r"
+                          [style.--cell-delay]="cell.d"
+                        ></i>
+                      }
+                    </div>
+                  </div>
                 </div>
                 <strong>{{ reagent.name }}</strong>
                 <span>{{
@@ -367,21 +391,21 @@
           <p>{{ patient.dragonName }}</p>
           <div class="reaction-pair">
             <span
-              >AF
+              >AA
               <b>{{
-                testFor(patient.id)?.antiFlame === null || !testFor(patient.id)
+                testFor(patient.id)?.antiA === null || !testFor(patient.id)
                   ? '—'
-                  : testFor(patient.id)?.antiFlame
+                  : testFor(patient.id)?.antiA
                     ? '+'
                     : '−'
               }}</b></span
             >
             <span
-              >AT
+              >AB
               <b>{{
-                testFor(patient.id)?.antiTide === null || !testFor(patient.id)
+                testFor(patient.id)?.antiB === null || !testFor(patient.id)
                   ? '—'
-                  : testFor(patient.id)?.antiTide
+                  : testFor(patient.id)?.antiB
                     ? '+'
                     : '−'
               }}</b></span
@@ -398,10 +422,10 @@
             </header>
             <div class="reaction-pair">
               <span
-                >AF <b>{{ test.antiFlame === null ? '—' : test.antiFlame ? '+' : '−' }}</b></span
+                >AA <b>{{ test.antiA === null ? '—' : test.antiA ? '+' : '−' }}</b></span
               >
               <span
-                >AT <b>{{ test.antiTide === null ? '—' : test.antiTide ? '+' : '−' }}</b></span
+                >AB <b>{{ test.antiB === null ? '—' : test.antiB ? '+' : '−' }}</b></span
               >
             </div>
           </article>
@@ -461,11 +485,11 @@
               [class.clumped]="latestChamberTrial()?.compatible === false"
               aria-hidden="true"
             >
-              @if (donorType?.markers?.includes('flame')) {
-                <i class="flame-marker">F</i>
+              @if (donorType?.markers?.includes('a')) {
+                <i class="a-marker">A</i>
               }
-              @if (donorType?.markers?.includes('tide')) {
-                <i class="tide-marker">T</i>
+              @if (donorType?.markers?.includes('b')) {
+                <i class="b-marker">B</i>
               }
             </span>
           }

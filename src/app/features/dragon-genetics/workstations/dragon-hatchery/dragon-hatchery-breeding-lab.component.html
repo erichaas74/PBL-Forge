@@ -4,8 +4,8 @@
       <span class="eyebrow">DRAGON HATCHERY · BREEDING WORKSPACE</span>
       <h2>Build this clutch from real gametes</h2>
       <p>
-        Choose two account dragons, observe a different five-chromosome meiosis in each parent,
-        then select the egg and sperm that will form every Hatchery egg.
+        Choose a female and male account dragon, observe a different five-chromosome meiosis in
+        each parent, then select the egg and sperm that will form every Hatchery egg.
       </p>
     </div>
     @if (clutch().length) {
@@ -13,207 +13,212 @@
     }
   </header>
 
-  <div class="lab-layout">
-    <app-account-genetics-file
-      [studentId]="studentId()"
-      [selectedRecordId]="selectedAccountRecord()?.id ?? null"
-      (recordSelected)="selectAccountRecord($event)"
-    />
-
-    <main class="breeding-workspace">
-      <section class="parent-setup" aria-labelledby="parent-setup-title">
-        <header>
+  <main class="breeding-workspace">
+    <section class="parent-setup" aria-labelledby="parent-setup-title">
+      <header>
+        <div>
+          <span class="step-number">01</span>
           <div>
-            <span class="step-number">01</span>
-            <div>
-              <h3 id="parent-setup-title">Select both parents first</h3>
-              <p>{{ statusMessage() }}</p>
-            </div>
+            <h3 id="parent-setup-title">Choose the female and male parents</h3>
+            <p>{{ statusMessage() }}</p>
           </div>
-          @if (selectedDragon(); as selected) {
-            <span class="record-in-hand">Selected: <b>{{ selected.name }}</b></span>
-          }
+        </div>
+      </header>
+
+      <div class="parent-selectors">
+        <article
+          class="parent-selector female"
+          [class.loaded]="eggParent()"
+          (dragover)="allowDrop($event)"
+          (drop)="dropParent('female', $event)"
+        >
+          <header>
+            <div>
+              <span class="role">FEMALE DRAGONS · EGG PARENT</span>
+              @if (eggParent(); as parent) {
+                <strong>{{ parent.name }} selected</strong>
+                <small>{{ targetTrait().geneSymbol }}: {{ parentGenotype(parent) }}</small>
+              } @else {
+                <strong>Choose a female dragon</strong>
+                <small>Select one below or drop its whole record here.</small>
+              }
+            </div>
+          </header>
+
+          <div class="dragon-choice-list" aria-label="Female dragons">
+            @for (dragon of femaleDragons(); track dragon.id) {
+              <button
+                type="button"
+                class="dragon-choice"
+                [class.selected]="eggParentId() === dragon.id"
+                [attr.aria-pressed]="eggParentId() === dragon.id"
+                draggable="true"
+                (click)="selectParent('female', dragon)"
+                (dragstart)="startParentDrag($event, dragon)"
+              >
+                <i
+                  [style.--dragon-color]="dragon.color"
+                  [style.--dragon-accent]="dragon.accentColor"
+                  aria-hidden="true"
+                >
+                  {{ dragon.name.slice(0, 1) }}
+                </i>
+                <span><strong>{{ dragon.name }}</strong><small>{{ dragon.title }}</small></span>
+                <b>{{ eggParentId() === dragon.id ? 'Selected ✓' : 'Choose' }}</b>
+              </button>
+            }
+          </div>
+        </article>
+
+        <div class="pair-mark" aria-hidden="true"><span>×</span><small>BREEDING PAIR</small></div>
+
+        <article
+          class="parent-selector male"
+          [class.loaded]="spermParent()"
+          (dragover)="allowDrop($event)"
+          (drop)="dropParent('male', $event)"
+        >
+          <header>
+            <div>
+              <span class="role">MALE DRAGONS · SPERM PARENT</span>
+              @if (spermParent(); as parent) {
+                <strong>{{ parent.name }} selected</strong>
+                <small>{{ targetTrait().geneSymbol }}: {{ parentGenotype(parent) }}</small>
+              } @else {
+                <strong>Choose a male dragon</strong>
+                <small>Select one below or drop its whole record here.</small>
+              }
+            </div>
+          </header>
+
+          <div class="dragon-choice-list" aria-label="Male dragons">
+            @for (dragon of maleDragons(); track dragon.id) {
+              <button
+                type="button"
+                class="dragon-choice"
+                [class.selected]="spermParentId() === dragon.id"
+                [attr.aria-pressed]="spermParentId() === dragon.id"
+                draggable="true"
+                (click)="selectParent('male', dragon)"
+                (dragstart)="startParentDrag($event, dragon)"
+              >
+                <i
+                  [style.--dragon-color]="dragon.color"
+                  [style.--dragon-accent]="dragon.accentColor"
+                  aria-hidden="true"
+                >
+                  {{ dragon.name.slice(0, 1) }}
+                </i>
+                <span><strong>{{ dragon.name }}</strong><small>{{ dragon.title }}</small></span>
+                <b>{{ spermParentId() === dragon.id ? 'Selected ✓' : 'Choose' }}</b>
+              </button>
+            }
+          </div>
+        </article>
+      </div>
+    </section>
+
+    @if (parentsReady()) {
+      <section class="fertilization-bench" aria-label="Selected gamete chambers">
+        <header>
+          <span class="step-number">02</span>
+          <div>
+            <h3>Run meiosis, then load the chambers</h3>
+            <p>Drag a gamete here or use its Send button.</p>
+          </div>
         </header>
-
-        <div class="parent-chambers">
-          <article
-            class="parent-chamber female"
-            [class.loaded]="eggParent()"
+        <div class="gamete-chambers">
+          <button
+            type="button"
+            class="gamete-slot egg-slot"
+            [class.filled]="eggSelection()"
+            [class.active]="activeRole() === 'female'"
+            (click)="activeRole.set('female')"
             (dragover)="allowDrop($event)"
-            (drop)="dropParent('female', $event)"
+            (drop)="dropGamete('female', $event)"
           >
-            <span class="role">EGG PARENT · FEMALE</span>
-            @if (eggParent(); as parent) {
-              <div class="parent-identity">
-                <i [style.--dragon-color]="parent.color" [style.--dragon-accent]="parent.accentColor">
-                  {{ parent.name.slice(0, 1) }}
-                </i>
-                <div><strong>{{ parent.name }}</strong><small>{{ parent.title }}</small></div>
-              </div>
-              <code>{{ targetTrait().geneSymbol }}: {{ parentGenotype(parent) }}</code>
-            } @else {
-              <strong>Drop a whole dragon record</strong>
-              <small>This parent will produce the egg gametes.</small>
-            }
-            <button type="button" (click)="loadSelectedParent('female')" [disabled]="!selectedDragon()">
-              Load selected dragon
-            </button>
-          </article>
-
-          <div class="pair-mark" aria-hidden="true"><span>×</span><small>BREEDING PAIR</small></div>
-
-          <article
-            class="parent-chamber male"
-            [class.loaded]="spermParent()"
+            <span aria-hidden="true">◯</span>
+            <div>
+              <small>SELECTED EGG</small><strong>{{ selectionSummary(eggSelection()) }}</strong>
+            </div>
+          </button>
+          <div class="fusion" aria-hidden="true"><i></i><b>+</b><i></i></div>
+          <button
+            type="button"
+            class="gamete-slot sperm-slot"
+            [class.filled]="spermSelection()"
+            [class.active]="activeRole() === 'male'"
+            (click)="activeRole.set('male')"
             (dragover)="allowDrop($event)"
-            (drop)="dropParent('male', $event)"
+            (drop)="dropGamete('male', $event)"
           >
-            <span class="role">SPERM PARENT · MALE</span>
-            @if (spermParent(); as parent) {
-              <div class="parent-identity">
-                <i [style.--dragon-color]="parent.color" [style.--dragon-accent]="parent.accentColor">
-                  {{ parent.name.slice(0, 1) }}
-                </i>
-                <div><strong>{{ parent.name }}</strong><small>{{ parent.title }}</small></div>
-              </div>
-              <code>{{ targetTrait().geneSymbol }}: {{ parentGenotype(parent) }}</code>
-            } @else {
-              <strong>Drop a whole dragon record</strong>
-              <small>This parent will produce the sperm gametes.</small>
-            }
-            <button type="button" (click)="loadSelectedParent('male')" [disabled]="!selectedDragon()">
-              Load selected dragon
-            </button>
-          </article>
+            <span aria-hidden="true">⌁</span>
+            <div>
+              <small>SELECTED SPERM</small><strong>{{ selectionSummary(spermSelection()) }}</strong>
+            </div>
+          </button>
+          <button type="button" class="fertilize" [disabled]="!canFertilize()" (click)="fertilize()">
+            Fertilize Hatchery egg
+            <small>{{ canFertilize() ? 'Combine the selected haploid genomes' : 'Two gametes required' }}</small>
+          </button>
         </div>
       </section>
 
-      @if (parentsReady()) {
-        <section class="allele-objective" [class.possible]="targetPossible()">
-          <div class="objective-copy">
-            <span class="step-number">02</span>
-            <div>
-              <small>ALLELE HUNT</small>
-              <strong>Can this family produce {{ targetTrait().recessivePhenotype }}?</strong>
-              <p>
-                A recessive offspring needs <b>{{ targetTrait().recessiveAllele }}</b> from both
-                selected gametes. Inspect the chromosomes before choosing.
-              </p>
-            </div>
-          </div>
-          <label>
-            Target trait
-            <select [value]="targetTraitId()" (change)="setTarget($event)">
-              @for (trait of traits; track trait.id) {
-                <option [value]="trait.id" [selected]="trait.id === targetTraitId()">
-                  {{ trait.name }} · {{ trait.recessiveAllele }}{{ trait.recessiveAllele }}
-                </option>
-              }
-            </select>
-          </label>
-          <span class="possibility">
-            {{
-              targetPossible()
-                ? 'Both parents carry the target allele.'
-                : 'At least one parent cannot contribute the target allele. You can investigate or change the family.'
-            }}
-          </span>
-        </section>
-
-        <section class="fertilization-bench" aria-label="Selected gamete chambers">
-          <header>
-            <span class="step-number">03</span>
-            <div><h3>Run meiosis, then load the chambers</h3><p>Drag a gamete here or use its Send button.</p></div>
-          </header>
-          <div class="gamete-chambers">
-            <button
-              type="button"
-              class="gamete-slot egg-slot"
-              [class.filled]="eggSelection()"
-              [class.active]="activeRole() === 'female'"
-              (click)="activeRole.set('female')"
-              (dragover)="allowDrop($event)"
-              (drop)="dropGamete('female', $event)"
-            >
-              <span aria-hidden="true">◯</span>
-              <div><small>SELECTED EGG</small><strong>{{ selectionSummary(eggSelection()) }}</strong></div>
-            </button>
-            <div class="fusion" aria-hidden="true"><i></i><b>+</b><i></i></div>
-            <button
-              type="button"
-              class="gamete-slot sperm-slot"
-              [class.filled]="spermSelection()"
-              [class.active]="activeRole() === 'male'"
-              (click)="activeRole.set('male')"
-              (dragover)="allowDrop($event)"
-              (drop)="dropGamete('male', $event)"
-            >
-              <span aria-hidden="true">⌁</span>
-              <div><small>SELECTED SPERM</small><strong>{{ selectionSummary(spermSelection()) }}</strong></div>
-            </button>
-            <button type="button" class="fertilize" [disabled]="!canFertilize()" (click)="fertilize()">
-              Fertilize Hatchery egg
-              <small>{{ canFertilize() ? 'Combine the selected haploid genomes' : 'Two gametes required' }}</small>
-            </button>
-          </div>
-        </section>
-
-        @if (activeParent(); as parent) {
-          @if (activeRole() === 'female') {
-            <app-meiosis-gamete-selector
-              [parent]="parent"
-              sex="female"
-              roleLabel="Egg parent"
-              [targetTraitId]="targetTraitId()"
-              [baseSeed]="seed() + ':egg:' + clutch().length"
-              (runChanged)="captureRun('female', $event)"
-              (gameteSelected)="selectGamete('female', $event)"
-            />
-          } @else {
-            <app-meiosis-gamete-selector
-              [parent]="parent"
-              sex="male"
-              roleLabel="Sperm parent"
-              [targetTraitId]="targetTraitId()"
-              [baseSeed]="seed() + ':sperm:' + clutch().length"
-              (runChanged)="captureRun('male', $event)"
-              (gameteSelected)="selectGamete('male', $event)"
-            />
-          }
-        }
-      } @else {
-        <section class="waiting-cell" aria-live="polite">
-          <i></i><i></i><i></i><i></i><i></i>
-          <strong>The meiosis microscope is waiting for both parents.</strong>
-          <span>Load one female-role dragon and one male-role dragon from the account file.</span>
-        </section>
-      }
-
-      @if (clutch().length && selectedPair(); as parents) {
-        <section class="hatchery-output">
-          <header>
-            <span class="step-number">04</span>
-            <div>
-              <small>FERTILIZATION RECORD · {{ fertilizations().length }} SAVED</small>
-              <h3>Your selected-gamete clutch</h3>
-              <p>Every egg below came from one egg gamete and one sperm gamete you chose.</p>
-            </div>
-          </header>
-          <app-dragon-hatchery-station
-            [openLab]="true"
-            [clutch]="clutch()"
-            [parents]="parents"
-            clutchId="selected-gamete-clutch"
-            clutchLabel="Selected-gamete clutch"
-            [focusTraitId]="targetTraitId()"
-            moduleId="adaptive-hatchery-meiosis"
-            [requirePrediction]="false"
-            [examineBudget]="null"
-            [sampleBudget]="null"
-            [hatchLimit]="null"
+      @if (activeParent(); as parent) {
+        @if (activeRole() === 'female') {
+          <app-meiosis-gamete-selector
+            [parent]="parent"
+            sex="female"
+            roleLabel="Egg parent"
+            [targetTraitId]="targetTraitId()"
+            [baseSeed]="seed() + ':egg:' + clutch().length"
+            (runChanged)="captureRun('female', $event)"
+            (gameteSelected)="selectGamete('female', $event)"
           />
-        </section>
+        } @else {
+          <app-meiosis-gamete-selector
+            [parent]="parent"
+            sex="male"
+            roleLabel="Sperm parent"
+            [targetTraitId]="targetTraitId()"
+            [baseSeed]="seed() + ':sperm:' + clutch().length"
+            (runChanged)="captureRun('male', $event)"
+            (gameteSelected)="selectGamete('male', $event)"
+          />
+        }
       }
-    </main>
-  </div>
+    } @else {
+      <section class="waiting-cell" aria-live="polite">
+        <i></i><i></i><i></i><i></i><i></i>
+        <strong>The meiosis microscope is waiting for both parents.</strong>
+        <span>Choose one dragon from each parent selector above.</span>
+      </section>
+    }
+
+    @if (clutch().length && selectedPair(); as parents) {
+      <section class="hatchery-output">
+        <header>
+          <span class="step-number">03</span>
+          <div>
+            <small>FERTILIZATION RECORD · {{ fertilizations().length }} SAVED</small>
+            <h3>Your selected-gamete clutch</h3>
+            <p>Every egg below came from one egg gamete and one sperm gamete you chose.</p>
+          </div>
+        </header>
+        <app-dragon-hatchery-station
+          [openLab]="true"
+          [clutch]="clutch()"
+          [parents]="parents"
+          clutchId="selected-gamete-clutch"
+          clutchLabel="Selected-gamete clutch"
+          [focusTraitId]="targetTraitId()"
+          moduleId="adaptive-hatchery-meiosis"
+          [requirePrediction]="false"
+          [examineBudget]="null"
+          [sampleBudget]="null"
+          [hatchLimit]="null"
+        />
+      </section>
+    }
+  </main>
 </section>

@@ -224,16 +224,29 @@ describe('show ring trials', () => {
     expect(miniRibbonCount(best)).toBeLessThan(MINI_TRIALS.length);
   });
 
-  it('never names a gene or a genotype in a trial result', () => {
+  it('never names a gene or an allele in a trial result', () => {
     const genome = genomeWith({});
     const text = MINI_TRIALS.map((trial) => {
       const result = runMiniTrial(trial.id, genome);
       return `${trial.name} ${trial.brief} ${result.outcome.label} ${result.outcome.detail}`;
     }).join(' ');
+    const tokens = new Set(text.split(/[^A-Za-z]+/).filter(Boolean));
 
     expect(text.toLowerCase()).not.toContain('allele');
     expect(text.toLowerCase()).not.toContain('genotype');
-    expect(text).not.toMatch(/\b[A-Z][a-z]?[A-Za-z]\b(?=\s|$)/);
+    for (const gene of MINI_DRAGON_GENES) {
+      // Single-letter symbols cannot be told apart from English ("A weaving
+      // course"), so the check is on what leakage actually looks like: a written
+      // genotype pair, or a multi-letter symbol standing on its own.
+      for (const left of gene.alleles) {
+        for (const right of gene.alleles) {
+          expect(text).withContext(`${gene.id}/${left}${right}`).not.toContain(left + right);
+        }
+        if (left.length > 1) {
+          expect(tokens).withContext(`${gene.id}/${left}`).not.toContain(left);
+        }
+      }
+    }
   });
 });
 

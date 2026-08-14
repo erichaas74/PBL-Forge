@@ -1,9 +1,9 @@
 import { AccountDragonRecord } from '../shared/account-genetics-library.models';
 
-export type BloodAllele = 'F' | 'T' | 'o';
-export type BloodGenotype = 'FF' | 'Fo' | 'TT' | 'To' | 'FT' | 'oo';
-export type BloodMarker = 'flame' | 'tide';
-export type BloodPhenotypeId = 'flame' | 'tide' | 'dual' | 'clear';
+export type BloodAllele = 'A' | 'B' | 'O';
+export type BloodGenotype = 'AA' | 'AO' | 'BB' | 'BO' | 'AB' | 'OO';
+export type BloodMarker = 'a' | 'b';
+export type BloodPhenotypeId = 'a-positive' | 'b-positive' | 'ab-positive' | 'o-positive';
 export type BloodLabMode = 'standard' | 'challenge';
 
 export interface BloodTypeDefinition {
@@ -35,8 +35,8 @@ export interface DonorCandidate extends BloodSpecimen {
 export interface BloodTestEvidence {
   specimenId: string;
   sampleCode: string;
-  antiFlame: boolean | null;
-  antiTide: boolean | null;
+  antiA: boolean | null;
+  antiB: boolean | null;
   testedAtIso: string;
 }
 
@@ -68,7 +68,7 @@ export interface BloodEmergencyRecord {
   transfusionTrials: readonly TransfusionTrial[];
   mode: BloodLabMode;
   supplyNote: string;
-  codominantAlleles: readonly ['F', 'T'];
+  codominantAlleles: readonly ['A', 'B'];
   explanation: string;
   savedAtIso: string;
 }
@@ -81,40 +81,40 @@ export interface StoredBloodEmergencyRecords {
 
 export const BLOOD_TYPE_DEFINITIONS: readonly BloodTypeDefinition[] = [
   {
-    id: 'flame',
-    name: 'Flame',
-    markerLabel: 'Flame marker only',
-    markers: ['flame'],
-    possibleGenotypes: ['FF', 'Fo'],
+    id: 'a-positive',
+    name: 'A+',
+    markerLabel: 'A antigen · Rh positive',
+    markers: ['a'],
+    possibleGenotypes: ['AA', 'AO'],
   },
   {
-    id: 'tide',
-    name: 'Tide',
-    markerLabel: 'Tide marker only',
-    markers: ['tide'],
-    possibleGenotypes: ['TT', 'To'],
+    id: 'b-positive',
+    name: 'B+',
+    markerLabel: 'B antigen · Rh positive',
+    markers: ['b'],
+    possibleGenotypes: ['BB', 'BO'],
   },
   {
-    id: 'dual',
-    name: 'Dual',
-    markerLabel: 'Flame and Tide markers',
-    markers: ['flame', 'tide'],
-    possibleGenotypes: ['FT'],
+    id: 'ab-positive',
+    name: 'AB+',
+    markerLabel: 'A and B antigens · Rh positive',
+    markers: ['a', 'b'],
+    possibleGenotypes: ['AB'],
   },
   {
-    id: 'clear',
-    name: 'Clear',
-    markerLabel: 'No Flame or Tide markers',
+    id: 'o-positive',
+    name: 'O+',
+    markerLabel: 'No A or B antigens · Rh positive',
     markers: [],
-    possibleGenotypes: ['oo'],
+    possibleGenotypes: ['OO'],
   },
 ];
 
 const FOUNDATION_PATIENT_GENOTYPES: Readonly<Record<string, BloodGenotype>> = {
-  ember: 'FT',
-  tide: 'Fo',
-  moss: 'To',
-  quartz: 'oo',
+  ember: 'AB',
+  tide: 'AO',
+  moss: 'BO',
+  quartz: 'OO',
 };
 
 interface ClinicDonorDefinition {
@@ -138,7 +138,7 @@ const CLINIC_DONORS: readonly ClinicDonorDefinition[] = [
     title: 'Berk reserve donor',
     color: '#47515a',
     accentColor: '#d9e2e7',
-    genotype: 'oo',
+    genotype: 'OO',
     standardCondition: 'Cleared for routine donation',
     challengeCondition: 'One reserve unit remains',
     challengeStewardship:
@@ -152,7 +152,7 @@ const CLINIC_DONORS: readonly ClinicDonorDefinition[] = [
     title: 'Flight patrol breeder',
     color: '#ae3f31',
     accentColor: '#f2a24f',
-    genotype: 'TT',
+    genotype: 'BB',
     standardCondition: 'Cleared for routine donation',
     challengeCondition: 'Two units available',
     challengeStewardship: 'Carries a rare flight-endurance line used by the breeding program.',
@@ -165,7 +165,7 @@ const CLINIC_DONORS: readonly ClinicDonorDefinition[] = [
     title: 'Coastal rescue dragon',
     color: '#2d719d',
     accentColor: '#73d5e8',
-    genotype: 'Fo',
+    genotype: 'AO',
     standardCondition: 'Cleared for routine donation',
     challengeCondition: 'Recovering from smoke exposure',
     challengeStewardship: 'Temporarily unavailable; donation would slow recovery.',
@@ -178,7 +178,7 @@ const CLINIC_DONORS: readonly ClinicDonorDefinition[] = [
     title: 'Sky watch captain',
     color: '#7561a5',
     accentColor: '#d9baf0',
-    genotype: 'FT',
+    genotype: 'AB',
     standardCondition: 'Cleared for routine donation',
     challengeCondition: 'One unit available after field duty',
     challengeStewardship:
@@ -223,8 +223,8 @@ export function clinicDonors(mode: BloodLabMode): readonly DonorCandidate[] {
 
 export function markersForGenotype(genotype: BloodGenotype): readonly BloodMarker[] {
   const markers: BloodMarker[] = [];
-  if (genotype.includes('F')) markers.push('flame');
-  if (genotype.includes('T')) markers.push('tide');
+  if (genotype.includes('A')) markers.push('a');
+  if (genotype.includes('B')) markers.push('b');
   return markers;
 }
 
@@ -234,13 +234,13 @@ export function phenotypeForGenotype(genotype: BloodGenotype): BloodTypeDefiniti
 }
 
 export function bloodTypeForReactions(
-  antiFlame: boolean | null,
-  antiTide: boolean | null,
+  antiA: boolean | null,
+  antiB: boolean | null,
 ): BloodTypeDefinition | null {
-  if (antiFlame === null || antiTide === null) return null;
+  if (antiA === null || antiB === null) return null;
   return bloodTypeForMarkers([
-    ...(antiFlame ? (['flame'] as const) : []),
-    ...(antiTide ? (['tide'] as const) : []),
+    ...(antiA ? (['a'] as const) : []),
+    ...(antiB ? (['b'] as const) : []),
   ]);
 }
 
@@ -260,22 +260,22 @@ export function transfusionCompatibility(
 }
 
 export function possibleGenotypesForReactions(
-  antiFlame: boolean | null,
-  antiTide: boolean | null,
+  antiA: boolean | null,
+  antiB: boolean | null,
 ): readonly BloodGenotype[] {
-  return bloodTypeForReactions(antiFlame, antiTide)?.possibleGenotypes ?? [];
+  return bloodTypeForReactions(antiA, antiB)?.possibleGenotypes ?? [];
 }
 
 function bloodTypeForMarkers(markers: readonly BloodMarker[]): BloodTypeDefinition {
-  const hasFlame = markers.includes('flame');
-  const hasTide = markers.includes('tide');
+  const hasA = markers.includes('a');
+  const hasB = markers.includes('b');
   const id: BloodPhenotypeId =
-    hasFlame && hasTide ? 'dual' : hasFlame ? 'flame' : hasTide ? 'tide' : 'clear';
+    hasA && hasB ? 'ab-positive' : hasA ? 'a-positive' : hasB ? 'b-positive' : 'o-positive';
   return BLOOD_TYPE_DEFINITIONS.find((definition) => definition.id === id)!;
 }
 
 function generatedGenotype(dragonId: string): BloodGenotype {
-  const genotypes: readonly BloodGenotype[] = ['FF', 'Fo', 'TT', 'To', 'FT', 'oo'];
+  const genotypes: readonly BloodGenotype[] = ['AA', 'AO', 'BB', 'BO', 'AB', 'OO'];
   return genotypes[stableHash(`${dragonId}:blood-locus`) % genotypes.length];
 }
 

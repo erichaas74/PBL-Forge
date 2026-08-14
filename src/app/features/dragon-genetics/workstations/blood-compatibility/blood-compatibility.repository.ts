@@ -77,8 +77,8 @@ function isEmergencyRecord(value: unknown): value is BloodEmergencyRecord {
     isMode(value['mode']) &&
     typeof value['supplyNote'] === 'string' &&
     Array.isArray(value['codominantAlleles']) &&
-    value['codominantAlleles'][0] === 'F' &&
-    value['codominantAlleles'][1] === 'T' &&
+    value['codominantAlleles'][0] === 'A' &&
+    value['codominantAlleles'][1] === 'B' &&
     typeof value['explanation'] === 'string' &&
     typeof value['savedAtIso'] === 'string'
   );
@@ -89,8 +89,8 @@ function isBloodTest(value: unknown): value is BloodTestEvidence {
   return (
     typeof value['specimenId'] === 'string' &&
     typeof value['sampleCode'] === 'string' &&
-    isBooleanOrNull(value['antiFlame']) &&
-    isBooleanOrNull(value['antiTide']) &&
+    isBooleanOrNull(value['antiA']) &&
+    isBooleanOrNull(value['antiB']) &&
     typeof value['testedAtIso'] === 'string'
   );
 }
@@ -119,11 +119,11 @@ function isGenotypeList(value: unknown): value is readonly BloodGenotype[] {
 }
 
 function isGenotype(value: unknown): value is BloodGenotype {
-  return ['FF', 'Fo', 'TT', 'To', 'FT', 'oo'].includes(String(value));
+  return ['AA', 'AO', 'BB', 'BO', 'AB', 'OO'].includes(String(value));
 }
 
 function isMarker(value: unknown): value is BloodMarker {
-  return value === 'flame' || value === 'tide';
+  return value === 'a' || value === 'b';
 }
 
 function isMode(value: unknown): value is BloodLabMode {

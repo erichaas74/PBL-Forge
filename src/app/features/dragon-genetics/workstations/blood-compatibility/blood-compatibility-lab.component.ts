@@ -52,8 +52,8 @@ export class BloodCompatibilityLabComponent {
   readonly studentId = input('local-student');
   readonly bloodTypes = BLOOD_TYPE_DEFINITIONS;
   readonly reagents: readonly { marker: BloodMarker; name: string; code: string }[] = [
-    { marker: 'flame', name: 'Anti-Flame serum', code: 'AF' },
-    { marker: 'tide', name: 'Anti-Tide serum', code: 'AT' },
+    { marker: 'a', name: 'Anti-A serum', code: 'AA' },
+    { marker: 'b', name: 'Anti-B serum', code: 'AB' },
   ];
 
   readonly mode = signal<BloodLabMode>('standard');
@@ -248,7 +248,7 @@ export class BloodCompatibilityLabComponent {
   dropReagent(event: DragEvent): void {
     event.preventDefault();
     const marker = event.dataTransfer?.getData(BLOOD_REAGENT_DRAG_TYPE);
-    if (marker === 'flame' || marker === 'tide') this.applyReagent(marker);
+    if (marker === 'a' || marker === 'b') this.applyReagent(marker);
   }
 
   applyPendingReagent(): void {
@@ -263,7 +263,7 @@ export class BloodCompatibilityLabComponent {
     const reaction = antiserumReaction(specimen, marker);
     const next: BloodTestEvidence = {
       ...existing,
-      [marker === 'flame' ? 'antiFlame' : 'antiTide']: reaction,
+      [marker === 'a' ? 'antiA' : 'antiB']: reaction,
       testedAtIso: new Date().toISOString(),
     };
     this.tests.update((tests) => ({ ...tests, [specimen.id]: next }));
@@ -271,7 +271,7 @@ export class BloodCompatibilityLabComponent {
     const completeType = this.bloodTypeForTest(next);
     this.statusMessage.set(
       completeType
-        ? `${specimen.sampleCode} now has both reactions recorded: ${completeType.name} marker phenotype.`
+        ? `${specimen.sampleCode} now has both reactions recorded: ${completeType.name} blood type.`
         : `${this.reagentName(marker)} produced ${reaction ? 'agglutination' : 'a smooth suspension'} in ${specimen.sampleCode}.`,
     );
   }
@@ -405,7 +405,7 @@ export class BloodCompatibilityLabComponent {
       transfusionTrials: this.transfusionTrials(),
       mode: this.mode(),
       supplyNote: donor.stewardshipNote,
-      codominantAlleles: ['F', 'T'],
+      codominantAlleles: ['A', 'B'],
       explanation: this.explanation().trim(),
       savedAtIso,
     };
@@ -426,12 +426,12 @@ export class BloodCompatibilityLabComponent {
 
   isFullyTested(specimenId: string): boolean {
     const test = this.tests()[specimenId];
-    return Boolean(test && test.antiFlame !== null && test.antiTide !== null);
+    return Boolean(test && test.antiA !== null && test.antiB !== null);
   }
 
   reactionFor(marker: BloodMarker): boolean | null {
     const test = this.activeTest();
-    return marker === 'flame' ? (test?.antiFlame ?? null) : (test?.antiTide ?? null);
+    return marker === 'a' ? (test?.antiA ?? null) : (test?.antiB ?? null);
   }
 
   donorUnits(donor: DonorCandidate): string {
@@ -447,11 +447,11 @@ export class BloodCompatibilityLabComponent {
   }
 
   reagentName(marker: BloodMarker): string {
-    return marker === 'flame' ? 'Anti-Flame serum' : 'Anti-Tide serum';
+    return marker === 'a' ? 'Anti-A serum' : 'Anti-B serum';
   }
 
   markerName(marker: BloodMarker): string {
-    return marker === 'flame' ? 'Flame' : 'Tide';
+    return marker === 'a' ? 'A' : 'B';
   }
 
   phenotypeName(id: BloodPhenotypeId): string {
@@ -475,14 +475,14 @@ export class BloodCompatibilityLabComponent {
     return {
       specimenId: specimen.id,
       sampleCode: specimen.sampleCode,
-      antiFlame: null,
-      antiTide: null,
+      antiA: null,
+      antiB: null,
       testedAtIso: new Date().toISOString(),
     };
   }
 
   private bloodTypeForTest(test: BloodTestEvidence | null) {
-    return test ? bloodTypeForReactions(test.antiFlame, test.antiTide) : null;
+    return test ? bloodTypeForReactions(test.antiA, test.antiB) : null;
   }
 
   private resetSupplies(): void {
