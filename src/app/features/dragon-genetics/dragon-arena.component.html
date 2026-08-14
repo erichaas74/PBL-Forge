@@ -80,7 +80,7 @@
       <button type="button" aria-label="Turn right" (pointerdown)="setControl('right', true)" (pointerup)="setControl('right', false)" (pointerleave)="setControl('right', false)">→</button>
     </div>
     <div class="attack-controls">
-      <button type="button" (click)="attack('bite')"><span>Bite <kbd>J</kbd></span><small>Jaw + fire trait</small></button>
+      <button type="button" (click)="attack('bite')"><span>Bite <kbd>J</kbd></span><small>Close-range strike</small></button>
       <button type="button" [disabled]="!canWingAttack()" (click)="attack('wing')"><span>Wing buffet <kbd>K</kbd></span><small>{{ canWingAttack() ? 'Winged genotype' : 'Unavailable: wingless' }}</small></button>
       <button type="button" (click)="attack('tail')"><span>Tail sweep <kbd>L</kbd></span><small>Timing + position</small></button>
       <button type="button" class="fire" [disabled]="!canFireAttack()" (click)="attack('fire')"><span>Fire breath <kbd>F</kbd></span><small>{{ canFireAttack() ? 'Fire genotype' : 'Unavailable: no fire' }}</small></button>

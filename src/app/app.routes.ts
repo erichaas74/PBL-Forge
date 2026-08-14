@@ -65,6 +65,20 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'dragon-genetics/dragon-arena',
+    loadComponent: () =>
+      import('./features/dragon-genetics/capstones/arena/dragon-arena-mission.page').then(
+        (m) => m.DragonArenaMissionPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/trait-evidence',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/trait-evidence/trait-evidence.page').then(
+        (m) => m.TraitEvidencePage,
+      ),
+  },
+  {
     path: 'dragon-genetics/:simulationId',
     loadComponent: () =>
       import('./features/dragon-genetics/adaptive/dragon-simulation-experience.page').then(

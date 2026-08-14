@@ -118,8 +118,9 @@ unless asked.
 
 - **Judging whether something looks good.** I can screenshot it and see obviously
   wrong things — a floating socket, invisible text, a part inside another part.
-  I cannot tell you a dragon reads as *menacing*. Describe the silhouette you
-  want in words, or point at a part that already has it.
+  What I cannot judge is character: whether a dragon reads as alert, heavy,
+  young, or at rest. Describe the silhouette you want in words, or point at a
+  part that already has it.
 - **Inventing an art direction.** "Make the foot better" gets you my guess.
   "Three forward toes in two segments with a rear dewclaw" gets you that.
 - **Large geometry from scratch in one pass.** A full anatomical rewrite usually

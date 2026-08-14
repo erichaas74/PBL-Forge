@@ -19,6 +19,7 @@ import {
   SpecimenSource,
   SpecimenTraitReadout,
 } from './specimen.models';
+import { DRAGON_RESTING_POSE } from './specimen-stance';
 import { SpecimenFrame } from './specimen-pose';
 import { SPECIMEN_PROFILES, SpecimenProfileRegistry } from './specimen-profile.registry';
 import {
@@ -59,7 +60,8 @@ export class SpecimenViewComponent implements AfterViewInit, OnDestroy {
    * fitted individually, which normalises away real size differences.
    */
   readonly frame = input<SpecimenFrame | null>(null);
-  readonly quality = input<RenderQuality>('low');
+  /** Null defers to the service's per-device resolution, which is the norm. */
+  readonly quality = input<RenderQuality | null>(null);
   readonly theme = input<StageTheme | null>(null);
   readonly transparent = input(false);
   /** Accessible description of the specimen for screen readers. */
@@ -135,13 +137,13 @@ export class SpecimenViewComponent implements AfterViewInit, OnDestroy {
     if (!this.renderingAvailable) return;
 
     this.renderer.mount(this.stageRef.nativeElement, {
-      quality: this.quality(),
+      quality: this.quality() ?? undefined,
       theme: this.theme() ?? undefined,
       interactive: this.interactive(),
       transparent: this.transparent(),
       showGroundShadow: true,
       framePadding: 1.18,
-      pose: { droopRadians: TAIL_DROOP_RADIANS },
+      pose: DRAGON_RESTING_POSE,
     });
 
     this.mounted.set(true);
@@ -168,9 +170,3 @@ export class SpecimenViewComponent implements AfterViewInit, OnDestroy {
   }
 }
 
-/**
- * Authored blueprints hold hanging chains straight, because in the arena
- * gravity settles them. A viewer has no gravity, so without this a dragon's
- * tail sticks out like a rod.
- */
-const TAIL_DROOP_RADIANS = 0.13;

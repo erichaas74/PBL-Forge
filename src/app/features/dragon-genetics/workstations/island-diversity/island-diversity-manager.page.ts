@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SessionService } from '../../../../core/firebase/session.service';
+import { DragonAdaptiveStore } from '../../adaptive/dragon-adaptive.store';
+import { DragonCapstoneProgressRepository } from '../../project/dragon-capstone-progress.repository';
 import { IslandDiversityManagerComponent } from './island-diversity-manager.component';
+import { StoredIslandDiversityWorld } from './island-diversity.models';
 
 /** Full-screen host for the open Island Diversity Manager workstation. */
 @Component({
@@ -21,7 +24,10 @@ import { IslandDiversityManagerComponent } from './island-diversity-manager.comp
           <h1>Island Diversity Manager</h1>
         </div>
       </header>
-      <app-island-diversity-manager [studentId]="studentId()" />
+      <app-island-diversity-manager
+        [studentId]="studentId()"
+        (worldChange)="recordWorld($event)"
+      />
     </div>
   `,
   styles: [
@@ -83,5 +89,35 @@ import { IslandDiversityManagerComponent } from './island-diversity-manager.comp
 })
 export class IslandDiversityManagerPage {
   private readonly session = inject(SessionService);
+  private readonly adaptiveStore = inject(DragonAdaptiveStore);
+  private readonly capstoneProgressRepository = inject(DragonCapstoneProgressRepository);
+  private readonly latestWorld = signal<StoredIslandDiversityWorld | null>(null);
+  private syncSignature = '';
   readonly studentId = computed(() => this.session.user()?.uid ?? 'local-student');
+
+  constructor() {
+    effect(() => {
+      if (!this.adaptiveStore.ready()) return;
+      const stored = this.latestWorld();
+      if (!stored || stored.studentId === 'local-student') return;
+      const world = stored.world;
+      const assignment = this.adaptiveStore.assignment();
+      const totalGenerations = Object.values(world.islands).reduce(
+        (total, population) => total + population.generation,
+        0,
+      );
+      const signature = `${stored.studentId}:${assignment.id}:${world.updatedAtIso}:${totalGenerations}:${world.relocations.length}`;
+      if (signature === this.syncSignature) return;
+      this.syncSignature = signature;
+      void this.capstoneProgressRepository
+        .saveIslandDiversity(stored.studentId, world, assignment)
+        .catch((error: unknown) =>
+          console.error('Island Diversity progress could not sync.', error),
+        );
+    });
+  }
+
+  recordWorld(stored: StoredIslandDiversityWorld): void {
+    this.latestWorld.set(stored);
+  }
 }

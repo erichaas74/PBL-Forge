@@ -79,6 +79,7 @@ the coordinates, drag from there.
 | `--out=.browse` | `.browse` | |
 | `--timeout=15000` | 15000 | per step |
 | `--until=load\|networkidle` | `domcontentloaded` | navigation wait |
+| `--reduced-motion` | off | emulate `prefers-reduced-motion: reduce` |
 | `--allow-errors` | off | do not fail on console errors |
 | `--keep-open` | off | with `--headed`, wait for Enter before closing |
 
@@ -91,6 +92,12 @@ connection noise is filtered, because the emulator is usually not running. On a 
 
 `--until=networkidle` will hang the main app: Firestore holds a long-poll open, so the network never
 goes idle. The default `domcontentloaded` plus an explicit `wait` is the right pattern.
+
+**Screenshotting one element on a page with a dragon on it needs `--reduced-motion`.** The specimen
+viewers run a permanent idle loop — the dragon breathes — and an element screenshot waits for its
+target to settle, so `shot name .viewport__stage` times out without it. A whole-page `shot name`
+is unaffected. The flag turns the loop off at its source rather than papering over it, so what you
+capture is a real state the app renders for a student who asked for less motion.
 
 ## Worked example
 

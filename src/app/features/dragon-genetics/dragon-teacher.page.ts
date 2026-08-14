@@ -9,7 +9,7 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop';
 import { collection, collectionData, Firestore, query, where } from '@angular/fire/firestore';
 import { RouterLink } from '@angular/router';
-import { catchError, map, of, switchMap } from 'rxjs';
+import { catchError, combineLatest, map, of, switchMap } from 'rxjs';
 import { runInFirebaseContext } from '../../core/firebase/firebase-context';
 import { SessionService } from '../../core/firebase/session.service';
 import { DragonAdaptiveStore } from './adaptive/dragon-adaptive.store';
@@ -21,15 +21,11 @@ import {
   INSTRUCTION_LEVELS,
 } from './adaptive/dragon-simulation.models';
 import { DRAGON_SIMULATIONS } from './adaptive/dragon-simulation.registry';
+import {
+  buildDragonTeacherOperations,
+  DragonStudentProgressDocument,
+} from './project/dragon-teacher-operations';
 import { ALLELE_VAULT_GENES } from './workstations/allele-workbench/allele-vault.models';
-
-interface ProgressDocument {
-  id: string;
-  studentId: string;
-  completedSimulationIds?: DragonSimulationId[];
-  simulationLevels?: Partial<Record<DragonSimulationId, InstructionLevel>>;
-  simulationScores?: Partial<Record<DragonSimulationId, number>>;
-}
 
 @Component({
   selector: 'app-dragon-teacher-page',
@@ -57,7 +53,7 @@ export class DragonTeacherPage {
         const source = query(records, where('teacherId', '==', user?.uid ?? '__none__'));
         return collectionData(source, { idField: 'id' }).pipe(
           map((documents) =>
-            (documents as ProgressDocument[]).sort(
+            (documents as DragonStudentProgressDocument[]).sort(
               (a, b) =>
                 (b.completedSimulationIds?.length ?? 0) - (a.completedSimulationIds?.length ?? 0) ||
                 a.studentId.localeCompare(b.studentId),
@@ -66,11 +62,19 @@ export class DragonTeacherPage {
           catchError((error: unknown) => {
             console.error('Dragon Genetics teacher dashboard could not load.', error);
             this.error.set('Sign in with the assigned teacher account to view student records.');
-            return of([] as ProgressDocument[]);
+            return of([] as DragonStudentProgressDocument[]);
           }),
         );
       });
     }),
+  );
+  readonly dashboard$ = combineLatest([
+    this.progress$,
+    toObservable(this.adaptiveStore.assignment),
+  ]).pipe(
+    map(([students, assignment]) =>
+      buildDragonTeacherOperations(students, assignment, this.simulations),
+    ),
   );
 
   isLocalTeacher(): boolean {
@@ -85,18 +89,16 @@ export class DragonTeacherPage {
     return `Student ${studentId.slice(0, 7)}`;
   }
 
-  averageScore(students: ProgressDocument[]): number {
-    const scores = students.flatMap((student) => Object.values(student.simulationScores ?? {}));
-    return scores.length
-      ? Math.round(scores.reduce((sum, score) => sum + (score ?? 0), 0) / scores.length)
-      : 0;
+  usesGeneratedCheckpoints(simulationId: DragonSimulationId): boolean {
+    return simulationId === 'genome-microscope';
   }
 
-  completionCount(students: ProgressDocument[]): number {
-    return students.reduce(
-      (sum, student) => sum + (student.completedSimulationIds?.length ?? 0),
-      0,
-    );
+  usesEvidenceScore(simulationId: DragonSimulationId): boolean {
+    return simulationId !== 'trait-evidence';
+  }
+
+  usesInstructionLevel(simulationId: DragonSimulationId): boolean {
+    return simulationId !== 'trait-evidence';
   }
 
   studentSimulationLevel(studentId: string, simulationId: DragonSimulationId): InstructionLevel {

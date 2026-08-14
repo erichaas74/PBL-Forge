@@ -1,0 +1,145 @@
+<section class="trait-lab" aria-labelledby="trait-lab-title">
+  <header class="goal-line">
+    <div>
+      <span>Scientific goal</span>
+      <h1 id="trait-lab-title">Inherited or developed during life?</h1>
+    </div>
+    <output [class.complete]="status() === 'complete'">
+      {{ status() === 'complete' ? 'Evidence board complete' : supportedCount() + ' supported' }}
+    </output>
+  </header>
+
+  <div class="instrument-bar">
+    <label>
+      Dragon
+      <select [value]="selectedDragonId()" (change)="selectDragon($event)">
+        @for (dragon of dragons; track dragon.id) {
+          <option [value]="dragon.id">{{ dragon.name }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      Observe
+      <select [value]="selectedObservationId()" (change)="selectObservationFromEvent($event)">
+        @for (observation of observations(); track observation.id) {
+          <option [value]="observation.id">{{ observation.label }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <div class="observation-stage">
+    <app-specimen-viewport
+      #viewport
+      [source]="selectedDragon().source"
+      [focusedTraitId]="focusedTraitId()"
+      [ariaLabel]="selectedDragon().name + ' observation model'"
+      [controlsPlacement]="'below'"
+      (partSelected)="selectRenderedPart($event)"
+    />
+
+    <aside class="active-readout" aria-live="polite">
+      <small>{{ selectedObservation().kind }}</small>
+      <h2>{{ selectedObservation().label }}</h2>
+      <p>{{ resultText() }}</p>
+      @if (selectedObservation().cueLabel; as cueLabel) {
+        <button type="button" [disabled]="playing()" (click)="testBehavior()">
+          {{ playing() ? 'Observing…' : cueLabel }}
+        </button>
+      }
+    </aside>
+  </div>
+
+  <details class="drawer">
+    <summary>
+      <span>Investigation records</span>
+      <small>{{ selectedEvidenceIds().length }} cited</small>
+    </summary>
+    <div class="evidence-list">
+      @for (evidence of evidenceRecords(); track evidence.id) {
+        <label>
+          <input
+            type="checkbox"
+            [checked]="isEvidenceSelected(evidence.id)"
+            (change)="toggleEvidence(evidence.id, $event)"
+          />
+          <span
+            ><strong>{{ evidence.label }}</strong
+            >{{ evidence.detail }}</span
+          >
+        </label>
+      }
+    </div>
+  </details>
+
+  <details class="drawer evidence-board">
+    <summary>
+      <span>Evidence board</span>
+      <small>{{ snapshot().claims.length }} classifications</small>
+    </summary>
+
+    <div class="claim-builder">
+      <label>
+        Classification
+        <select [value]="classification()" (change)="setClassification($event)">
+          <option value="insufficient">Needs more evidence</option>
+          <option value="inherited">Inherited</option>
+          <option value="learned">Not inherited · learned</option>
+          <option value="environmental">Not inherited · environmental</option>
+        </select>
+      </label>
+      <button type="button" [disabled]="!canSaveClaim()" (click)="saveClaim()">
+        Save classification
+      </button>
+      @if (currentClaim(); as claim) {
+        <output [class.supported]="claim.supported">
+          {{
+            claim.supported
+              ? 'Evidence supports this classification.'
+              : 'Revise or gather more evidence.'
+          }}
+        </output>
+      }
+    </div>
+
+    <div class="board-columns">
+      <section>
+        <h3>Inherited</h3>
+        @for (claim of claimsFor('inherited'); track claim.specimenId + claim.observationId) {
+          <p [class.supported]="claim.supported">{{ claimLabel(claim) }}</p>
+        } @empty {
+          <p class="empty">No saved evidence</p>
+        }
+      </section>
+      <section>
+        <h3>Not inherited</h3>
+        @for (
+          claim of claimsFor('learned', 'environmental');
+          track claim.specimenId + claim.observationId
+        ) {
+          <p [class.supported]="claim.supported">
+            {{ claimLabel(claim) }} <small>{{ classificationLabel(claim.classification) }}</small>
+          </p>
+        } @empty {
+          <p class="empty">No saved evidence</p>
+        }
+      </section>
+      <section>
+        <h3>Needs evidence</h3>
+        @for (claim of claimsFor('insufficient'); track claim.specimenId + claim.observationId) {
+          <p>{{ claimLabel(claim) }}</p>
+        } @empty {
+          <p class="empty">No saved evidence</p>
+        }
+      </section>
+    </div>
+  </details>
+
+  <details class="drawer guide">
+    <summary>Guide</summary>
+    <p>
+      Compare what was present at hatching with family, training, and habitat records. Repeat cue
+      tests whenever one observation is not enough.
+    </p>
+  </details>
+</section>

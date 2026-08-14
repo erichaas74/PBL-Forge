@@ -1,4 +1,5 @@
 export * from './specimen.models';
+export * from './specimen-motion';
 export * from './specimen-ability-pose';
 export * from './specimen-assay';
 export * from './specimen-bench.content';

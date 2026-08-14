@@ -3,7 +3,7 @@
     #stage
     class="viewport__stage"
     role="img"
-    [attr.aria-label]="ariaLabel() + (descriptor() ? ' — drag to turn' : '')"
+    [attr.aria-label]="ariaLabel() + (descriptor() ? ' — select a body part or drag to turn' : '')"
     [class.viewport__stage--empty]="!descriptor()"
   ></div>
 
@@ -11,10 +11,17 @@
     <aside class="viewport__side-rail">
       <ng-content select="[viewport-side-header]" />
       @if (controls() && renderingAvailable && descriptor()) {
-        <div class="viewport__controls viewport__controls--side" aria-label="Dragon model view controls">
-          <button type="button" (click)="zoomOut()" [disabled]="zoomPercent() <= 65">− Zoom out</button>
+        <div
+          class="viewport__controls viewport__controls--side"
+          aria-label="Dragon model view controls"
+        >
+          <button type="button" (click)="zoomOut()" [disabled]="zoomPercent() <= 65">
+            − Zoom out
+          </button>
           <output aria-live="polite">{{ zoomPercent() }}%</output>
-          <button type="button" (click)="zoomIn()" [disabled]="zoomPercent() >= 200">+ Zoom in</button>
+          <button type="button" (click)="zoomIn()" [disabled]="zoomPercent() >= 200">
+            + Zoom in
+          </button>
           <button type="button" class="viewport__reset" (click)="resetView()">Reset view</button>
         </div>
       }
@@ -28,13 +35,9 @@
 
 @if (controlsPlacement() === 'below' && controls() && renderingAvailable && descriptor()) {
   <div class="viewport__controls" aria-label="Dragon model view controls">
-    <button type="button" (click)="zoomOut()" [disabled]="zoomPercent() <= 65">
-      − Zoom out
-    </button>
+    <button type="button" (click)="zoomOut()" [disabled]="zoomPercent() <= 65">− Zoom out</button>
     <output aria-live="polite">{{ zoomPercent() }}%</output>
-    <button type="button" (click)="zoomIn()" [disabled]="zoomPercent() >= 200">
-      + Zoom in
-    </button>
+    <button type="button" (click)="zoomIn()" [disabled]="zoomPercent() >= 200">+ Zoom in</button>
     <button type="button" class="viewport__reset" (click)="resetView()">Reset view</button>
   </div>
 }

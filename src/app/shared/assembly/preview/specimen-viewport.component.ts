@@ -9,15 +9,15 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { AssemblyAbilityId } from '../combat/assembly-abilities';
 import { SpecimenSource } from './specimen.models';
+import { DRAGON_IDLE_BREATH, DRAGON_RESTING_POSE } from './specimen-stance';
+import { SpecimenMotionDefinition } from './specimen-motion';
 import { SPECIMEN_PROFILES, SpecimenProfileRegistry } from './specimen-profile.registry';
-import {
-  SpecimenRendererService,
-  isSpecimenRenderingAvailable,
-} from './specimen-renderer.service';
+import { SpecimenRendererService, isSpecimenRenderingAvailable } from './specimen-renderer.service';
 
 /**
  * Renderer-only specimen surface shared by scientific instruments and the
@@ -38,6 +38,8 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
   readonly controlsPlacement = input<'below' | 'side'>('below');
   readonly showGroundShadow = input(true);
   readonly framePadding = input(1.12);
+  readonly focusedTraitId = input<string | null>(null);
+  readonly partSelected = output<string>();
 
   @ViewChild('stage', { static: true })
   private readonly stageRef!: ElementRef<HTMLElement>;
@@ -45,6 +47,7 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
   private readonly renderer = inject(SpecimenRendererService);
   private readonly registry = inject(SpecimenProfileRegistry);
   private readonly mounted = signal(false);
+  private visibility: IntersectionObserver | null = null;
 
   readonly renderingAvailable = isSpecimenRenderingAvailable();
   readonly zoomPercent = signal(100);
@@ -72,26 +75,65 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
       if (descriptor) this.renderer.show(descriptor);
       else this.renderer.clear();
     });
+
+    effect(() => {
+      const focusedTraitId = this.focusedTraitId();
+      if (this.mounted() && this.descriptor()) this.renderer.setTraitFocus(focusedTraitId);
+    });
   }
 
   ngAfterViewInit(): void {
     if (!this.renderingAvailable) return;
+    // Quality left to the service, which resolves it per device. This was
+    // pinned to 'low' and that pin is what kept the post chain and the
+    // full-resolution material maps out of every student-facing viewer.
     this.renderer.mount(this.stageRef.nativeElement, {
-      quality: 'low',
       interactive: true,
       showGroundShadow: this.showGroundShadow(),
       framePadding: this.framePadding(),
-      pose: { droopRadians: TAIL_DROOP_RADIANS },
+      pose: DRAGON_RESTING_POSE,
+      partSelected: (partId) => this.partSelected.emit(partId),
     });
     this.mounted.set(true);
+    this.watchVisibility();
   }
 
   ngOnDestroy(): void {
+    this.visibility?.disconnect();
+    this.visibility = null;
     this.renderer.dispose();
+  }
+
+  /**
+   * Runs the ambient idle only while the viewport is actually on screen.
+   *
+   * A workstation page can mount several of these, and a permanent render loop
+   * for a dragon scrolled out of view is pure cost. Without the observer the
+   * idle would be the one thing in this viewer that breaks the "a still
+   * specimen costs exactly one frame" property the renderer is built around.
+   *
+   * No observer available (jsdom, older engines) means no idle, rather than an
+   * ungated one.
+   */
+  private watchVisibility(): void {
+    if (typeof IntersectionObserver === 'undefined') return;
+
+    this.visibility = new IntersectionObserver(
+      entries => {
+        const visible = entries.some(entry => entry.isIntersecting);
+        this.renderer.setIdleMotion(visible ? DRAGON_IDLE_BREATH : null);
+      },
+      { threshold: 0.1 },
+    );
+    this.visibility.observe(this.stageRef.nativeElement);
   }
 
   playAbility(ability: AssemblyAbilityId): Promise<void> {
     return this.mounted() ? this.renderer.playAbility(ability) : Promise.resolve();
+  }
+
+  playMotion(motion: SpecimenMotionDefinition): Promise<void> {
+    return this.mounted() ? this.renderer.playMotion(motion) : Promise.resolve();
   }
 
   zoomIn(): void {
@@ -108,9 +150,7 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateZoom(delta: number): void {
-    const level = this.renderer.setZoomLevel((this.zoomPercent() / 100) + delta);
+    const level = this.renderer.setZoomLevel(this.zoomPercent() / 100 + delta);
     this.zoomPercent.set(Math.round(level * 100));
   }
 }
-
-const TAIL_DROOP_RADIANS = 0.13;

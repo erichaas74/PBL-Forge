@@ -107,6 +107,15 @@ export const STUDIO_STAGE_THEME: StageTheme = {
  * a student can compare the pigment genes of two dragons side by side, and any
  * strong colour cast here is a cast applied to the exact thing being measured.
  * The bench is an instrument, not a set.
+ *
+ * That neutrality is a statement about *hue*, not about brightness, and the two
+ * were being conflated. This was the brightest theme in the file on every
+ * channel — key 2.35, rim 1.45, fill 0.85, environment 0.4 — against a pure
+ * white background. The result was an instrument that desaturated the exact
+ * quantity it exists to measure: a `#98552f` bronze dragon rendered as pale
+ * cream, and two pigment genotypes a student was asked to compare arrived
+ * closer together on screen than they are in the genome. Intensities are now
+ * roughly two-thirds of that, hues untouched.
  */
 export const SPECIMEN_STAGE_THEME: StageTheme = {
   skyTop: '#f2f0ea',
@@ -115,12 +124,12 @@ export const SPECIMEN_STAGE_THEME: StageTheme = {
   hemisphereSky: '#f0eee9',
   hemisphereGround: '#c2b8a6',
   keyColor: '#fffbf5',
-  keyIntensity: 2.35,
+  keyIntensity: 1.5,
   fillColor: '#e2e4e4',
-  fillIntensity: 0.85,
+  fillIntensity: 0.55,
   rimColor: '#eceef0',
-  rimIntensity: 1.45,
-  environmentIntensity: 0.4,
+  rimIntensity: 0.85,
+  environmentIntensity: 0.26,
 };
 
 export function configureStageRenderer(renderer: THREE.WebGLRenderer, quality: RenderQuality): void {
@@ -264,9 +273,23 @@ export interface StagePostPipeline {
   dispose(): void;
 }
 
+export interface StagePostOptions {
+  /**
+   * Bloom is a *dark-stage* effect. It selects pixels above a luminance
+   * threshold and smears them, which reads as glow only when most of the frame
+   * sits below that line.
+   *
+   * Pass `false` on a bright stage. The specimen bench renders a near-white
+   * background under a 2.35-intensity key, so at the arena's 0.88 threshold
+   * essentially every pixel qualifies and the whole image blooms into fog
+   * rather than the eyes picking up a glow.
+   */
+  bloom?: boolean;
+}
+
 /**
  * Post chain: GTAO (high only) grounds the assembled parts into one creature,
- * subtle bloom lifts emissive accents, SMAA cleans edges. Returns null on low
+ * optional bloom lifts emissive accents, SMAA cleans edges. Returns null on low
  * quality, where the caller should render directly.
  */
 export function createStagePostPipeline(
@@ -274,6 +297,7 @@ export function createStagePostPipeline(
   scene: THREE.Scene,
   camera: THREE.PerspectiveCamera,
   quality: RenderQuality,
+  options: StagePostOptions = {},
 ): StagePostPipeline | null {
   if (quality === 'low') return null;
 
@@ -296,7 +320,9 @@ export function createStagePostPipeline(
     addPass(gtao);
   }
 
-  addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.4, 0.88));
+  if (options.bloom ?? true) {
+    addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.4, 0.88));
+  }
   addPass(new OutputPass());
   addPass(new SMAAPass());
 

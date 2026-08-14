@@ -7,12 +7,14 @@ import {
   createAssemblyObject,
   disposeAssemblyObject,
 } from '../rendering/three-assembly-mesh.factory';
-import { RenderQuality } from '../rendering/render-quality';
+import { RenderQuality, resolveRenderQuality } from '../rendering/render-quality';
 import {
   SPECIMEN_STAGE_THEME,
+  StagePostPipeline,
   StageTheme,
   configureStageRenderer,
   createStageLighting,
+  createStagePostPipeline,
   installStageEnvironment,
 } from '../rendering/scene-environment';
 import {
@@ -31,6 +33,7 @@ import {
   mergeSpecimenFrames,
 } from './specimen-pose';
 import { getAbilityDemo, poseSpecimenForAbility, resolveFireOrigin } from './specimen-ability-pose';
+import { SpecimenIdleMotion, SpecimenMotionDefinition } from './specimen-motion';
 
 /**
  * A specimen viewer: one assembly, posed statically, drawn on demand.
@@ -58,6 +61,8 @@ export interface SpecimenRendererOptions {
   framePadding?: number;
   /** Direction from the specimen to the camera. Defaults to a three-quarter view. */
   viewDirection?: Vector3Data;
+  /** Called after a short pointer press lands on one rendered assembly part. */
+  partSelected?: (partId: string) => void;
 }
 
 export interface ShowSpecimenOptions {
@@ -78,6 +83,12 @@ const DEFAULT_VIEW_DIRECTION = new THREE.Vector3(0.86, 0.42, 1).normalize();
  * would clip wingtips.
  */
 const DEFAULT_FRAME_PADDING = 1.12;
+/**
+ * Idle redraw interval. ~16fps: a five-second breath cycle has no detail that
+ * a faster loop would reveal, and this is a permanent cost on every mounted
+ * viewport.
+ */
+const IDLE_FRAME_INTERVAL_MS = 60;
 const MIN_ZOOM_LEVEL = 0.65;
 const MAX_ZOOM_LEVEL = 2;
 
@@ -87,6 +98,9 @@ export class SpecimenRendererService {
   private scene: THREE.Scene | null = null;
   private camera: THREE.PerspectiveCamera | null = null;
   private renderer: THREE.WebGLRenderer | null = null;
+  /** Null on the low tier, where `createStagePostPipeline` declines to build one. */
+  private postPipeline: StagePostPipeline | null = null;
+  private quality: RenderQuality = 'low';
   private controls: OrbitControls | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private specimenGroup: THREE.Group | null = null;
@@ -101,6 +115,9 @@ export class SpecimenRendererService {
   private turntableFrameId: number | null = null;
   private turntableAngle = 0;
   private demoFrameId: number | null = null;
+  private idleFrameId: number | null = null;
+  private idleMotion: SpecimenIdleMotion | null = null;
+  private pointerStart: { x: number; y: number; pointerId: number } | null = null;
   private fireCone: THREE.Mesh | null = null;
   private viewDirection = DEFAULT_VIEW_DIRECTION.clone();
   /** 1 fits the whole specimen; larger values move the camera closer. */
@@ -127,9 +144,13 @@ export class SpecimenRendererService {
     this.setViewDirectionVector(options.viewDirection);
 
     const theme = options.theme ?? SPECIMEN_STAGE_THEME;
-    // Small viewports never earn the post chain, so the quality tier is a floor
-    // rather than a device probe: 'low' skips GTAO, bloom, and SMAA entirely.
-    const quality: RenderQuality = options.quality ?? 'low';
+    // This was pinned to 'low', which meant the specimen viewers — the surface a
+    // student actually inspects a dragon in — ran at pixelRatio 1 with half-size
+    // texture maps and no post chain at all. A 300px viewport is exactly where
+    // edge aliasing and a flat, unoccluded silhouette are most obvious, so the
+    // small size is an argument for the chain rather than against it.
+    const quality: RenderQuality = options.quality ?? resolveRenderQuality();
+    this.quality = quality;
 
     const scene = new THREE.Scene();
     if (!options.transparent) {
@@ -152,6 +173,9 @@ export class SpecimenRendererService {
 
     renderer.domElement.addEventListener('webglcontextlost', this.handleContextLost);
     renderer.domElement.addEventListener('webglcontextrestored', this.handleContextRestored);
+    renderer.domElement.addEventListener('pointerdown', this.handlePointerDown);
+    renderer.domElement.addEventListener('pointerup', this.handlePointerUp);
+    renderer.domElement.addEventListener('pointercancel', this.handlePointerCancel);
     this.contextLost.set(false);
 
     // Image-based lighting is what makes the scale/horn/membrane materials read
@@ -175,19 +199,16 @@ export class SpecimenRendererService {
       this.controls = controls;
     }
 
+    // Sized before the post chain is built, and that order matters — see
+    // `ensurePostPipeline`.
     this.resize();
+    this.ensurePostPipeline();
+
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
   }
 
   show(descriptor: SpecimenDescriptor, options: ShowSpecimenOptions = {}): void {
-    const dbg = globalThis as unknown as Record<string, unknown>;
-    dbg['__specimenShow'] = {
-      calls: ((dbg['__specimenShow'] as { calls?: number })?.calls ?? 0) + 1,
-      id: descriptor.id,
-      colors: [...new Set(descriptor.blueprint.parts.map(p => p.color))],
-      hasScene: !!this.scene,
-    };
     if (!this.scene) return;
 
     this.clearSpecimen();
@@ -210,7 +231,7 @@ export class SpecimenRendererService {
     pivot.add(content);
 
     for (const part of descriptor.blueprint.parts) {
-      const posed = pose.parts.find(entry => entry.partId === part.id);
+      const posed = pose.parts.find((entry) => entry.partId === part.id);
       const object = createAssemblyObject(part, { proceduralOnly: true });
       const position = posed?.position ?? part.position;
       const rotation = posed?.rotation ?? part.rotation;
@@ -248,7 +269,10 @@ export class SpecimenRendererService {
         continue;
       }
       const partRoles = this.partRoles.get(partId) ?? [];
-      applyAssemblyTraitFocus(object, partRoles.some(role => roles.includes(role)));
+      applyAssemblyTraitFocus(
+        object,
+        partRoles.some((role) => roles.includes(role)),
+      );
     }
 
     this.requestRender();
@@ -281,12 +305,44 @@ export class SpecimenRendererService {
       return Promise.resolve();
     }
 
-    return new Promise<void>(resolve => {
+    return new Promise<void>((resolve) => {
       const startedAt = performance.now();
       const step = (): void => {
         const elapsed = (performance.now() - startedAt) / 1000;
         const phase = Math.min(elapsed / demo.durationSeconds, 1);
         this.applyAbilityPhase(ability, phase);
+
+        if (phase >= 1) {
+          this.demoFrameId = null;
+          this.restPose();
+          resolve();
+          return;
+        }
+        this.demoFrameId = requestAnimationFrame(step);
+      };
+      this.demoFrameId = requestAnimationFrame(step);
+    });
+  }
+
+  /** Plays a non-combat specimen motion without changing the assembly or genome. */
+  playMotion(motion: SpecimenMotionDefinition): Promise<void> {
+    if (!this.descriptor) return Promise.resolve();
+
+    this.stopAbility();
+    this.activeFrame = this.baseFrame;
+    this.applyFrame();
+
+    if (prefersReducedMotion()) {
+      this.applyMotionPhase(motion, motion.reducedMotionPhase ?? 0.6);
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      const startedAt = performance.now();
+      const step = (): void => {
+        const elapsed = (performance.now() - startedAt) / 1000;
+        const phase = Math.min(elapsed / motion.durationSeconds, 1);
+        this.applyMotionPhase(motion, phase);
 
         if (phase >= 1) {
           this.demoFrameId = null;
@@ -358,6 +414,69 @@ export class SpecimenRendererService {
     this.renderNow();
   }
 
+  private applyMotionPhase(motion: SpecimenMotionDefinition, phase: number): void {
+    const descriptor = this.descriptor;
+    if (!descriptor) return;
+    this.applyPose(motion.poseAt(descriptor.blueprint, phase, this.activePose?.droopRadians ?? 0));
+    this.syncFireCone(null);
+    this.renderNow();
+  }
+
+  /**
+   * Starts or stops the ambient idle.
+   *
+   * Refused under `prefers-reduced-motion`: a permanent loop is exactly what
+   * that setting exists to turn off, and unlike the turntable there is no
+   * information in it to lose.
+   *
+   * The loop is throttled rather than run at display rate. A breath cycle is
+   * five seconds long, so a frame every 60ms is indistinguishable from one
+   * every 16ms and costs a third as much — which matters because several of
+   * these can be mounted on one workstation page, on hardware this app is
+   * expected to run on. Callers should also stop it when the viewport leaves
+   * the screen; {@link SpecimenViewportComponent} does that with an
+   * `IntersectionObserver`.
+   */
+  setIdleMotion(motion: SpecimenIdleMotion | null): void {
+    this.idleMotion = prefersReducedMotion() ? null : motion;
+
+    if (!this.idleMotion) {
+      if (this.idleFrameId !== null) cancelAnimationFrame(this.idleFrameId);
+      this.idleFrameId = null;
+      // Back to the stance the animal rests in, rather than wherever in the
+      // breath it happened to be when this was switched off.
+      if (this.descriptor) this.restPose();
+      return;
+    }
+
+    if (this.idleFrameId !== null) return;
+
+    const startedAt = performance.now();
+    let lastDrawn = 0;
+
+    const step = (now: number): void => {
+      this.idleFrameId = requestAnimationFrame(step);
+      const active = this.idleMotion;
+      // A scripted ability or motion owns the rig while it plays; the idle
+      // would fight it for the same part transforms.
+      if (!active || !this.descriptor || this.demoFrameId !== null) return;
+      if (now - lastDrawn < IDLE_FRAME_INTERVAL_MS) return;
+      lastDrawn = now;
+
+      const elapsed = (now - startedAt) / 1000;
+      const phase = (elapsed / active.periodSeconds) % 1;
+      this.applyPose(
+        buildSpecimenPose(this.descriptor.blueprint, {
+          ...this.activePose,
+          bends: [...(this.activePose?.bends ?? []), ...active.bendsAt(phase)],
+        }),
+      );
+      this.renderNow();
+    };
+
+    this.idleFrameId = requestAnimationFrame(step);
+  }
+
   private restPose(): void {
     const descriptor = this.descriptor;
     if (!descriptor) return;
@@ -378,12 +497,7 @@ export class SpecimenRendererService {
       const object = this.partObjects.get(posed.partId);
       if (!object) continue;
       object.position.set(posed.position.x, posed.position.y, posed.position.z);
-      object.quaternion.set(
-        posed.rotation.x,
-        posed.rotation.y,
-        posed.rotation.z,
-        posed.rotation.w,
-      );
+      object.quaternion.set(posed.rotation.x, posed.rotation.y, posed.rotation.z, posed.rotation.w);
     }
   }
 
@@ -424,9 +538,16 @@ export class SpecimenRendererService {
       this.fireCone = mesh;
     }
 
-    const direction = new THREE.Vector3(aim.direction.x, aim.direction.y, aim.direction.z).normalize();
+    const direction = new THREE.Vector3(
+      aim.direction.x,
+      aim.direction.y,
+      aim.direction.z,
+    ).normalize();
     // Cone tip (+y in local space) points back at the mouth; the base flares away.
-    this.fireCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().negate());
+    this.fireCone.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      direction.clone().negate(),
+    );
     this.fireCone.position.set(
       aim.origin.x + direction.x * FIRE_BREATH_TUNING.range * 0.5,
       aim.origin.y + direction.y * FIRE_BREATH_TUNING.range * 0.5,
@@ -493,6 +614,9 @@ export class SpecimenRendererService {
     if (this.pendingFrameId !== null) cancelAnimationFrame(this.pendingFrameId);
     if (this.turntableFrameId !== null) cancelAnimationFrame(this.turntableFrameId);
     if (this.demoFrameId !== null) cancelAnimationFrame(this.demoFrameId);
+    if (this.idleFrameId !== null) cancelAnimationFrame(this.idleFrameId);
+    this.idleFrameId = null;
+    this.idleMotion = null;
     this.pendingFrameId = null;
     this.turntableFrameId = null;
     this.demoFrameId = null;
@@ -508,7 +632,11 @@ export class SpecimenRendererService {
   /** Coalesces repeated calls in one task into a single frame. */
   requestRender(): void {
     // A running loop already renders every frame; scheduling another is waste.
-    if (this.pendingFrameId !== null || this.turntableFrameId !== null || this.demoFrameId !== null) {
+    if (
+      this.pendingFrameId !== null ||
+      this.turntableFrameId !== null ||
+      this.demoFrameId !== null
+    ) {
       return;
     }
     this.pendingFrameId = requestAnimationFrame(() => {
@@ -520,6 +648,12 @@ export class SpecimenRendererService {
   /** Renders synchronously. Needed before reading pixels back off the canvas. */
   renderNow(): void {
     if (!this.scene || !this.camera || !this.renderer) return;
+    // The composer writes to the same canvas, so `toDataUrl` still reads back a
+    // fully post-processed frame.
+    if (this.postPipeline) {
+      this.postPipeline.render();
+      return;
+    }
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -571,9 +705,7 @@ export class SpecimenRendererService {
       return;
     }
     const next = new THREE.Vector3(direction.x, direction.y, direction.z);
-    this.viewDirection = next.lengthSq() < 1e-8
-      ? DEFAULT_VIEW_DIRECTION.clone()
-      : next.normalize();
+    this.viewDirection = next.lengthSq() < 1e-8 ? DEFAULT_VIEW_DIRECTION.clone() : next.normalize();
   }
 
   /** Explicit size for offscreen use, where there is no layout to observe. */
@@ -587,7 +719,47 @@ export class SpecimenRendererService {
     // JS never carries — so at devicePixelRatio 2 the element laid out at twice
     // its container and only the top-left quadrant was visible.
     this.renderer.setSize(Math.max(width, 1), Math.max(height, 1));
+    this.postPipeline?.setSize(Math.max(width, 1), Math.max(height, 1));
+    // A viewport that mounted hidden had no size to build the chain against;
+    // this is the point at which it finally gets one.
+    this.ensurePostPipeline();
     this.applyFrame();
+  }
+
+  /**
+   * Builds the post chain once the canvas has a real size, and not before.
+   *
+   * GTAOPass takes width and height as *constructor* arguments and allocates its
+   * depth and normal targets there and then. A later `setSize` resizes those
+   * targets but does not fully re-establish what the pass derived from the
+   * original dimensions, so a pass built against a placeholder size goes on
+   * sampling depth that does not correspond to the canvas. It does not throw —
+   * it returns garbage occlusion, which composites as a near-white wash over the
+   * entire frame and looks like a lighting bug rather than a post-processing one.
+   *
+   * Mounting is not a safe moment to build it: the renderer still reports its
+   * default 300x150, and a viewport inside a hidden tab reports 0. So this waits
+   * for a genuine size and is idempotent, and callers invoke it from both mount
+   * and resize.
+   */
+  private ensurePostPipeline(): void {
+    if (this.postPipeline || !this.renderer || !this.scene || !this.camera) return;
+
+    const size = this.renderer.getSize(new THREE.Vector2());
+    if (size.x < 2 || size.y < 2) return;
+
+    // No bloom: the specimen bench is a bright near-white stage, and bloom
+    // selects pixels above a luminance threshold — on this stage that is nearly
+    // all of them, so it washes the frame instead of picking out the eyes. GTAO
+    // and SMAA are the passes that earn their place here, one grounding the
+    // parts into a single animal, the other cleaning the edges.
+    this.postPipeline = createStagePostPipeline(
+      this.renderer,
+      this.scene,
+      this.camera,
+      this.quality,
+      { bloom: false },
+    );
   }
 
   dispose(): void {
@@ -612,12 +784,22 @@ export class SpecimenRendererService {
 
     this.disposeEnvironmentMap?.();
     this.disposeEnvironmentMap = null;
+    // GTAO and SMAA both hold render targets, and these viewports mount and
+    // unmount every time a student moves between workstations.
+    this.postPipeline?.dispose();
+    this.postPipeline = null;
     this.controls?.dispose();
     this.controls = null;
 
     if (this.renderer) {
       this.renderer.domElement.removeEventListener('webglcontextlost', this.handleContextLost);
-      this.renderer.domElement.removeEventListener('webglcontextrestored', this.handleContextRestored);
+      this.renderer.domElement.removeEventListener(
+        'webglcontextrestored',
+        this.handleContextRestored,
+      );
+      this.renderer.domElement.removeEventListener('pointerdown', this.handlePointerDown);
+      this.renderer.domElement.removeEventListener('pointerup', this.handlePointerUp);
+      this.renderer.domElement.removeEventListener('pointercancel', this.handlePointerCancel);
       this.renderer.domElement.remove();
       this.renderer.dispose();
       this.renderer = null;
@@ -629,7 +811,44 @@ export class SpecimenRendererService {
     this.descriptor = null;
     this.activeFrame = null;
     this.zoomLevel = 1;
+    this.pointerStart = null;
   }
+
+  private readonly handlePointerDown = (event: PointerEvent): void => {
+    if (event.button !== 0) return;
+    this.pointerStart = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+  };
+
+  private readonly handlePointerCancel = (): void => {
+    this.pointerStart = null;
+  };
+
+  private readonly handlePointerUp = (event: PointerEvent): void => {
+    const start = this.pointerStart;
+    this.pointerStart = null;
+    if (!start || start.pointerId !== event.pointerId || !this.options.partSelected) return;
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 7) return;
+    if (!this.renderer || !this.camera || !this.specimenGroup) return;
+
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const pointer = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(pointer, this.camera);
+    const hit = raycaster.intersectObject(this.specimenGroup, true)[0]?.object ?? null;
+    let candidate: THREE.Object3D | null = hit;
+    while (candidate && candidate !== this.specimenGroup) {
+      const partId = candidate.userData['partId'];
+      if (typeof partId === 'string') {
+        this.options.partSelected(partId);
+        return;
+      }
+      candidate = candidate.parent;
+    }
+  };
 
   private clearSpecimen(): void {
     if (this.demoFrameId !== null) {
@@ -667,8 +886,9 @@ export class SpecimenRendererService {
     const elevationCos = Math.sqrt(Math.max(1 - elevationSin * elevationSin, 0));
     const projectedHalfHeight = frame.halfHeight * elevationCos + frame.radius * elevationSin;
 
-    const fittedDistance = Math.max(projectedHalfHeight / tanY, frame.radius / tanX)
-      * (this.options.framePadding ?? DEFAULT_FRAME_PADDING);
+    const fittedDistance =
+      Math.max(projectedHalfHeight / tanY, frame.radius / tanX) *
+      (this.options.framePadding ?? DEFAULT_FRAME_PADDING);
     const distance = fittedDistance / this.zoomLevel;
 
     const target = new THREE.Vector3(frame.center.x, frame.center.y, frame.center.z);
@@ -721,8 +941,10 @@ export class SpecimenRendererService {
 export function isSpecimenRenderingAvailable(): boolean {
   if (typeof document === 'undefined') return false;
   try {
-    return Boolean(globalThis.WebGL2RenderingContext)
-      && Boolean(document.createElement('canvas').getContext('webgl2'));
+    return (
+      Boolean(globalThis.WebGL2RenderingContext) &&
+      Boolean(document.createElement('canvas').getContext('webgl2'))
+    );
   } catch {
     return false;
   }

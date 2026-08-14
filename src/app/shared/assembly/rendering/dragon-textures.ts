@@ -83,14 +83,20 @@ export function isSharedDragonTexture(texture: THREE.Texture | null | undefined)
   return Boolean(texture?.userData['sharedDragonTexture']);
 }
 
-/** Texture detail drops on weaker machines, where fill rate matters more than grain. */
-const textureSize = memo((): number => (resolveRenderQuality() === 'high' ? 512 : 256));
+/**
+ * Texture detail drops on weaker machines, where fill rate matters more than
+ * grain. Gated on `!== 'low'` rather than `=== 'high'`: these maps are the
+ * difference between scales and flat plastic at inspection size, and the cost
+ * is one bake per session shared by every dragon, not per-frame.
+ */
+const textureSize = memo((): number => (resolveRenderQuality() !== 'low' ? 512 : 256));
 
 /**
- * Transmission renders the scene into a separate target, so it is reserved for
- * the high tier. Everywhere else the membrane falls back to plain alpha.
+ * Transmission renders the scene into a separate target — the one genuinely
+ * per-frame cost in this module. If the frame budget on a low-end machine ever
+ * fails, narrow this back to `=== 'high'` before touching anything else.
  */
-export const membraneUsesTransmission = memo((): boolean => resolveRenderQuality() === 'high');
+export const membraneUsesTransmission = memo((): boolean => resolveRenderQuality() !== 'low');
 
 // ---------------------------------------------------------------------------
 // Noise and field sampling.
@@ -278,14 +284,104 @@ function scaleHeight(u: number, v: number): number {
   return clamp01((0.3 + 0.7 * dome) * (0.26 + 0.74 * shingle) * amplitude + fbm(u, v, 26) * 0.09);
 }
 
-export const dragonScaleTextures = memo((): DragonTextureSet => {
+/**
+ * Relief is shared between the plain and spotted scale sets.
+ *
+ * A pattern is pigment, not geometry: a spotted animal's spots are level with
+ * the skin around them. So the normal and roughness maps are literally the same
+ * texture objects for both sets, and only the albedo differs — which also keeps
+ * the "a hundred dragons share a handful of texture sets" property intact when
+ * the spotted variant is in play.
+ */
+const scaleRelief = memo(() => {
   const size = textureSize();
   const height = sampleField(size, scaleHeight);
-
   return {
-    map: greyscaleTexture(height, size, h => 0.72 + 0.28 * h, { srgb: true }),
+    size,
+    height,
     normalMap: normalTexture(height, size, 3.4),
     roughnessMap: greyscaleTexture(height, size, h => 0.78 - 0.3 * h, {}),
+  };
+});
+
+export const dragonScaleTextures = memo((): DragonTextureSet => {
+  const relief = scaleRelief();
+  return {
+    map: greyscaleTexture(relief.height, relief.size, h => 0.72 + 0.28 * h, { srgb: true }),
+    normalMap: relief.normalMap,
+    roughnessMap: relief.roughnessMap,
+    alphaMap: null,
+  };
+});
+
+/**
+ * Rosette cells per tile — deliberately tiny.
+ *
+ * The pattern shares the scale map's UVs, so it also shares `SCALE_TILE`: one
+ * tile covers 0.22 world units. At four cells a spot came out around 0.05 units
+ * across, which on a two-unit body is 36 spots down the flank and reads as
+ * speckle rather than markings. Two cells puts a spot at roughly the width of a
+ * few scales, which is what an animal's markings actually look like.
+ */
+const SPOT_CELLS = 2;
+
+/**
+ * Peak of the nearest jittered rosette centre, 0 outside every spot and 1 at a
+ * centre.
+ *
+ * The 3×3 neighbourhood walk is what keeps a spot round when its centre sits
+ * near a cell boundary — sampling only the owning cell clips it into a quarter
+ * circle. Centres and radii are hashed on the *wrapped* cell index so the
+ * pattern tiles seamlessly, the same trick `tilingNoise` uses.
+ */
+function rosetteMask(u: number, v: number): number {
+  const baseX = Math.floor(u * SPOT_CELLS);
+  const baseY = Math.floor(v * SPOT_CELLS);
+  let peak = 0;
+
+  for (let dy = -1; dy <= 1; dy += 1) {
+    for (let dx = -1; dx <= 1; dx += 1) {
+      const cellX = baseX + dx;
+      const cellY = baseY + dy;
+      const wrapX = ((cellX % SPOT_CELLS) + SPOT_CELLS) % SPOT_CELLS;
+      const wrapY = ((cellY % SPOT_CELLS) + SPOT_CELLS) % SPOT_CELLS;
+
+      const centreX = (cellX + 0.2 + 0.6 * hash2(wrapX, wrapY)) / SPOT_CELLS;
+      const centreY = (cellY + 0.2 + 0.6 * hash2(wrapY + 31, wrapX + 17)) / SPOT_CELLS;
+      const radius = (0.2 + 0.18 * hash2(wrapX + 7, wrapY + 13)) / SPOT_CELLS;
+
+      const distance = Math.hypot(u - centreX, v - centreY);
+      peak = Math.max(peak, 1 - smoothstep(clamp01(distance / radius)));
+    }
+  }
+  return peak;
+}
+
+/**
+ * The banded/spotted scale set, selected by the `S` phenotype.
+ *
+ * The spots *darken* rather than introducing a second colour, because rule 1 at
+ * the top of this file holds: one greyscale set has to serve every pigment in
+ * the game. A second hue baked in here would mean a texture per dragon colour.
+ * Multiplying down gives a darker shade of whatever pigment the animal already
+ * has, which is what a real patterned animal is anyway.
+ */
+export const dragonSpottedScaleTextures = memo((): DragonTextureSet => {
+  const relief = scaleRelief();
+  return {
+    map: greyscaleTexture(
+      relief.height,
+      relief.size,
+      (h, u, v) => {
+        // The noise term breaks the circle edge up so spots read as animal
+        // markings rather than as printed dots.
+        const spot = clamp01(rosetteMask(u, v) * (0.8 + 0.4 * fbm(u, v, 12)));
+        return (0.72 + 0.28 * h) * (1 - 0.45 * spot);
+      },
+      { srgb: true },
+    ),
+    normalMap: relief.normalMap,
+    roughnessMap: relief.roughnessMap,
     alphaMap: null,
   };
 });
@@ -468,12 +564,21 @@ export const dragonMembraneTextures = memo((): DragonTextureSet => {
     map: greyscaleTexture(veins, size, vein => 1 - 0.26 * vein, { srgb: true, wrap }),
     normalMap: normalTexture(veins, size, 2.2, { wrap }),
     roughnessMap: greyscaleTexture(veins, size, (vein, u, v) => 0.7 - 0.24 * vein + fbm(u, v, 9) * 0.1, { wrap }),
-    // Thickness falls off toward the trailing edge (u → 1), where a real wing is
-    // little more than skin, and rises along every vessel.
+    /*
+     * Thickness rises along every vessel and falls toward the trailing edge
+     * (u → 1), where a real wing is little more than skin.
+     *
+     * The floor was 0.52 falling to roughly 0.22 at the trailing edge, which was
+     * tuned against the arena's mid-toned overcast sky. On the near-white
+     * specimen bench a half-transparent pale membrane against a white background
+     * is simply not there — the wings read as three bare struts. Raised so the
+     * webbing holds its own colour on a bright stage; the vessel contrast that
+     * does the actual descriptive work is unchanged.
+     */
     alphaMap: greyscaleTexture(
       veins,
       size,
-      (vein, u, v) => 0.52 + 0.44 * vein - 0.3 * Math.pow(u, 1.5) + fbm(u, v, 7) * 0.12,
+      (vein, u, v) => 0.74 + 0.24 * vein - 0.22 * Math.pow(u, 1.5) + fbm(u, v, 7) * 0.1,
       { wrap },
     ),
   };

@@ -554,6 +554,33 @@ export function createEducationalAssembly(
     }));
   }
 
+  /*
+   * The same phenotype also selects the rosetted scale albedo, which is the
+   * detail half of this channel: banding carries it at 120px where a rosette is
+   * below a pixel, and the pattern carries it at inspection size where banding
+   * alone reads as a paint job rather than as an animal's markings.
+   *
+   * Set on every part rather than one profile, because every scaled surface —
+   * body, legs, tail, head, jaws, feet — takes the same skin.
+   *
+   * `spotted` is a *phenotype* call. `showsDominantPhenotype` returns the same
+   * answer for `SS` and `Ss`, and it has to stay that way: this is a visible
+   * channel, so reading zygosity here would let a student tell a heterozygote
+   * by eye. See the test in `dragon-inheritance.spec.ts`.
+   */
+  blueprint.parts = blueprint.parts.map((part) => ({
+    ...part,
+    visualProfile: part.visualProfile
+      ? {
+          ...part.visualProfile,
+          parameters: {
+            ...(part.visualProfile.parameters ?? {}),
+            scalePattern: spotted ? 1 : 0,
+          },
+        }
+      : part.visualProfile,
+  }));
+
   // The genome-tuned combat profile (armor from horns, damage from temperament)
   // travels with the assembly so the arena fights with these numbers instead of
   // regenerating defaults. Prune entries for parts removed by the genotype.
@@ -600,8 +627,12 @@ const HUE_STEP = 137.508;
  */
 function offspringColor(clutchSeed: string, index: number): string {
   const hue = Math.round(((stableHash(clutchSeed) % 360) + index * HUE_STEP) % 360);
-  const saturation = 48 + (stableHash(`${clutchSeed}:saturation:${index}`) % 20);
-  const lightness = 26 + (stableHash(`${clutchSeed}:lightness:${index}`) % 10);
+  // Widened from 48..67 and 26..35. Those bands were narrow enough that the
+  // golden-angle hue walk was doing all the work of telling hatchlings apart,
+  // and two dragons a third of the wheel apart still arrived at the same
+  // apparent depth. The dark ceiling is unchanged and deliberate — see above.
+  const saturation = 52 + (stableHash(`${clutchSeed}:saturation:${index}`) % 26);
+  const lightness = 24 + (stableHash(`${clutchSeed}:lightness:${index}`) % 16);
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 

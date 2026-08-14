@@ -42,13 +42,32 @@ export interface SpecimenPose {
  * a swinging attack.
  */
 export interface SpecimenBend {
-  role: string;
+  /**
+   * Role the bent child must carry. Omit to bend purely by id.
+   *
+   * A role alone cannot describe a limb. Every segment of every leg carries
+   * `leg`, and because bends accumulate down a chain, one role bend rotates
+   * femur, tibia and foot the same way and curls the limb into an arc. A real
+   * leg alternates direction at each joint, so anything past a droop needs
+   * {@link matchPartId} to address the segments separately.
+   */
+  role?: string;
+  /**
+   * Extra predicate on the bent child's part id, ANDed with `role`.
+   *
+   * Part ids are semantic (`classic-dragon-rear-left-lower-leg`), so this is
+   * how a stance says "the hind tibiae and nothing else".
+   */
+  matchPartId?: (partId: string) => boolean;
   radians: number;
   /** World axis to rotate around. */
   axis: Vector3Data;
   /**
    * Flip the rotation for parts on the -z side of the body, so paired limbs
    * sweep symmetrically instead of both swinging the same way.
+   *
+   * Wanted for wings, which fold inward toward the body from both sides. Not
+   * wanted for legs, where both sides step the same way.
    */
   mirrorAcrossZ?: boolean;
 }
@@ -185,7 +204,7 @@ function applyBend(
   }
 
   for (const joint of orderJointsParentFirst(blueprint)) {
-    if (!hasRole(partsById.get(joint.childPartId), bend.role)) continue;
+    if (!bendMatches(bend, partsById.get(joint.childPartId), joint.childPartId)) continue;
 
     const parentPose = parts.get(joint.parentPartId);
     const childPose = parts.get(joint.childPartId);
@@ -251,6 +270,24 @@ function collectSubtree(rootId: string, childIds: Map<string, string[]>): string
 
 function hasRole(part: AssemblyPart | undefined, role: string): boolean {
   return Boolean(part?.roles?.includes(role));
+}
+
+/**
+ * Whether a bend applies to the child on one joint.
+ *
+ * A bend with neither `role` nor `matchPartId` matches nothing, rather than
+ * everything — an under-specified bend that silently rotated the entire animal
+ * is a much worse failure than one that visibly does nothing.
+ */
+function bendMatches(
+  bend: SpecimenBend,
+  part: AssemblyPart | undefined,
+  partId: string,
+): boolean {
+  if (!bend.role && !bend.matchPartId) return false;
+  if (bend.role && !hasRole(part, bend.role)) return false;
+  if (bend.matchPartId && !bend.matchPartId(partId)) return false;
+  return true;
 }
 
 // ---------------------------------------------------------------------------

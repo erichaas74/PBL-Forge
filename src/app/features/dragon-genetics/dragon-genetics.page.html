@@ -1,207 +1,138 @@
-<div class="mission-map">
-  <header class="mission-header">
-    <div>
-      <a routerLink="/catalog">← Project library</a>
-      <span class="eyebrow">Royal Dragon Hatchery · Adaptive genetics lab</span>
-      <h1>{{ simulations.length }} experiences.<br /><em>One evidence trail.</em></h1>
-      <p>
-        Open a full-screen instrument, make predictions on the model, and answer at the level
-        assigned to you.
-      </p>
-    </div>
-    <aside>
-      <span>{{ store.completedCount() }}/{{ simulations.length }}</span>
-      <strong>Experiences secured</strong>
-      <div
-        role="progressbar"
-        aria-label="Dragon Genetics progress"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        [attr.aria-valuenow]="progressPercent()"
-      >
-        <i [style.width.%]="progressPercent()"></i>
-      </div>
-      <small>{{ store.assignment().title }}</small>
-    </aside>
-  </header>
+@if (viewModel(); as view) {
+  <main class="project-hub">
+    <header class="project-header">
+      <a routerLink="/catalog">← Science 7</a>
+      <span>Dragon Genetics Lab</span>
+    </header>
 
-  <main>
-    <div class="map-heading">
+    <section class="mission" aria-labelledby="mission-title">
       <div>
-        <span class="eyebrow">Your instrument deck</span>
-        <h2>Choose the next investigation</h2>
+        <p>{{ view.selectedPathId ? 'Final path selected' : 'Dragon conservation academy' }}</p>
+        <h1 id="mission-title">{{ view.title }}</h1>
+        <p class="mission-copy">{{ view.mission }}</p>
       </div>
-      <p>
-        Each run is generated from your student record and can be reconstructed from its saved seed.
-      </p>
-    </div>
-    <section class="simulation-grid" aria-label="Dragon Genetics simulations">
-      @for (simulation of simulations; track simulation.id) {
-        @let settings = store.settingsFor(simulation.id);
-        @let run = store.runs()[simulation.id];
-        <article
-          [style.--simulation-accent]="simulation.accent"
-          [class.complete]="run?.complete"
-          [class.disabled]="!settings.enabled"
+      <div class="progress" aria-label="Project completion">
+        <strong>{{ view.progressPercent }}%</strong>
+        <span>{{ view.completedRequiredCount }}/{{ view.requiredActivityCount }} required complete</span>
+        <div
+          role="progressbar"
+          aria-label="Required project work complete"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-valuenow]="view.progressPercent"
         >
-          <header>
-            <span>{{ simulation.module.toString().padStart(2, '0') }}</span
-            ><b>{{ simulation.skill }}</b>
-          </header>
-          <div
-            class="instrument-icon"
-            [class]="'instrument-icon icon-' + simulation.visualKind"
-            aria-hidden="true"
-          >
-            @for (node of simulation.nodes; track node.id) {
-              <i>{{ node.symbol }}</i>
-            }
+          <i [style.width.%]="view.progressPercent"></i>
+        </div>
+      </div>
+    </section>
+
+    <section class="next-action" aria-labelledby="next-action-title">
+      @if (view.nextAction; as next) {
+        @if (next.kind === 'activity') {
+          <div>
+            <span>Your next move</span>
+            <h2 id="next-action-title">{{ next.title }}</h2>
+            <p>{{ next.objective }}</p>
           </div>
-          <div class="card-copy">
-            <small
-              >{{ levelLabels[settings.level] }} · {{ settings.questionCount }} checkpoints</small
-            >
-            <h3>{{ simulation.title }}</h3>
-            <p>{{ simulation.goal }}</p>
+          <a [routerLink]="next.route">{{ actionLabel(next) }} →</a>
+        } @else {
+          <div>
+            <span>Your next move</span>
+            <h2 id="next-action-title">{{ next.title }}</h2>
+            <p>{{ next.objective }}</p>
           </div>
-          <footer>
-            @if (run?.complete) {
-              <span>✓ {{ run?.score }}% secured</span>
-            } @else if (run) {
-              <span
-                >Resume {{ (run?.currentQuestionIndex ?? 0) + 1 }}/{{
-                  run?.questionIds?.length
-                }}</span
-              >
-            } @else {
-              <span>Not started</span>
-            }
-            @if (settings.enabled) {
-              <a [routerLink]="['/dragon-genetics', simulation.id]"
-                >{{ run ? 'Open' : 'Launch' }} →</a
-              >
-            } @else {
-              <b>Not assigned</b>
-            }
-          </footer>
-        </article>
+          <label>
+            <span class="sr-only">Final project path</span>
+            <select (change)="selectPath($event)">
+              <option value="">Choose a path</option>
+              @for (path of view.paths; track path.id) {
+                <option [value]="path.id">{{ path.title }}</option>
+              }
+            </select>
+          </label>
+        }
+      } @else {
+        <div>
+          <span>Mission complete</span>
+          <h2 id="next-action-title">Required work secured.</h2>
+          <p>Review your evidence or explore another open lab.</p>
+        </div>
       }
     </section>
 
-    <div class="map-heading">
-      <div>
-        <span class="eyebrow">Open workstations</span>
-        <h2>Investigate without a checkpoint set</h2>
-      </div>
-      <p>
-        These instruments have no question sequence. You choose the records, the tests, and when you
-        have enough evidence.
-      </p>
-    </div>
-    <section class="open-workstations" aria-label="Open Dragon Genetics workstations">
-      <article>
-        <div class="card-copy">
-          <small>Bloodline archive · limited DNA tests</small>
-          <h3>Pedigree Lab</h3>
-          <p>
-            Trace a trait that stopped being visible generations ago through the historical dragon
-            register, and decide which living dragons still carry it.
-          </p>
-        </div>
-        <nav class="bloodline-links" aria-label="Bloodline investigations">
-          @for (bloodline of bloodlines; track bloodline.id) {
-            <a
-              routerLink="/dragon-genetics/pedigree-lab"
-              [queryParams]="{ investigation: bloodline.id }"
-            >
-              <strong>{{ bloodline.archiveTitle }}</strong>
-              <span>{{ bloodline.bloodline }} bloodline · {{ bloodline.lostPhenotype }}</span>
-            </a>
+    <section class="disclosures" aria-label="Project details">
+      <details>
+        <summary>
+          <span>Course map</span>
+          <small>{{ view.completedRequiredCount }}/{{ view.requiredActivityCount }} required</small>
+        </summary>
+        <div class="course-map">
+          @for (stage of view.stages; track stage.id) {
+            <section>
+              <h3>{{ stage.title }}</h3>
+              <ul>
+                @for (activity of stage.activities; track activity.id) {
+                  <li [class.current]="activity.isNextAction">
+                    <i aria-hidden="true">{{ statusSymbol(activity) }}</i>
+                    @if (activity.availability === 'available') {
+                      <a [routerLink]="activity.route">{{ activity.title }}</a>
+                    } @else {
+                      <span>{{ activity.title }}</span>
+                    }
+                    <small>{{ statusLabel(activity) }}</small>
+                  </li>
+                }
+              </ul>
+            </section>
           }
-        </nav>
-        <footer>
-          <span>{{ bloodlines.length }} bloodlines · no checkpoint set</span>
-          <a routerLink="/dragon-genetics/pedigree-lab">Open the archive →</a>
-        </footer>
-      </article>
-      <article class="protein-rescue-card">
-        <div class="card-copy">
-          <small>Clinical genetics · open food trials</small>
-          <h3>Protein Synthesis &amp; Diet Rescue</h3>
-          <p>
-            Follow two patient gene copies through mRNA and protein, test Dracase function, and
-            design a diet response from the evidence.
-          </p>
         </div>
-        <div class="rescue-preview" aria-hidden="true">
-          <span>DNA</span><i>→</i><span>mRNA</span><i>→</i><span>protein</span><i>→</i
-          ><span>diet</span>
-        </div>
-        <footer>
-          <span>Patient cases · no checkpoint set</span>
-          <a routerLink="/dragon-genetics/protein-rescue">Open the rescue bay →</a>
-        </footer>
-      </article>
-      <article class="blood-lab-card">
-        <div class="card-copy">
-          <small>Emergency medicine · multiple alleles</small>
-          <h3>Blood Type Compatibility Lab</h3>
-          <p>
-            Test patient and donor blood markers, infer possible genotypes, and use compatible
-            red-cell evidence to stabilize an injured dragon.
-          </p>
-        </div>
-        <div class="blood-preview" aria-hidden="true">
-          <span class="vial">AF</span><span class="vial">AT</span>
-          <i>+</i>
-          <span class="blood-drop">●</span>
-          <i>→</i>
-          <span class="chamber">HEAL</span>
-        </div>
-        <footer>
-          <span>Patient cases · supply challenge · no checkpoint set</span>
-          <a routerLink="/dragon-genetics/blood-type-lab">Open the healing station →</a>
-        </footer>
-      </article>
-      <article class="island-diversity-card">
-        <div class="card-copy">
-          <small>Population genetics · open archipelago</small>
-          <h3>Island Diversity Manager</h3>
-          <p>
-            Scan and relocate individual dragons, preserve rare variation, manage recessive risk,
-            and watch seven island populations change across generations.
-          </p>
-        </div>
-        <div class="island-preview" aria-hidden="true">
-          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-          <span>GENE FLOW</span>
-        </div>
-        <footer>
-          <span>Seven populations · persistent generations · no checkpoint set</span>
-          <a routerLink="/dragon-genetics/island-diversity">Open the archipelago →</a>
-        </footer>
-      </article>
-      <article class="companion-show-card">
-        <div class="card-copy">
-          <small>Selective breeding · arena alternative</small>
-          <h3>Mini Dragon Show</h3>
-          <p>
-            Would you rather raise a dragon than fight one? A different species with six genes of
-            its own: write a breed standard for the mini dragon you want, breed across generations,
-            and prove from your own litters that the look is actually inherited.
-          </p>
-        </div>
-        <div class="companion-preview" aria-hidden="true">
-          <span class="pet"><i></i><b></b></span>
-          <span class="pet small"><i></i><b></b></span>
-          <span class="pet tiny"><i></i><b></b></span>
-          <span class="rosette">BEST IN SHOW</span>
-        </div>
-        <footer>
-          <span>Breed registry · bloodline meter · no checkpoint set</span>
-          <a routerLink="/dragon-genetics/companion-show">Enter the show →</a>
-        </footer>
-      </article>
+      </details>
+
+      <details>
+        <summary>
+          <span>Final paths</span>
+          <small>{{ view.selectedPathId ? 'Selected' : 'Not selected' }}</small>
+        </summary>
+        @if (view.nextAction?.kind !== 'choose-path') {
+          <label class="path-select">
+            Final path
+            <select [value]="view.selectedPathId ?? ''" (change)="selectPath($event)">
+              <option value="">Choose later</option>
+              @for (path of view.paths; track path.id) {
+                <option [value]="path.id">{{ path.title }}</option>
+              }
+            </select>
+          </label>
+        }
+        <ul class="path-list">
+          @for (path of view.paths; track path.id) {
+            <li [class.selected]="path.selected">
+              <strong>{{ path.title }}</strong>
+              <span>{{ path.objective }}</span>
+              <small>{{ path.outcomeLabel }}</small>
+            </li>
+          }
+        </ul>
+      </details>
+
+      <details>
+        <summary>
+          <span>Evidence</span>
+          <small>{{ evidenceCount(view) }} saved</small>
+        </summary>
+        <ul class="evidence-list">
+          @for (stage of view.stages; track stage.id) {
+            @for (activity of stage.activities; track activity.id) {
+              @if (activity.evidenceCount) {
+                <li><span>{{ activity.title }}</span><strong>{{ activity.evidenceCount }}</strong></li>
+              }
+            }
+          }
+        </ul>
+        @if (!evidenceCount(view)) {
+          <p class="empty-note">Evidence appears here after an investigation is saved.</p>
+        }
+      </details>
     </section>
   </main>
-</div>
+}

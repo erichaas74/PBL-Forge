@@ -1,5 +1,5 @@
 import { Provider } from '@angular/core';
-import { AssemblyPartRole } from '../../../../shared/assembly/domain/assembly.models';
+import { AssemblyBlueprint, AssemblyPartRole } from '../../../../shared/assembly/domain/assembly.models';
 import { AssemblyCombatProfile } from '../../../../shared/assembly/combat/assembly-combat.models';
 import {
   SpecimenDescriptor,
@@ -53,6 +53,79 @@ import {
  */
 
 export const DRAGON_SPECIMEN_PROFILE_ID = 'dragon-genetics';
+
+/**
+ * Folds the wings of a blueprint on its way to a *viewer*.
+ *
+ * A dragon standing on a bench has its wings folded; a dragon in the arena is
+ * fighting and may be about to use them. Both read the same blueprint, so the
+ * fold is stamped here — on the descriptor path, which only the specimen
+ * viewers and thumbnails take — rather than in `createEducationalAssembly`,
+ * which the arena consumes directly.
+ *
+ * Copies rather than mutates: assembly blueprints are memoised per parent and
+ * per offspring, and folding one in place would fold the animal that walks into
+ * the battle too.
+ */
+function withFoldedWings(blueprint: AssemblyBlueprint): AssemblyBlueprint {
+  const wings = blueprint.parts.filter(
+    part => part.visualProfile?.profileId === 'dragon-wing'
+      || part.visualProfile?.profileId === 'dragon-secondary-wing',
+  );
+  // Which wing each claw hangs from, so the claw can be folded with it.
+  const clawParents = new Map<string, string>();
+  for (const joint of blueprint.joints) {
+    if (wings.some(wing => wing.id === joint.parentPartId)) {
+      clawParents.set(joint.childPartId, joint.parentPartId);
+    }
+  }
+  const wingsById = new Map(wings.map(wing => [wing.id, wing]));
+
+  return {
+    ...blueprint,
+    parts: blueprint.parts.map(part => {
+      if (wingsById.has(part.id) && part.visualProfile) {
+        return {
+          ...part,
+          visualProfile: {
+            ...part.visualProfile,
+            parameters: { ...(part.visualProfile.parameters ?? {}), wingFold: 1 },
+          },
+        };
+      }
+
+      /*
+       * The hand claw is a separate *part*, mounted out at the wingtip, so the
+       * mesh folding on its own left it hanging in the air where the spread tip
+       * used to be.
+       *
+       * It is marked rather than moved. Moving it needs the claw's position in
+       * the builder's frame, and there isn't one to recover: genetics rescales
+       * the wings and `realignPartsToJoints` then re-derives every child from
+       * its joint pivot, so by the time the blueprint arrives here the claw is
+       * wherever the joint put it and not at `wingClawAnchor`. Three different
+       * reconstructions all landed it somewhere plausible and wrong.
+       *
+       * Not drawing it is the honest answer rather than a dodge: on a folded
+       * wing the hand is closed against the flank and its claw is tucked inside
+       * the fold, so the correct number of visible hand claws on a resting
+       * dragon is zero. The part stays in the blueprint — trait highlighting and
+       * the part list are unchanged — and the arena, which never folds, still
+       * draws it.
+       */
+      const parentId = clawParents.get(part.id);
+      if (!parentId || !part.visualProfile) return part;
+
+      return {
+        ...part,
+        visualProfile: {
+          ...part.visualProfile,
+          parameters: { ...(part.visualProfile.parameters ?? {}), wingFold: 1 },
+        },
+      };
+    }),
+  };
+}
 
 type DragonSpecimenGenome =
   | { kind: 'engine'; genome: DragonGenome }
@@ -188,7 +261,7 @@ export function createDragonBenchBuild(
   return {
     source: {
       kind: 'descriptor',
-      descriptor: describeSpecimen(id, build.assembly, {
+      descriptor: describeSpecimen(id, withFoldedWings(build.assembly), {
         label: options.label ?? id,
         profileId: DRAGON_SPECIMEN_PROFILE_ID,
         generation,
@@ -246,7 +319,7 @@ export function createExpressiveDragonBenchBuild(
   return {
     source: {
       kind: 'descriptor',
-      descriptor: describeSpecimen(id, build.assembly, {
+      descriptor: describeSpecimen(id, withFoldedWings(build.assembly), {
         label: options.label ?? id,
         profileId: DRAGON_SPECIMEN_PROFILE_ID,
         generation,
@@ -396,7 +469,7 @@ export function dragonOffspringSource(offspring: DragonOffspring): SpecimenSourc
 
   const source: SpecimenSource = {
     kind: 'descriptor',
-    descriptor: describeSpecimen(offspring.id, offspring.assembly, {
+    descriptor: describeSpecimen(offspring.id, withFoldedWings(offspring.assembly), {
       label: offspring.name,
       profileId: DRAGON_SPECIMEN_PROFILE_ID,
       generation: offspring.generation,
@@ -420,7 +493,7 @@ function describeEngineGenome(
   options: SpecimenExpressOptions,
 ): SpecimenDescriptor {
   const generated = generateDragonAssembly(PUBLISHED_CLASSIC_DRAGON_PRESET.state, genome);
-  return describeSpecimen(options.id ?? genome.id, generated.blueprint, {
+  return describeSpecimen(options.id ?? genome.id, withFoldedWings(generated.blueprint), {
     label: options.label ?? genome.id,
     profileId: DRAGON_SPECIMEN_PROFILE_ID,
     generation: options.generation ?? genome.generation,
@@ -441,7 +514,7 @@ function describeLabGenome(
   // exactly as it does in the clutch and in the arena.
   const build = createEducationalAssembly(genome, engineGenome, identity);
 
-  return describeSpecimen(id, build.assembly, {
+  return describeSpecimen(id, withFoldedWings(build.assembly), {
     label: options.label ?? id,
     profileId: DRAGON_SPECIMEN_PROFILE_ID,
     generation,

@@ -43,6 +43,35 @@ function hornLengthOf(assembly: {
   return typeof hornLength === 'number' ? hornLength : undefined;
 }
 
+/**
+ * Everything about a part that a student can *see*.
+ *
+ * Deliberately wider than colour. A visual channel is free to be added through
+ * `visualProfile.parameters` — the scale pattern is — and a comparison that only
+ * looked at `color` would wave through a new channel that leaked zygosity
+ * through a parameter instead.
+ */
+function visibleSurfaceOf(assembly: {
+  parts: {
+    color: string;
+    roles?: readonly string[];
+    dimensions: { x: number; y: number; z: number };
+    visualProfile?: { profileId: string; parameters?: Record<string, unknown> };
+  }[];
+}) {
+  return assembly.parts.map(part => ({
+    color: part.color,
+    roles: [...(part.roles ?? [])],
+    // Size is a visual channel like any other, and the one the `F` gene owns —
+    // it reaches the animal by rescaling the jaw parts rather than through a
+    // parameter, so a surface comparison that skipped `dimensions` would be
+    // blind to the single gene most important to keep un-leaked.
+    dimensions: { ...part.dimensions },
+    profileId: part.visualProfile?.profileId,
+    parameters: { ...(part.visualProfile?.parameters ?? {}) },
+  }));
+}
+
 describe('dragon inheritance bridge', () => {
   it('renders a heterozygote identically to a homozygous dominant', () => {
     // The lesson's central claim. If these ever diverge, the phenotype is
@@ -55,6 +84,42 @@ describe('dragon inheritance bridge', () => {
     expect(headProfileOf(homozygous.assembly)).toBe(headProfileOf(heterozygous.assembly));
     expect(homozygous.assembly.parts.map(part => part.color))
       .toEqual(heterozygous.assembly.parts.map(part => part.color));
+  });
+
+  // Per gene, so a failure names the leaking locus instead of just saying the
+  // dragons differ. Each case is `Xx` against `XX`, which must be identical
+  // down to the last visible parameter; `xx` is expected to differ and is what
+  // proves the comparison is actually sensitive to this gene at all.
+  const dominantPairs: { trait: keyof DragonLabGenome; hom: [string, string]; het: [string, string]; rec: [string, string] }[] = [
+    { trait: 'wings', hom: ['W', 'W'], het: ['W', 'w'], rec: ['w', 'w'] },
+    { trait: 'fire', hom: ['F', 'F'], het: ['F', 'f'], rec: ['f', 'f'] },
+    { trait: 'scales', hom: ['S', 'S'], het: ['S', 's'], rec: ['s', 's'] },
+    { trait: 'horns', hom: ['H', 'H'], het: ['H', 'h'], rec: ['h', 'h'] },
+  ];
+
+  for (const { trait, hom, het, rec } of dominantPairs) {
+    it(`hides zygosity of the ${trait} gene across every visible channel`, () => {
+      const homozygous = build('same-id', genome({ [trait]: hom }), EMBER);
+      const heterozygous = build('same-id', genome({ [trait]: het }), EMBER);
+      const recessive = build('same-id', genome({ [trait]: rec }), EMBER);
+
+      expect(visibleSurfaceOf(heterozygous.assembly)).toEqual(visibleSurfaceOf(homozygous.assembly));
+      // Guards the guard: if the recessive also matched, this test would pass
+      // for a channel that had simply stopped being expressed.
+      expect(visibleSurfaceOf(recessive.assembly)).not.toEqual(visibleSurfaceOf(homozygous.assembly));
+    });
+  }
+
+  it('selects the patterned scale albedo from the scales phenotype', () => {
+    const patternOf = (assembly: {
+      parts: { visualProfile?: { parameters?: Record<string, unknown> } }[];
+    }) => assembly.parts.map(part => part.visualProfile?.parameters?.['scalePattern']);
+
+    const spotted = build('d', genome({ scales: ['S', 's'] }), EMBER).assembly;
+    const solid = build('d', genome({ scales: ['s', 's'] }), EMBER).assembly;
+
+    expect(patternOf(spotted).every(value => value === 1)).toBe(true);
+    expect(patternOf(solid).every(value => value === 0)).toBe(true);
   });
 
   it('gives each modelled gene its own visual channel', () => {

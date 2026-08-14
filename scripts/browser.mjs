@@ -56,6 +56,9 @@
  *   --headed                     show the browser
  *   --dark                       emulate a dark-themed browser
  *   --forced-colors              emulate Windows high contrast
+ *   --reduced-motion             emulate prefers-reduced-motion; also required
+ *                                to screenshot one element of a page whose
+ *                                specimen viewers are running their idle loop
  *   --slow=250                   slow each interaction down, to watch it
  *   --viewport=1600x1000
  *   --scale=2                    device pixel ratio for screenshots
@@ -228,6 +231,12 @@ const page = await browser.newPage({
   // from the browser's theme while its background comes from the stylesheet.
   colorScheme: flags.dark !== undefined ? 'dark' : 'light',
   forcedColors: flags['forced-colors'] !== undefined ? 'active' : 'none',
+  // Two jobs. It exercises the reduced-motion path, which is a real branch in
+  // the specimen renderer rather than a CSS nicety. And it is how you screenshot
+  // a *single element* on a page that runs an ambient loop: the specimen
+  // viewers breathe continuously, and an element screenshot waits for the
+  // element to settle, so without this `shot name .viewport__stage` times out.
+  reducedMotion: flags['reduced-motion'] !== undefined ? 'reduce' : 'no-preference',
 });
 
 page.setDefaultTimeout(TIMEOUT);

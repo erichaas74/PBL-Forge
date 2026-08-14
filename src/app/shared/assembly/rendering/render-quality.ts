@@ -9,14 +9,25 @@ export const RENDER_QUALITY_STORAGE_KEY = 'pbl-forge.render-quality';
 
 const QUALITY_VALUES: readonly RenderQuality[] = ['high', 'medium', 'low'];
 
-/** User override first, then a conservative device heuristic. */
+/**
+ * User override first, then a device heuristic.
+ *
+ * The heuristic no longer returns `'low'`. It used to, and the effect was that
+ * the specimen viewers a student actually inspects a dragon in ran with
+ * pixelRatio 1, half-resolution textures, and no post chain — the whole
+ * material pipeline was built and then switched off at the surface it was
+ * built for. `'medium'` is the floor now: pixelRatio 1.5, full-resolution
+ * texture maps, bloom and SMAA, but still no GTAO, which is the expensive one.
+ *
+ * `'low'` remains reachable through {@link storeRenderQuality}, so the settings
+ * override is the escape hatch for a machine that cannot keep up.
+ */
 export function resolveRenderQuality(): RenderQuality {
   const stored = readStoredRenderQuality();
   if (stored) return stored;
 
   const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
   const cores = navigator.hardwareConcurrency ?? 4;
-  if ((memory !== undefined && memory <= 2) || cores <= 2) return 'low';
   if ((memory !== undefined && memory <= 4) || cores <= 4) return 'medium';
   return 'high';
 }
@@ -44,6 +55,29 @@ export function storeRenderQuality(quality: RenderQuality | null): void {
 
 export function shadowMapSizeForQuality(quality: RenderQuality): number {
   return quality === 'high' ? 2048 : 1024;
+}
+
+/**
+ * Multiplier on procedural segment counts.
+ *
+ * The dragon builders carry hand-tuned segment counts that were chosen to look
+ * right, so this scales them rather than replacing them, and callers floor the
+ * result at the authored value — `'low'` must never produce a coarser dragon
+ * than the one those counts were tuned against.
+ */
+export function geometryDetailForQuality(quality: RenderQuality): number {
+  if (quality === 'high') return 1.6;
+  if (quality === 'medium') return 1.25;
+  return 1;
+}
+
+/**
+ * Segment count for a builder whose authored value is `base`.
+ *
+ * Always at least `base`: the tiers add detail, they never remove it.
+ */
+export function detailSegments(base: number, quality: RenderQuality): number {
+  return Math.max(base, Math.round(base * geometryDetailForQuality(quality)));
 }
 
 export function pixelRatioForQuality(quality: RenderQuality): number {

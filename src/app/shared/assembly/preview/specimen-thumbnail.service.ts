@@ -6,6 +6,7 @@ import {
   SpecimenRendererService,
   isSpecimenRenderingAvailable,
 } from './specimen-renderer.service';
+import { DRAGON_RESTING_POSE } from './specimen-stance';
 
 /**
  * Bakes specimens to still images through a single offscreen WebGL context.
@@ -125,6 +126,10 @@ export class SpecimenThumbnailService implements OnDestroy {
 
       const renderer = new SpecimenRendererService();
       renderer.mount(host, {
+        // Deliberately pinned, unlike the live viewers. These bake at thumbnail
+        // size through one shared offscreen context, so a post chain here costs
+        // a composer and its render targets per bake to sharpen edges nobody can
+        // resolve at 120px.
         quality: 'low',
         interactive: false,
         transparent: true,
@@ -132,7 +137,7 @@ export class SpecimenThumbnailService implements OnDestroy {
         // toDataURL runs, and the bake comes back empty.
         preserveDrawingBuffer: true,
         showGroundShadow: false,
-        pose: { droopRadians: TAIL_DROOP_RADIANS },
+        pose: DRAGON_RESTING_POSE,
       });
 
       this.hostElement = host;
@@ -162,7 +167,6 @@ export class SpecimenThumbnailService implements OnDestroy {
 }
 
 /** Matches the live viewer, so a thumbnail and its opened view agree. */
-const TAIL_DROOP_RADIANS = 0.13;
 
 function round(value: number): number {
   return Math.round(value * 1000) / 1000;

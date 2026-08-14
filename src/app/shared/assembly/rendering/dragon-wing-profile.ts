@@ -36,12 +36,85 @@ export const WING_SHAPES = {
 /** Shipped default. Change this line to adopt a tuned shape permanently. */
 export const DEFAULT_WING_SHAPE: WingMembraneShape = WING_SHAPES.cambered;
 
-/** How much deeper the membrane is than the plate it collides with. */
-const CHORD_RATIO = 2.6;
+/**
+ * How much deeper the membrane is than the plate it collides with.
+ *
+ * Raised from 2.6. A dragon's wing is the largest thing about it, and at 2.6 the
+ * membrane was narrow enough that the arm and finger bones — which are keratin
+ * cream, not membrane — carried the silhouette, so the wings read as a bundle of
+ * struts with a sheet between them rather than as wings.
+ *
+ * Everything downstream follows this: `wingLeadingEdge` sweeps by a fraction of
+ * it, and `wingTipMount` places the hand claw from it, so the sockets stay on
+ * the surface when it changes.
+ */
+const CHORD_RATIO = 3.3;
 
 /** Membrane depth, front to back. */
 export function wingChord(dimensions: Vector3Data): number {
   return dimensions.x * CHORD_RATIO;
+}
+
+// ---------------------------------------------------------------------------
+// Folding
+// ---------------------------------------------------------------------------
+
+/**
+ * The resting fold, owned here rather than in the mesh builder because two
+ * things have to agree about it.
+ *
+ * The builder folds the membrane, the arm and the finger struts. But the hand
+ * claw is a separate *part* with its own position, mounted at the wingtip — so
+ * when the mesh folded and the claw did not, the claw stayed hanging in the air
+ * where the spread wingtip used to be, a cone floating beside the tail. Both
+ * sides now read the same numbers and the same transform from here.
+ */
+
+/** Span fraction of the wrist. Everything outboard of this rotates. */
+export const WING_ELBOW_S = 0.45;
+/** Rotation of the hand at full fold. Past 90°, so the tip tucks inboard. */
+export const WING_FOLD_ANGLE = 1.95;
+
+/**
+ * How much of the fold applies at span fraction `s`: 0 inboard of the wrist,
+ * eased to 1 at the tip. Eased rather than linear because a folding wing curls
+ * — a constant angle past the wrist reads as the hinge on a deck chair.
+ */
+export function wingFoldEase(s: number): number {
+  if (s <= WING_ELBOW_S) return 0;
+  const t = (s - WING_ELBOW_S) / (1 - WING_ELBOW_S);
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * Swings a point outboard of the wrist back toward the tail.
+ *
+ * A rotation about the vertical through the wrist. The outboard direction is
+ * -z, and this turns -z toward -x, so the hand trails along the flank; past 90
+ * degrees it carries on inboard and tucks against the body.
+ *
+ * Works in the wing's own space, where +z is outboard — the builder mirrors the
+ * right wing by scaling the whole group, so both sides fold with these numbers.
+ */
+export function foldWingPoint(
+  point: { x: number; y: number; z: number },
+  s: number,
+  fold: number,
+  elbowX: number,
+  elbowZ: number,
+): { x: number; y: number; z: number } {
+  const angle = fold * WING_FOLD_ANGLE * wingFoldEase(s);
+  if (angle === 0) return point;
+
+  const dx = point.x - elbowX;
+  const dz = point.z - elbowZ;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return {
+    x: elbowX + dx * cos + dz * sin,
+    y: point.y,
+    z: elbowZ - dx * sin + dz * cos,
+  };
 }
 
 /**

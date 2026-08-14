@@ -1,0 +1,67 @@
+<main class="arena-mission">
+  <header class="mission-header">
+    <a routerLink="/dragon-genetics">← Project</a>
+    <span>Final path · Dragon Arena</span>
+    <h1>Breed. Test. Defend.</h1>
+    <p>Take one Hatchery dragon into a fair arena trial.</p>
+  </header>
+
+  @if (selectedChampion(); as champion) {
+    <section class="champion-bar" aria-label="Arena champion and trial summary">
+      <label>
+        Champion
+        <select [value]="champion.id" (change)="selectChampion($event)">
+          @for (candidate of champions(); track candidate.id) {
+            <option [value]="candidate.id">{{ candidate.name }}</option>
+          }
+        </select>
+      </label>
+      <dl>
+        <div><dt>Trials</dt><dd>{{ selectedTrials().length }}</dd></div>
+        <div><dt>Wins</dt><dd>{{ wins() }}</dd></div>
+        <div><dt>Best score</dt><dd>{{ bestScore() }}</dd></div>
+      </dl>
+      <a routerLink="/dragon-genetics/dragon-hatchery">Breed another</a>
+    </section>
+
+    <app-dragon-arena
+      [champion]="champion"
+      [compact]="true"
+      (battleFinished)="recordTrial($event)"
+    />
+
+    <section class="mission-details" aria-label="Arena mission evidence">
+      <details>
+        <summary>Arena evidence ({{ selectedTrials().length }})</summary>
+        <div class="trait-evidence" aria-label="Champion trait effects">
+          @for (record of traitEvidence(); track record.traitId) {
+            <div>
+              <strong>{{ record.traitName }}</strong>
+              <span>{{ record.genotype }} · {{ record.phenotype }}</span>
+              <small>{{ record.arenaEffect }}</small>
+            </div>
+          }
+        </div>
+        @if (selectedTrials().length) {
+          <ol class="trial-list">
+            @for (trial of selectedTrials(); track trial.id) {
+              <li>
+                <strong>{{ trial.score }}</strong>
+                <span>{{ trial.won ? 'Win' : 'Loss' }} · {{ trial.elapsedSeconds.toFixed(1) }}s · {{ trial.remainingHealthPercent }}% health</span>
+                <small>{{ trial.scoreBreakdown.outcomePoints }} outcome + {{ trial.scoreBreakdown.conditionPoints }} condition + {{ trial.scoreBreakdown.pacePoints }} pace</small>
+              </li>
+            }
+          </ol>
+        } @else {
+          <p>Complete one battle to record a trial.</p>
+        }
+      </details>
+    </section>
+  } @else {
+    <section class="empty-mission">
+      <h2>No champion ready</h2>
+      <p>Breed at least one Hatchery dragon before entering the arena.</p>
+      <a routerLink="/dragon-genetics/dragon-hatchery">Open Hatchery</a>
+    </section>
+  }
+</main>

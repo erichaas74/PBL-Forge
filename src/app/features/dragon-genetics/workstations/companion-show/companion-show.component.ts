@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
   untracked,
 } from '@angular/core';
@@ -48,6 +49,7 @@ import {
   COMPANION_LITTER_SIZES,
   CompanionDragon,
   CompanionLitterSize,
+  CompanionShowSnapshot,
   LitterRecord,
   RegistryEntry,
   parseCompanionDragonDragPayload,
@@ -88,6 +90,7 @@ export class CompanionShowComponent {
   private readonly repository = inject(CompanionShowRepository);
 
   readonly studentId = input('local-student');
+  readonly snapshotChange = output<CompanionShowSnapshot>();
   readonly goal = input(
     'Determine whether a mini dragon you design is reliably inherited across generations.',
   );
@@ -582,10 +585,11 @@ export class CompanionShowComponent {
         ? `Restored ${snapshot.litters.length} litter${snapshot.litters.length === 1 ? '' : 's'} and ${kennel.size} kennel dragon${kennel.size === 1 ? '' : 's'}.`
         : 'Adopt founders from the Society register to open your kennel.',
     );
+    this.snapshotChange.emit(snapshot);
   }
 
   private persist(): void {
-    this.repository.save({
+    const snapshot: CompanionShowSnapshot = {
       schemaVersion: 2,
       studentId: this.studentId().trim() || 'local-student',
       breedName: this.breedName(),
@@ -600,7 +604,9 @@ export class CompanionShowComponent {
       claim: this.claim(),
       registry: this.registry(),
       updatedAtIso: new Date().toISOString(),
-    });
+    };
+    this.repository.save(snapshot);
+    this.snapshotChange.emit(snapshot);
   }
 }
 

@@ -6,6 +6,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import {
@@ -39,6 +40,7 @@ import {
   IslandId,
   IslandMetrics,
   PopulationDragon,
+  StoredIslandDiversityWorld,
 } from './island-diversity.models';
 import { IslandDiversityRepository } from './island-diversity.repository';
 
@@ -56,6 +58,7 @@ export class IslandDiversityManagerComponent {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);
 
   readonly studentId = input('local-student');
+  readonly worldChange = output<StoredIslandDiversityWorld>();
   readonly islandDefinitions = ISLAND_DEFINITIONS;
   readonly loci = Object.values(CONSERVATION_LOCI);
   readonly populationDots = Array.from({ length: 12 }, (_, index) => index);
@@ -126,8 +129,10 @@ export class IslandDiversityManagerComponent {
       const studentId = this.studentId().trim() || 'local-student';
       if (studentId === this.loadedStudentId) return;
       this.loadedStudentId = studentId;
-      this.world.set(this.repository.load(studentId));
+      const world = this.repository.load(studentId);
+      this.world.set(world);
       this.syncNoteDraft(this.selectedIslandId());
+      this.worldChange.emit({ schemaVersion: 1, studentId, world });
     });
   }
 
@@ -406,6 +411,12 @@ export class IslandDiversityManagerComponent {
   }
 
   private commit(world: IslandDiversityWorld): void {
-    this.world.set(this.repository.save(this.studentId(), world));
+    const saved = this.repository.save(this.studentId(), world);
+    this.world.set(saved);
+    this.worldChange.emit({
+      schemaVersion: 1,
+      studentId: this.studentId().trim() || 'local-student',
+      world: saved,
+    });
   }
 }

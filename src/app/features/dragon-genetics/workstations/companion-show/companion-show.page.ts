@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SessionService } from '../../../../core/firebase/session.service';
+import { DragonAdaptiveStore } from '../../adaptive/dragon-adaptive.store';
+import { DragonCapstoneProgressRepository } from '../../project/dragon-capstone-progress.repository';
 import { CompanionShowComponent } from './companion-show.component';
+import { CompanionShowSnapshot } from './companion-show.models';
 
 /** Full-screen host for the open Companion Dragon Show workstation. */
 @Component({
@@ -21,7 +24,10 @@ import { CompanionShowComponent } from './companion-show.component';
           <h1>Mini Dragon Show</h1>
         </div>
       </header>
-      <app-companion-show [studentId]="studentId()" />
+      <app-companion-show
+        [studentId]="studentId()"
+        (snapshotChange)="recordSnapshot($event)"
+      />
     </div>
   `,
   styles: [
@@ -83,5 +89,30 @@ import { CompanionShowComponent } from './companion-show.component';
 })
 export class CompanionShowPage {
   private readonly session = inject(SessionService);
+  private readonly adaptiveStore = inject(DragonAdaptiveStore);
+  private readonly capstoneProgressRepository = inject(DragonCapstoneProgressRepository);
+  private readonly latestSnapshot = signal<CompanionShowSnapshot | null>(null);
+  private syncSignature = '';
   readonly studentId = computed(() => this.session.user()?.uid ?? 'local-student');
+
+  constructor() {
+    effect(() => {
+      if (!this.adaptiveStore.ready()) return;
+      const snapshot = this.latestSnapshot();
+      if (!snapshot || snapshot.studentId === 'local-student') return;
+      const assignment = this.adaptiveStore.assignment();
+      const signature = `${snapshot.studentId}:${assignment.id}:${snapshot.updatedAtIso}:${snapshot.registry.length}:${snapshot.litters.length}`;
+      if (signature === this.syncSignature) return;
+      this.syncSignature = signature;
+      void this.capstoneProgressRepository
+        .saveMiniDragonShow(snapshot, assignment)
+        .catch((error: unknown) =>
+          console.error('Mini Dragon Show progress could not sync.', error),
+        );
+    });
+  }
+
+  recordSnapshot(snapshot: CompanionShowSnapshot): void {
+    this.latestSnapshot.set(snapshot);
+  }
 }

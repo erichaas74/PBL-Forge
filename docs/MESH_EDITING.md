@@ -78,10 +78,22 @@ keys:
 ```text
 backSpikeCount backSpikeScale browLength browRidge camber cheek clawScale cranium
 crestScale dihedral earShape eyeAxial eyeColor fangScale fingerSag hornLength
-hornRadius muzzleDepth muzzleDrop muzzleWidth scallop sex spikeCount spikeHeight
-spikeLean spikeLength spikeRadius spikeSpread tailClubSpikeCount tailClubSpikeScale
-talonCount talonLength talonRadius toothCount toothHeight toothRadius toothStart
+hornRadius muzzleDepth muzzleDrop muzzleWidth scalePattern scallop sex spikeCount
+spikeHeight spikeLean spikeLength spikeRadius spikeSpread tailClubSpikeCount
+tailClubSpikeScale talonCount talonLength talonRadius toothCount toothHeight
+toothRadius toothStart wingFold
 ```
+
+`wingFold` is display-only: 0 is the flight pose and the default, and the
+specimen profile stamps 1 on its way to a viewer so a dragon on a bench has its
+wings folded while the same blueprint fights in the arena with them spread. It
+also suppresses the hand claw, which on a folded wing is tucked inside the fold.
+
+`scalePattern` is the odd one out: a 0/1 flag rather than a measurement, set on
+**every** part instead of one profile, and it selects a texture set rather than
+reshaping geometry. It carries the `S` locus's dominant phenotype, and it is a
+phenotype and not a genotype on purpose — see the note where it is written in
+`dragon-inheritance.ts`.
 
 ## Making a number tunable instead of hardcoded
 
