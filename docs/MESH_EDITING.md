@@ -77,7 +77,7 @@ keys:
 
 ```text
 backSpikeCount backSpikeScale browLength browRidge camber cheek clawScale cranium
-crestScale dihedral earShape eyeAxial eyeColor fangScale fingerSag hornLength
+crestScale dihedral eyeAxial eyeColor fangScale fingerSag glowMarkings hornLength
 hornRadius muzzleDepth muzzleDrop muzzleWidth scalePattern scallop sex spikeCount
 spikeHeight spikeLean spikeLength spikeRadius spikeSpread tailClubSpikeCount
 tailClubSpikeScale talonCount talonLength talonRadius toothCount toothHeight
@@ -94,6 +94,14 @@ also suppresses the hand claw, which on a folded wing is tucked inside the fold.
 reshaping geometry. It carries the `S` locus's dominant phenotype, and it is a
 phenotype and not a genotype on purpose — see the note where it is written in
 `dragon-inheritance.ts`.
+
+`glowMarkings` is the other flag: a real boolean, carrying the `N` locus's
+dominant phenotype, and stamped on the body, the head and every tail part —
+`GLOWING_PROFILE_IDS` in `dragon-inheritance.ts` is the list. It adds emissive
+nodes rather than reshaping anything, so it is the only trait that stays legible
+at thumbnail size and in a dark arena. It replaced `earShape`, whose two
+phenotypes were a small pointed flap and a small rounded one; nobody could tell
+them apart on a hatchling, which defeats the point of a visible trait.
 
 ## Making a number tunable instead of hardcoded
 
