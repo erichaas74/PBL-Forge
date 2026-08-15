@@ -34,7 +34,18 @@
           <dd>{{ bestScore() }}</dd>
         </div>
       </dl>
-      <a routerLink="/dragon-genetics/dragon-hatchery">Return to the Hatchery</a>
+      <div class="champion-actions">
+        <a
+          class="wise-dragon-link"
+          routerLink="/dragon-genetics/wise-dragon"
+          [queryParams]="{ dragonId: champion.id }"
+        >
+          {{
+            selectedTrials().length ? 'Practice with the Wise Dragon' : 'Preview the Wise Dragon'
+          }}
+        </a>
+        <a routerLink="/dragon-genetics/dragon-hatchery">Return to the Hatchery</a>
+      </div>
     </section>
 
     <app-dragon-arena

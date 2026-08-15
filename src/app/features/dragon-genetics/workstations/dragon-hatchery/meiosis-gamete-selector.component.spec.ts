@@ -31,15 +31,92 @@ describe('MeiosisGameteSelectorComponent', () => {
     component.finishMeiosis();
     fixture.detectChanges();
 
-    expect(component.phase().name).toBe('Four gametes');
+    expect(component.phase().name).toBe('Telophase II & Cytokinesis');
     expect(fixture.nativeElement.querySelectorAll('.gamete-card').length).toBe(4);
     expect(fixture.nativeElement.querySelector('.cell-stage').hidden).toBeFalse();
-    expect(fixture.nativeElement.querySelector('canvas').hidden).toBeTrue();
+    expect(fixture.nativeElement.querySelector('canvas')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.shared-meiosis-stage')).toBeNull();
     expect(fixture.nativeElement.querySelector('.gamete-stage-grid')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.gamete-workbench')).toBeNull();
   });
 
-  it('loads chromosome evidence into each of the four canvas quadrants', () => {
+  it('uses the shared chromosome model for single and replicated parent chromosomes', () => {
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelectorAll('.parent-cell app-chromosome-svg').length).toBe(10);
+    expect(element.querySelectorAll('.parent-cell .chromosome-svg--replicated').length).toBe(0);
+
+    component.next();
+    fixture.detectChanges();
+
+    expect(element.querySelectorAll('.parent-cell .chromosome-svg--replicated').length).toBe(10);
+    expect(element.querySelectorAll('.parent-cell .chromatid--sister').length).toBe(10);
+    expect(element.querySelectorAll('.parent-cell [data-band-start]').length).toBeGreaterThan(0);
+  });
+
+  it('keeps sisters joined in division I and separates them only during anaphase II', () => {
+    const element = fixture.nativeElement as HTMLElement;
+
+    component.next();
+    component.next();
+    fixture.detectChanges();
+    expect(component.phase().name).toBe('Prophase I');
+    expect(element.querySelectorAll('.chromosome-pair.crossing').length).toBeGreaterThan(0);
+
+    component.next();
+    fixture.detectChanges();
+    expect(component.phase().name).toBe('Metaphase I');
+    expect(element.querySelector('.metaphase-one .equator-line')).not.toBeNull();
+    expect(element.querySelectorAll('.metaphase-one .centriole').length).toBe(2);
+    expect(element.querySelectorAll('.metaphase-one .spindle-fibers > i').length).toBe(10);
+
+    component.next();
+    fixture.detectChanges();
+    expect(component.phase().name).toBe('Anaphase I');
+    expect(element.querySelectorAll('.pole-set').length).toBe(2);
+    expect(element.querySelectorAll('.anaphase-one-cell .chromatid--sister').length).toBe(10);
+    expect(element.querySelectorAll('.anaphase-one-cell .centriole').length).toBe(2);
+    expect(element.querySelectorAll('.anaphase-one-cell .spindle-fibers.pulling > i').length).toBe(
+      10,
+    );
+
+    component.next();
+    fixture.detectChanges();
+    expect(component.phase().name).toBe('Telophase I & Cytokinesis');
+    expect(element.querySelectorAll('.daughter-cell').length).toBe(2);
+    expect(element.querySelector('.cytokinesis-furrow')).not.toBeNull();
+
+    component.next();
+    component.next();
+    fixture.detectChanges();
+    expect(component.phase().name).toBe('Metaphase II');
+    expect(element.querySelectorAll('.metaphase-two .equator-line').length).toBe(2);
+    expect(element.querySelectorAll('.metaphase-two .centriole').length).toBe(4);
+    expect(element.querySelectorAll('.metaphase-two .centriole-top').length).toBe(2);
+    expect(element.querySelectorAll('.metaphase-two .centriole-bottom').length).toBe(2);
+    expect(element.querySelectorAll('.metaphase-two .spindle-fibers > i').length).toBe(20);
+
+    component.next();
+    fixture.detectChanges();
+    expect(component.phase().name).toBe('Anaphase II');
+    const formingIds = [...element.querySelectorAll<HTMLElement>('.forming-gamete-shell')].map(
+      (cell) => cell.dataset['gameteId'],
+    );
+    expect(formingIds.length).toBe(4);
+    expect(element.querySelectorAll('.top-daughter').length).toBe(2);
+    expect(element.querySelectorAll('.bottom-daughter').length).toBe(2);
+    expect(element.querySelectorAll('.anaphase-two-centriole').length).toBe(4);
+    expect(element.querySelectorAll('.vertical-fibers > i').length).toBe(20);
+    expect(element.querySelector('.anaphase-two-grid .chromosome-svg--replicated')).toBeNull();
+
+    component.next();
+    fixture.detectChanges();
+    const choiceIds = [...element.querySelectorAll<HTMLElement>('.gamete-card')].map(
+      (cell) => cell.dataset['gameteId'],
+    );
+    expect(choiceIds).toEqual(formingIds);
+  });
+
+  it('loads single-chromosome cell models into each of the four gamete outcomes', () => {
     component.finishMeiosis();
     fixture.detectChanges();
 
@@ -47,12 +124,36 @@ describe('MeiosisGameteSelectorComponent', () => {
     expect(cards.length).toBe(4);
     cards.forEach((card) => {
       expect(card.querySelectorAll('.chromosome-in-cell').length).toBe(5);
-      expect(card.querySelectorAll('app-chromosome-svg').length).toBe(5);
+      expect(card.querySelectorAll('app-chromosome-svg').length).toBe(6);
+      expect(card.querySelector('.chromosome-svg--replicated')).toBeNull();
+      expect(card.querySelector('.inspection-panel')).not.toBeNull();
+      expect(card.querySelector('.gamete-gene-analysis')).not.toBeNull();
+      expect(card.querySelector<HTMLButtonElement>('.chromosome-in-cell')?.disabled).toBeFalse();
       expect(card.querySelector('.choose')?.textContent).toContain('chamber');
     });
     expect(fixture.nativeElement.querySelectorAll('.gene-locus--visible').length).toBeGreaterThan(
       0,
     );
+  });
+
+  it('inspects chromosomes and gene loci independently inside a final gamete card', () => {
+    component.finishMeiosis();
+    fixture.detectChanges();
+
+    const cards = fixture.nativeElement.querySelectorAll('.gamete-card') as NodeListOf<HTMLElement>;
+    const firstCard = cards[0];
+    const secondCardSelection = cards[1].querySelector('.selection-readout')?.textContent;
+    const secondChromosome = firstCard.querySelectorAll<HTMLButtonElement>('.chromosome-in-cell')[1];
+    secondChromosome.click();
+    fixture.detectChanges();
+
+    expect(firstCard.querySelector('.selection-readout')?.textContent).toContain('Chr 2');
+    const locus = firstCard.querySelector<HTMLElement>('.inspection-panel .gene-locus--interactive');
+    locus?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(firstCard.querySelector('.gamete-gene-analysis')?.textContent).toContain('Inherited allele');
+    expect(cards[1].querySelector('.selection-readout')?.textContent).toBe(secondCardSelection);
   });
 
   it('builds gamete chromosomes from the shared workbench band and locus catalog', () => {

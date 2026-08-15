@@ -72,6 +72,8 @@ export class DragonHatcheryDisplayComponent {
   readonly feedback = input<DragonHatcheryFeedback | null>(null);
   /** Free-exploration surface: no phase rail, tool directions, metrics, or evidence prompts. */
   readonly openLab = input(false);
+  /** Allows embedded examination benches to omit repeated clutch metadata. */
+  readonly showClutchRecord = input(true);
   /** `null` follows the operating system setting; a boolean forces it (used by tests). */
   readonly reducedMotionOverride = input<boolean | null>(null);
   readonly stageEvent = output<DragonVisualStageEvent>();

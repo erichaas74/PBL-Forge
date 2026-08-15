@@ -1,0 +1,41 @@
+<section class="candling-workstation">
+  <header class="workstation-head">
+    <div>
+      <span>CANDLING WORKSTATION · SEALED SPECIMEN</span>
+      <h2>What can this egg tell you?</h2>
+      <p>
+        Candle the assigned egg to observe its future traits. Sample its DNA to reveal the allele
+        pair behind those traits, then hatch it when your evidence record is ready.
+      </p>
+    </div>
+    <aside aria-label="Egg assignment">
+      <small>SPECIMEN</small>
+      <strong>{{ assignmentCode() }}</strong>
+      @if (!assignedEgg()) {
+        <button type="button" (click)="assignAnotherEgg()">Assign another random egg</button>
+      }
+    </aside>
+  </header>
+
+  <section class="investigation-note" aria-label="Investigation boundary">
+    <strong>Keep the evidence types separate.</strong>
+    <span>Candling reveals a predicted phenotype. Only the DNA sample reveals genotype.</span>
+  </section>
+
+  <app-dragon-hatchery-station
+    [openLab]="true"
+    [clutch]="clutch()"
+    [showClutchRecord]="true"
+    [clutchId]="assignmentCode()"
+    [clutchLabel]="'Random sealed egg · ' + assignmentCode()"
+    [focusTraitId]="focusTraitId()"
+    moduleId="candling-workstation"
+    [seed]="seed() + ':' + assignmentCode()"
+    [requirePrediction]="false"
+    [examineBudget]="null"
+    [sampleBudget]="null"
+    [hatchLimit]="1"
+    (recordSaved)="recordSaved.emit($event)"
+    (hatchedDragons)="hatchedDragons.emit($event)"
+  />
+</section>

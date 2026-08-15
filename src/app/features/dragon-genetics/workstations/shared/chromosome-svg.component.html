@@ -1,15 +1,18 @@
 <svg
   class="chromosome-svg"
   [class.chromosome-svg--placeholder]="placeholder()"
-  [attr.viewBox]="compact() ? '0 6 100 20' : '0 0 100 44'"
+  [class.chromosome-svg--replicated]="replicated() || !!pairedChromosome()"
+  [attr.viewBox]="compact() ? (replicated() || pairedChromosome() ? '0 0 100 32' : '0 6 100 20') : '0 0 100 44'"
   preserveAspectRatio="xMidYMid meet"
   role="img"
   [attr.aria-label]="summary()"
 >
   <defs>
-    <clipPath [attr.id]="clipId">
-      <path [attr.d]="shapePath()" />
-    </clipPath>
+    @for (chromatid of chromatids(); track chromatid.id) {
+      <clipPath [attr.id]="clipId + '-' + chromatid.id">
+        <path [attr.d]="chromatid.shapePath" />
+      </clipPath>
+    }
     <pattern
       [attr.id]="hatchId"
       width="1.8"
@@ -42,87 +45,109 @@
     </filter>
   </defs>
 
-  <g [attr.clip-path]="'url(#' + clipId + ')'">
-    @for (band of bands(); track $index) {
-      <rect
-        class="chromosome-band"
-        [class.chromosome-band--placeholder]="placeholder()"
-        [attr.x]="band.x"
-        y="8"
-        [attr.width]="band.width"
-        height="16"
-        [attr.fill]="placeholder() ? null : band.color"
-        [attr.data-band-start]="band.start"
-        [attr.data-band-end]="band.end"
-      />
-      @if (!placeholder() && band.pattern) {
-        <rect
-          class="chromosome-band-pattern"
-          [attr.x]="band.x"
-          [attr.y]="band.patternPlacement === 'center' ? 12 : 8"
-          [attr.width]="band.width"
-          [attr.height]="band.patternPlacement === 'center' ? 8 : 16"
-          [attr.fill]="patternFill(band.pattern)"
-          [attr.data-pattern]="band.pattern"
-          [attr.data-pattern-placement]="band.patternPlacement ?? 'full'"
-        />
-      }
-    }
-  </g>
+  @for (chromatid of chromatids(); track chromatid.id) {
+    <g
+      class="chromatid"
+      [class.chromatid--primary]="chromatid.primary"
+      [class.chromatid--sister]="!chromatid.primary"
+      [attr.data-chromatid]="chromatid.id"
+      [attr.transform]="chromatid.transform"
+    >
+      <g [attr.clip-path]="'url(#' + clipId + '-' + chromatid.id + ')'">
+        @for (band of chromatid.bands; track $index) {
+          <rect
+            class="chromosome-band"
+            [class.chromosome-band--placeholder]="placeholder()"
+            [attr.x]="band.x"
+            y="8"
+            [attr.width]="band.width"
+            height="16"
+            [attr.fill]="placeholder() ? null : band.color"
+            [attr.data-band-start]="band.start"
+            [attr.data-band-end]="band.end"
+          />
+          @if (!placeholder() && band.pattern) {
+            <rect
+              class="chromosome-band-pattern"
+              [attr.x]="band.x"
+              [attr.y]="band.patternPlacement === 'center' ? 12 : 8"
+              [attr.width]="band.width"
+              [attr.height]="band.patternPlacement === 'center' ? 8 : 16"
+              [attr.fill]="patternFill(band.pattern)"
+              [attr.data-pattern]="band.pattern"
+              [attr.data-pattern-placement]="band.patternPlacement ?? 'full'"
+            />
+          }
+        }
+      </g>
 
-  <path class="chromosome-outline" [attr.d]="shapePath()" />
-  <line
-    class="centromere-line"
-    [attr.x1]="centromereX()"
-    y1="14"
-    [attr.x2]="centromereX()"
-    y2="18"
-  />
+      <path class="chromosome-outline" [attr.d]="chromatid.shapePath" />
+      <line
+        class="centromere-line"
+        [attr.x1]="chromatid.centromereX"
+        y1="14"
+        [attr.x2]="chromatid.centromereX"
+        y2="18"
+      />
+
+      @if (!placeholder()) {
+        @for (locus of chromatid.loci; track locus.label) {
+          <g
+            class="gene-locus"
+            [class.gene-locus--active]="locus.active"
+            [class.gene-locus--visible]="showAllLoci()"
+            [class.gene-locus--interactive]="chromatid.primary && interactive()"
+            [attr.data-locus]="chromatid.primary ? locus.label : null"
+            (click)="chromatid.primary && selectLocus(locus.label)"
+          >
+            @if (chromatid.primary && interactive()) {
+              <rect class="locus-hit-target" [attr.x]="locus.x - 4.5" y="4" width="9" height="32" />
+            }
+            <line
+              class="gene-marker"
+              [attr.x1]="locus.x"
+              y1="6"
+              [attr.x2]="locus.x"
+              y2="27"
+              [attr.stroke]="locus.color"
+              [attr.filter]="locus.active ? 'url(#' + glowId + ')' : null"
+            />
+            @if (locus.active || interactive() || showAllLoci()) {
+              <circle
+                [attr.cx]="locus.x"
+                cy="16"
+                [attr.r]="locus.active ? 2.1 : 1.35"
+                [attr.fill]="locus.color"
+              />
+              @if (chromatid.primary) {
+                @if (locus.symbol) {
+                  <text class="allele-symbol" [attr.x]="locus.x" y="5.1" [attr.fill]="locus.color">
+                    {{ locus.symbol }}
+                  </text>
+                }
+                <text class="locus-label" [attr.x]="locus.x" y="34.5">{{ locus.label }}</text>
+              }
+            }
+          </g>
+        }
+      }
+    </g>
+  }
+
+  @if (replicated() || pairedChromosome()) {
+    <circle
+      class="centromere-joint"
+      [attr.cx]="centromereX()"
+      cy="16"
+      r="2.4"
+      aria-hidden="true"
+    />
+  }
 
   @if (!compact()) {
     <text class="arm-label arm-label--left" x="6.5" y="18">{{ chromosome().leftLabel }}</text>
     <text class="arm-label arm-label--right" [attr.x]="chromosomeRight() + 1.5" y="18">
       {{ chromosome().rightLabel }}
     </text>
-  }
-
-  @if (!placeholder()) {
-    @for (locus of loci(); track locus.label) {
-      <g
-        class="gene-locus"
-        [class.gene-locus--active]="locus.active"
-        [class.gene-locus--visible]="showAllLoci()"
-        [class.gene-locus--interactive]="interactive()"
-        [attr.data-locus]="locus.label"
-        (click)="selectLocus(locus.label)"
-      >
-        @if (interactive()) {
-          <rect class="locus-hit-target" [attr.x]="locus.x - 4.5" y="4" width="9" height="32" />
-        }
-        <line
-          class="gene-marker"
-          [attr.x1]="locus.x"
-          y1="6"
-          [attr.x2]="locus.x"
-          y2="27"
-          [attr.stroke]="locus.color"
-          [attr.filter]="locus.active ? 'url(#' + glowId + ')' : null"
-        />
-        @if (locus.active || interactive() || showAllLoci()) {
-          <circle
-            [attr.cx]="locus.x"
-            cy="16"
-            [attr.r]="locus.active ? 2.1 : 1.35"
-            [attr.fill]="locus.color"
-          />
-          @if (locus.symbol) {
-            <text class="allele-symbol" [attr.x]="locus.x" y="5.1" [attr.fill]="locus.color">
-              {{ locus.symbol }}
-            </text>
-          }
-          <text class="locus-label" [attr.x]="locus.x" y="34.5">{{ locus.label }}</text>
-        }
-      </g>
-    }
   }
 </svg>

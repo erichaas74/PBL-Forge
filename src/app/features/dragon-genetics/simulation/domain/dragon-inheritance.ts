@@ -209,7 +209,7 @@ export function breedLabOffspringProfiles(
       name: `Hatchling ${index + 1}`,
       title: `Generation ${run}`,
       color,
-      accentColor: lightenColor(color),
+      accentColor: accentTone(color),
       genome,
       parentIds: [parentA.id, parentB.id],
       generation: run,
@@ -248,7 +248,7 @@ export function fertilizeLabGametes(
     name,
     title: `Generation ${generation}`,
     color,
-    accentColor: lightenColor(color),
+    accentColor: accentTone(color),
     genome,
     parentIds: [eggParent.id, spermParent.id],
     generation,
@@ -476,21 +476,38 @@ export function createEducationalAssembly(
    * horned one with the horns taken off.
    */
   if (!showsDominantPhenotype(genome.horns, 'horns')) {
-    blueprint.parts = blueprint.parts.map((part) =>
-      part.visualProfile?.profileId === 'dragon-head-horned'
-        ? {
-            ...part,
-            visualProfile: {
-              ...part.visualProfile,
-              parameters: {
-                ...(part.visualProfile.parameters ?? {}),
-                hornLength: 0,
-                browLength: 0,
-              },
+    /*
+     * Two parts carry horns, so both have to be stripped: the skull wears the
+     * forward pair and the brow spikes, and the upper jaw wears the nose horn.
+     * Zeroing only the head left a hornless dragon with a horn on its snout.
+     */
+    blueprint.parts = blueprint.parts.map((part) => {
+      const profileId = part.visualProfile?.profileId;
+      if (!part.visualProfile) return part;
+      if (profileId === 'dragon-head-horned') {
+        return {
+          ...part,
+          visualProfile: {
+            ...part.visualProfile,
+            parameters: {
+              ...(part.visualProfile.parameters ?? {}),
+              hornLength: 0,
+              browLength: 0,
             },
-          }
-        : part,
-    );
+          },
+        };
+      }
+      if (profileId === 'dragon-upper-jaw') {
+        return {
+          ...part,
+          visualProfile: {
+            ...part.visualProfile,
+            parameters: { ...(part.visualProfile.parameters ?? {}), noseHornLength: 0 },
+          },
+        };
+      }
+      return part;
+    });
   }
 
   blueprint.parts = blueprint.parts.map((part) => {
@@ -565,51 +582,59 @@ export function createEducationalAssembly(
   }
 
   /*
-   * Scale pattern. A spotted dragon is two-tone — every third part takes the
-   * accent colour, which at specimen scale reads as banding down the flank and
-   * tail; a solid dragon is one colour throughout. This replaced a uniform
-   * lightening that was nearly invisible next to a solid dragon, and it is the
-   * only channel the S gene owns, so it has to be legible on a 120px thumbnail.
+   * Colour. Three tones belong to the **dragon**, drawn per animal rather than
+   * from its genome — colour is identity here, not a trait readout, for the
+   * reason set out on `offspringColor`.
+   *
+   * Every part is painted from that one set of three, and each takes a *pair* of
+   * them: a ground colour and a colour for its markings. Which pair varies by
+   * part, so the legs can be a different two of the three from the body, and the
+   * animal reads as one three-colour scheme rearranged rather than as three
+   * differently-coloured animals bolted together.
    */
-  const spotted = showsDominantPhenotype(genome.scales, 'scales');
-  if (identity) {
-    blueprint.parts = blueprint.parts.map((part, index) => ({
-      ...part,
-      color: spotted && index % 3 === 0 ? identity.accentColor : identity.color,
-    }));
-  } else if (spotted) {
-    blueprint.parts = blueprint.parts.map((part, index) => ({
-      ...part,
-      color: index % 3 === 0 ? lightenColor(part.color) : part.color,
-    }));
-  }
+  const tones = dragonTones(blueprint, identity);
 
   /*
-   * The same phenotype also selects the rosetted scale albedo, which is the
-   * detail half of this channel: banding carries it at 120px where a rosette is
-   * below a pixel, and the pattern carries it at inspection size where banding
-   * alone reads as a paint job rather than as an animal's markings.
+   * Scale pattern.
    *
-   * Set on every part rather than one profile, because every scaled surface —
-   * body, legs, tail, head, jaws, feet — takes the same skin.
+   * The `S` phenotype decides *whether* the skin is patterned; which pattern it
+   * gets — splotches or zig-zag stripes — is drawn per dragon from its own
+   * identity, alongside the colours and for the same reason.
+   *
+   * A patterned dragon shows the gene as *two pigments on every surface* rather
+   * than as a darker shade of one. That is a stronger channel than the colour
+   * banding this replaced, and unlike the banding it survives being looked at
+   * closely as well as at 120px.
    *
    * `spotted` is a *phenotype* call. `showsDominantPhenotype` returns the same
    * answer for `SS` and `Ss`, and it has to stay that way: this is a visible
-   * channel, so reading zygosity here would let a student tell a heterozygote
-   * by eye. See the test in `dragon-inheritance.spec.ts`.
+   * channel, so reading zygosity here would let a student tell a heterozygote by
+   * eye. See the test in `dragon-inheritance.spec.ts`.
    */
-  blueprint.parts = blueprint.parts.map((part) => ({
-    ...part,
-    visualProfile: part.visualProfile
-      ? {
-          ...part.visualProfile,
-          parameters: {
-            ...(part.visualProfile.parameters ?? {}),
-            scalePattern: spotted ? 1 : 0,
-          },
-        }
-      : part.visualProfile,
-  }));
+  const spotted = showsDominantPhenotype(genome.scales, 'scales');
+  const pattern = spotted ? scalePatternFor(tones[0]) : SCALE_PATTERN_PLAIN;
+
+  // Both halves of a part's paint in one pass: its ground colour on the part, and
+  // the colour its markings are drawn in on the visual profile. Set on every part
+  // rather than one profile, because every scaled surface — body, legs, tail,
+  // head, jaws, feet — takes the same skin.
+  blueprint.parts = blueprint.parts.map((part) => {
+    const [ground, marking] = tonePairFor(part.id, tones);
+    return {
+      ...part,
+      color: ground,
+      visualProfile: part.visualProfile
+        ? {
+            ...part.visualProfile,
+            parameters: {
+              ...(part.visualProfile.parameters ?? {}),
+              scalePattern: pattern,
+              patternColor: marking,
+            },
+          }
+        : part.visualProfile,
+    };
+  });
 
   // The genome-tuned combat profile (armor from horns, damage from temperament)
   // travels with the assembly so the arena fights with these numbers instead of
@@ -635,9 +660,13 @@ export function createEducationalAssembly(
  * One number for the whole chain, so the arm stays a scaled-down limb rather
  * than a set of three separately guessed parts, and so the genetics pipeline's
  * own per-genome scaling still reads through it.
+ *
+ * The ceiling is the forelimb spec, not taste: a grasping limb has to stay
+ * lighter than a third of the leg it replaced, and mass goes as the cube, so
+ * anything at or above 0.67 makes an arm that weighs like a leg.
  */
-const GRASP_ARM_SCALE = 0.56;
-const GRASP_HAND_SCALE = 0.52;
+const GRASP_ARM_SCALE = 0.64;
+const GRASP_HAND_SCALE = 0.62;
 
 /**
  * Where the arm meets the torso, in radians around the spine from the belly.
@@ -681,7 +710,7 @@ function applyGraspingForelimbs(blueprint: AssemblyBlueprint): void {
         y: part.dimensions.y * factor,
         z: part.dimensions.z * factor,
       },
-      // Volume, not length: a limb at 0.56 scale has a fifth of the mass, and
+      // Volume, not length: a limb at 0.64 scale has a quarter of the mass, and
       // the arena reads mass for momentum and the combat profile for health.
       // Leaving it at a leg's weight gives a dragon two heavy dead arms.
       mass: part.mass * factor * factor * factor,
@@ -777,13 +806,116 @@ function offspringColor(clutchSeed: string, index: number): string {
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
-function lightenColor(color: string): string {
-  if (color.startsWith('hsl('))
-    return color.replace(
-      /(\d+)%\)$/,
-      (value) => `${Math.min(76, Number(value.slice(0, -2)) + 24)}%)`,
-    );
-  return color;
+/**
+ * The `scalePattern` visual parameter's values, as the mesh factory reads them.
+ *
+ * Numeric because visual parameters are numbers, strings or booleans, and every
+ * other pattern-ish parameter in this pipeline is a number.
+ */
+const SCALE_PATTERN_PLAIN = 0;
+const SCALE_PATTERNS = [1, 2] as const;
+
+/**
+ * Which patterned skin this dragon wears, drawn from its own base colour.
+ *
+ * Hashed rather than actually random, and that is the whole trick: a dragon is
+ * rendered many times — the viewer, a thumbnail bake, the arena, a pedigree card
+ * — and `Math.random()` here would give it a different pattern in each, which
+ * reads as a bug rather than as variety. Hashing its colour gives a draw that is
+ * stable for the life of the dragon and unrelated to its genome.
+ */
+function scalePatternFor(baseColor: string): number {
+  return SCALE_PATTERNS[stableHash(`${baseColor}:pattern`) % SCALE_PATTERNS.length];
+}
+
+/**
+ * The three tones a dragon is painted in.
+ *
+ * The first is its identity colour — the one on its card, which a student uses to
+ * tell it from its siblings, so it has to be exactly that and not a derivation.
+ * The other two are hue rotations off it, spaced far enough apart that all three
+ * read as different colours rather than as one colour lit three ways, with the
+ * rotations and the lightness jitter hashed off the base so a dragon keeps its
+ * scheme everywhere it is drawn.
+ *
+ * Falls back to the blueprint's own colours when there is no identity — the parts
+ * lab and the published preset take that path, and they still get three tones.
+ */
+function dragonTones(
+  blueprint: AssemblyBlueprint,
+  identity?: DragonIdentityPaint,
+): [string, string, string] {
+  const base =
+    identity?.color ??
+    blueprint.parts.find((part) => part.id.includes('body'))?.color ??
+    blueprint.parts[0]?.color ??
+    '#4b6b4a';
+
+  // 60..150° away in each direction: closer and the pair reads as a shading
+  // error, further and the two rotations meet on the far side of the wheel.
+  const spreadA = 60 + (stableHash(`${base}:tone-a`) % 91);
+  const spreadB = 60 + (stableHash(`${base}:tone-b`) % 91);
+
+  return [
+    base,
+    identity?.accentColor ?? rotateColor(base, spreadA, 8),
+    rotateColor(base, -spreadB, stableHash(`${base}:tone-b-light`) % 2 === 0 ? 12 : -6),
+  ];
+}
+
+/**
+ * The two of the dragon's three tones this part wears: ground first, markings
+ * second.
+ *
+ * Drawn per part, so the legs can be a different pair from the body — that is the
+ * variety, and it comes out of the same three colours rather than out of new ones.
+ *
+ * Hashed on a **symmetry-stripped** key, which is the part that matters. Hashing
+ * the raw id gives the left leg one pair and the right leg another, and a dragon
+ * whose two sides are painted differently reads as broken rather than as varied.
+ * Stripping `left`/`right` and any trailing index pairs the limbs up and keeps the
+ * links of the tail chain together, while still letting front differ from rear.
+ */
+function tonePairFor(partId: string, tones: readonly string[]): [string, string] {
+  const key = partId.replace(/left|right/g, '').replace(/\d+/g, '');
+  const ground = stableHash(`${key}:ground`) % tones.length;
+  // Step 1..n-1 round the ring, so the marking can never land on the ground
+  // colour — a part painted in one colour twice has no pattern on it at all.
+  const step = 1 + (stableHash(`${key}:marking`) % (tones.length - 1));
+  return [tones[ground], tones[(ground + step) % tones.length]];
+}
+
+/**
+ * Rotates a colour's hue and nudges its lightness, keeping the `hsl(h, s%, l%)`
+ * form the lab stores and `THREE.Color` parses.
+ *
+ * Hex input comes back as `hsl(...)` too. Saturation is not recoverable from
+ * {@link hueOf}, so a hex base lands on a fixed mid saturation — good enough,
+ * because the only hex colours in play are the hand-authored preset ones.
+ */
+function rotateColor(color: string, degrees: number, lightnessDelta: number): string {
+  const hue = ((hueOf(color) ?? 100) + degrees + 360) % 360;
+  const hsl = /^hsl\(\s*[\d.]+\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)$/.exec(color);
+  const saturation = hsl ? Number.parseFloat(hsl[1]) : 58;
+  const lightness = hsl ? Number.parseFloat(hsl[2]) : 32;
+
+  // Held inside the same dark band `offspringColor` works in: these are lit by a
+  // bright overcast stage against pale sand, and a light pigment reads as pastel.
+  const clamped = Math.max(20, Math.min(46, lightness + lightnessDelta));
+  return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(clamped)}%)`;
+}
+
+/**
+ * A dragon's second tone.
+ *
+ * This used to be `lightenColor` — the same hue up to 24 points lighter, which is
+ * one colour lit twice rather than two colours. A dragon is meant to be painted in
+ * three *different* colours now, so the accent takes a hue of its own, rotated by
+ * a hashed amount so two dragons with neighbouring base hues do not land on the
+ * same scheme.
+ */
+function accentTone(color: string): string {
+  return rotateColor(color, 60 + (stableHash(`${color}:accent`) % 91), 10);
 }
 
 function stableHash(value: string): number {

@@ -57,11 +57,11 @@
   height: 0.36rem;
   border-radius: 99px;
 }
-.legend .origin-a {
-  background: #29c8e8;
+.legend .catalog-band {
+  background: linear-gradient(90deg, #8b78a8, #c8a66c, #6f9ca6);
 }
-.legend .origin-b {
-  background: #f06ca9;
+.legend .allele-locus {
+  background: repeating-linear-gradient(135deg, #f07c78 0 0.22rem, #f8d35e 0.22rem 0.44rem);
 }
 .legend b {
   display: grid;
@@ -123,15 +123,21 @@
   position: relative;
   background: #090b1b;
 }
-canvas {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1000 / 560;
+
+.shared-meiosis-stage {
+  position: relative;
+  display: grid;
+  min-height: clamp(28rem, 56vw, 35rem);
+  padding: 4.8rem 1.2rem 1.2rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 48%, rgb(103 78 156 / 32%), transparent 31rem),
+    radial-gradient(circle at 18% 22%, rgb(255 255 255 / 6%) 0 0.18rem, transparent 0.22rem),
+    radial-gradient(circle at 82% 72%, rgb(255 255 255 / 5%) 0 0.16rem, transparent 0.2rem),
+    #090b1b;
+  background-size: auto, 4.8rem 4.8rem, 5.4rem 5.4rem, auto;
 }
-canvas[hidden],
-.phase-readout[hidden] {
-  display: none;
-}
+
 .phase-readout {
   position: absolute;
   inset: 1rem auto auto 1rem;
@@ -151,18 +157,550 @@ canvas[hidden],
   font-size: 0.9rem;
 }
 
+.meiotic-cell {
+  position: relative;
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  border: 3px solid #65598f;
+  border-radius: 48% 52% 46% 54% / 54% 45% 55% 46%;
+  background: radial-gradient(ellipse at center, rgb(91 70 139 / 28%), rgb(22 19 48 / 72%) 68%);
+  box-shadow: inset 0 0 2.5rem rgb(145 119 205 / 14%);
+}
+
+.parent-cell {
+  width: min(100%, 72rem);
+  min-height: 24rem;
+  justify-self: center;
+  padding: 2.8rem 3.2rem;
+}
+
+.cell-nucleus {
+  position: absolute;
+  inset: 12% 9%;
+  border: 1px dashed rgb(181 160 231 / 34%);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.equator-line {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  right: 8%;
+  left: 8%;
+  border-top: 1px dashed rgb(255 226 138 / 52%);
+  pointer-events: none;
+}
+
+.equator-line span {
+  position: absolute;
+  top: 0.35rem;
+  right: 0;
+  color: rgb(255 226 138 / 72%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.chromosome-pair-rack {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(0.35rem, 1.3vw, 1rem);
+  align-items: center;
+}
+
+.chromosome-pair {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.chromosome-pair > span,
+.daughter-chromosome > b,
+.daughter-cell > span {
+  color: #d9d1ef;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.homologs {
+  position: relative;
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  transition: gap 320ms ease, transform 320ms ease;
+}
+
+.homologs app-chromosome-svg {
+  width: min(100%, 10rem);
+  justify-self: center;
+  transition: transform 500ms ease, filter 500ms ease;
+}
+
+.chromosome-pair.paired .homologs {
+  gap: 0;
+  transform: scale(1.08);
+}
+
+.chromosome-pair.crossing .homolog-a {
+  animation: crossover-a 1.3s ease-in-out infinite;
+}
+
+.chromosome-pair.crossing .homolog-b {
+  animation: crossover-b 1.3s ease-in-out infinite;
+}
+
+.slow-crossing .chromosome-pair.crossing .homolog-a,
+.slow-crossing .chromosome-pair.crossing .homolog-b {
+  animation-duration: 3s;
+}
+
+.chromosome-pair.crossing .homologs::before,
+.chromosome-pair.crossing .homologs::after {
+  position: absolute;
+  z-index: 4;
+  left: 38%;
+  width: 24%;
+  height: 0.28rem;
+  border-radius: 99px;
+  content: '';
+  pointer-events: none;
+}
+
+.chromosome-pair.crossing .homologs::before {
+  top: 35%;
+  background: #f07c78;
+  animation: segment-swap-a 1.3s ease-in-out infinite;
+}
+
+.chromosome-pair.crossing .homologs::after {
+  bottom: 35%;
+  background: #6fbbd3;
+  animation: segment-swap-b 1.3s ease-in-out infinite;
+}
+
+.slow-crossing .chromosome-pair.crossing .homologs::before,
+.slow-crossing .chromosome-pair.crossing .homologs::after {
+  animation-duration: 3s;
+}
+
+.chromosome-pair.recombinant app-chromosome-svg {
+  filter: drop-shadow(0 0 0.45rem rgb(142 226 200 / 58%));
+}
+
+.chromosome-pair > small {
+  color: #8ee2c8;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.metaphase-one .chromosome-pair-rack {
+  align-items: center;
+  min-height: 9rem;
+}
+
+.metaphase-one .chromosome-pair {
+  transform: translateY(0.5rem);
+}
+
+.anaphase-one-cell {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  overflow: hidden;
+}
+
+.pole-set {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+  padding: 1rem;
+}
+
+.pole-set app-chromosome-svg {
+  width: min(100%, 8rem);
+  justify-self: center;
+}
+
+.pole-set > span {
+  justify-self: center;
+  color: #b9ade4;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.pole-set-a {
+  animation: homologs-to-left 3.2s cubic-bezier(0.32, 0.04, 0.2, 1) both;
+}
+
+.pole-set-b {
+  animation: homologs-to-right 3.2s cubic-bezier(0.32, 0.04, 0.2, 1) both;
+}
+
+.centriole {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  transform: translateY(-50%);
+  filter: drop-shadow(0 0 0.35rem rgb(255 211 103 / 50%));
+  pointer-events: none;
+}
+
+.centriole > i {
+  position: absolute;
+  top: 0.59rem;
+  left: 0.13rem;
+  width: 1.25rem;
+  height: 0.3rem;
+  border: 1px solid #ffe28a;
+  border-radius: 99px;
+  background: repeating-linear-gradient(90deg, #f3b94f 0 0.18rem, #ffe9a4 0.18rem 0.3rem);
+  transform: rotate(42deg);
+}
+
+.centriole > i:nth-child(2) {
+  transform: rotate(-42deg);
+}
+
+.centriole > b {
+  position: absolute;
+  top: 0.56rem;
+  left: 0.58rem;
+  width: 0.36rem;
+  height: 0.36rem;
+  border: 1px solid #fff1b6;
+  border-radius: 50%;
+  background: #e8a836;
+  box-shadow: 0 0 0 0.18rem rgb(255 226 138 / 18%);
+}
+
+.centriole-left {
+  left: 4.5%;
+}
+
+.centriole-right {
+  right: 4.5%;
+}
+
+.centriole-top,
+.centriole-bottom {
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.centriole-top {
+  top: 5%;
+}
+
+.centriole-bottom {
+  bottom: 5%;
+}
+
+.spindle-fibers {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.spindle-fibers > i {
+  --fiber-angle: 0deg;
+  --fiber-angle-opposite: 0deg;
+  --fiber-width: 42%;
+  --fiber-short-width: 18%;
+  position: absolute;
+  top: 50%;
+  width: var(--fiber-width);
+  height: 1px;
+  background: linear-gradient(90deg, rgb(142 226 200 / 90%), rgb(181 160 231 / 52%));
+  box-shadow: 0 0 0.2rem rgb(142 226 200 / 32%);
+}
+
+.spindle-fibers > i[data-fiber='0'] { --fiber-angle: -9deg; --fiber-angle-opposite: 9deg; --fiber-width: 34%; --fiber-short-width: 14%; }
+.spindle-fibers > i[data-fiber='1'] { --fiber-angle: -4deg; --fiber-angle-opposite: 4deg; --fiber-width: 39%; --fiber-short-width: 17%; }
+.spindle-fibers > i[data-fiber='2'] { --fiber-angle: 0deg; --fiber-angle-opposite: 0deg; --fiber-width: 44%; --fiber-short-width: 19%; }
+.spindle-fibers > i[data-fiber='3'] { --fiber-angle: 4deg; --fiber-angle-opposite: -4deg; --fiber-width: 39%; --fiber-short-width: 17%; }
+.spindle-fibers > i[data-fiber='4'] { --fiber-angle: 9deg; --fiber-angle-opposite: -9deg; --fiber-width: 34%; --fiber-short-width: 14%; }
+
+.fibers-left > i {
+  left: 6.5%;
+  transform: rotate(var(--fiber-angle));
+  transform-origin: left center;
+}
+
+.fibers-right > i {
+  right: 6.5%;
+  background: linear-gradient(270deg, rgb(142 226 200 / 90%), rgb(181 160 231 / 52%));
+  transform: rotate(var(--fiber-angle-opposite));
+  transform-origin: right center;
+}
+
+.spindle-fibers:not(.pulling) > i {
+  animation: fiber-tension 1.8s ease-in-out infinite alternate;
+}
+
+.fibers-left.pulling > i,
+.fibers-right.pulling > i {
+  animation: fiber-shortens 3.2s cubic-bezier(0.32, 0.04, 0.2, 1) both;
+}
+
+.daughter-cell-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.7rem, 2vw, 2rem);
+  width: min(100%, 72rem);
+  justify-self: center;
+}
+
+.daughter-cell {
+  min-height: 22rem;
+  padding: 2.2rem 2rem;
+  overflow: hidden;
+}
+
+.shared-meiosis-stage[data-phase-index='5'] .daughter-cell:first-of-type {
+  animation: cytokinesis-left 2.35s cubic-bezier(0.22, 0.68, 0.2, 1) both;
+}
+
+.shared-meiosis-stage[data-phase-index='5'] .daughter-cell:last-of-type {
+  animation: cytokinesis-right 2.35s cubic-bezier(0.22, 0.68, 0.2, 1) both;
+}
+
+.cytokinesis-furrow {
+  position: absolute;
+  z-index: 5;
+  top: 4%;
+  bottom: 4%;
+  left: 50%;
+  width: 0.18rem;
+  background: linear-gradient(transparent, #ffe28a 20% 80%, transparent);
+  box-shadow: 0 0 0.65rem rgb(255 226 138 / 55%);
+  transform: translateX(-50%);
+  animation: cleavage-furrow 2.35s ease-in-out both;
+  pointer-events: none;
+}
+
+.cytokinesis-furrow span {
+  position: absolute;
+  top: 50%;
+  left: 0.7rem;
+  color: #ffe28a;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.shared-meiosis-stage[data-phase-index='5'] .daughter-cell::before {
+  position: absolute;
+  inset: 10%;
+  border: 1px dashed rgb(181 160 231 / 38%);
+  border-radius: inherit;
+  content: '';
+  animation: nucleus-reforms 800ms ease-out both;
+  pointer-events: none;
+}
+
+.daughter-cell > span {
+  justify-self: center;
+  margin-bottom: 0.55rem;
+  color: #b9ade4;
+}
+
+.daughter-chromosomes {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.daughter-chromosome {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.daughter-chromosome app-chromosome-svg {
+  width: min(100%, 7.5rem);
+  min-width: 0;
+  justify-self: center;
+}
+
+.shared-meiosis-stage[data-phase-index='6'] .daughter-chromosome:nth-child(odd) {
+  transform: translateX(0.65rem) rotate(1deg);
+}
+
+.shared-meiosis-stage[data-phase-index='6'] .daughter-chromosome:nth-child(even) {
+  transform: translateX(-0.65rem) rotate(-1deg);
+}
+
+.metaphase-two .daughter-cell .equator-line {
+  top: 50%;
+  right: 8%;
+  bottom: auto;
+  left: 8%;
+  border-top: 1px dashed rgb(255 226 138 / 52%);
+  border-left: 0;
+}
+
+.metaphase-two .daughter-cell .equator-line span {
+  top: 0.35rem;
+  right: 0;
+  bottom: auto;
+  left: auto;
+}
+
+.metaphase-two .daughter-chromosomes {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.25rem;
+  width: 88%;
+  justify-self: center;
+}
+
+.metaphase-two .daughter-chromosome {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.1rem;
+  justify-items: center;
+}
+
+.metaphase-two .daughter-chromosome app-chromosome-svg {
+  width: min(100%, 5.5rem);
+}
+
+.metaphase-two .vertical-fibers > i {
+  height: 43%;
+}
+
+.gamete-position-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.anaphase-two-grid {
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0;
+  width: min(100%, 58rem);
+  justify-self: center;
+  list-style: none;
+}
+
+.forming-gamete-shell {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 11rem;
+  padding: 0.7rem;
+  border: 2px solid #65598f;
+  border-radius: 48% 52% 46% 54% / 54% 45% 55% 46%;
+  background: radial-gradient(ellipse at center, rgb(91 70 139 / 28%), rgb(22 19 48 / 78%) 68%);
+  box-shadow: inset 0 0 2rem rgb(145 119 205 / 14%);
+}
+
+.anaphase-two-centriole {
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%) scale(0.78);
+}
+
+.anaphase-two-centriole.centriole-top {
+  top: 0.35rem;
+}
+
+.anaphase-two-centriole.centriole-bottom {
+  bottom: 0.35rem;
+}
+
+.vertical-fibers > i {
+  left: 50%;
+  width: 1px;
+  height: 43%;
+  background: linear-gradient(180deg, rgb(142 226 200 / 90%), rgb(181 160 231 / 48%));
+  transform-origin: center top;
+}
+
+.vertical-fibers > i[data-fiber='0'] { transform: translateX(-0.48rem) rotate(-3deg); }
+.vertical-fibers > i[data-fiber='1'] { transform: translateX(-0.24rem) rotate(-1.5deg); }
+.vertical-fibers > i[data-fiber='2'] { transform: translateX(0) rotate(0); }
+.vertical-fibers > i[data-fiber='3'] { transform: translateX(0.24rem) rotate(1.5deg); }
+.vertical-fibers > i[data-fiber='4'] { transform: translateX(0.48rem) rotate(3deg); }
+
+.vertical-fibers.fibers-top > i {
+  top: 8%;
+}
+
+.vertical-fibers.fibers-bottom > i {
+  top: auto;
+  bottom: 8%;
+  background: linear-gradient(0deg, rgb(142 226 200 / 90%), rgb(181 160 231 / 48%));
+  transform-origin: center bottom;
+}
+
+.vertical-fibers.pulling.fibers-top > i {
+  animation: vertical-fiber-shortens-top 2.8s ease-out both;
+}
+
+.vertical-fibers.pulling.fibers-bottom > i {
+  animation: vertical-fiber-shortens-bottom 2.8s ease-out both;
+}
+
+.forming-gamete-shell > span {
+  position: relative;
+  z-index: 2;
+  justify-self: center;
+  color: #b9ade4;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+}
+
+.forming-gamete-shell.top-daughter {
+  animation: gamete-divides-up 1.15s ease-out both;
+}
+
+.forming-gamete-shell.bottom-daughter {
+  animation: gamete-divides-down 1.15s ease-out both;
+}
+
+.forming-gamete-cell {
+  --cell-viewport-edge: rgb(142 226 200 / 48%);
+  --cell-viewport-glow: rgb(98 208 178 / 17%);
+  align-self: center;
+  width: min(100%, 15rem);
+  justify-self: center;
+}
+
 .gamete-stage-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0;
+  margin: 0 auto;
   padding: 0;
+  width: min(100%, 58rem);
   min-height: min(29rem, 44vw);
   list-style: none;
   background: #101126;
 }
 .gamete-card {
   display: grid;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto auto;
   align-content: start;
   gap: 0.8rem;
   min-width: 0;
@@ -173,7 +711,11 @@ canvas[hidden],
   transition:
     background 0.15s,
     box-shadow 0.15s;
+  animation: cytokinesis-arrives 650ms ease-out both;
 }
+.gamete-card:nth-child(2) { animation-delay: 80ms; }
+.gamete-card:nth-child(3) { animation-delay: 160ms; }
+.gamete-card:nth-child(4) { animation-delay: 240ms; }
 .gamete-card:nth-child(2n) {
   border-right-width: 0;
 }
@@ -196,7 +738,7 @@ canvas[hidden],
 
 .gamete-card-head {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.75rem;
 }
@@ -233,7 +775,63 @@ canvas[hidden],
 }
 
 .gamete-cell-viewport {
-  width: min(10rem, 28vw);
+  width: 100%;
+}
+
+.gamete-gene-analysis {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid rgb(142 226 200 / 24%);
+  border-radius: 0.65rem;
+  background: rgb(7 17 27 / 58%);
+}
+
+.gamete-gene-analysis > span {
+  color: #8ee2c8;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.gamete-gene-analysis > strong {
+  color: #fff;
+  font-size: 0.88rem;
+}
+
+.gamete-gene-analysis dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.gamete-gene-analysis dl > div {
+  display: grid;
+  gap: 0.08rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.4rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.gamete-gene-analysis dt {
+  color: #aaa0ca;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.gamete-gene-analysis dd {
+  margin: 0;
+  color: #f5f0ff;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
+.gamete-gene-analysis-empty {
+  margin: 0;
+  color: #aaa0ca;
+  font-size: 0.75rem;
 }
 
 .gamete-card .choose {
@@ -305,6 +903,150 @@ button {
   accent-color: #ffe28a;
 }
 
+@keyframes crossover-a {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(0.5rem) rotate(2deg);
+  }
+}
+
+@keyframes crossover-b {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.5rem) rotate(-2deg);
+  }
+}
+
+@keyframes segment-swap-a {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(0.7rem, 1rem);
+  }
+}
+
+@keyframes segment-swap-b {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-0.7rem, -1rem);
+  }
+}
+
+@keyframes homologs-to-left {
+  from {
+    opacity: 0.82;
+    transform: translateX(46%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-8%);
+  }
+}
+
+@keyframes homologs-to-right {
+  from {
+    opacity: 0.82;
+    transform: translateX(-46%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(8%);
+  }
+}
+
+@keyframes fiber-tension {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+@keyframes fiber-shortens {
+  from { width: var(--fiber-width); }
+  to { width: var(--fiber-short-width); }
+}
+
+@keyframes cytokinesis-left {
+  from { transform: translateX(calc(50% + 0.5rem)) scaleX(1.08); }
+  45% { border-radius: 44% 56% 48% 52% / 50% 44% 56% 50%; }
+  to { transform: translateX(0) scaleX(1); }
+}
+
+@keyframes cytokinesis-right {
+  from { transform: translateX(calc(-50% - 0.5rem)) scaleX(1.08); }
+  45% { border-radius: 56% 44% 52% 48% / 44% 50% 50% 56%; }
+  to { transform: translateX(0) scaleX(1); }
+}
+
+@keyframes cleavage-furrow {
+  0% { opacity: 0; transform: translateX(-50%) scaleY(0.08); }
+  25%, 70% { opacity: 1; transform: translateX(-50%) scaleY(1); }
+  100% { opacity: 0.35; transform: translateX(-50%) scaleY(0.18); }
+}
+
+@keyframes vertical-fiber-shortens-top {
+  from { height: 48%; }
+  to { height: 19%; }
+}
+
+@keyframes vertical-fiber-shortens-bottom {
+  from { height: 48%; }
+  to { height: 19%; }
+}
+
+@keyframes gamete-divides-up {
+  from {
+    opacity: 0.82;
+    transform: translateY(55%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes gamete-divides-down {
+  from {
+    opacity: 0.82;
+    transform: translateY(-55%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes nucleus-reforms {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes cytokinesis-arrives {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (max-width: 900px) {
   .selector-head {
     align-items: start;
@@ -320,32 +1062,65 @@ button {
     grid-column: 1 / -1;
     justify-self: start;
   }
+  .parent-cell {
+    padding-inline: 1.5rem;
+  }
 }
 
 @media (max-width: 700px) {
   .gamete-stage-grid {
-    grid-template-columns: 1fr;
-    min-height: 0;
-  }
-  .gamete-card {
-    border-width: 0 0 1px;
-  }
-  .gamete-card:nth-child(2n) {
-    border-right-width: 0;
-  }
-  .gamete-card:nth-child(n + 3) {
-    border-bottom-width: 1px;
-  }
-  .gamete-card:last-child {
-    border-bottom-width: 0;
+    min-height: 24rem;
   }
   .animation-controls .rerun {
     margin-left: 0;
+  }
+  .shared-meiosis-stage {
+    min-height: 36rem;
+    padding-inline: 0.65rem;
+  }
+  .parent-cell {
+    min-height: 31rem;
+    padding: 3rem 1rem 2rem;
+  }
+  .chromosome-pair-rack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .chromosome-pair:last-child {
+    grid-column: 1 / -1;
+    width: 50%;
+    justify-self: center;
+  }
+  .daughter-cell {
+    min-height: 17rem;
+    padding: 1.4rem 0.6rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .gamete-card {
     transition: none;
+  }
+  .homologs,
+  .homologs app-chromosome-svg {
+    transition: none;
+  }
+  .chromosome-pair.crossing .homolog-a,
+  .chromosome-pair.crossing .homolog-b,
+  .chromosome-pair.crossing .homologs::before,
+  .chromosome-pair.crossing .homologs::after,
+  .pole-set-a,
+  .pole-set-b,
+  .spindle-fibers > i,
+  .fibers-left.pulling > i,
+  .fibers-right.pulling > i,
+  .shared-meiosis-stage[data-phase-index='5'] .daughter-cell,
+  .cytokinesis-furrow,
+  .vertical-fibers.pulling.fibers-top > i,
+  .vertical-fibers.pulling.fibers-bottom > i,
+  .forming-gamete-shell.top-daughter,
+  .forming-gamete-shell.bottom-daughter,
+  .shared-meiosis-stage[data-phase-index='5'] .daughter-cell::before,
+  .gamete-card {
+    animation: none;
   }
 }

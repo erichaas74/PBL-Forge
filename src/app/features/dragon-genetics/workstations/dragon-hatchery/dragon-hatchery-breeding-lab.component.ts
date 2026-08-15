@@ -1,13 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  OnDestroy,
   computed,
   effect,
   inject,
   input,
   signal,
+  untracked,
 } from '@angular/core';
 import {
+  DRAGON_TRAITS,
   fertilizeLabGametes,
   genotypeLabel,
   getTrait,
@@ -26,13 +29,19 @@ import {
 } from '../shared/account-genetics-library.models';
 import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
 import { AccountGeneticsLibraryService } from '../shared/account-genetics-library.service';
+import {
+  CellChromosomeViewportComponent,
+  CellChromosomeViewportItem,
+  CellChromosomeLocusSelection,
+} from '../shared/cell-chromosome-viewport.component';
+import { chromosomeVisual } from '../shared/dragon-chromosome.catalog';
 import { DragonHatcheryBreedingRepository } from './dragon-hatchery-breeding.repository';
 import {
   DragonHatcheryBreedingSnapshot,
   HatcheryFertilizationRecord,
 } from './dragon-hatchery-breeding.models';
-import { DragonHatcheryStationComponent } from './dragon-hatchery-station.component';
 import { coreGameteGenome, gameteAlleleSummary } from './meiosis-gamete.domain';
+import { meiosisGameteViewportItems } from './meiosis-gamete.viewport';
 import {
   MEIOSIS_GAMETE_DRAG_TYPE,
   MeiosisRun,
@@ -41,19 +50,30 @@ import {
 import { MeiosisGameteSelectorComponent } from './meiosis-gamete-selector.component';
 
 type ParentRole = 'female' | 'male';
+type FertilizationState = 'loading' | 'fusing' | 'egg';
+
+interface FertilizedGeneAnalysis {
+  chromosome: string;
+  traitName: string;
+  geneSymbol: string;
+  eggAllele: string;
+  spermAllele: string;
+}
+
+const GAMETE_CHROMOSOME_LABELS = ['Chr 1', 'Chr 2', 'Chr 3', 'Chr 4', 'Chr X'] as const;
 
 @Component({
   selector: 'app-dragon-hatchery-breeding-lab',
   imports: [
     MeiosisGameteSelectorComponent,
-    DragonHatcheryStationComponent,
     AccountGeneticsFileComponent,
+    CellChromosomeViewportComponent,
   ],
   templateUrl: './dragon-hatchery-breeding-lab.component.html',
   styleUrl: './dragon-hatchery-breeding-lab.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DragonHatcheryBreedingLabComponent {
+export class DragonHatcheryBreedingLabComponent implements OnDestroy {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);
   private readonly repository = inject(DragonHatcheryBreedingRepository);
 
@@ -71,6 +91,10 @@ export class DragonHatcheryBreedingLabComponent {
   readonly fertilizations = signal<readonly HatcheryFertilizationRecord[]>([]);
   readonly clutch = signal<readonly DragonOffspring[]>([]);
   readonly statusMessage = signal('Choose one female dragon and one male dragon for this family.');
+  readonly fertilizationState = signal<FertilizationState>('loading');
+  readonly formedEggChromosomes = signal<readonly CellChromosomeViewportItem[]>([]);
+  readonly inspectedEggChromosome = signal<string | null>(null);
+  readonly inspectedEggLocus = signal<string | null>(null);
 
   readonly account = computed(() => this.accountLibrary.recordsFor(this.studentId()));
   readonly eggParent = computed(() => this.findDragon(this.eggParentId()));
@@ -83,12 +107,95 @@ export class DragonHatcheryBreedingLabComponent {
     return eggParent && spermParent ? [eggParent, spermParent] : null;
   });
   readonly canFertilize = computed(() => Boolean(this.eggSelection() && this.spermSelection()));
+  readonly gameteOutlineChromosomes = computed<readonly CellChromosomeViewportItem[]>(() =>
+    GAMETE_CHROMOSOME_LABELS.map((label) => {
+      const visual = chromosomeVisual(label);
+      return {
+        id: label,
+        label,
+        placeholder: true,
+        model: {
+          length: visual.length,
+          leftLabel: '',
+          rightLabel: '',
+          centromere: visual.centromere,
+          bands: visual.bands,
+          loci: [],
+        },
+      };
+    }),
+  );
+  readonly eggGameteChromosomes = computed(() =>
+    this.eggSelection()
+      ? meiosisGameteViewportItems(this.eggSelection()!.gamete.chromosomes)
+      : [],
+  );
+  readonly spermGameteChromosomes = computed(() =>
+    this.spermSelection()
+      ? meiosisGameteViewportItems(this.spermSelection()!.gamete.chromosomes)
+      : [],
+  );
+  readonly fertilizedChromosomePairs = computed<readonly CellChromosomeViewportItem[]>(() => {
+    return this.combineGameteChromosomes(
+      this.eggGameteChromosomes(),
+      this.spermGameteChromosomes(),
+    );
+  });
   readonly activeParent = computed(() =>
     this.activeRole() === 'female' ? this.eggParent() : this.spermParent(),
   );
+  readonly selectedEggChromosome = computed(() => {
+    const target = `Chr ${this.targetTrait().chromosomeModel}`;
+    return (
+      this.inspectedEggChromosome() ??
+      this.formedEggChromosomes().find((item) => item.id === target)?.id ??
+      this.formedEggChromosomes()[0]?.id ??
+      null
+    );
+  });
+  readonly selectedEggLocus = computed(() => {
+    const selected = this.inspectedEggLocus();
+    if (selected) return selected;
+    const chromosome = this.formedEggChromosomes().find(
+      (item) => item.id === this.selectedEggChromosome(),
+    );
+    return (
+      chromosome?.model.loci.find((locus) => locus.label === this.targetTrait().geneSymbol)?.label ??
+      chromosome?.model.loci[0]?.label ??
+      null
+    );
+  });
+  readonly fertilizedGeneAnalysis = computed<FertilizedGeneAnalysis | null>(() => {
+    const chromosome = this.formedEggChromosomes().find(
+      (item) => item.id === this.selectedEggChromosome(),
+    );
+    const locus = this.selectedEggLocus();
+    const eggLocus = chromosome?.model.loci.find((candidate) => candidate.label === locus);
+    const spermLocus = chromosome?.pairedModel?.loci.find(
+      (candidate) => candidate.label === locus,
+    );
+    if (!chromosome || !eggLocus || !spermLocus) return null;
+    const trait = DRAGON_TRAITS.find((candidate) => candidate.geneSymbol === locus);
+    return {
+      chromosome: chromosome.id,
+      traitName: trait?.name ?? locus ?? 'Gene',
+      geneSymbol: locus ?? '',
+      eggAllele: eggLocus.symbol ?? eggLocus.label,
+      spermAllele: spermLocus.symbol ?? spermLocus.label,
+    };
+  });
+
+  private fusionTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    effect(() => this.restore(this.studentId()));
+    effect(() => {
+      const studentId = this.studentId();
+      untracked(() => this.restore(studentId));
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.stopFusionTimer();
   }
 
   selectParent(role: ParentRole, dragon: AccountDragonRecord): void {
@@ -119,6 +226,11 @@ export class DragonHatcheryBreedingLabComponent {
   }
 
   selectGamete(role: ParentRole, selection: SelectedMeiosisGamete): void {
+    if (this.fertilizationState() === 'egg') {
+      this.fertilizationState.set('loading');
+      this.formedEggChromosomes.set([]);
+      this.resetEggInspection();
+    }
     if (role === 'female') {
       this.eggSelection.set(selection);
       this.activeRole.set('male');
@@ -128,6 +240,7 @@ export class DragonHatcheryBreedingLabComponent {
       this.statusMessage.set('Sperm gamete secured. The fertilization chamber is ready.');
     }
     this.persist();
+    if (this.canFertilize()) this.fertilize();
   }
 
   captureRun(role: ParentRole, run: MeiosisRun): void {
@@ -150,11 +263,17 @@ export class DragonHatcheryBreedingLabComponent {
   }
 
   fertilize(): void {
+    if (this.fertilizationState() === 'fusing') return;
     const eggParent = this.eggParent();
     const spermParent = this.spermParent();
     const eggSelection = this.eggSelection();
     const spermSelection = this.spermSelection();
     if (!eggParent || !spermParent || !eggSelection || !spermSelection) return;
+
+    this.stopFusionTimer();
+    this.formedEggChromosomes.set(this.fertilizedChromosomePairs());
+    this.resetEggInspection();
+    this.fertilizationState.set('fusing');
 
     const sequence = this.clutch().length + 1;
     const stamp = Date.now();
@@ -185,14 +304,21 @@ export class DragonHatcheryBreedingLabComponent {
     this.accountLibrary.saveDragon(this.studentId(), this.inventoryRecordFor(offspring, record));
     this.clutch.update((current) => [...current, offspring]);
     this.fertilizations.update((current) => [...current, record]);
-    this.eggSelection.set(null);
-    this.spermSelection.set(null);
-    this.activeRole.set('female');
-    this.statusMessage.set(`Egg ${sequence} was fertilized and saved to your Dragon inventory.`);
+    this.statusMessage.set(`Egg ${sequence} is forming as the selected gamete nuclei combine.`);
     this.persist();
+    this.fusionTimer = setTimeout(() => {
+      this.fertilizationState.set('egg');
+      this.eggSelection.set(null);
+      this.spermSelection.set(null);
+      this.activeRole.set('female');
+      this.statusMessage.set(`Egg ${sequence} formed and was saved to your Dragon inventory.`);
+      this.persist();
+      this.fusionTimer = null;
+    }, 1900);
   }
 
   newFamily(): void {
+    this.stopFusionTimer();
     this.eggParentId.set(null);
     this.spermParentId.set(null);
     this.eggSelection.set(null);
@@ -201,6 +327,9 @@ export class DragonHatcheryBreedingLabComponent {
     this.maleRun.set(null);
     this.fertilizations.set([]);
     this.clutch.set([]);
+    this.fertilizationState.set('loading');
+    this.formedEggChromosomes.set([]);
+    this.resetEggInspection();
     this.activeRole.set('female');
     this.statusMessage.set('Choose two dragons for a new family.');
     this.persist();
@@ -234,12 +363,16 @@ export class DragonHatcheryBreedingLabComponent {
     else this.spermParentId.set(dragon.id);
     this.eggSelection.set(null);
     this.spermSelection.set(null);
+    this.fertilizationState.set('loading');
+    this.formedEggChromosomes.set([]);
+    this.resetEggInspection();
     this.activeRole.set('female');
     this.statusMessage.set(`${dragon.name} loaded as the ${role === 'female' ? 'egg' : 'sperm'} parent.`);
     this.persist();
   }
 
   private restore(studentId: string): void {
+    this.stopFusionTimer();
     const snapshot = this.repository.load(studentId);
     const eggParent = this.findDragon(snapshot.eggParentId);
     const spermParent = this.findDragon(snapshot.spermParentId);
@@ -251,6 +384,17 @@ export class DragonHatcheryBreedingLabComponent {
     this.fertilizations.set(snapshot.fertilizations);
     const clutch = this.restoreClutch(snapshot.fertilizations);
     this.clutch.set(clutch);
+    this.fertilizationState.set(clutch.length ? 'egg' : 'loading');
+    const latest = snapshot.fertilizations.at(-1);
+    this.formedEggChromosomes.set(
+      latest
+        ? this.combineGameteChromosomes(
+            meiosisGameteViewportItems(latest.eggSelection.gamete.chromosomes),
+            meiosisGameteViewportItems(latest.spermSelection.gamete.chromosomes),
+          )
+        : [],
+    );
+    this.resetEggInspection();
     this.syncClutchToInventory(clutch, snapshot.fertilizations);
     this.activeRole.set(this.eggSelection() ? 'male' : 'female');
   }
@@ -330,6 +474,52 @@ export class DragonHatcheryBreedingLabComponent {
       fertilizations: this.fertilizations(),
     };
     this.repository.save(snapshot);
+  }
+
+  private stopFusionTimer(): void {
+    if (this.fusionTimer) clearTimeout(this.fusionTimer);
+    this.fusionTimer = null;
+  }
+
+  inspectFertilizedChromosome(chromosomeId: string): void {
+    this.inspectedEggChromosome.set(chromosomeId);
+    const firstLocus = this.formedEggChromosomes().find(
+      (item) => item.id === chromosomeId,
+    )?.model.loci[0]?.label;
+    this.inspectedEggLocus.set(firstLocus ?? null);
+  }
+
+  inspectFertilizedLocus(selection: CellChromosomeLocusSelection): void {
+    this.inspectedEggChromosome.set(selection.chromosomeId);
+    this.inspectedEggLocus.set(selection.locus);
+  }
+
+  private resetEggInspection(): void {
+    this.inspectedEggChromosome.set(null);
+    this.inspectedEggLocus.set(null);
+  }
+
+  private combineGameteChromosomes(
+    eggs: readonly CellChromosomeViewportItem[],
+    sperm: readonly CellChromosomeViewportItem[],
+  ): readonly CellChromosomeViewportItem[] {
+    const spermById = new Map(sperm.map((item) => [item.id, item]));
+    if (!eggs.length || !spermById.size) return [];
+    return eggs.flatMap((egg) => {
+      const spermChromosome = spermById.get(egg.id);
+      if (!spermChromosome) return [];
+      return [
+        {
+          id: egg.id,
+          label: `${egg.label} + ${spermChromosome.label}`,
+          shortLabel: `${egg.label.replace('Chr ', '')}/${spermChromosome.label.replace('Chr ', '')}`,
+          model: egg.model,
+          pairedModel: spermChromosome.model,
+          pairRelationship: 'gamete-fusion' as const,
+          recombinant: Boolean(egg.recombinant || spermChromosome.recombinant),
+        },
+      ];
+    });
   }
 
   private findDragon(id: string | null): AccountDragonRecord | null {

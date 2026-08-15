@@ -35,6 +35,16 @@ interface RenderLocus extends ChromosomeLocus {
   active: boolean;
 }
 
+interface RenderChromatid {
+  id: 'single' | 'first' | 'second';
+  transform: string | null;
+  primary: boolean;
+  shapePath: string;
+  centromereX: number;
+  bands: readonly RenderBand[];
+  loci: readonly RenderLocus[];
+}
+
 let nextChromosomeSvgId = 0;
 
 @Component({
@@ -49,6 +59,11 @@ export class ChromosomeSvgComponent {
   readonly placeholder = input(false);
   readonly interactive = input(false);
   readonly compact = input(false);
+  /** Show a replicated chromosome as two sister chromatids joined at the centromere. */
+  readonly replicated = input(false);
+  /** Optional second chromosome model used when two gametes visibly fuse. */
+  readonly pairedChromosome = input<ChromosomeSvgModel | null>(null);
+  readonly pairRelationship = input<'sister-chromatids' | 'gamete-fusion'>('sister-chromatids');
   /** Reveal loaded loci in read-only scientific diagrams without making them interactive. */
   readonly showAllLoci = input(false);
   readonly locusSelected = output<string>();
@@ -68,6 +83,24 @@ export class ChromosomeSvgComponent {
   );
   readonly chromosomeRight = computed(() => this.left + this.chromosomeWidth());
   readonly centromereX = computed(() => this.toX(this.chromosome().centromere));
+  readonly chromatids = computed<readonly RenderChromatid[]>(() => {
+    const primary = this.renderChromatid(this.chromosome(), 'single', true, null);
+    if (!this.replicated() && !this.pairedChromosome()) return [primary];
+    const jointX = primary.centromereX;
+    const center = `${jointX} 16`;
+    const secondModel = this.pairedChromosome() ?? this.chromosome();
+    const secondX = this.modelX(secondModel, secondModel.centromere);
+    const alignSecond = jointX - secondX;
+    return [
+      this.renderChromatid(this.chromosome(), 'first', true, `rotate(-10 ${center})`),
+      this.renderChromatid(
+        secondModel,
+        'second',
+        false,
+        `rotate(10 ${center}) translate(${alignSecond} 0)`,
+      ),
+    ];
+  });
   readonly shapePath = computed(() => {
     const left = this.left;
     const right = this.chromosomeRight();
@@ -93,20 +126,6 @@ export class ChromosomeSvgComponent {
       'Z',
     ].join(' ');
   });
-  readonly bands = computed<readonly RenderBand[]>(() =>
-    this.chromosome().bands.map((band) => {
-      const start = clamp01(band.start);
-      const end = Math.max(start, clamp01(band.end));
-      return { ...band, x: this.toX(start), width: (end - start) * this.chromosomeWidth() };
-    }),
-  );
-  readonly loci = computed<readonly RenderLocus[]>(() =>
-    this.chromosome().loci.map((locus) => ({
-      ...locus,
-      x: this.toX(locus.position),
-      active: locus.label === this.selectedLocus(),
-    })),
-  );
   readonly summary = computed(() => {
     const model = this.chromosome();
     if (this.placeholder()) {
@@ -118,11 +137,78 @@ export class ChromosomeSvgComponent {
           .map((locus) => `${locus.label}, allele ${locus.symbol ?? 'not loaded'}`)
           .join('; ')
       : '';
-    return `${model.leftLabel} to ${model.rightLabel} chromosome, ${model.bands.length} bands${active ? `; active locus ${active.label}, allele ${active.symbol ?? 'not loaded'}` : visibleLoci ? `; loci ${visibleLoci}` : ''}.`;
+    const form = this.pairedChromosome()
+      ? this.pairRelationship() === 'gamete-fusion'
+        ? 'egg and sperm chromosome pair joined in the fertilization model'
+        : 'replicated chromosome with two sister chromatids joined at the centromere'
+      : this.replicated()
+        ? 'replicated chromosome with two sister chromatids joined at the centromere'
+        : 'single chromosome';
+    return `${model.leftLabel} to ${model.rightLabel} ${form}, ${model.bands.length} bands${active ? `; active locus ${active.label}, allele ${active.symbol ?? 'not loaded'}` : visibleLoci ? `; loci ${visibleLoci}` : ''}.`;
   });
 
   private toX(position: number): number {
     return this.left + clamp01(position) * this.chromosomeWidth();
+  }
+
+  private modelWidth(model: ChromosomeSvgModel): number {
+    return clamp01(model.length) * this.availableWidth;
+  }
+
+  private modelX(model: ChromosomeSvgModel, position: number): number {
+    return this.left + clamp01(position) * this.modelWidth(model);
+  }
+
+  private renderChromatid(
+    model: ChromosomeSvgModel,
+    id: RenderChromatid['id'],
+    primary: boolean,
+    transform: string | null,
+  ): RenderChromatid {
+    const width = this.modelWidth(model);
+    const right = this.left + width;
+    const centromereX = this.modelX(model, model.centromere);
+    const notch = Math.min(2.2, width * 0.025);
+    const shoulder = Math.min(3.2, width * 0.04);
+    const shapePath = [
+      `M ${this.left + 3} 9`,
+      `H ${centromereX - shoulder}`,
+      `C ${centromereX - notch} 9 ${centromereX - notch} 14 ${centromereX} 15`,
+      `C ${centromereX + notch} 14 ${centromereX + notch} 9 ${centromereX + shoulder} 9`,
+      `H ${right - 3}`,
+      `A 3 3 0 0 1 ${right} 12`,
+      `V 20`,
+      `A 3 3 0 0 1 ${right - 3} 23`,
+      `H ${centromereX + shoulder}`,
+      `C ${centromereX + notch} 23 ${centromereX + notch} 18 ${centromereX} 17`,
+      `C ${centromereX - notch} 18 ${centromereX - notch} 23 ${centromereX - shoulder} 23`,
+      `H ${this.left + 3}`,
+      `A 3 3 0 0 1 ${this.left} 20`,
+      `V 12`,
+      `A 3 3 0 0 1 ${this.left + 3} 9`,
+      'Z',
+    ].join(' ');
+    return {
+      id,
+      transform,
+      primary,
+      shapePath,
+      centromereX,
+      bands: model.bands.map((band) => {
+        const start = clamp01(band.start);
+        const end = Math.max(start, clamp01(band.end));
+        return {
+          ...band,
+          x: this.modelX(model, start),
+          width: (end - start) * width,
+        };
+      }),
+      loci: model.loci.map((locus) => ({
+        ...locus,
+        x: this.modelX(model, locus.position),
+        active: primary && locus.label === this.selectedLocus(),
+      })),
+    };
   }
 
   selectLocus(label: string): void {

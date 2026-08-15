@@ -74,6 +74,26 @@ describe('AlleleVaultWorkbenchComponent', () => {
     expect(element.textContent).not.toContain('Wingless allele');
   });
 
+  it('lets students switch the cell between single and replicated chromosomes', () => {
+    const element = fixture.nativeElement as HTMLElement;
+    const formButtons = element.querySelectorAll<HTMLButtonElement>(
+      '.vault-cell-viewport .chromosome-form-controls button',
+    );
+
+    expect(formButtons.length).toBe(2);
+    expect(element.querySelectorAll('.vault-cell-viewport .chromosome-svg--replicated').length).toBe(
+      0,
+    );
+
+    formButtons[1].click();
+    fixture.detectChanges();
+
+    expect(element.querySelectorAll('.vault-cell-viewport .chromosome-svg--replicated').length).toBe(
+      5,
+    );
+    expect(element.querySelectorAll('.vault-cell-viewport .centromere-joint').length).toBe(5);
+  });
+
   it('keeps each allele stripe identity when it is dropped into either comparison sample', () => {
     const [sampleA, sampleB] = component.allelesForGene(component.activeGeneId());
     component.loadComparison('left', sampleB.id);

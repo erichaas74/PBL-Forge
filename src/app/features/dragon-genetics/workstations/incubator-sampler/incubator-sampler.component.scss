@@ -224,11 +224,6 @@ summary:focus-visible {
   align-items: start;
 }
 
-.breeding-inventory {
-  display: block;
-  margin-bottom: 0.85rem;
-}
-
 .parent-a {
   grid-area: parent-a;
 }
@@ -313,18 +308,14 @@ summary:focus-visible {
   border-color: #94633f;
 }
 
-.parent-station.inventory-target {
-  border-color: var(--forge-gold);
-  box-shadow: 0 15px 34px rgb(0 0 0 / 28%), inset 0 0 0 1px var(--forge-gold);
+.parent-station.female.loaded {
+  border-color: #d9629e;
+  box-shadow: 0 15px 34px rgb(0 0 0 / 28%), inset 0.25rem 0 #d9629e;
 }
 
-.parent-station > header[role='button'] {
-  cursor: pointer;
-}
-
-.parent-station > header[role='button']:focus-visible {
-  outline: 2px solid var(--forge-gold);
-  outline-offset: -3px;
+.parent-station.male.loaded {
+  border-color: #35bad8;
+  box-shadow: 0 15px 34px rgb(0 0 0 / 28%), inset -0.25rem 0 #35bad8;
 }
 
 .parent-model {

@@ -6,6 +6,7 @@ import {
   dragonHeadExtent,
   dragonHeadEyeSocket,
   dragonHeadJawMount,
+  dragonHeadHornMount,
   dragonHeadJawMountFor,
   dragonHeadNostril,
   dragonHeadSection,
@@ -223,6 +224,25 @@ describe('head anchors', () => {
     }
   });
 
+  it('roots the horns above the ear, between the eye and the braincase', () => {
+    const shape = headShapeFor(HORNED);
+    const eye = dragonHeadEyeSocket(HORNED, 1, shape);
+
+    for (const side of [-1, 1] as const) {
+      const mount = dragonHeadHornMount(HORNED, side, shape);
+
+      // Behind the eye, which is where an ear opening sits, and well forward of
+      // the occiput at -0.5 — the old -0.22 mount grew them off the back of the
+      // skull, where a horn can only sweep away from the animal.
+      expect(mount.x).withContext(`${side}`).toBeLessThan(eye.x);
+      expect(mount.x).withContext(`${side}`).toBeGreaterThan(-HORNED.x * 0.18);
+      // On the roof of the skull, not out on the cheek.
+      expect(mount.y).withContext(`${side}`).toBeGreaterThan(0);
+      expect(Math.abs(mount.z)).withContext(`${side}`).toBeLessThan(HORNED.z / 2);
+      expect(Math.sign(mount.z)).withContext(`${side}`).toBe(side);
+    }
+  });
+
   it('mirrors every anchor across the centre line', () => {
     const shape = headShapeFor(SNOUT);
     const left = dragonHeadNostril(SNOUT, -1, shape);
@@ -235,7 +255,11 @@ describe('head anchors', () => {
 
   it('keeps anchors on the skull surface', () => {
     const shape = headShapeFor(SNOUT);
-    for (const anchor of [dragonHeadNostril(SNOUT, 1, shape), dragonHeadSurfacePoint(SNOUT, -0.22, 0.62, shape)]) {
+    const anchors = [
+      dragonHeadNostril(SNOUT, 1, shape),
+      dragonHeadHornMount(SNOUT, 1, shape),
+    ];
+    for (const anchor of anchors) {
       const section = dragonHeadSection(SNOUT, anchor.x / SNOUT.x, shape);
       const offsetY = (anchor.y - section.centerY) / section.halfHeight;
       const offsetZ = anchor.z / section.halfWidth;

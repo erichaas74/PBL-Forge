@@ -36,6 +36,7 @@ export interface IncubatorBatchRecord {
 export interface IncubatorSamplerSnapshot {
   schemaVersion: 2;
   studentId: string;
+  /** Original founders ordered as female egg parent, then male sperm parent. */
   originalParentIds: readonly [string | null, string | null];
   activeParentIds: readonly [string | null, string | null];
   activeBreedingPoolIds: readonly string[];

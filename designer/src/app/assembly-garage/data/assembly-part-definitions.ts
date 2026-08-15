@@ -479,36 +479,40 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
    * are here so the mesh can be authored and inspected in the Parts Lab like
    * every other part, rather than only ever existing inside an expressed
    * blueprint nobody can open.
+   *
+   * Their sizes track `GRASP_ARM_SCALE` in `dragon-inheritance.ts` — the arms a
+   * student actually sees are the front leg chain scaled by it, so a lab part
+   * authored at a different size would be a lie about what ships.
    */
-  dragonPart('dragon-grasp-upper-arm', 'Grasping Upper Arm', 'cylinder', { x: 0.14, y: 0.33, z: 0.14 }, 0.16, '#166534', {
+  dragonPart('dragon-grasp-upper-arm', 'Grasping Upper Arm', 'cylinder', { x: 0.16, y: 0.378, z: 0.16 }, 0.24, '#166534', {
     parentSnapId: 'dragon-front-left-leg-socket',
     childSnapId: 'dragon-leg-hip',
     jointType: 'hinge',
     axis: { x: 0, y: 0, z: 1 },
-    childSnapPosition: { x: 0, y: 0.132, z: 0 },
+    childSnapPosition: { x: 0, y: 0.151, z: 0 },
     behavior: LEG_SPRING_HINGE,
     extraSnapPoints: [
-      socket('dragon-elbow-socket', 'Elbow socket', { x: 0, y: -0.165, z: 0 }, 'dragon-elbow-root'),
+      socket('dragon-elbow-socket', 'Elbow socket', { x: 0, y: -0.189, z: 0 }, 'dragon-elbow-root'),
     ],
   }),
-  dragonPart('dragon-grasp-forearm', 'Grasping Forearm', 'cylinder', { x: 0.11, y: 0.29, z: 0.11 }, 0.11, '#15803d', {
+  dragonPart('dragon-grasp-forearm', 'Grasping Forearm', 'cylinder', { x: 0.126, y: 0.332, z: 0.126 }, 0.164, '#15803d', {
     parentSnapId: 'dragon-elbow-socket',
     childSnapId: 'dragon-elbow-root',
     jointType: 'hinge',
     axis: { x: 0, y: 0, z: 1 },
-    childSnapPosition: { x: 0, y: 0.116, z: 0 },
+    childSnapPosition: { x: 0, y: 0.133, z: 0 },
     childRotation: quaternionFromAxisAngle({ x: 0, y: 0, z: 1 }, 0.38),
     behavior: LEG_SPRING_HINGE,
     extraSnapPoints: [
-      socket('dragon-wrist-socket', 'Wrist socket', { x: 0, y: -0.145, z: 0 }, 'dragon-wrist-root'),
+      socket('dragon-wrist-socket', 'Wrist socket', { x: 0, y: -0.166, z: 0 }, 'dragon-wrist-root'),
     ],
   }),
-  dragonPart('dragon-grasp-hand', 'Grasping Hand', 'box', { x: 0.2, y: 0.11, z: 0.17 }, 0.07, '#365314', {
+  dragonPart('dragon-grasp-hand', 'Grasping Hand', 'box', { x: 0.238, y: 0.131, z: 0.203 }, 0.119, '#365314', {
     parentSnapId: 'dragon-wrist-socket',
     childSnapId: 'dragon-wrist-root',
     jointType: 'fixed',
     axis: { x: 0, y: 1, z: 0 },
-    childSnapPosition: { x: -0.055, y: 0.04, z: 0 },
+    childSnapPosition: { x: -0.066, y: 0.048, z: 0 },
     behavior: BREAKABLE_LIGHT,
   }),
   dragonPart('dragon-clawed-foot', 'Clawed Foot', 'box', { x: 0.408, y: 0.168, z: 0.336 }, 0.22, '#365314', {
@@ -568,7 +572,17 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     childSnapId: 'dragon-wing-claw-root',
     jointType: 'fixed',
     axis: { x: 0, y: 1, z: 0 },
-    childSnapPosition: { x: 0, y: 0.16, z: 0 },
+    /*
+     * Mounted by its **blunt end**, not its point.
+     *
+     * The talon is drawn along its own +y with the point at the top, so a snap at
+     * +0.16 pinned the *tip* to the wing and hung the rest of the claw backwards
+     * across the membrane — a spur laid along the wing rather than a claw on the
+     * front of it. At -0.16 (the talon's blunt end, half its 0.32 length) the root
+     * sits in the socket and the whole talon projects out ahead of the leading
+     * edge, which is where a bat carries its thumb claw.
+     */
+    childSnapPosition: { x: 0, y: -0.16, z: 0 },
     // The talon runs along its own +y. A +90° roll about z sends that to -x,
     // which on this dragon is the tail: the claw raked backwards off the wing.
     // -90° puts it on +x, forward with the head.

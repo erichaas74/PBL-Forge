@@ -1,0 +1,289 @@
+<main class="wise-page">
+  <header class="wise-header">
+    <a routerLink="/dragon-genetics/dragon-arena">← Return to the Dragon Arena</a>
+    <div>
+      <span class="eyebrow">Berk council chamber · layout preview</span>
+      <h1>Defend your claim before the Wise Dragon</h1>
+      <p>
+        Use your champion and its latest arena trial to explain how inherited traits shaped the
+        outcome. This is coaching practice, not a grade.
+      </p>
+    </div>
+  </header>
+
+  @if (!champion()) {
+    <section class="empty-state">
+      <span aria-hidden="true">ᛟ</span>
+      <h2>No Hatchery champion is ready</h2>
+      <p>Breed a dragon first, then choose it as your champion in the Arena.</p>
+      <a routerLink="/dragon-genetics/dragon-hatchery" class="primary-action">Open the Hatchery</a>
+    </section>
+  } @else if (!trial()) {
+    <section class="empty-state">
+      <span aria-hidden="true">ᛉ</span>
+      <h2>Your champion needs an arena record</h2>
+      <p>Complete one fair trial so the Wise Dragon has evidence to examine with you.</p>
+      <a routerLink="/dragon-genetics/dragon-arena" class="primary-action">Run an arena trial</a>
+    </section>
+  } @else {
+    @switch (store.view()) {
+      @case ('brief') {
+        <section class="chamber-grid" aria-labelledby="brief-heading">
+          <div class="elder-stage">
+            <div class="torch torch--left" aria-hidden="true"></div>
+            <div class="torch torch--right" aria-hidden="true"></div>
+            <app-specimen-viewport
+              #wiseViewport
+              [source]="wiseDragonSource"
+              [theme]="theme"
+              [transparent]="true"
+              [showGroundShadow]="true"
+              [framePadding]="1.02"
+              [controls]="false"
+              ariaLabel="Wise Dragon Sage"
+            />
+            <div class="elder-nameplate">
+              <strong>Wise Dragon Sage</strong>
+              <span>Keeper of the Gene Records</span>
+            </div>
+          </div>
+
+          <section class="parchment defense-brief">
+            <span class="section-kicker">Prepare your defense</span>
+            <h2 id="brief-heading">What does your trial show?</h2>
+            <div class="record-strip">
+              <strong>{{ champion()!.name }}</strong>
+              @if (previewMode()) {
+                <span>Sample record</span>
+              }
+              <span>{{ trial()!.won ? 'Win' : 'Loss' }}</span>
+              <span>{{ trial()!.elapsedSeconds.toFixed(1) }} seconds</span>
+              <span>{{ trial()!.remainingHealthPercent }}% health left</span>
+            </div>
+
+            <label for="claim">Your claim</label>
+            <textarea
+              id="claim"
+              rows="3"
+              maxlength="600"
+              [value]="claim()"
+              (input)="updateClaim($event)"
+              placeholder="I claim that an inherited trait affected this trial because…"
+            ></textarea>
+            <small>{{ claim().trim().length }}/20 minimum characters</small>
+
+            <fieldset>
+              <legend>Evidence you plan to use</legend>
+              <div class="evidence-grid">
+                @for (record of traitEvidence(); track record.traitId) {
+                  <label class="evidence-card">
+                    <input
+                      type="checkbox"
+                      [checked]="selectedEvidence().includes(record.traitId)"
+                      (change)="toggleEvidence(record.traitId, $event)"
+                    />
+                    <span>
+                      <strong>{{ record.traitName }}</strong>
+                      <em>{{ record.genotype }} · {{ record.phenotype }}</em>
+                      <small>{{ record.arenaEffect }}</small>
+                    </span>
+                  </label>
+                }
+              </div>
+            </fieldset>
+
+            <label for="reasoning">Your starting reasoning</label>
+            <textarea
+              id="reasoning"
+              rows="4"
+              maxlength="900"
+              [value]="reasoning()"
+              (input)="updateReasoning($event)"
+              placeholder="Connect the genotype to the phenotype, then connect the phenotype to the arena record."
+            ></textarea>
+            <small>{{ reasoning().trim().length }}/20 minimum characters</small>
+
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!canBegin() || store.requestState() === 'thinking'"
+              (click)="beginDefense()"
+            >
+              {{
+                store.requestState() === 'thinking'
+                  ? 'The elder is considering…'
+                  : 'Enter the defense chamber'
+              }}
+            </button>
+          </section>
+        </section>
+      }
+
+      @case ('chamber') {
+        <section class="chamber-grid" aria-labelledby="conversation-heading">
+          <div class="elder-stage elder-stage--conversation">
+            <div class="torch torch--left" aria-hidden="true"></div>
+            <div class="torch torch--right" aria-hidden="true"></div>
+            <app-specimen-viewport
+              #wiseViewport
+              [source]="wiseDragonSource"
+              [theme]="theme"
+              [transparent]="true"
+              [framePadding]="1.02"
+              [controls]="false"
+              ariaLabel="Wise Dragon Sage listening to the defense"
+            />
+            <div class="elder-nameplate">
+              <strong>Wise Dragon Sage</strong>
+              <span>Practice defense · {{ champion()!.name }}</span>
+            </div>
+          </div>
+
+          <section class="parchment conversation-panel">
+            <div class="conversation-heading">
+              <div>
+                <span class="section-kicker">The Sage responds</span>
+                <h2 id="conversation-heading">Defend the chain of evidence</h2>
+              </div>
+              <span class="prototype-badge">Not connected</span>
+            </div>
+
+            @if (store.requestState() === 'thinking') {
+              <div class="thinking" role="status">
+                <span aria-hidden="true"></span>
+                Wise Dragon Sage studies the record…
+              </div>
+            } @else if (store.currentReply(); as reply) {
+              <blockquote>{{ reply.message }}</blockquote>
+            }
+
+            @if (store.errorMessage()) {
+              <p class="error-message" role="alert">{{ store.errorMessage() }}</p>
+            }
+
+            <label for="response">Your response</label>
+            <textarea
+              id="response"
+              rows="5"
+              maxlength="1200"
+              [value]="studentResponse()"
+              [disabled]="store.requestState() === 'thinking'"
+              (input)="updateResponse($event)"
+              placeholder="Use the genotype, phenotype, and a specific arena observation."
+            ></textarea>
+
+            <div class="conversation-actions">
+              <button
+                type="button"
+                class="primary-action"
+                [disabled]="!studentResponse().trim() || store.requestState() === 'thinking'"
+                (click)="submitResponse()"
+              >
+                Ask the Sage
+              </button>
+              <button
+                type="button"
+                class="secondary-action"
+                [disabled]="store.requestState() === 'thinking'"
+                (click)="openSpecimen()"
+              >
+                Examine my dragon
+              </button>
+              <button
+                type="button"
+                class="text-action"
+                [disabled]="store.requestState() === 'thinking'"
+                (click)="endDefense()"
+              >
+                End and summarize
+              </button>
+            </div>
+
+            <details class="transcript">
+              <summary>Review this session’s conversation</summary>
+              <ol>
+                @for (turn of store.turns(); track turn.id) {
+                  <li [class.student-turn]="turn.role === 'student'">
+                    <strong>{{ turn.role === 'student' ? 'You' : 'Wise Dragon Sage' }}</strong>
+                    <p>{{ turn.message }}</p>
+                  </li>
+                }
+              </ol>
+            </details>
+          </section>
+        </section>
+      }
+
+      @case ('specimen') {
+        <section class="examination" aria-labelledby="specimen-heading">
+          <header>
+            <span class="section-kicker">Evidence table</span>
+            <h2 id="specimen-heading">Examine {{ champion()!.name }}</h2>
+            <p>Turn and zoom the same champion used in the recorded trial.</p>
+          </header>
+          <div class="specimen-layout">
+            <app-specimen-viewport
+              #studentViewport
+              [source]="championSource()"
+              [focusedTraitId]="focusedTraitId()"
+              [controls]="true"
+              [framePadding]="1.08"
+              [showGroundShadow]="true"
+              [ariaLabel]="champion()!.name + ' evidence specimen'"
+            />
+            <aside class="evidence-ledger">
+              <span class="section-kicker">Elder’s marker</span>
+              @if (focusedTraitId(); as traitId) {
+                @for (record of traitEvidence(); track record.traitId) {
+                  @if (record.traitId === traitId) {
+                    <h3>{{ record.traitName }}</h3>
+                    <p class="genotype">{{ record.genotype }} · {{ record.phenotype }}</p>
+                    <p>{{ record.arenaEffect }}</p>
+                  }
+                }
+              } @else {
+                <h3>Whole-dragon view</h3>
+                <p>Compare the visible phenotype with the complete arena record.</p>
+              }
+              <button type="button" class="secondary-action" (click)="resetSpecimenView()">
+                Reset specimen view
+              </button>
+              <button type="button" class="primary-action" (click)="returnToChamber()">
+                Return to the Sage
+              </button>
+            </aside>
+          </div>
+        </section>
+      }
+
+      @case ('summary') {
+        <section class="summary-panel" aria-labelledby="summary-heading">
+          <div class="summary-seal" aria-hidden="true">ᛉ</div>
+          <span class="section-kicker">Provisional coaching record</span>
+          <h2 id="summary-heading">{{ store.summary()?.title ?? 'Practice-defense summary' }}</h2>
+          <p class="summary-notice">
+            This local prototype summary is advisory. It is not a grade and the conversation is not
+            saved.
+          </p>
+          <div class="criteria-grid">
+            @for (criterion of store.summary()?.criteria ?? []; track criterion.criterionId) {
+              <article [attr.data-status]="criterion.status">
+                <span>{{ criterion.status.replaceAll('-', ' ') }}</span>
+                <h3>{{ criterion.label }}</h3>
+                <p>{{ criterion.evidenceSummary }}</p>
+              </article>
+            }
+          </div>
+          <div class="summary-actions">
+            <button type="button" class="primary-action" (click)="restartDefense()">
+              Revise and practice again
+            </button>
+            <a routerLink="/dragon-genetics/dragon-arena" class="secondary-action">
+              Return to the Arena
+            </a>
+          </div>
+        </section>
+      }
+    }
+  }
+</main>

@@ -72,10 +72,24 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'dragon-genetics/wise-dragon',
+    loadComponent: () =>
+      import('./features/dragon-genetics/wise-dragon/wise-dragon.page').then(
+        (m) => m.WiseDragonPage,
+      ),
+  },
+  {
     path: 'dragon-genetics/trait-evidence',
     loadComponent: () =>
       import('./features/dragon-genetics/workstations/trait-evidence/trait-evidence.page').then(
         (m) => m.TraitEvidencePage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/candling-workstation',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/candling-workstation/candling-workstation.page').then(
+        (m) => m.CandlingWorkstationPage,
       ),
   },
   {

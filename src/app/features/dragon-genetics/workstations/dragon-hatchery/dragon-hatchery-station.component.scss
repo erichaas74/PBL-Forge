@@ -133,6 +133,11 @@
   min-width: 0;
 }
 
+.hatchery-family-stage.parents-hidden {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'eggs';
+}
+
 .hatchery-family-stage > app-dragon-hatchery-display {
   grid-area: eggs;
   min-width: 0;

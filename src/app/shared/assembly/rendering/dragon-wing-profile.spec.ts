@@ -1,5 +1,6 @@
 import {
   DEFAULT_WING_SHAPE,
+  WING_FINGER_STATIONS,
   WING_SHAPES,
   WING_STATIONS,
   wingChordFraction,
@@ -24,12 +25,16 @@ describe('wing hand claw anchor', () => {
     expect(soaring.y).toBeGreaterThan(anchor.y);
   });
 
-  it('buries the base of the talon in the arm bone at the wrist', () => {
+  it('sits on the leading edge, so the talon projects forward off the wing', () => {
     const anchor = wingClawAnchor(WING, -1);
+    const edge = wingLeadingEdge(WING, 1);
 
-    // Behind the leading edge and inboard of the tip, both by a margin, so the
-    // cylinder the talon starts from is hidden inside the bone.
-    expect(anchor.x).toBeLessThan(wingLeadingEdge(WING, 1));
+    // Just behind the edge — enough to bury the cylinder the talon starts from
+    // inside the arm bone, and no more. Deeper than this and the claw emerges
+    // from the membrane as a stub instead of standing out in front of the wing.
+    expect(anchor.x).toBeLessThan(edge);
+    expect(edge - anchor.x).toBeLessThan(WING.x * 0.1);
+    // Inboard of the very tip, so the base has bone around it.
     expect(Math.abs(anchor.z)).toBeLessThan(WING.z / 2);
     expect(Math.abs(anchor.z)).toBeGreaterThan(WING.z * 0.45);
   });
@@ -51,10 +56,10 @@ describe('wing hand claw anchor', () => {
 });
 
 /**
- * The planform is angular on purpose: straight edges meeting at the fingers.
- * The curves these replaced — an `s^1.5` leading edge and a smooth chord taper
- * — bent the front of the wing backwards like a scythe and left the tip
- * trailing behind the last finger.
+ * A spread bat wing: a straight swept leading edge with the arm bone on it, a
+ * membrane pinned at each finger, and curves — sag and scallop — everywhere
+ * between them. The flat-panelled version these replaced was shaped to survive a
+ * resting fold that no longer exists.
  */
 describe('wing planform', () => {
   it('sweeps the leading edge in a straight line', () => {
@@ -65,6 +70,19 @@ describe('wing planform', () => {
     expect(middle).toBeCloseTo((root + tip) / 2, 9);
     // Still swept, just not curved.
     expect(tip).toBeLessThan(root);
+  });
+
+  it('spreads the membrane over more than one finger, all of them interior', () => {
+    // Each finger puts another belly and another scallop into the outline; with
+    // fewer than three, the outer half of the wing is one unbroken panel.
+    expect(WING_FINGER_STATIONS.length).toBeGreaterThanOrEqual(3);
+    for (const station of WING_FINGER_STATIONS) {
+      expect(station).withContext(`${station}`).toBeGreaterThan(0);
+      expect(station).withContext(`${station}`).toBeLessThan(1);
+    }
+    // Sorted outward, because the mesh thins the struts in this order.
+    const sorted = [...WING_FINGER_STATIONS].sort((a, b) => a - b);
+    expect(WING_FINGER_STATIONS).toEqual(sorted);
   });
 
   it('joins the finger stations with straight chord runs', () => {
@@ -92,10 +110,14 @@ describe('wing planform', () => {
     expect(outer).toBeGreaterThan(inner);
   });
 
-  it('ships the flat-panelled shape, with no sag between the fingers', () => {
-    expect(DEFAULT_WING_SHAPE).toBe(WING_SHAPES.angular);
-    expect(DEFAULT_WING_SHAPE.fingerSag).toBe(0);
-    expect(DEFAULT_WING_SHAPE.scallop).toBe(0);
+  it('ships the bat shape, with the membrane sagging and scalloped between the fingers', () => {
+    expect(DEFAULT_WING_SHAPE).toBe(WING_SHAPES.bat);
+    // The two curves the flat-panelled wing had switched off. Without them the
+    // membrane is a kite, whatever the outline does.
+    expect(DEFAULT_WING_SHAPE.fingerSag).toBeGreaterThan(0.1);
+    expect(DEFAULT_WING_SHAPE.scallop).toBeGreaterThan(0.1);
+    // Lifts toward the tip rather than hanging level — the claw anchor rides it.
+    expect(DEFAULT_WING_SHAPE.dihedral).toBeGreaterThan(0);
   });
 });
 

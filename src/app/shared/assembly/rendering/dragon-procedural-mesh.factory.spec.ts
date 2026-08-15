@@ -263,6 +263,40 @@ describe('dragon head mesh', () => {
   });
 
   /**
+   * The horns point *forward*, along the snout. They used to rake back over the
+   * neck, and the difference is not a matter of degree: a horn whose tip finishes
+   * behind its own root reads as swept, whatever its angle.
+   */
+  it('drives the horns forward off the skull rather than back over the neck', () => {
+    const dims = { x: 0.6, y: 0.45, z: 0.42 };
+    const head = createDragonProceduralObject(headPart('dragon-head-horned', 'box', dims))!;
+
+    for (const side of ['left', 'right']) {
+      const horn = head.getObjectByName(`dragon-horn-${side}`)!;
+      expect(horn).withContext(side).toBeTruthy();
+      const tip = new THREE.Box3().setFromObject(horn).max.x;
+
+      // The whole horn finishes ahead of the root it grows from.
+      expect(tip).withContext(side).toBeGreaterThan(horn.position.x);
+      // And ahead of the brow, not merely leaning off vertical.
+      expect(tip).withContext(side).toBeGreaterThan(dims.x * 0.1);
+    }
+  });
+
+  it('roots the horns above the ear, forward of the back of the skull', () => {
+    const dims = { x: 0.6, y: 0.45, z: 0.42 };
+    const head = createDragonProceduralObject(headPart('dragon-head-horned', 'box', dims))!;
+    const horn = head.getObjectByName('dragon-horn-left')!;
+
+    // Behind the eye but well clear of the occiput: the old mount at -0.22 grew
+    // them off the back of the braincase.
+    expect(horn.position.x).toBeGreaterThan(-dims.x * 0.18);
+    expect(horn.position.x).toBeLessThan(0);
+    // High on the skull rather than out on the cheek.
+    expect(horn.position.y).toBeGreaterThan(0);
+  });
+
+  /**
    * The hornless phenotype used to be a second profile, `dragon-head-snout`.
    * With one skull left it rides the horn lengths instead, so zero has to mean
    * no mesh at all — a zero-height cone still leaves its base disc on the bone.
@@ -340,6 +374,55 @@ describe('dragon upper jaw mesh', () => {
 
     expect(lowerJaw.getObjectByName('dragon-nostril-left')).toBeFalsy();
     expect(lowerJaw.getObjectByName('dragon-nostril-right')).toBeFalsy();
+  });
+
+  /**
+   * The nose horn rides the jaw, not the skull: the jaw is the snout a viewer
+   * sees, so a horn on the head's own muzzle would sit on the seam between them.
+   */
+  it('stands the nose horn on the bridge behind the nostrils', () => {
+    const dims = jawPart('dragon-upper-jaw').dimensions;
+    const upperJaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
+    const horn = upperJaw.getObjectByName('dragon-nose-horn')!;
+    const nostril = upperJaw.getObjectByName('dragon-nostril-left')!;
+
+    expect(horn).toBeTruthy();
+    // On the midline, and behind the nostrils rather than between them.
+    expect(horn.position.z).toBeCloseTo(0, 6);
+    expect(horn.position.x).toBeLessThan(nostril.position.x);
+    // Still out on the snout, not back at the jaw hinge.
+    expect(horn.position.x).toBeGreaterThan(0);
+    // Standing up off the jaw: taller than it is wide, and clear of the top face.
+    const bounds = new THREE.Box3().setFromObject(horn);
+    expect(bounds.max.y).toBeGreaterThan(dims.y * 0.5);
+    expect(bounds.max.y - bounds.min.y).toBeGreaterThan(bounds.max.z - bounds.min.z);
+  });
+
+  it('leans the nose horn forward rather than back toward the eyes', () => {
+    const upperJaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
+    const horn = upperJaw.getObjectByName('dragon-nose-horn')!;
+
+    expect(new THREE.Box3().setFromObject(horn).max.x).toBeGreaterThan(horn.position.x);
+  });
+
+  it('drops the nose horn for a hornless jaw', () => {
+    const base = jawPart('dragon-upper-jaw');
+    const hornless = createDragonProceduralObject({
+      ...base,
+      visualProfile: {
+        profileId: 'dragon-upper-jaw',
+        meshType: 'procedural',
+        parameters: { noseHornLength: 0 },
+      },
+    })!;
+
+    expect(hornless.getObjectByName('dragon-nose-horn')).toBeFalsy();
+  });
+
+  it('does not put a nose horn on the lower jaw', () => {
+    const lowerJaw = createDragonProceduralObject(jawPart('dragon-lower-jaw'))!;
+
+    expect(lowerJaw.getObjectByName('dragon-nose-horn')).toBeFalsy();
   });
 });
 
@@ -616,11 +699,67 @@ describe('dragon male frill', () => {
 
   it('is a cone, not a plate — it has depth along the head', () => {
     const head = createDragonProceduralObject(maleHead())!;
+    const headLength = 0.84;
     const web = new THREE.Box3().setFromObject(childNamed(head, 'dragon-male-crest-web'));
 
-    // The rake: tips sit behind the roots, so side-on the frill is a V rather
-    // than a line. A flat disc measures zero here.
-    expect(web.max.x - web.min.x).toBeGreaterThan(0.2);
+    /*
+     * The rake: the skin leaves the ring going backwards, so side-on the frill is
+     * a V rather than a line. A flat disc measures zero here.
+     *
+     * The bar is a tenth of the head rather than the old flat 0.2. That number was
+     * calibrated against a straight backward rake; the spines now curve forward
+     * again over their outer half, which hands some of that depth back by design —
+     * the web's fore-aft extent is the *sag* of the curve, not its full reach.
+     */
+    expect(web.max.x - web.min.x).toBeGreaterThan(headLength * 0.1);
+  });
+
+  it('stands every spine tip out past the membrane it carries', () => {
+    const head = createDragonProceduralObject(maleHead())!;
+    const web = new THREE.Box3().setFromObject(childNamed(head, 'dragon-male-crest-web'));
+    const ring = new THREE.Box3();
+    for (const spine of spines(head)) ring.union(new THREE.Box3().setFromObject(spine));
+
+    // The points have to clear the skin on every axis the collar spreads over,
+    // or they are buried in it and the frill reads as a disc with a hem.
+    expect(ring.max.y).toBeGreaterThan(web.max.y);
+    expect(ring.min.y).toBeLessThan(web.min.y);
+    expect(ring.max.z).toBeGreaterThan(web.max.z);
+    expect(ring.min.z).toBeLessThan(web.min.z);
+  });
+
+  it('curves the spines forward, so the tips finish ahead of the ring', () => {
+    const head = createDragonProceduralObject(maleHead())!;
+    const dims = { x: 0.84 };
+    const ring = new THREE.Box3();
+    for (const spine of spines(head)) ring.union(new THREE.Box3().setFromObject(spine));
+
+    // Forward of the root ring at -0.16 of the head length. The spines used to
+    // rake straight back, so this measured well behind it.
+    expect(ring.max.x).toBeGreaterThan(-0.16 * dims.x);
+    // And the rake is still in there: the curve leaves the skull going backwards.
+    expect(ring.min.x).toBeLessThan(-0.16 * dims.x);
+  });
+
+  it('slopes the membrane back between the spines rather than hanging it flat', () => {
+    const head = createDragonProceduralObject(maleHead())!;
+    const web = childNamed(head, 'dragon-male-crest-web') as THREE.Mesh;
+    const position = web.geometry.getAttribute('position');
+
+    /*
+     * The scallop, measured rather than eyeballed: on a flat panel every rim
+     * vertex sits at the same distance from the collar's axis, so the spread of
+     * those distances is zero. Sagging the skin between the spines spreads them.
+     */
+    const axis = new THREE.Vector3();
+    const radii: number[] = [];
+    for (let index = 0; index < position.count; index += 1) {
+      axis.set(0, position.getY(index), position.getZ(index));
+      radii.push(axis.length());
+    }
+    const spread = Math.max(...radii) - Math.min(...radii);
+
+    expect(spread).toBeGreaterThan(0.05);
   });
 
   it('grows nothing of the kind on a female', () => {
@@ -703,6 +842,37 @@ describe('dragon grasping forelimb', () => {
     expect(childNamed(hand, 'dragon-grasp-finger-1')).toBeTruthy();
     expect(childNamed(hand, 'dragon-grasp-finger-3')).toBeTruthy();
     expect(hand.getObjectByName('dragon-grasp-finger-4')).toBeFalsy();
+  });
+
+  /**
+   * A finger is skin with keratin on the end, not a keratin spike. The claw is
+   * a separate child so it can carry the claw material — lose it and the whole
+   * digit renders as scale, which is the failure that made the old hand read as
+   * three toes stuck on a brick.
+   */
+  it('tips each finger with a claw of its own', () => {
+    const hand = createDragonProceduralObject(handPart())!;
+
+    expect(childNamed(hand, 'dragon-grasp-claw-1')).toBeTruthy();
+    expect(childNamed(hand, 'dragon-grasp-claw-3')).toBeTruthy();
+
+    /*
+     * Past the knuckle: the claw is the last thing on the finger, so it has to
+     * reach further forward than the joint it grows from.
+     *
+     * The explicit `updateMatrixWorld` is load-bearing. Both of these sit two
+     * groups deep — the finger, then the knuckle that bends inside it — and
+     * `Box3.setFromObject` refreshes an object's descendants but not its
+     * ancestors, so without this both boxes come back measured in a frame with
+     * the finger's own rotation missing and the comparison is meaningless.
+     */
+    hand.updateMatrixWorld(true);
+    const knuckle = new THREE.Box3().setFromObject(
+      childNamed(hand, 'dragon-grasp-finger-2-knuckle'),
+    );
+    const claw = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-claw-2'));
+
+    expect(claw.max.x).toBeGreaterThan(knuckle.max.x);
   });
 
   it('makes each finger longer than the palm, which is what reads as a hand', () => {

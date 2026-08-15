@@ -3,8 +3,7 @@
   min-height: 100vh;
   background:
     radial-gradient(circle at 8% 10%, rgb(61 166 149 / 18%), transparent 28rem),
-    radial-gradient(circle at 92% 90%, rgb(239 132 109 / 12%), transparent 34rem),
-    #08151e;
+    radial-gradient(circle at 92% 90%, rgb(239 132 109 / 12%), transparent 34rem), #08151e;
   color: white;
 }
 
@@ -26,6 +25,13 @@
   color: #9ab0ba;
   font-weight: 800;
   text-decoration: none;
+}
+
+.project-header .wise-preview-link {
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #cda35f;
+  border-radius: 0.4rem;
+  color: #f1c865;
 }
 
 .project-header > span,

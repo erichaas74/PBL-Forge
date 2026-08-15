@@ -7,7 +7,7 @@ import { SpecimenBend, SpecimenPoseOptions } from './specimen-pose';
  *
  * Blueprints are authored for the *arena*, where a solver and gravity settle
  * the animal. The viewer has neither, so an unposed blueprint stands with its
- * legs perfectly vertical, its back dead level, and its wings folded flat — a
+ * legs perfectly vertical, its back dead level, and its wings dead square — a
  * parts diagram rather than an animal. This is the layer that puts weight into
  * it, and it is deliberately static: it costs nothing per frame, so it applies
  * everywhere, including baked thumbnails.
@@ -33,7 +33,8 @@ import { SpecimenBend, SpecimenPoseOptions } from './specimen-pose';
  * A heavy quadruped standing at rest. Hind limbs gathered under the hips and
  * taking the weight, forelimbs straighter and further forward, chest slightly
  * lower than the hips, feet flat on the ground, tail falling from the base and
- * levelling out, wings folded against the flank rather than held out.
+ * levelling out, and the wings spread out from the shoulders, swept a little aft
+ * and riding just above the spine.
  */
 
 /** Every dragon leg id contains its position; ids are semantic by convention. */
@@ -81,32 +82,40 @@ const FORE_LIMB: readonly SpecimenBend[] = [
 ];
 
 /**
- * Wings folded down along the flank.
+ * Wings held out from the flank, spread like a bat's.
  *
- * The authored blueprint holds them straight out sideways, which is the pose a
- * wing is in only in flight — at rest it is the single most artificial thing
- * about the silhouette, and it also splays the framing sphere wide enough to
- * shrink the animal in every viewport.
+ * These used to fold: a big yaw that swung each wing back along the body, plus
+ * a drop to settle it against the flank. It read as a resting animal and it cost
+ * the wings everything that made them worth looking at — the membrane was
+ * gathered, the fingers closed, and the hand claw had to be hidden because the
+ * fold left it hanging where the spread tip used to be. A dragon's wings are the
+ * largest and most interesting thing about it, and a viewer that exists to show
+ * a student what a genome built should show them.
  *
- * Two bends, and the order between them is the whole trick.
+ * So the wing stays extended, and the two bends only give the spread some life:
  *
- * **Yaw**, about the vertical, swings the wing from pointing straight out
- * sideways to trailing along the flank. This is the fold: a wing that projects
- * laterally cannot be folded by rolling it, which only hangs it off the side
- * like a flag — and hangs it straight through the hind leg. `mirrorAcrossZ`
- * turns both wings the same way relative to the body rather than both the same
- * way in world space.
+ * **Yaw**, a modest sweep aft about the vertical — the wing stays out at arm's
+ * length, but rakes back from the shoulder rather than standing at a dead right
+ * angle. `mirrorAcrossZ` sweeps both wings back relative to the body rather than
+ * both the same way in world space, which would swing one forward.
  *
- * **Then a sagittal drop**, to settle the folded wing against the flank instead
- * of leaving it level with the spine. It has to come second and it has to be
- * sagittal: once the yaw has swung the wing to point aft, the wing lies almost
- * along the lateral axis, so a lateral roll barely moves it — which is exactly
- * what the first attempt at this did, to no visible effect. No mirroring here;
- * both wings drop the same way in world space, and mirroring would lift one.
+ * **Then a lateral raise into a V**, and this is the bend that actually makes the
+ * wings visible. The authored wing is a *horizontal* sheet: span across the body,
+ * chord fore-and-aft, membrane in the ground plane. The viewer's camera sits only
+ * about 17° above that plane, so a wing left flat is seen edge-on and collapses
+ * into a bundle of struts laid over the back — which is what the first pass at
+ * this looked like, and no amount of yaw fixes it. Lifting the wings tilts the
+ * membrane toward the reader and puts the fingers and the scalloped edge in view.
+ * Mirrored, so both wings rise instead of one rising and one dropping through the
+ * hind leg.
+ *
+ * The cost is framing — extended wings splay the bounding sphere and the animal
+ * sits smaller in a fixed viewport. `estimateSpecimenFrame` absorbs it, and it
+ * is the right trade for a view whose whole job is to be looked at.
  */
-const FOLDED_WINGS: readonly SpecimenBend[] = [
-  { role: 'wing', radians: -1.25, axis: VERTICAL, mirrorAcrossZ: true },
-  { role: 'wing', radians: 0.3, axis: SAGITTAL },
+const SPREAD_WINGS: readonly SpecimenBend[] = [
+  { role: 'wing', radians: -0.35, axis: VERTICAL, mirrorAcrossZ: true },
+  { role: 'wing', radians: -0.7, axis: LATERAL, mirrorAcrossZ: true },
 ];
 
 /**
@@ -136,7 +145,7 @@ export const TAIL_DROOP_RADIANS = 0.13;
  */
 export const DRAGON_RESTING_POSE: SpecimenPoseOptions = {
   droopRadians: TAIL_DROOP_RADIANS,
-  bends: [...HIND_LIMB, ...FORE_LIMB, ...FOLDED_WINGS, ...RAISED_HEAD],
+  bends: [...HIND_LIMB, ...FORE_LIMB, ...SPREAD_WINGS, ...RAISED_HEAD],
 };
 
 /**
@@ -199,7 +208,7 @@ const REARED_TAIL_DROOP_RADIANS = 0.22;
 
 export const DRAGON_REARED_POSE: SpecimenPoseOptions = {
   droopRadians: REARED_TAIL_DROOP_RADIANS,
-  bends: [...REARED_HIND_LIMB, ...TUCKED_ARMS, ...FOLDED_WINGS, ...RAISED_HEAD],
+  bends: [...REARED_HIND_LIMB, ...TUCKED_ARMS, ...SPREAD_WINGS, ...RAISED_HEAD],
   rootTilt: { radians: REARED_PITCH_RADIANS },
 };
 

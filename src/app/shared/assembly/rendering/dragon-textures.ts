@@ -315,76 +315,103 @@ export const dragonScaleTextures = memo((): DragonTextureSet => {
 });
 
 /**
- * Rosette cells per tile — deliberately tiny.
+ * A pattern as a **mask** rather than as a darkened albedo.
  *
- * The pattern shares the scale map's UVs, so it also shares `SCALE_TILE`: one
- * tile covers 0.22 world units. At four cells a spot came out around 0.05 units
- * across, which on a two-unit body is 36 spots down the flank and reads as
- * speckle rather than markings. Two cells puts a spot at roughly the width of a
- * few scales, which is what an animal's markings actually look like.
- */
-const SPOT_CELLS = 2;
-
-/**
- * Peak of the nearest jittered rosette centre, 0 outside every spot and 1 at a
- * centre.
+ * This is the shape of the marking and nothing else: 0 is bare skin, 1 is inside
+ * the marking. The material mixes two of the dragon's own colours through it, so
+ * a stripe is a second *hue* and not a darker shade of the first — which a
+ * greyscale albedo can never be, since multiplying can only ever darken.
  *
- * The 3×3 neighbourhood walk is what keeps a spot round when its centre sits
- * near a cell boundary — sampling only the owning cell clips it into a quarter
- * circle. Centres and radii are hashed on the *wrapped* cell index so the
- * pattern tiles seamlessly, the same trick `tilingNoise` uses.
+ * That keeps rule 1 at the top of this file intact, and is the reason it can: the
+ * mask carries no colour, so one cached mask still serves every dragon whatever
+ * pair of pigments it is wearing.
+ *
+ * Linear, not sRGB — this is data the shader reads, not a colour.
  */
-function rosetteMask(u: number, v: number): number {
-  const baseX = Math.floor(u * SPOT_CELLS);
-  const baseY = Math.floor(v * SPOT_CELLS);
-  let peak = 0;
-
-  for (let dy = -1; dy <= 1; dy += 1) {
-    for (let dx = -1; dx <= 1; dx += 1) {
-      const cellX = baseX + dx;
-      const cellY = baseY + dy;
-      const wrapX = ((cellX % SPOT_CELLS) + SPOT_CELLS) % SPOT_CELLS;
-      const wrapY = ((cellY % SPOT_CELLS) + SPOT_CELLS) % SPOT_CELLS;
-
-      const centreX = (cellX + 0.2 + 0.6 * hash2(wrapX, wrapY)) / SPOT_CELLS;
-      const centreY = (cellY + 0.2 + 0.6 * hash2(wrapY + 31, wrapX + 17)) / SPOT_CELLS;
-      const radius = (0.2 + 0.18 * hash2(wrapX + 7, wrapY + 13)) / SPOT_CELLS;
-
-      const distance = Math.hypot(u - centreX, v - centreY);
-      peak = Math.max(peak, 1 - smoothstep(clamp01(distance / radius)));
-    }
-  }
-  return peak;
+function patternMaskTexture(mask: HeightField): THREE.Texture | null {
+  const size = textureSize();
+  return greyscaleTexture(sampleField(size, mask), size, h => h, {});
 }
 
 /**
- * The banded/spotted scale set, selected by the `S` phenotype.
+ * Splotches: irregular blotches, the way a patterned animal is actually marked.
  *
- * The spots *darken* rather than introducing a second colour, because rule 1 at
- * the top of this file holds: one greyscale set has to serve every pigment in
- * the game. A second hue baked in here would mean a texture per dragon colour.
- * Multiplying down gives a darker shade of whatever pigment the animal already
- * has, which is what a real patterned animal is anyway.
+ * A rosette is a circle with noise on its edge, and at any size it still reads
+ * as a printed dot. A splotch is the noise *itself*, thresholded: two octaves of
+ * tiling value noise with a soft cut, which gives blobs of uneven size that run
+ * into each other in places and leave clean skin in others.
+ *
+ * `SPLOTCH_CELLS` is low for the same reason `SPOT_CELLS` is: one tile covers
+ * 0.22 world units, so anything finer becomes speckle at body scale rather than
+ * markings.
  */
-export const dragonSpottedScaleTextures = memo((): DragonTextureSet => {
-  const relief = scaleRelief();
-  return {
-    map: greyscaleTexture(
-      relief.height,
-      relief.size,
-      (h, u, v) => {
-        // The noise term breaks the circle edge up so spots read as animal
-        // markings rather than as printed dots.
-        const spot = clamp01(rosetteMask(u, v) * (0.8 + 0.4 * fbm(u, v, 12)));
-        return (0.72 + 0.28 * h) * (1 - 0.45 * spot);
-      },
-      { srgb: true },
-    ),
-    normalMap: relief.normalMap,
-    roughnessMap: relief.roughnessMap,
-    alphaMap: null,
-  };
-});
+/*
+ * Three cells per tile. Two is too few, and the reason is the *parts*, not the
+ * body: a tile is 0.22 world units and a leg or a jaw is barely wider than that,
+ * so a two-cell blotch swallows a whole limb and the dragon comes out in solid
+ * blocks of colour. Three keeps a blotch smaller than the smallest scaled part it
+ * has to land on.
+ */
+const SPLOTCH_CELLS = 3;
+const SPLOTCH_CUT = 0.52;
+
+function splotchMask(u: number, v: number): number {
+  /*
+   * Domain warp first. Thresholding plain value noise gives shapes with the
+   * lattice still visible in them — blobs that all lean the same way on a grid.
+   * Displacing the sample point by another noise field bends that grid out of
+   * recognition, which is the difference between markings and a pattern.
+   */
+  const warpU = u + (fbm(u + 0.31, v + 0.17, SPLOTCH_CELLS * 2) - 0.5) * 0.35;
+  const warpV = v + (fbm(u + 0.73, v + 0.51, SPLOTCH_CELLS * 2) - 0.5) * 0.35;
+  const field = fbm(warpU, warpV, SPLOTCH_CELLS);
+
+  // Soft cut rather than a hard step: a blotch on skin has a diffuse edge a few
+  // scales wide, and a hard one reads as vinyl.
+  return smoothstep(clamp01((field - SPLOTCH_CUT) / 0.22));
+}
+
+export const dragonSplotchMask = memo(() => patternMaskTexture(splotchMask));
+
+/**
+ * Zig-zag stripes: chevron bands running around the body.
+ *
+ * The stripe is a band in `v` whose centre line is displaced by a **triangle**
+ * wave in `u`. A sine there gives wavy stripes; the hard corner of a triangle
+ * wave is what makes them read as zig-zag, which is the whole ask.
+ *
+ * Both counts have to divide the tile evenly or the pattern breaks at the wrap
+ * seam — the chevrons would step sideways every repeat.
+ */
+/*
+ * One band per tile, with two chevrons across it.
+ *
+ * A tile is 0.22 world units, so this puts a stripe and its gap at about 0.11
+ * units each — five stripes down a flank. Twice this was legible while the pattern
+ * only darkened the skin, and read as herringbone knitwear the moment the stripe
+ * became a second *hue*: contrast that high needs half as many edges.
+ */
+const ZIGZAG_BANDS = 1;
+const ZIGZAG_TEETH = 2;
+const ZIGZAG_AMPLITUDE = 0.3;
+
+/** Triangle wave on 0..1, peaking at 0.5. */
+function triangleWave(t: number): number {
+  const phase = fract(t);
+  return phase < 0.5 ? phase * 2 : 2 - phase * 2;
+}
+
+function zigzagMask(u: number, v: number): number {
+  const displaced = v + (triangleWave(u * ZIGZAG_TEETH) - 0.5) * ZIGZAG_AMPLITUDE * 2;
+  // Distance from the nearest band centre, in band widths.
+  const across = Math.abs(fract(displaced * ZIGZAG_BANDS) - 0.5) * 2;
+  // Half the band is stripe, and the edge is softened over a fifth of it — plus
+  // a little noise, so the run of chevrons is not stencil-perfect.
+  const edge = 0.55 + 0.12 * (fbm(u, v, 18) - 0.5);
+  return 1 - smoothstep(clamp01((across - edge + 0.2) / 0.2));
+}
+
+export const dragonZigzagMask = memo(() => patternMaskTexture(zigzagMask));
 
 // ---------------------------------------------------------------------------
 // Horn and bone: lengthwise ridges banded by growth rings.

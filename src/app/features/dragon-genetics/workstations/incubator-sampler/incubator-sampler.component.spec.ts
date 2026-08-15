@@ -1,4 +1,6 @@
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
 import { IncubatorSamplerComponent } from './incubator-sampler.component';
 
 describe('IncubatorSamplerComponent', () => {
@@ -14,15 +16,48 @@ describe('IncubatorSamplerComponent', () => {
 
   afterEach(() => localStorage.removeItem(storageKey));
 
+  it('reuses separate female and male account selectors for the original parents', () => {
+    const fixture = TestBed.createComponent(IncubatorSamplerComponent);
+    fixture.componentRef.setInput('studentId', studentId);
+    fixture.detectChanges();
+    const inventories = fixture.debugElement.queryAll(By.directive(AccountGeneticsFileComponent));
+
+    expect(inventories.length).toBe(2);
+    expect(inventories[0].componentInstance.sexFilter()).toBe('female');
+    expect(inventories[1].componentInstance.sexFilter()).toBe('male');
+    expect(fixture.nativeElement.textContent).toContain('FEMALE DRAGONS · EGG PARENT');
+    expect(fixture.nativeElement.textContent).toContain('MALE DRAGONS · SPERM PARENT');
+    fixture.destroy();
+  });
+
+  it('loads dragons only into the matching sex-specific parent role', () => {
+    const fixture = TestBed.createComponent(IncubatorSamplerComponent);
+    fixture.componentRef.setInput('studentId', studentId);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    const female = component.account().dragons.find((dragon) => dragon.sex === 'female')!;
+    const male = component.account().dragons.find((dragon) => dragon.sex === 'male')!;
+
+    component.selectAccountRecord('female', female);
+    component.selectAccountRecord('male', male);
+    expect(component.originalParentIds()).toEqual([female.id, male.id]);
+
+    component.selectAccountRecord('female', male);
+    expect(component.originalParentIds()).toEqual([female.id, male.id]);
+    expect(component.statusMessage()).toContain('female dragon');
+    fixture.destroy();
+  });
+
   it('breeds every hatchling in a populated phenotype bucket as one pool', fakeAsync(() => {
     const fixture = TestBed.createComponent(IncubatorSamplerComponent);
     fixture.componentRef.setInput('studentId', studentId);
     fixture.detectChanges();
     const component = fixture.componentInstance;
-    const [ember, tide] = component.account().dragons;
+    const ember = component.account().dragons.find((dragon) => dragon.sex === 'female')!;
+    const tide = component.account().dragons.find((dragon) => dragon.sex === 'male')!;
 
-    component.selectAccountRecord('a', ember);
-    component.selectAccountRecord('b', tide);
+    component.selectAccountRecord('female', ember);
+    component.selectAccountRecord('male', tide);
     component.startBatch();
     tick(3500);
     fixture.detectChanges();

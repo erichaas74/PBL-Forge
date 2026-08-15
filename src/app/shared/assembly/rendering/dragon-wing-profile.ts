@@ -9,6 +9,20 @@ import { Vector3Data } from '../domain/assembly.models';
  * therefore miss the surface — the hand claw sat below the membrane it hangs
  * from, because the arc it needed to ride was only ever computed in the mesh
  * builder.
+ *
+ * ## A spread bat wing, not a folded one
+ *
+ * This wing extends out from the flank with the membrane stretched between the
+ * fingers, and it has no resting fold. There used to be one: a wrist rotation
+ * that swung everything outboard of the elbow back along the body, plus a
+ * planform reshaped to survive it — flat panels, straight edges, no sag between
+ * the fingers, no scalloped trailing edge. The fold worked, and the wing it left
+ * behind was worse than the wing it replaced, because every curve that made the
+ * thing read as a membrane had been taken out to keep the gather clean.
+ *
+ * So the curves are back and the fold is gone. What holds the membrane out is
+ * the finger set: {@link WING_STATIONS} pins it at the root, at each finger tip
+ * and at the wingtip, and it sags and scallops between them.
  */
 
 export interface WingMembraneShape {
@@ -24,26 +38,34 @@ export interface WingMembraneShape {
 
 export const WING_SHAPES = {
   /**
-   * Flat panels and straight edges — the shipped wing.
+   * Flat panels and straight edges.
    *
    * Every curve is off: no sag between the fingers, no scalloped trailing edge,
    * and the little camber left is there to catch light across the sheet rather
-   * than to bow it. What shapes the wing instead is where the fingers are, so
-   * the outline is a polygon with corners on them.
+   * than to bow it. Kept because it is the cheapest thing to read at thumbnail
+   * size, but it is not what ships — a membrane with no sag in it reads as a
+   * kite.
    */
   angular: { camber: 0.03, fingerSag: 0, dihedral: 0.03, scallop: 0 },
   /** Nearly flat — close to the original sheet, with just enough bow to catch light. */
   taut: { camber: 0.05, fingerSag: 0.03, dihedral: 0.02, scallop: 0.1 },
-  /** A single clean airfoil bow. Reads well at thumbnail size. */
+  /** A single clean airfoil bow. */
   cambered: { camber: 0.12, fingerSag: 0.06, dihedral: 0.04, scallop: 0.13 },
-  /** Deep scalloped sag between the fingers, like a bat at rest. */
+  /**
+   * The shipped wing: deep scalloped sag between the fingers, like a bat's.
+   *
+   * The sag and the scallop are the whole read. Skin stretched between spread
+   * fingers cannot be flat — it bellies down between them and cuts back in at
+   * the trailing edge, and those two together are why this is recognisably a
+   * membrane on a hand rather than a panel on a strut.
+   */
   bat: { camber: 0.1, fingerSag: 0.17, dihedral: 0.05, scallop: 0.19 },
   /** Strong upward sweep, as if catching air. */
   soaring: { camber: 0.15, fingerSag: 0.08, dihedral: 0.17, scallop: 0.13 },
 } as const satisfies Record<string, WingMembraneShape>;
 
 /** Shipped default. Change this line to adopt a tuned shape permanently. */
-export const DEFAULT_WING_SHAPE: WingMembraneShape = WING_SHAPES.angular;
+export const DEFAULT_WING_SHAPE: WingMembraneShape = WING_SHAPES.bat;
 
 /**
  * How much deeper the membrane is than the plate it collides with.
@@ -54,7 +76,7 @@ export const DEFAULT_WING_SHAPE: WingMembraneShape = WING_SHAPES.angular;
  * struts with a sheet between them rather than as wings.
  *
  * Everything downstream follows this: `wingLeadingEdge` sweeps by a fraction of
- * it, and `wingTipMount` places the hand claw from it, so the sockets stay on
+ * it, and `wingClawAnchor` places the hand claw from it, so the sockets stay on
  * the surface when it changes.
  */
 const CHORD_RATIO = 3.3;
@@ -64,67 +86,14 @@ export function wingChord(dimensions: Vector3Data): number {
   return dimensions.x * CHORD_RATIO;
 }
 
-// ---------------------------------------------------------------------------
-// Folding
-// ---------------------------------------------------------------------------
-
 /**
- * The resting fold, owned here rather than in the mesh builder because two
- * things have to agree about it.
+ * Span fraction of the wrist — the knuckle the fingers radiate from.
  *
- * The builder folds the membrane, the arm and the finger struts. But the hand
- * claw is a separate *part* with its own position, mounted at the wingtip — so
- * when the mesh folded and the claw did not, the claw stayed hanging in the air
- * where the spread wingtip used to be, a cone floating beside the tail. Both
- * sides now read the same numbers and the same transform from here.
+ * The arm bone runs root-to-wrist along the leading edge and the fingers fan out
+ * from here to the trailing edge, which is what puts a joint in the middle of
+ * the wing instead of one long spar.
  */
-
-/** Span fraction of the wrist. Everything outboard of this rotates. */
 export const WING_ELBOW_S = 0.45;
-/** Rotation of the hand at full fold. Past 90°, so the tip tucks inboard. */
-export const WING_FOLD_ANGLE = 1.95;
-
-/**
- * How much of the fold applies at span fraction `s`: 0 inboard of the wrist,
- * eased to 1 at the tip. Eased rather than linear because a folding wing curls
- * — a constant angle past the wrist reads as the hinge on a deck chair.
- */
-export function wingFoldEase(s: number): number {
-  if (s <= WING_ELBOW_S) return 0;
-  const t = (s - WING_ELBOW_S) / (1 - WING_ELBOW_S);
-  return t * t * (3 - 2 * t);
-}
-
-/**
- * Swings a point outboard of the wrist back toward the tail.
- *
- * A rotation about the vertical through the wrist. The outboard direction is
- * -z, and this turns -z toward -x, so the hand trails along the flank; past 90
- * degrees it carries on inboard and tucks against the body.
- *
- * Works in the wing's own space, where +z is outboard — the builder mirrors the
- * right wing by scaling the whole group, so both sides fold with these numbers.
- */
-export function foldWingPoint(
-  point: { x: number; y: number; z: number },
-  s: number,
-  fold: number,
-  elbowX: number,
-  elbowZ: number,
-): { x: number; y: number; z: number } {
-  const angle = fold * WING_FOLD_ANGLE * wingFoldEase(s);
-  if (angle === 0) return point;
-
-  const dx = point.x - elbowX;
-  const dz = point.z - elbowZ;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return {
-    x: elbowX + dx * cos + dz * sin,
-    y: point.y,
-    z: elbowZ - dx * sin + dz * cos,
-  };
-}
 
 /**
  * Leading edge, at span fraction `s` — 0 at the root, 1 at the tip.
@@ -141,16 +110,26 @@ export function wingLeadingEdge(dimensions: Vector3Data, s: number): number {
 
 /**
  * Chord depth at each of the stations the membrane is pinned at — the root, the
- * two finger tips, and the wingtip — as a fraction of the full chord.
+ * three finger tips, and the wingtip — as a fraction of the full chord.
  *
- * The planform is built by joining these with straight lines, which is what
- * makes the wing angular: it is a four-cornered panel whose corners are the
- * fingers holding it out, rather than a smooth taper that happens to have
- * fingers under it. Read from here rather than a formula so the mesh and
- * anything measuring the wing agree about where the corners are.
+ * Three fingers rather than two, because the fingers are what a bat wing is: the
+ * membrane between them is free to sag, so each one added puts another belly and
+ * another scallop into the outline. Two left the outer half of the wing as one
+ * long unbroken panel.
+ *
+ * The depth holds up well out along the span and then collapses over the last
+ * sixth. That is a bat's planform: broad where the digits are spread, drawn to a
+ * point at the tip. The tip figure is small rather than merely smaller — seen
+ * from above, anything much over a tenth leaves the wing ending in a squared-off
+ * flag corner instead of a point. Read from here rather than a formula so the
+ * mesh, the finger struts and anything measuring the wing agree about where the
+ * fingers are.
  */
-export const WING_STATIONS: readonly number[] = [0, 0.42, 0.74, 1];
-const WING_STATION_CHORDS: readonly number[] = [1, 0.86, 0.63, 0.38];
+export const WING_STATIONS: readonly number[] = [0, 0.36, 0.62, 0.83, 1];
+const WING_STATION_CHORDS: readonly number[] = [1, 0.94, 0.82, 0.63, 0.1];
+
+/** The interior stations: one finger strut runs to each. */
+export const WING_FINGER_STATIONS: readonly number[] = WING_STATIONS.slice(1, -1);
 
 /** Chord depth at span fraction `s`, linear between the stations. */
 export function wingChordFraction(s: number): number {
@@ -166,12 +145,18 @@ export function wingChordFraction(s: number): number {
 }
 
 /**
- * Where the hand claw mounts: at the wrist, meaning the outboard end of the arm
- * bone that runs along the leading edge. Held back from the very tip so the
- * base of the talon finishes inside that bone and only the talon shows.
+ * Where the hand claw mounts: on the **leading edge** at the wingtip, so the
+ * talon projects forward past the front of the wing.
  *
- * The height matters most. This used to be a hardcoded `-0.02`, which put the
- * claw below a membrane that arcs upward — the claw read as a loose spike
+ * The claw is authored to run along +x once mounted — the dragon's forward — so
+ * the only thing deciding whether it reads as a hooked thumb or as a spur buried
+ * in the membrane is how far back along the chord this sits. It used to be a full
+ * 0.06 of the chord behind the edge, which put the base inside the sheet and left
+ * a stub poking out; a fifth of that buries the base in the arm bone that ends
+ * here and leaves the whole talon in front of the wing.
+ *
+ * The height matters nearly as much. It used to be a hardcoded `-0.02`, which put
+ * the claw below a membrane that arcs upward — the claw read as a loose spike
  * floating beside the wing rather than growing out of it.
  *
  * @param side -1 for the tip at -Z, 1 for the tip at +Z. A wing's root snap
@@ -185,7 +170,7 @@ export function wingClawAnchor(
   const span = dimensions.z;
 
   return {
-    x: wingLeadingEdge(dimensions, 1) - wingChord(dimensions) * 0.06,
+    x: wingLeadingEdge(dimensions, 1) - wingChord(dimensions) * 0.012,
     // At the tip the membrane is pinned to a bone, so only the dihedral arc
     // lifts it — the camber and finger sag have both fallen to zero.
     y: shape.dihedral * span,

@@ -1,7 +1,11 @@
 import { CellChromosomeViewportItem } from '../shared/cell-chromosome-viewport.component';
 import { ChromosomeBand, ChromosomeSvgModel } from '../shared/chromosome-svg.component';
 import { chromosomeVisual, DRAGON_LOCUS_COLORS } from '../shared/dragon-chromosome.catalog';
-import { MeiosisGameteChromosome } from './meiosis-gamete.models';
+import {
+  MeiosisChromatid,
+  MeiosisGameteChromosome,
+  MeiosisLocusAllele,
+} from './meiosis-gamete.models';
 
 /** Adapts Hatchery domain records to the shared, presentation-only viewport contract. */
 export function meiosisGameteViewportItems(
@@ -19,9 +23,22 @@ export function meiosisGameteChromosomeSvgModel(
   chromosome: MeiosisGameteChromosome,
 ): ChromosomeSvgModel {
   const label = chromosome.sexChromosome === 'Y' ? 'Chr Y' : chromosome.chromosome;
+  return meiosisChromosomeSvgModel(label, chromosome.loci);
+}
+
+/** Uses the same catalog, bands, and allele markings for every animated meiosis chromatid. */
+export function meiosisChromatidSvgModel(chromatid: MeiosisChromatid): ChromosomeSvgModel {
+  const label = chromatid.sexChromosome === 'Y' ? 'Chr Y' : chromatid.chromosome;
+  return meiosisChromosomeSvgModel(label, chromatid.loci);
+}
+
+function meiosisChromosomeSvgModel(
+  label: string,
+  loci: readonly MeiosisLocusAllele[],
+): ChromosomeSvgModel {
   const visual = chromosomeVisual(label);
   const arm = label.replace('Chr ', '');
-  const highlightBands: ChromosomeBand[] = chromosome.loci.map((locus, index) => ({
+  const highlightBands: ChromosomeBand[] = loci.map((locus, index) => ({
     start: Math.max(0, locus.position - 0.055),
     end: Math.min(1, locus.position + 0.055),
     color: locusColor(label, locus.position, index),
@@ -35,7 +52,7 @@ export function meiosisGameteChromosomeSvgModel(
     rightLabel: `${arm}q`,
     centromere: visual.centromere,
     bands: [...visual.bands, ...highlightBands],
-    loci: chromosome.loci.map((locus, index) => ({
+    loci: loci.map((locus, index) => ({
       position: locus.position,
       label: locus.geneSymbol,
       symbol: locus.allele,

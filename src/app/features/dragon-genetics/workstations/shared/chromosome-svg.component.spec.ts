@@ -104,4 +104,23 @@ describe('ChromosomeSvgComponent', () => {
       'WNG-17, allele CH1-G1a',
     );
   });
+
+  it('joins two distinct gamete chromosome models at the shared centromere', () => {
+    fixture.componentRef.setInput('pairedChromosome', {
+      ...chromosome,
+      bands: [{ start: 0, end: 1, color: '#35bad8' }],
+      loci: [{ position: 0.58, label: 'WNG-17', symbol: 'b', color: '#35bad8' }],
+    } satisfies ChromosomeSvgModel);
+    fixture.componentRef.setInput('pairRelationship', 'gamete-fusion');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('.chromosome-svg--replicated')).not.toBeNull();
+    expect(element.querySelectorAll('.chromatid').length).toBe(2);
+    expect(element.querySelector('.chromatid--sister [fill="#35bad8"]')).not.toBeNull();
+    expect(element.querySelector('.centromere-joint')).not.toBeNull();
+    expect(element.querySelector('svg')?.getAttribute('aria-label')).toContain(
+      'egg and sperm chromosome pair',
+    );
+  });
 });

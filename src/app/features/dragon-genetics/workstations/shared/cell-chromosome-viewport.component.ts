@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { ChromosomeSvgComponent, ChromosomeSvgModel } from './chromosome-svg.component';
 
 export type CellChromosomeViewportLayout = 'overview' | 'inspect' | 'thumbnail';
+export type ChromosomeForm = 'single' | 'replicated';
 
 /** Presentation data only. Scientific geometry and loci remain in ChromosomeSvgModel. */
 export interface CellChromosomeViewportItem {
@@ -9,7 +10,12 @@ export interface CellChromosomeViewportItem {
   label: string;
   shortLabel?: string;
   model: ChromosomeSvgModel;
+  /** Optional second model for a visibly combined chromosome pair. */
+  pairedModel?: ChromosomeSvgModel;
+  pairRelationship?: 'sister-chromatids' | 'gamete-fusion';
   recombinant?: boolean;
+  /** Draws the shared chromosome geometry as a neutral loading outline. */
+  placeholder?: boolean;
 }
 
 export interface CellChromosomeLocusSelection {
@@ -33,6 +39,9 @@ export class CellChromosomeViewportComponent {
   readonly selectedLocus = input<string | null>(null);
   readonly layout = input<CellChromosomeViewportLayout>('overview');
   readonly ariaLabel = input('Cell chromosome viewport');
+  readonly allowReplicatedView = input(false);
+
+  readonly chromosomeForm = signal<ChromosomeForm>('single');
 
   readonly chromosomeSelected = output<string>();
   readonly locusSelected = output<CellChromosomeLocusSelection>();
@@ -61,6 +70,10 @@ export class CellChromosomeViewportComponent {
     if (this.selectable()) this.chromosomeSelected.emit(chromosomeId);
   }
 
+  setChromosomeForm(form: ChromosomeForm): void {
+    this.chromosomeForm.set(form);
+  }
+
   selectLocus(chromosomeId: string, locus: string): void {
     if (!this.selectable() || !this.locusSelectable()) return;
     this.locusSelected.emit({ chromosomeId, locus });
@@ -69,6 +82,13 @@ export class CellChromosomeViewportComponent {
   chromosomeAriaLabel(item: CellChromosomeViewportItem): string {
     const state = this.isSelected(item) ? ', selected' : '';
     const recombinant = item.recombinant ? ', recombinant' : '';
-    return `${item.label}${recombinant}${state}`;
+    const form = item.pairedModel
+      ? item.pairRelationship === 'gamete-fusion'
+        ? ', egg and sperm chromosome pair joined in the fertilization model'
+        : ', two sister chromatids joined at the centromere'
+      : this.chromosomeForm() === 'replicated'
+        ? ', two sister chromatids joined at the centromere'
+        : ', single chromosome';
+    return `${item.label}${form}${recombinant}${state}`;
   }
 }

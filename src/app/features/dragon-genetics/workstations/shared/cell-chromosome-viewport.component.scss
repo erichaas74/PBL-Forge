@@ -14,6 +14,7 @@
   display: grid;
   gap: 0.55rem;
   min-width: 0;
+  container-type: inline-size;
 }
 
 .viewport-layout {
@@ -46,6 +47,47 @@
   font-size: var(--text-xs, 0.75rem);
   font-weight: 850;
   letter-spacing: 0.13em;
+}
+
+.cell-panel-toolbar {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.chromosome-form-controls {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.18rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 0.5rem;
+  background: rgb(5 10 18 / 54%);
+}
+
+.chromosome-form-controls button {
+  min-height: 2rem;
+  padding: 0.28rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: rgb(235 230 247 / 68%);
+  font: inherit;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.chromosome-form-controls button:hover,
+.chromosome-form-controls button:focus-visible,
+.chromosome-form-controls button.active {
+  border-color: var(--cell-accent);
+  background: rgb(141 228 236 / 12%);
+  color: #fff;
+  outline: none;
 }
 
 .cell-membrane {
@@ -311,6 +353,12 @@
 }
 
 @media (max-width: 720px) {
+  .cell-chromosome-viewport--inspect .viewport-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container (max-width: 35rem) {
   .cell-chromosome-viewport--inspect .viewport-layout {
     grid-template-columns: minmax(0, 1fr);
   }

@@ -19,11 +19,17 @@ function posed() {
   return new Map(pose.parts.map(part => [part.partId, part.position]));
 }
 
-function yOf(positions: Map<string, { x: number; y: number; z: number }>, idPart: string): number {
+type Position = { x: number; y: number; z: number };
+
+function positionOf(positions: Map<string, Position>, idPart: string): Position {
   for (const [id, position] of positions) {
-    if (id.includes(idPart)) return position.y;
+    if (id.includes(idPart)) return position;
   }
   throw new Error(`no part id containing "${idPart}"`);
+}
+
+function yOf(positions: Map<string, Position>, idPart: string): number {
+  return positionOf(positions, idPart).y;
 }
 
 describe('dragon resting stance', () => {
@@ -58,11 +64,33 @@ describe('dragon resting stance', () => {
     expect(head).toBeGreaterThan(tailRoot - 0.05);
   });
 
-  it('folds the wings down toward the flank rather than up over the back', () => {
+  it('holds the wings out from the body rather than folding them along it', () => {
+    const positions = posed();
+    const left = positionOf(positions, 'left-wing');
+    const right = positionOf(positions, 'right-wing');
+
+    // Out to the sides, and on opposite sides: the fold this replaced swung both
+    // wings aft, which collapsed the lateral spread and hid the membrane.
+    expect(Math.sign(left.z)).toBe(-Math.sign(right.z));
+    expect(Math.abs(left.z)).toBeGreaterThan(0.2);
+    expect(Math.abs(left.z)).toBeCloseTo(Math.abs(right.z), 2);
+    // Swept aft, not forward past the shoulder — a wing raked ahead of its own
+    // root reads as a bird braking.
+    const body = positionOf(positions, 'body');
+    expect(left.x).toBeLessThan(body.x + 0.4);
+  });
+
+  it('raises the wings into a V rather than leaving them flat or overhead', () => {
     const positions = posed();
     const body = yOf(positions, 'body');
     const wing = yOf(positions, 'left-wing');
-    expect(wing).toBeLessThan(body + 0.15);
+
+    // The authored wing is a horizontal sheet, and the viewer's camera sits only
+    // about 17° above that plane — left flat, the membrane is edge-on and the
+    // wing reads as a bundle of struts. It has to be lifted to be seen at all.
+    expect(wing).toBeGreaterThan(body + 0.3);
+    // But not folded up over the spine like a closing umbrella.
+    expect(wing).toBeLessThan(body + 1.4);
   });
 });
 

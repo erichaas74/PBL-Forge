@@ -97,6 +97,92 @@
             <p>Drag a gamete here or use its Send button.</p>
           </div>
         </header>
+        <div
+          class="fertilization-visual"
+          [class.ready]="canFertilize()"
+          [class.fusing]="fertilizationState() === 'fusing'"
+          [class.egg-formed]="fertilizationState() === 'egg'"
+          [attr.data-fertilization-state]="fertilizationState()"
+        >
+          <article class="gamete-cell egg-cell" [class.loaded]="eggSelection()">
+            <span>EGG CELL · SINGLE CHROMOSOMES</span>
+            <app-cell-chromosome-viewport
+              [chromosomes]="eggSelection() ? eggGameteChromosomes() : gameteOutlineChromosomes()"
+              [selectedChromosome]="null"
+              [selectable]="false"
+              [showLoci]="!!eggSelection()"
+              [ariaLabel]="eggSelection() ? 'Selected egg cell chromosomes' : 'Empty egg cell chromosome outlines'"
+              layout="thumbnail"
+            />
+            <small>{{ eggSelection() ? 'Egg genome loaded' : 'Awaiting selected egg' }}</small>
+          </article>
+
+          <div class="fusion-path" aria-hidden="true"><i></i><b>+</b><i></i></div>
+
+          <article class="gamete-cell sperm-cell" [class.loaded]="spermSelection()">
+            <span>SPERM CELL · SINGLE CHROMOSOMES</span>
+            <app-cell-chromosome-viewport
+              [chromosomes]="spermSelection() ? spermGameteChromosomes() : gameteOutlineChromosomes()"
+              [selectedChromosome]="null"
+              [selectable]="false"
+              [showLoci]="!!spermSelection()"
+              [ariaLabel]="spermSelection() ? 'Selected sperm cell chromosomes' : 'Empty sperm cell chromosome outlines'"
+              layout="thumbnail"
+            />
+            <small>{{ spermSelection() ? 'Sperm genome loaded' : 'Awaiting selected sperm' }}</small>
+          </article>
+
+          <article
+            class="fusion-result"
+            [class.visible]="fertilizationState() !== 'loading'"
+            [class.formed-egg]="fertilizationState() === 'egg'"
+            aria-live="polite"
+          >
+            <span>
+              {{ fertilizationState() === 'egg' ? 'FERTILIZED EGG' : 'NUCLEI COMBINING' }}
+            </span>
+            @if (formedEggChromosomes().length) {
+              @if (fertilizationState() === 'egg') {
+                <app-cell-chromosome-viewport
+                  class="fertilized-egg-viewport"
+                  [chromosomes]="formedEggChromosomes()"
+                  [selectedChromosome]="selectedEggChromosome()"
+                  [selectedLocus]="selectedEggLocus()"
+                  [selectable]="true"
+                  [locusSelectable]="true"
+                  [showLoci]="true"
+                  [allowReplicatedView]="false"
+                  ariaLabel="Interactive paired chromosomes inside the fertilized egg"
+                  layout="inspect"
+                  (chromosomeSelected)="inspectFertilizedChromosome($event)"
+                  (locusSelected)="inspectFertilizedLocus($event)"
+                />
+                @if (fertilizedGeneAnalysis(); as gene) {
+                  <section class="fertilized-gene-analysis" aria-live="polite">
+                    <span>FERTILIZED GENE ANALYSIS</span>
+                    <strong>{{ gene.traitName }} · {{ gene.geneSymbol }}</strong>
+                    <dl>
+                      <div><dt>Chromosome pair</dt><dd>{{ gene.chromosome }}</dd></div>
+                      <div><dt>Egg allele</dt><dd>{{ gene.eggAllele }}</dd></div>
+                      <div><dt>Sperm allele</dt><dd>{{ gene.spermAllele }}</dd></div>
+                      <div><dt>New genotype</dt><dd>{{ gene.eggAllele }}{{ gene.spermAllele }}</dd></div>
+                    </dl>
+                  </section>
+                }
+              } @else {
+                <app-cell-chromosome-viewport
+                  [chromosomes]="formedEggChromosomes()"
+                  [selectedChromosome]="null"
+                  [selectable]="false"
+                  [showLoci]="true"
+                  ariaLabel="Egg and sperm chromosomes combining into one nucleus"
+                  layout="thumbnail"
+                />
+              }
+            }
+            <strong>{{ fertilizationState() === 'egg' ? 'Diploid egg formed' : 'One nucleus forming' }}</strong>
+          </article>
+        </div>
         <div class="gamete-chambers">
           <button
             type="button"
@@ -127,10 +213,26 @@
               <small>SELECTED SPERM</small><strong>{{ selectionSummary(spermSelection()) }}</strong>
             </div>
           </button>
-          <button type="button" class="fertilize" [disabled]="!canFertilize()" (click)="fertilize()">
-            Fertilize Hatchery egg
-            <small>{{ canFertilize() ? 'Combine the selected haploid genomes' : 'Two gametes required' }}</small>
-          </button>
+          <div class="fertilize-status" aria-live="polite">
+            <strong>
+              @if (fertilizationState() === 'fusing') {
+                Forming egg…
+              } @else if (fertilizationState() === 'egg') {
+                Fertilized egg formed
+              } @else {
+                Automatic fertilization
+              }
+            </strong>
+            <small>
+              {{
+                fertilizationState() === 'fusing'
+                  ? 'The two haploid nuclei are combining'
+                  : fertilizationState() === 'egg'
+                    ? 'Select any chromosome or gene marker to inspect the new allele pair'
+                    : 'Fusion begins when both gametes are loaded'
+              }}
+            </small>
+          </div>
         </div>
       </section>
 
@@ -165,30 +267,5 @@
       </section>
     }
 
-    @if (clutch().length && selectedPair(); as parents) {
-      <section class="hatchery-output">
-        <header>
-          <span class="step-number">03</span>
-          <div>
-            <small>FERTILIZATION RECORD · {{ fertilizations().length }} SAVED</small>
-            <h3>Your selected-gamete clutch</h3>
-            <p>Every egg below came from one egg gamete and one sperm gamete you chose.</p>
-          </div>
-        </header>
-        <app-dragon-hatchery-station
-          [openLab]="true"
-          [clutch]="clutch()"
-          [parents]="parents"
-          clutchId="selected-gamete-clutch"
-          clutchLabel="Selected-gamete clutch"
-          [focusTraitId]="targetTraitId()"
-          moduleId="adaptive-hatchery-meiosis"
-          [requirePrediction]="false"
-          [examineBudget]="null"
-          [sampleBudget]="null"
-          [hatchLimit]="null"
-        />
-      </section>
-    }
   </main>
 </section>

@@ -150,6 +150,7 @@ function jawControls(): readonly Omit<StyleControl, 'value'>[] {
     { section: 'jaw', key: 'toothHeight', label: 'Tooth length', min: 0.2, max: 3, step: 0.05 },
     { section: 'jaw', key: 'toothRadius', label: 'Tooth thickness', min: 0.02, max: 0.4, step: 0.01 },
     { section: 'jaw', key: 'toothStart', label: 'Front tooth position', min: -0.2, max: 0.5, step: 0.01 },
+    { section: 'jaw', key: 'noseHornLength', label: 'Nose horn', min: 0, max: 2, step: 0.05 },
   ];
 }
 

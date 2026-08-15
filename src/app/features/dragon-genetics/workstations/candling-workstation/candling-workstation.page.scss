@@ -1,0 +1,46 @@
+:host {
+  display: block;
+  min-height: 100%;
+  background: #0b1018;
+}
+
+.page-shell {
+  max-width: 92rem;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.page-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  color: #eef0f6;
+}
+
+.page-bar a {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid #465161;
+  border-radius: 50%;
+  color: #eef0f6;
+  text-decoration: none;
+}
+
+.page-bar div {
+  display: grid;
+}
+
+.page-bar small {
+  color: #e7bd69;
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+}
+
+.page-bar strong {
+  font-size: 1.1rem;
+}

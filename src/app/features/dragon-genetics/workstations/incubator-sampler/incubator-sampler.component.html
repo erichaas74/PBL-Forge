@@ -66,42 +66,26 @@
     <span class="rivet right" aria-hidden="true"></span>
   </section>
 
-  <app-account-genetics-file
-    class="breeding-inventory"
-    [studentId]="studentId()"
-    [selectedRecordId]="activeInventoryDragonId()"
-    [dragonsOnly]="true"
-    [disabled]="selectionLocked()"
-    label="Breeding dragon inventory"
-    (recordSelected)="selectActiveAccountRecord($event)"
-  />
-
   <div class="workbench">
     <aside
-      class="parent-station parent-a"
+      class="parent-station parent-a female"
       [class.loaded]="parentA()"
-      [class.inventory-target]="activeParentRole() === 'a'"
       (dragover)="allowParentDrop($event)"
-      (drop)="dropParent('a', $event)"
+      (drop)="dropParent('female', $event)"
     >
-      <header
-        role="button"
-        [attr.tabindex]="selectionLocked() ? -1 : 0"
-        [attr.aria-pressed]="activeParentRole() === 'a'"
-        (click)="setActiveParent('a')"
-        (keydown.enter)="setActiveParent('a')"
-        (keydown.space)="setActiveParent('a'); $event.preventDefault()"
-      >
-        <span>{{ offspringPoolActive() ? 'POOL SAMPLE A' : activeParentRole() === 'a' ? 'PARENT A · INVENTORY TARGET' : 'PARENT A' }}</span>
+      <header>
+        <span>{{ offspringPoolActive() ? 'POOL SAMPLE A' : 'FEMALE DRAGONS · EGG PARENT' }}</span>
         <strong>{{ parentA()?.name ?? 'Choose a dragon' }}</strong>
         @if (parentA(); as parent) {
           <small>{{ parent.title }}</small>
+        } @else {
+          <small>Select a female dragon below or drop its record here.</small>
         }
       </header>
       <div class="parent-model" [class.empty]="!parentASource()">
         <app-specimen-viewport
           [source]="parentASource()"
-          [ariaLabel]="parentA() ? parentA()!.name + ', Parent A' : 'Parent A chamber empty'"
+          [ariaLabel]="parentA() ? parentA()!.name + ', egg parent' : 'Egg-parent chamber empty'"
           [controls]="false"
           [framePadding]="1.3"
         />
@@ -118,6 +102,17 @@
             </div>
           }
         </dl>
+      }
+      @if (!offspringPoolActive()) {
+        <app-account-genetics-file
+          [studentId]="studentId()"
+          [dragonsOnly]="true"
+          sexFilter="female"
+          [selectedRecordId]="originalParentIds()[0]"
+          [disabled]="selectionLocked()"
+          label="Egg-parent inventory"
+          (recordSelected)="selectAccountRecord('female', $event)"
+        />
       }
     </aside>
 
@@ -254,30 +249,24 @@
     </main>
 
     <aside
-      class="parent-station parent-b"
+      class="parent-station parent-b male"
       [class.loaded]="parentB()"
-      [class.inventory-target]="activeParentRole() === 'b'"
       (dragover)="allowParentDrop($event)"
-      (drop)="dropParent('b', $event)"
+      (drop)="dropParent('male', $event)"
     >
-      <header
-        role="button"
-        [attr.tabindex]="selectionLocked() ? -1 : 0"
-        [attr.aria-pressed]="activeParentRole() === 'b'"
-        (click)="setActiveParent('b')"
-        (keydown.enter)="setActiveParent('b')"
-        (keydown.space)="setActiveParent('b'); $event.preventDefault()"
-      >
-        <span>{{ offspringPoolActive() ? 'POOL SAMPLE B' : activeParentRole() === 'b' ? 'PARENT B · INVENTORY TARGET' : 'PARENT B' }}</span>
+      <header>
+        <span>{{ offspringPoolActive() ? 'POOL SAMPLE B' : 'MALE DRAGONS · SPERM PARENT' }}</span>
         <strong>{{ parentB()?.name ?? 'Choose a dragon' }}</strong>
         @if (parentB(); as parent) {
           <small>{{ parent.title }}</small>
+        } @else {
+          <small>Select a male dragon below or drop its record here.</small>
         }
       </header>
       <div class="parent-model" [class.empty]="!parentBSource()">
         <app-specimen-viewport
           [source]="parentBSource()"
-          [ariaLabel]="parentB() ? parentB()!.name + ', Parent B' : 'Parent B chamber empty'"
+          [ariaLabel]="parentB() ? parentB()!.name + ', sperm parent' : 'Sperm-parent chamber empty'"
           [controls]="false"
           [framePadding]="1.3"
         />
@@ -294,6 +283,17 @@
             </div>
           }
         </dl>
+      }
+      @if (!offspringPoolActive()) {
+        <app-account-genetics-file
+          [studentId]="studentId()"
+          [dragonsOnly]="true"
+          sexFilter="male"
+          [selectedRecordId]="originalParentIds()[1]"
+          [disabled]="selectionLocked()"
+          label="Sperm-parent inventory"
+          (recordSelected)="selectAccountRecord('male', $event)"
+        />
       }
     </aside>
   </div>

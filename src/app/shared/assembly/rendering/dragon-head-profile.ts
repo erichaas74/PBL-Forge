@@ -368,7 +368,18 @@ export function dragonHeadEyeSocket(
 }
 
 /**
- * Base of a main horn, on the skull behind and above the brow, angled outward.
+ * Base of a main horn: high on the temporal shelf, just above where a reptile's
+ * ear opening sits — behind the eye and forward of the braincase.
+ *
+ * This used to sit at -0.22, back on the rear of the skull, which put the horns
+ * behind the ear and had them growing off the occiput. A horn rooted that far
+ * back can only sweep away from the animal; rooted above the ear it has the
+ * length of the skull in front of it to point along, which is what the forward
+ * rake in the mesh builder needs.
+ *
+ * The 0.5 rad off the crown matters as much as the station. Further out and the
+ * horn grows from the cheek and rakes sideways; this keeps the pair on the roof
+ * of the skull, close enough to read as a matched set aimed the same way.
  *
  * @param side -1 for the left horn (-Z), 1 for the right.
  */
@@ -377,7 +388,7 @@ export function dragonHeadHornMount(
   side: -1 | 1,
   shape: DragonHeadShape = DEFAULT_HEAD_SHAPE,
 ): Vector3Data {
-  return dragonHeadSurfacePoint(dimensions, -0.22, side * 0.62, shape);
+  return dragonHeadSurfacePoint(dimensions, -0.11, side * 0.5, shape);
 }
 
 /**

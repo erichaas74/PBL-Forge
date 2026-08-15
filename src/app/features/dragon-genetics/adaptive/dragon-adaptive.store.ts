@@ -71,7 +71,11 @@ export class DragonAdaptiveStore {
     this.hydrationPromise = this.hydrate();
     effect(() => {
       const userId = this.session.user()?.uid ?? null;
-      if (!userId || userId === this.hydratedUserId) return;
+      if (userId === this.hydratedUserId) return;
+      const storageStudentId = userId ?? LOCAL_WORKSTATION_STUDENT_ID;
+      this.ready.set(false);
+      this.runsSignal.set(loadLocalRuns(storageStudentId));
+      this.geneticsNotebookSignal.set(loadLocalGeneticsNotebook(storageStudentId));
       this.hydrationPromise = this.hydrate();
     });
   }
@@ -320,7 +324,7 @@ export class DragonAdaptiveStore {
       console.error('Adaptive Dragon Genetics data could not be loaded.', error);
       this.persistenceState.set('error');
     } finally {
-      this.ready.set(true);
+      if (request === this.hydrationRequest) this.ready.set(true);
     }
   }
 

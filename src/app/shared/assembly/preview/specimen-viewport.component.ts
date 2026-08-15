@@ -13,6 +13,7 @@ import {
   signal,
 } from '@angular/core';
 import { AssemblyAbilityId } from '../combat/assembly-abilities';
+import { StageTheme } from '../rendering/scene-environment';
 import { SpecimenSource } from './specimen.models';
 import { DRAGON_IDLE_BREATH, DRAGON_RESTING_POSE, dragonRestingPose } from './specimen-stance';
 import { SpecimenMotionDefinition } from './specimen-motion';
@@ -38,6 +39,8 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
   readonly controlsPlacement = input<'below' | 'side'>('below');
   readonly showGroundShadow = input(true);
   readonly framePadding = input(1.12);
+  readonly theme = input<StageTheme | null>(null);
+  readonly transparent = input(false);
   readonly focusedTraitId = input<string | null>(null);
   readonly partSelected = output<string>();
 
@@ -94,6 +97,8 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
     // full-resolution material maps out of every student-facing viewer.
     this.renderer.mount(this.stageRef.nativeElement, {
       interactive: true,
+      theme: this.theme() ?? undefined,
+      transparent: this.transparent(),
       showGroundShadow: this.showGroundShadow(),
       framePadding: this.framePadding(),
       pose: DRAGON_RESTING_POSE,
@@ -124,8 +129,8 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
     if (typeof IntersectionObserver === 'undefined') return;
 
     this.visibility = new IntersectionObserver(
-      entries => {
-        const visible = entries.some(entry => entry.isIntersecting);
+      (entries) => {
+        const visible = entries.some((entry) => entry.isIntersecting);
         this.renderer.setIdleMotion(visible ? DRAGON_IDLE_BREATH : null);
       },
       { threshold: 0.1 },
@@ -150,6 +155,7 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
   }
 
   resetView(): void {
+    this.renderer.setViewDirection(undefined);
     const level = this.renderer.resetZoom();
     this.zoomPercent.set(Math.round(level * 100));
   }

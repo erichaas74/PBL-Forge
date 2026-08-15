@@ -52,6 +52,26 @@ describe('CellChromosomeViewportComponent', () => {
     expect(selected).toEqual(['Chr 3', 'Chr 4']);
   });
 
+  it('can show every chromosome as two sister chromatids joined at the centromere', () => {
+    fixture.componentRef.setInput('allowReplicatedView', true);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    element.querySelectorAll<HTMLButtonElement>('.chromosome-form-controls button')[1].click();
+    fixture.detectChanges();
+
+    expect(component.chromosomeForm()).toBe('replicated');
+    expect(element.querySelector('.cell-chromosome-viewport')?.getAttribute('data-chromosome-form')).toBe(
+      'replicated',
+    );
+    expect(element.querySelectorAll('.chromosome-svg--replicated').length).toBe(5);
+    expect(element.querySelectorAll('.chromatid--sister').length).toBe(5);
+    expect(element.querySelectorAll('.centromere-joint').length).toBe(5);
+    expect(element.querySelector('[data-chromosome="Chr 2"]')?.getAttribute('aria-label')).toContain(
+      'two sister chromatids joined at the centromere',
+    );
+  });
+
   it('shows a large selected chromosome and emits its locus in inspection mode', () => {
     const visual = viewportItem('Chr 1');
     const loci: CellChromosomeLocusSelection[] = [];
@@ -82,6 +102,19 @@ describe('CellChromosomeViewportComponent', () => {
     expect(element.querySelector('.chromosome-in-cell--selected')).toBeNull();
     expect(element.querySelector('.chromosome-controls')).toBeNull();
     expect(element.querySelector('.selection-readout')).toBeNull();
+  });
+
+  it('reuses the chromosome SVG as a neutral outline for an unloaded cell', () => {
+    fixture.componentRef.setInput(
+      'chromosomes',
+      chromosomeItems.map((item) => ({ ...item, placeholder: true })),
+    );
+    fixture.componentRef.setInput('layout', 'thumbnail');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelectorAll('.chromosome-svg--placeholder').length).toBe(5);
+    expect(element.querySelectorAll('.chromosome-band--placeholder').length).toBeGreaterThan(0);
   });
 });
 

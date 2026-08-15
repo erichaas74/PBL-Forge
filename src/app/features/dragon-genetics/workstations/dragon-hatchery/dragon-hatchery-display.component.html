@@ -7,42 +7,46 @@
     role="group"
     aria-label="Dragon hatchery"
   >
-    <header class="bay-head">
-      <div class="clutch-record" [attr.data-target]="vm.targets.clutchRecord">
-        <span class="tag">Clutch record</span>
-        <strong>{{ vm.clutchLabel }}</strong>
-        @if (vm.parents.length) {
-          <p class="parents">
-            @for (parent of vm.parents; track parent.id) {
-              <span>{{ parent.label }}</span>
+    @if (showClutchRecord() || !openLab()) {
+      <header class="bay-head">
+        @if (showClutchRecord()) {
+          <div class="clutch-record" [attr.data-target]="vm.targets.clutchRecord">
+            <span class="tag">Clutch record</span>
+            <strong>{{ vm.clutchLabel }}</strong>
+            @if (vm.parents.length) {
+              <p class="parents">
+                @for (parent of vm.parents; track parent.id) {
+                  <span>{{ parent.label }}</span>
+                }
+              </p>
             }
-          </p>
+            @if (vm.focusTraitName) {
+              <p class="focus-note">Focus trait · {{ vm.focusTraitName }} ({{ vm.focusGeneId }})</p>
+            }
+          </div>
         }
-        @if (vm.focusTraitName) {
-          <p class="focus-note">Focus trait · {{ vm.focusTraitName }} ({{ vm.focusGeneId }})</p>
-        }
-      </div>
 
-      @if (!openLab()) {
-        <div class="run-state">
-          <span class="mode-chip">{{ vm.mode }} mode</span>
-          <ol class="phase-rail">
-            @for (step of phaseRail; track step.id) {
-              <li
-                [class.active]="vm.phase === step.id"
-                [class.done]="isPhaseDone(vm.phase, step.id)"
-              >
-                <i aria-hidden="true"></i>{{ step.label }}
-              </li>
-            }
-          </ol>
-          <small>
-            {{ vm.counts.examined }}/{{ vm.counts.total }} examined ·
-            {{ vm.counts.sampled }} sampled · {{ vm.counts.hatched }} hatched
-          </small>
-        </div>
-      }
-    </header>
+        @if (!openLab()) {
+          <div class="run-state">
+            <span class="mode-chip">{{ vm.mode }} mode</span>
+            <ol class="phase-rail">
+              @for (step of phaseRail; track step.id) {
+                <li
+                  [class.active]="vm.phase === step.id"
+                  [class.done]="isPhaseDone(vm.phase, step.id)"
+                >
+                  <i aria-hidden="true"></i>{{ step.label }}
+                </li>
+              }
+            </ol>
+            <small>
+              {{ vm.counts.examined }}/{{ vm.counts.total }} examined ·
+              {{ vm.counts.sampled }} sampled · {{ vm.counts.hatched }} hatched
+            </small>
+          </div>
+        }
+      </header>
+    }
 
     @if (!openLab()) {
       <section class="tool-rail" aria-label="Hatchery tools">

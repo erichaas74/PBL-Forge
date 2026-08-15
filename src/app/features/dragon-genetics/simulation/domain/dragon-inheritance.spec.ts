@@ -3,7 +3,8 @@ import {
   createEducationalAssembly,
   createVisualGenome,
 } from './dragon-inheritance';
-import { DragonLabGenome } from './dragon-lab.models';
+import { AssemblyPart } from '../../../../shared/assembly/domain/assembly.models';
+import { DragonLabGenome, DragonTraitGenotype } from './dragon-lab.models';
 
 /**
  * The genotype-to-animal bridge.
@@ -118,8 +119,40 @@ describe('dragon inheritance bridge', () => {
     const spotted = build('d', genome({ scales: ['S', 's'] }), EMBER).assembly;
     const solid = build('d', genome({ scales: ['s', 's'] }), EMBER).assembly;
 
-    expect(patternOf(spotted).every(value => value === 1)).toBe(true);
+    // One of the patterned skins — splotches (1) or zig-zag (2) — on every part,
+    // and the same one on all of them: a dragon wears one skin.
+    const patterns = new Set(patternOf(spotted));
+    expect(patterns.size).toBe(1);
+    expect([1, 2]).toContain([...patterns][0] as number);
+
     expect(patternOf(solid).every(value => value === 0)).toBe(true);
+  });
+
+  /**
+   * Which pattern a dragon gets is drawn per animal, not from its genome. The
+   * failure that matters is not the draw being uneven — it is the draw being
+   * *unstable*, because a dragon is rendered many times (viewer, thumbnail bake,
+   * arena, pedigree card) and a pattern that changes between them is a bug.
+   */
+  it('keeps a dragon on the same drawn pattern every time it is built', () => {
+    const patternOf = (identity: typeof EMBER) =>
+      build('d', genome({ scales: ['S', 's'] }), identity)
+        .assembly.parts[0].visualProfile?.parameters?.['scalePattern'];
+
+    expect(patternOf(EMBER)).toBe(patternOf(EMBER));
+  });
+
+  it('draws both patterns across a population rather than always the same one', () => {
+    const seen = new Set<unknown>();
+    for (let index = 0; index < 24; index += 1) {
+      const identity = { color: `hsl(${index * 15}, 60%, 30%)`, accentColor: '#ffffff' };
+      seen.add(
+        build(`d${index}`, genome({ scales: ['S', 's'] }), identity)
+          .assembly.parts[0].visualProfile?.parameters?.['scalePattern'],
+      );
+    }
+
+    expect(seen).toEqual(new Set([1, 2]));
   });
 
   it('gives each modelled gene its own visual channel', () => {
@@ -142,16 +175,67 @@ describe('dragon inheritance bridge', () => {
     expect(hornLengthOf(hornless.assembly)).toBe(0);
   });
 
-  it('shows scale pattern as two tones and a solid dragon as one', () => {
-    const spotted = build('d', genome({ scales: ['S', 's'] }), EMBER);
-    const solid = build('d', genome({ scales: ['s', 's'] }), EMBER);
+  /**
+   * Every dragon is three-toned, patterned or not. Colour is identity here, so it
+   * does not read the genome at all — the scales gene shows through the albedo
+   * instead, which the pattern tests above cover.
+   */
+  /**
+   * Ground colour and marking colour for a part, as the renderer reads them.
+   *
+   * Matched on the *end* of the id: `left-wing` is also a prefix of
+   * `left-wing-claw`, and an `includes` here quietly compares a wing against a
+   * claw.
+   */
+  function paintOf(assembly: { parts: AssemblyPart[] }, suffix: string): [string, string] {
+    const part = assembly.parts.find(entry => entry.id.endsWith(suffix))!;
+    expect(part).withContext(suffix).toBeTruthy();
+    return [part.color, part.visualProfile?.parameters?.['patternColor'] as string];
+  }
 
-    expect(new Set(solid.assembly.parts.map(part => part.color)))
-      .toEqual(new Set([EMBER.color]));
+  it('paints the whole dragon out of three tones, two on any one part', () => {
+    const cases: DragonTraitGenotype[] = [['S', 's'], ['s', 's']];
+    for (const scales of cases) {
+      const context = scales.join('');
+      const parts = build('d', genome({ scales }), EMBER).assembly.parts;
+      const palette = new Set<string>();
+      for (const part of parts) {
+        palette.add(part.color);
+        palette.add(part.visualProfile?.parameters?.['patternColor'] as string);
+        // Two *different* colours on each part: a marking in the ground colour is
+        // not a marking.
+        expect(part.color).withContext(`${context} ${part.id}`)
+          .not.toBe(part.visualProfile?.parameters?.['patternColor'] as string);
+      }
 
-    const spottedTones = new Set(spotted.assembly.parts.map(part => part.color));
-    expect(spottedTones.has(EMBER.color)).toBeTrue();
-    expect(spottedTones.has(EMBER.accentColor)).toBeTrue();
+      // Three for the animal, and no fourth: the pairs are rearrangements of one
+      // scheme, not a colour per part.
+      expect(palette.size).withContext(context).toBe(3);
+      // The identity colour is one of them, exactly: a student picks a dragon out
+      // of a grid by the colour on its card, so that tone cannot be a derivation.
+      expect(palette.has(EMBER.color)).withContext(context).toBeTrue();
+    }
+  });
+
+  it('varies which two a part wears, so the legs need not match the body', () => {
+    const assembly = build('d', genome({ scales: ['S', 's'] }), EMBER).assembly;
+    const pairs = new Set(
+      assembly.parts.map(part =>
+        `${part.color}|${part.visualProfile?.parameters?.['patternColor']}`,
+      ),
+    );
+
+    // More than one pair in play across the animal, or "it can change for each
+    // part" is not happening at all.
+    expect(pairs.size).toBeGreaterThan(1);
+  });
+
+  it('paints paired limbs the same way, so the two sides of a dragon match', () => {
+    const assembly = build('d', genome({ scales: ['S', 's'] }), EMBER).assembly;
+
+    expect(paintOf(assembly, 'front-left-leg')).toEqual(paintOf(assembly, 'front-right-leg'));
+    expect(paintOf(assembly, 'rear-left-foot')).toEqual(paintOf(assembly, 'rear-right-foot'));
+    expect(paintOf(assembly, 'left-wing')).toEqual(paintOf(assembly, 'right-wing'));
   });
 
   it('paints each dragon in its own identity colour', () => {
@@ -161,9 +245,16 @@ describe('dragon inheritance bridge', () => {
     const shared = genome({ scales: ['s', 's'] });
     const ember = build('ember', shared, EMBER);
     const tide = build('tide', shared, TIDE);
+    const grounds = (assembly: { parts: AssemblyPart[] }) =>
+      new Set(assembly.parts.map(part => part.color));
 
-    expect(ember.assembly.parts[0].color).toBe(EMBER.color);
-    expect(tide.assembly.parts[0].color).toBe(TIDE.color);
+    // The card colour is on the animal — which parts wear it depends on the pairs
+    // drawn for them, so this asks that it is worn rather than where.
+    expect(grounds(ember.assembly).has(EMBER.color)).toBeTrue();
+    expect(grounds(tide.assembly).has(TIDE.color)).toBeTrue();
+    // And neither dragon is wearing the other's.
+    expect(grounds(ember.assembly).has(TIDE.color)).toBeFalse();
+    expect(grounds(tide.assembly).has(EMBER.color)).toBeFalse();
   });
 
   it('still builds a dragon when no identity is supplied', () => {

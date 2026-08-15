@@ -52,6 +52,22 @@
   vector-effect: non-scaling-stroke;
 }
 
+.chromatid--sister {
+  pointer-events: none;
+}
+
+.centromere-joint {
+  fill: #eee1cc;
+  stroke: #564b40;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.chromosome-svg--placeholder .centromere-joint {
+  fill: #d7d7d7;
+  stroke: #3b3b3b;
+}
+
 .arm-label,
 .allele-symbol,
 .locus-label {

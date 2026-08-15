@@ -66,6 +66,18 @@ export const DRAGON_PROJECT_HUB_DEFINITION: ProjectHubDefinition = {
       required: false,
       masterySkillIds: ['GEN-7'],
     },
+    {
+      id: 'candling-workstation',
+      stageId: 'open-labs',
+      title: 'Candling Workstation',
+      objective:
+        'Compare phenotype evidence from candling with genotype evidence from a sealed egg DNA sample.',
+      route: '/dragon-genetics/candling-workstation',
+      order: 10,
+      kind: 'extension',
+      required: false,
+      masterySkillIds: ['GEN-3'],
+    },
     adaptiveActivity(
       'dragon-hatchery',
       'final-path',
@@ -133,4 +145,3 @@ function adaptiveActivity(
     masterySkillIds: [simulation.skill],
   };
 }
-

@@ -38,7 +38,7 @@
 }
 
 .mission-header a,
-.champion-bar > a {
+.champion-actions a {
   color: #e2c477;
   font-size: var(--text-base);
   font-weight: 850;
@@ -46,10 +46,36 @@
 }
 
 .mission-header a:hover,
-.champion-bar > a:hover {
+.champion-actions a:hover {
   color: #ffe5a1;
   text-decoration: underline;
   text-underline-offset: 0.2rem;
+}
+
+.champion-actions {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: end;
+  max-width: 15rem;
+  text-align: right;
+}
+
+.champion-actions .wise-dragon-link {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e2c477;
+  border-radius: 0.4rem;
+  background: linear-gradient(#e3b95d, #bd8233);
+  color: #2f2419;
+  text-align: center;
+}
+
+.champion-actions .wise-dragon-link:hover {
+  color: #21180f;
+}
+
+.wise-dragon-locked {
+  color: var(--on-dark-muted);
+  font-size: var(--text-sm);
 }
 
 .mission-header > span {
@@ -238,6 +264,12 @@ details ol {
 
   .champion-bar dl {
     width: 100%;
+  }
+
+  .champion-actions {
+    justify-items: start;
+    max-width: none;
+    text-align: left;
   }
 }
 

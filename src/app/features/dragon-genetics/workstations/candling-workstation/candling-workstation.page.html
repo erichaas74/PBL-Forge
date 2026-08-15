@@ -1,0 +1,10 @@
+<main class="page-shell">
+  <header class="page-bar">
+    <a routerLink="/dragon-genetics" aria-label="Return to Dragon Genetics mission map">←</a>
+    <div><small>OPEN INVESTIGATION</small><strong>Candling Workstation</strong></div>
+  </header>
+  <app-candling-workstation
+    [studentId]="context.studentId()"
+    [seed]="'candling:' + context.studentId()"
+  />
+</main>

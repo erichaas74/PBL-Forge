@@ -4,12 +4,35 @@
   [class.cell-chromosome-viewport--inspect]="layout() === 'inspect'"
   [class.cell-chromosome-viewport--thumbnail]="layout() === 'thumbnail'"
   [class.cell-chromosome-viewport--has-selection]="!!resolvedSelectedChromosome()"
+  [attr.data-chromosome-form]="chromosomeForm()"
   [attr.aria-label]="ariaLabel()"
 >
   <div class="viewport-layout">
     <div class="cell-panel">
       @if (layout() !== 'thumbnail') {
-        <span class="panel-label">CELL VIEW</span>
+        <header class="cell-panel-toolbar">
+          <span class="panel-label">CELL VIEW</span>
+          @if (allowReplicatedView()) {
+            <div class="chromosome-form-controls" role="group" aria-label="Chromosome form">
+              <button
+                type="button"
+                [class.active]="chromosomeForm() === 'single'"
+                [attr.aria-pressed]="chromosomeForm() === 'single'"
+                (click)="setChromosomeForm('single')"
+              >
+                Single chromosome
+              </button>
+              <button
+                type="button"
+                [class.active]="chromosomeForm() === 'replicated'"
+                [attr.aria-pressed]="chromosomeForm() === 'replicated'"
+                (click)="setChromosomeForm('replicated')"
+              >
+                Replicated chromosome
+              </button>
+            </div>
+          }
+        </header>
       }
 
       <div class="cell-membrane" role="group" aria-label="Chromosomes inside the cell">
@@ -29,7 +52,11 @@
             <span class="chromosome-name">{{ displayShortLabel(item) }}</span>
             <app-chromosome-svg
               [chromosome]="item.model"
+              [pairedChromosome]="item.pairedModel ?? null"
+              [pairRelationship]="item.pairRelationship ?? 'sister-chromatids'"
+              [placeholder]="item.placeholder ?? false"
               [compact]="layout() !== 'overview'"
+              [replicated]="chromosomeForm() === 'replicated'"
               [showAllLoci]="showLoci()"
               [selectedLocus]="isSelected(item) ? selectedLocus() : null"
             />
@@ -57,6 +84,10 @@
         <div class="inspection-chromosome">
           <app-chromosome-svg
             [chromosome]="selected.model"
+            [pairedChromosome]="selected.pairedModel ?? null"
+            [pairRelationship]="selected.pairRelationship ?? 'sister-chromatids'"
+            [placeholder]="selected.placeholder ?? false"
+            [replicated]="chromosomeForm() === 'replicated'"
             [showAllLoci]="showLoci()"
             [selectedLocus]="selectedLocus()"
             [interactive]="selectable() && locusSelectable()"

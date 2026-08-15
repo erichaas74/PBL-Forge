@@ -194,9 +194,10 @@
                 "muzzleDrop": 1,
                 "cheek": 1,
                 "eyeAxial": 0.06,
-                "hornLength": 1.35,
-                "hornRadius": 0.16,
-                "browLength": 0.45
+                "hornLength": 1.8,
+                "hornRadius": 0.13,
+                "browLength": 0.45,
+                "jointBall": 1.06
               }
             },
             "snapPoints": [
@@ -283,7 +284,8 @@
                 "toothCount": 4,
                 "toothHeight": 1.15,
                 "toothRadius": 0.1,
-                "toothStart": 0.28
+                "toothStart": 0.28,
+                "noseHornLength": 0.62
               }
             },
             "snapPoints": [
@@ -370,7 +372,8 @@
                 "toothCount": 4,
                 "toothHeight": 1.15,
                 "toothRadius": 0.1,
-                "toothStart": 0.28
+                "toothStart": 0.28,
+                "noseHornLength": 0.62
               }
             },
             "snapPoints": [
@@ -442,7 +445,10 @@
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
-              "materialId": "dragon-scale-green"
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -525,7 +531,10 @@
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
-              "materialId": "dragon-scale-green"
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -608,7 +617,10 @@
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
-              "materialId": "dragon-scale-green"
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -691,7 +703,10 @@
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
-              "materialId": "dragon-scale-green"
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -774,7 +789,10 @@
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
-              "materialId": "dragon-scale-green"
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -857,7 +875,10 @@
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
-              "materialId": "dragon-scale-green"
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -940,7 +961,10 @@
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
-              "materialId": "dragon-scale-green"
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -1023,7 +1047,10 @@
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
-              "materialId": "dragon-scale-green"
+              "materialId": "dragon-scale-green",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -1404,10 +1431,10 @@
               "meshType": "procedural",
               "materialId": "dragon-wing-membrane",
               "parameters": {
-                "camber": 0.12,
-                "fingerSag": 0.06,
-                "dihedral": 0.04,
-                "scallop": 0.13
+                "camber": 0.1,
+                "fingerSag": 0.17,
+                "dihedral": 0.05,
+                "scallop": 0.19
               }
             },
             "snapPoints": [
@@ -1428,8 +1455,8 @@
                 "id": "dragon-wing-claw-socket",
                 "label": "Wing claw socket",
                 "localPosition": {
-                  "x": -0.036659999999999984,
-                  "y": 0.081,
+                  "x": 0.025116000000000013,
+                  "y": 0.10125,
                   "z": -0.9517499999999999
                 },
                 "mateIds": [
@@ -1494,10 +1521,10 @@
               "meshType": "procedural",
               "materialId": "dragon-wing-membrane",
               "parameters": {
-                "camber": 0.12,
-                "fingerSag": 0.06,
-                "dihedral": 0.04,
-                "scallop": 0.13
+                "camber": 0.1,
+                "fingerSag": 0.17,
+                "dihedral": 0.05,
+                "scallop": 0.19
               }
             },
             "snapPoints": [
@@ -1518,8 +1545,8 @@
                 "id": "dragon-wing-claw-socket",
                 "label": "Wing claw socket",
                 "localPosition": {
-                  "x": -0.036659999999999984,
-                  "y": 0.081,
+                  "x": 0.025116000000000013,
+                  "y": 0.10125,
                   "z": 0.9517499999999999
                 },
                 "mateIds": [
@@ -1569,8 +1596,8 @@
               "z": 0.08
             },
             "position": {
-              "x": 0.20309000000000008,
-              "y": 1.628627399695981,
+              "x": 0.5848660000000001,
+              "y": 1.6488773996959811,
               "z": -2.4987019377251736
             },
             "rotation": {
@@ -1591,7 +1618,7 @@
                 "label": "Wing Hand Claw mount",
                 "localPosition": {
                   "x": 0,
-                  "y": 0.16,
+                  "y": -0.16,
                   "z": 0
                 },
                 "mateIds": [
@@ -1638,8 +1665,8 @@
               "z": 0.08
             },
             "position": {
-              "x": 0.20309000000000008,
-              "y": 1.628627399695981,
+              "x": 0.5848660000000001,
+              "y": 1.6488773996959811,
               "z": 2.4987019377251736
             },
             "rotation": {
@@ -1660,7 +1687,7 @@
                 "label": "Wing Hand Claw mount",
                 "localPosition": {
                   "x": 0,
-                  "y": 0.16,
+                  "y": -0.16,
                   "z": 0
                 },
                 "mateIds": [
@@ -1719,7 +1746,10 @@
             "visualProfile": {
               "profileId": "dragon-tail",
               "meshType": "procedural",
-              "materialId": "dragon-scale-brown"
+              "materialId": "dragon-scale-brown",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -1801,7 +1831,10 @@
             "visualProfile": {
               "profileId": "dragon-tail",
               "meshType": "procedural",
-              "materialId": "dragon-scale-brown"
+              "materialId": "dragon-scale-brown",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -1883,7 +1916,10 @@
             "visualProfile": {
               "profileId": "dragon-tail",
               "meshType": "procedural",
-              "materialId": "dragon-scale-brown"
+              "materialId": "dragon-scale-brown",
+              "parameters": {
+                "jointBall": 1.06
+              }
             },
             "snapPoints": [
               {
@@ -2480,13 +2516,13 @@
             "parentPartId": "classic-dragon-left-wing",
             "childPartId": "classic-dragon-left-wing-claw",
             "pivotOnParent": {
-              "x": -0.036659999999999984,
-              "y": 0.081,
+              "x": 0.025116000000000013,
+              "y": 0.10125,
               "z": -0.9517499999999999
             },
             "pivotOnChild": {
               "x": 0,
-              "y": 0.16,
+              "y": -0.16,
               "z": 0
             },
             "axis": {
@@ -2506,13 +2542,13 @@
             "parentPartId": "classic-dragon-right-wing",
             "childPartId": "classic-dragon-right-wing-claw",
             "pivotOnParent": {
-              "x": -0.036659999999999984,
-              "y": 0.081,
+              "x": 0.025116000000000013,
+              "y": 0.10125,
               "z": 0.9517499999999999
             },
             "pivotOnChild": {
               "x": 0,
-              "y": 0.16,
+              "y": -0.16,
               "z": 0
             },
             "axis": {

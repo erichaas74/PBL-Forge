@@ -18,12 +18,10 @@ import {
 import {
   DEFAULT_WING_SHAPE,
   WING_ELBOW_S,
-  WING_STATIONS,
+  WING_FINGER_STATIONS,
   WingMembraneShape,
-  foldWingPoint,
   wingChord,
   wingChordFraction,
-  wingFoldEase,
   wingLeadingEdge,
 } from './dragon-wing-profile';
 import { detailSegments, resolveRenderQuality } from './render-quality';
@@ -39,7 +37,8 @@ import {
   dragonMembraneTextures,
   dragonPartSeed,
   dragonScaleTextures,
-  dragonSpottedScaleTextures,
+  dragonSplotchMask,
+  dragonZigzagMask,
   membraneUsesTransmission,
 } from './dragon-textures';
 
@@ -57,7 +56,8 @@ export function createDragonProceduralObject(part: AssemblyPart): THREE.Object3D
   const palette = createDragonPalette(
     part.color,
     dragonPartSeed(part.id),
-    visualNumber(part, 'scalePattern', 0) >= 0.5,
+    scalePatternOf(part),
+    visualString(part, 'patternColor', ''),
   );
   const dims = part.dimensions;
 
@@ -83,13 +83,7 @@ export function createDragonProceduralObject(part: AssemblyPart): THREE.Object3D
     case 'dragon-claw':
       return buildTalon(dims.x, dims.y, palette);
     case 'dragon-wing-claw':
-      // A folded wing closes its hand against the flank, tucking the claw
-      // inside the fold — so on a resting dragon there is nothing to draw. An
-      // empty group rather than null, because null falls through to the
-      // primitive fallback mesh and would put a box where the claw was.
-      return visualNumber(part, 'wingFold', 0) >= 0.5
-        ? new THREE.Group()
-        : buildTalon(dims.x, dims.y, palette);
+      return buildTalon(dims.x, dims.y, palette);
     case 'dragon-wing':
     case 'dragon-secondary-wing':
       return buildWing(part, palette);
@@ -104,6 +98,34 @@ export function createDragonProceduralObject(part: AssemblyPart): THREE.Object3D
   }
 }
 
+/**
+ * The scale albedos a dragon can wear.
+ *
+ * A closed set rather than a per-dragon texture, and that is a hard constraint
+ * rather than a simplification: the maps are shared, immutable and cached for the
+ * session (see the rules at the top of `dragon-textures.ts`), so "random pattern"
+ * has to mean *a random choice among these*, not a pattern generated per animal.
+ * A texture per dragon would be a canvas bake per dragon, in an arena that
+ * expects a hundred of them to share four texture sets.
+ */
+export type ScalePattern = 'plain' | 'splotch' | 'zigzag';
+
+/**
+ * The pattern a part's visual profile asks for.
+ *
+ * Numeric on the wire because visual parameters are numbers, strings or booleans
+ * and every other pattern-ish parameter in the pipeline is a number: 0 plain,
+ * 1 splotches, 2 zig-zag. Unknown values fall back to plain rather than throwing —
+ * an old blueprint carrying `scalePattern: 1` from before the second pattern
+ * existed still renders, as splotches.
+ */
+function scalePatternOf(part: AssemblyPart): ScalePattern {
+  const value = Math.round(visualNumber(part, 'scalePattern', 0));
+  if (value === 1) return 'splotch';
+  if (value === 2) return 'zigzag';
+  return 'plain';
+}
+
 interface DragonPalette {
   scale: THREE.Color;
   scaleDeep: THREE.Color;
@@ -112,11 +134,20 @@ interface DragonPalette {
   tooth: THREE.Color;
   membrane: THREE.Color;
   /**
-   * Whether the `S` locus expresses its dominant phenotype on this dragon.
-   * Selects the rosette-patterned scale albedo. Phenotype, never genotype —
-   * `SS` and `Ss` must arrive here identical.
+   * Which scale albedo this dragon wears.
+   *
+   * `plain` means the `S` locus is not expressing — that call is a phenotype,
+   * never a genotype, and `SS` and `Ss` must arrive here identical. Which of the
+   * *patterned* skins a patterned dragon gets is not genetic at all: it is drawn
+   * per dragon from its own identity, the same way colour is.
    */
-  spotted: boolean;
+  pattern: ScalePattern;
+  /**
+   * The colour the marking is drawn in — the *second* of the two pigments this
+   * part wears. Null falls back to the base's own deep shade, which is what a
+   * blueprint written before two-tone patterning asks for.
+   */
+  patternColor: THREE.Color | null;
   /**
    * Stable 0..1 value derived from the part id. Shifts texture UVs and nudges
    * relief depth so four legs off the same builder do not read as four copies.
@@ -159,10 +190,16 @@ function shiftHsl(
  * to survive being the channel a student compares two dragons through, so it
  * may add depth to a hue but must not read as a different hue.
  */
-function createDragonPalette(baseColor: string, seed: number, spotted = false): DragonPalette {
+function createDragonPalette(
+  baseColor: string,
+  seed: number,
+  pattern: ScalePattern = 'plain',
+  patternColor: string = '',
+): DragonPalette {
   const scale = new THREE.Color(baseColor);
   return {
-    spotted,
+    pattern,
+    patternColor: patternColor ? new THREE.Color(patternColor) : null,
     scale,
     scaleDeep: shiftHsl(scale, -18, 1.25, 0.5),
     horn: scale.clone().lerp(new THREE.Color('#e9dcc0'), 0.72),
@@ -213,9 +250,16 @@ function reliefScale(palette: DragonPalette, base: number): THREE.Vector2 {
   return new THREE.Vector2(depth, depth);
 }
 
-/** Scale maps for this dragon: rosetted if the `S` phenotype shows, else plain. */
-function scaleSkin(palette: DragonPalette): DragonTextureSet {
-  return palette.spotted ? dragonSpottedScaleTextures() : dragonScaleTextures();
+/** The mask for this dragon's marking, or null on unpatterned skin. */
+function patternMaskOf(palette: DragonPalette): THREE.Texture | null {
+  switch (palette.pattern) {
+    case 'splotch':
+      return dragonSplotchMask();
+    case 'zigzag':
+      return dragonZigzagMask();
+    default:
+      return null;
+  }
 }
 
 /**
@@ -224,9 +268,14 @@ function scaleSkin(palette: DragonPalette): DragonTextureSet {
  * darken every roughness value by that factor and read as uniform gloss.
  */
 function scaleMaterial(palette: DragonPalette, relief = 0.9): THREE.MeshStandardMaterial {
-  const skin = scaleSkin(palette);
-  return new THREE.MeshStandardMaterial({
-    color: palette.scale,
+  // One skin for every dragon: the albedo map carries crevice shading only, and
+  // pigment — one colour or two — is applied on top of it.
+  const skin = dragonScaleTextures();
+  const mask = patternMaskOf(palette);
+  const material = new THREE.MeshStandardMaterial({
+    // White under a two-tone pattern: the pigment comes from the injected mix
+    // instead, and leaving the base colour here would tint it twice.
+    color: mask ? new THREE.Color(0xffffff) : palette.scale,
     map: skin.map,
     normalMap: skin.normalMap,
     normalScale: reliefScale(palette, relief),
@@ -234,6 +283,62 @@ function scaleMaterial(palette: DragonPalette, relief = 0.9): THREE.MeshStandard
     roughness: skin.roughnessMap ? 1 : 0.58,
     metalness: 0.12,
   });
+
+  if (mask) applyTwoTonePattern(material, mask, palette.scale, palette.patternColor ?? palette.scaleDeep);
+  return material;
+}
+
+/**
+ * Paints the marking in a **second colour** instead of a darker shade of the
+ * first.
+ *
+ * A greyscale albedo can only multiply, and multiplying can only darken — so a
+ * pattern baked into the map is always the base pigment at lower brightness. Two
+ * pigments need the two colours to reach the shader separately and be mixed
+ * there, which is what this does: `map` keeps the crevice shading, the mask says
+ * where the marking is, and the mix supplies the hue.
+ *
+ * Why patch a standard material rather than layer a second mesh: an overlay would
+ * double the geometry and the draw calls for every scaled surface on every dragon,
+ * in an arena built around a hundred dragons sharing a handful of texture sets.
+ * The patch adds two uniforms and one texture fetch.
+ *
+ * `vMapUv` is the varying three declares for `map`, which every scaled surface
+ * has — the mask deliberately rides those UVs so it tiles with the scales at the
+ * same world size.
+ */
+function applyTwoTonePattern(
+  material: THREE.MeshStandardMaterial,
+  mask: THREE.Texture,
+  base: THREE.Color,
+  marking: THREE.Color,
+): void {
+  material.onBeforeCompile = shader => {
+    shader.uniforms['dragonPatternMask'] = { value: mask };
+    shader.uniforms['dragonBaseColor'] = { value: base };
+    shader.uniforms['dragonPatternColor'] = { value: marking };
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+        uniform sampler2D dragonPatternMask;
+        uniform vec3 dragonBaseColor;
+        uniform vec3 dragonPatternColor;`,
+      )
+      .replace(
+        '#include <map_fragment>',
+        `#include <map_fragment>
+        // Capped short of 1: a marking that reaches the second pigment exactly
+        // reads as printed on, and leaving a little of the ground colour showing
+        // through is what makes two pigments read as one skin.
+        float dragonPattern = texture2D( dragonPatternMask, vMapUv ).r * 0.88;
+        diffuseColor.rgb *= mix( dragonBaseColor, dragonPatternColor, dragonPattern );`,
+      );
+  };
+  // Patched and unpatched materials compile to different programs; without this
+  // three can hand one the other's cached program and the pattern silently
+  // vanishes — or appears on skin that should be plain.
+  material.customProgramCacheKey = () => 'dragon-two-tone-pattern';
 }
 
 function hornMaterial(palette: DragonPalette, side: THREE.Side = THREE.FrontSide): THREE.MeshStandardMaterial {
@@ -502,7 +607,10 @@ function buildBody(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   group.add(mesh(lathe, scaleMaterial(palette)));
 
   const bellyRadii = { x: length * 0.38, y: dims.y * 0.3, z: dims.z * 0.34 };
-  const bellySkin = scaleSkin(palette);
+  // Plain skin and the deep tone, patterned dragon or not: an underside is where
+  // a marked animal's markings run out, and a belly is the one surface a student
+  // never sees on a standing dragon anyway.
+  const bellySkin = dragonScaleTextures();
   const belly = mesh(
     sphereUv(new THREE.SphereGeometry(1, detail(12), detail(8)), bellyRadii, SCALE_TILE, palette),
     new THREE.MeshStandardMaterial({
@@ -815,8 +923,23 @@ function buildHornedHead(
     if (style.hornLength > 0) {
       const mount = dragonHeadHornMount(dims, side, shape);
       const mainHorn = buildHorn(scaleRef * style.hornLength, scaleRef * style.hornRadius, horn, palette);
+      mainHorn.name = `dragon-horn-${side < 0 ? 'left' : 'right'}`;
       mainHorn.position.set(mount.x, mount.y, mount.z);
-      mainHorn.rotation.set(side * 0.5, 0, 0.55);
+      /*
+       * Stood up off the temporal shelf and driven forward along the snout.
+       *
+       * The z angle is the whole change here. It used to be +0.55, which rakes a
+       * horn back over the neck; -0.95 lays it forward instead, about 55° off
+       * vertical, so the pair points out past the brow at whatever the animal is
+       * looking at. Combined with the slight forward curl inside `buildHorn`,
+       * the tip finishes ahead of the base rather than behind it.
+       *
+       * The x angle fans the pair apart. Raised from 0.34: now that the horns are
+       * long and thin, a tight pair reads as one horn from the side and as a
+       * fork from the front, and the extra splay is what separates them into two
+       * — while staying well short of the sideways sweep of cattle horns.
+       */
+      mainHorn.rotation.set(side * 0.62, 0, -0.95);
       group.add(mainHorn);
     }
 
@@ -824,53 +947,79 @@ function buildHornedHead(
       const browMount = dragonHeadSurfacePoint(dims, -0.02, side * 0.5, shape);
       const browSpike = buildHorn(scaleRef * style.browLength, scaleRef * 0.08, horn, palette);
       browSpike.position.set(browMount.x, browMount.y, browMount.z);
-      browSpike.rotation.set(side * 0.3, 0, 0.75);
+      // Forward too, and further over than the main pair: these sit ahead of the
+      // horns, so a shared angle would bury them in the horn bases behind them.
+      browSpike.rotation.set(side * 0.3, 0, -1.15);
       group.add(browSpike);
     }
 
     group.add(buildEye(part, dims, side, shape));
   }
 
+  /*
+   * The nose horn is not here. It rides the **upper jaw**, behind the nostrils —
+   * see `buildJaw`. The snout a viewer sees is that part, not the skull's own
+   * muzzle: the jaw mounts over it from 0.34 forward, so a horn placed out here
+   * would either be swallowed by the jaw or stand on the seam between the two.
+   */
+
   addExpressiveHeadFeatures(group, part, dims, palette, shape);
 
   return group;
 }
 
+/**
+ * One horn: a stout spike in two segments, drawn along its own +y.
+ *
+ * The proportions are a stegosaur's spike rather than a ram's horn. It carries
+ * its thickness most of the way out and then finishes in a short point, and the
+ * bend at the joint is slight — the shape reads as *bone driven forward*, which
+ * a curl cannot do. The version this replaced ran a thin base into a much
+ * thinner tip and bent 0.55 rad at the joint, so each horn was a hook.
+ *
+ * @param curl Bend at the joint, in radians. **Negative points the tip forward**
+ *   (toward +x once the caller has stood the horn up), positive rakes it back.
+ *   Kept as a parameter because it is the one number that separates a forward
+ *   spike from a swept one, and both are wanted on the same skull.
+ */
 function buildHorn(
   length: number,
   baseRadius: number,
   material: THREE.Material,
   palette: DragonPalette,
+  curl = -0.18,
 ): THREE.Group {
   const horn = new THREE.Group();
 
+  // Barely tapered over the first two thirds: this is the segment that carries
+  // the mass, and narrowing it here is what made the old horn look like a wire.
   const base = mesh(
     revolvedUv(
-      new THREE.CylinderGeometry(baseRadius * 0.45, baseRadius, length * 0.55, detail(8)),
-      baseRadius * 0.72,
-      length * 0.55,
+      new THREE.CylinderGeometry(baseRadius * 0.78, baseRadius, length * 0.62, detail(8)),
+      baseRadius * 0.88,
+      length * 0.62,
       HORN_TILE,
       palette,
     ),
     material,
   );
-  base.position.y = length * 0.275;
+  base.position.y = length * 0.31;
   horn.add(base);
 
   const tipPivot = new THREE.Group();
-  tipPivot.position.y = length * 0.55;
-  tipPivot.rotation.z = 0.55;
+  tipPivot.position.y = length * 0.62;
+  tipPivot.rotation.z = curl;
   const tip = mesh(
     revolvedUv(
-      new THREE.CylinderGeometry(baseRadius * 0.04, baseRadius * 0.45, length * 0.5, detail(8)),
-      baseRadius * 0.25,
-      length * 0.5,
+      new THREE.CylinderGeometry(baseRadius * 0.05, baseRadius * 0.78, length * 0.44, detail(8)),
+      baseRadius * 0.4,
+      length * 0.44,
       HORN_TILE,
       palette,
     ),
     material,
   );
-  tip.position.y = length * 0.25;
+  tip.position.y = length * 0.22;
   tipPivot.add(tip);
   horn.add(tipPivot);
 
@@ -1011,10 +1160,41 @@ const FRILL_SPINE_COUNT = 16;
 const FRILL_ROOT_AXIAL = -0.16;
 /** Tip radius as a multiple of the skull section — a collar twice the head. */
 const FRILL_SPREAD = 2.35;
-/** How far the tips rake back, as a fraction of head length. Depth, not a plate. */
+/** How far the spines rake back on the way out, as a fraction of head length. */
 const FRILL_RAKE = 0.62;
+/**
+ * How far the spines hook **forward** again by the tip, as a fraction of head
+ * length.
+ *
+ * Only a little larger than the rake, so the two together bend each spine into a
+ * curve that leaves the skull sweeping back and finishes *just* forward of the
+ * ring — a slight hook, not a cage. At 1.05 the tips swept round past the eyes
+ * and the collar closed over the animal's own face.
+ */
+const FRILL_CURL = 0.78;
 /** How much the ring pulls in under the throat, where the jaw is. */
 const FRILL_THROAT_TUCK = 0.46;
+/**
+ * How far out along the spines the membrane reaches.
+ *
+ * Short of 1, so every spine tip stands clear of the web it carries. A membrane
+ * flush to the tips (which is what root-to-tip quads gave) hides the points and
+ * the collar reads as a solid disc with a scalloped hem instead of as a ring of
+ * spikes with skin slung between them.
+ */
+const FRILL_WEB_SPAN = 0.76;
+/**
+ * How far the web's rim falls back toward the head between two spines, as a
+ * fraction of the spread.
+ *
+ * This is the slope between the spikes: skin hung between two spars sags away
+ * from the line joining their tips, so the rim scallops and each panel slopes
+ * down from the spine on either side of it.
+ */
+const FRILL_WEB_SCALLOP = 0.2;
+/** Web tessellation: steps across each gap, and out along the spines. */
+const FRILL_WEB_ACROSS = 4;
+const FRILL_WEB_OUT = 3;
 
 /**
  * The male's frill.
@@ -1026,16 +1206,21 @@ const FRILL_THROAT_TUCK = 0.46;
  * is the point — this is a display structure, and one that reads as jewellery
  * rather than as armour has failed at its only job.
  *
- * Two things keep it from becoming the flat disc this replaced once before. It
- * is a **cone, not a plate**: every tip is raked back, so side-on you see a
- * V with real depth instead of a line with spikes floating off it. And the
- * radius is pulled in under the throat, where a ring at full spread would run
- * straight through the lower jaw — the frill is widest across the crown and
- * cheeks, exactly where a display structure is meant to be seen from.
+ * Three things keep it from becoming the flat disc this replaced once before.
  *
- * The web is explicit triangles rather than a ring segment because the gap
- * between two spines is a triangle, not an annulus, and filling it with an
- * annulus is what forced the flat disc in the first place.
+ * Every spine is a **curve with depth**: it rakes back leaving the skull and then
+ * hooks forward again, so the tips finish ahead of the ring rather than trailing
+ * behind it, and side-on you see a swept shape instead of a line with spikes
+ * floating off it.
+ *
+ * The **membrane stops short of the tips** ({@link FRILL_WEB_SPAN}), so the points
+ * project past the skin, and its rim **scallops between them**
+ * ({@link FRILL_WEB_SCALLOP}) — each panel slopes away from the spine on either
+ * side of it, the way skin slung between two spars actually hangs.
+ *
+ * And the radius is pulled in under the throat, where a ring at full spread would
+ * run straight through the lower jaw — the frill is widest across the crown and
+ * cheeks, exactly where a display structure is meant to be seen from.
  */
 function buildMaleCrest(
   group: THREE.Group,
@@ -1046,73 +1231,139 @@ function buildMaleCrest(
   const section = dragonHeadSection(dims, FRILL_ROOT_AXIAL, shape);
   const spineMaterial = hornMaterial(palette);
   const webMaterial = membraneMaterial(palette);
+  const rootX = FRILL_ROOT_AXIAL * dims.x;
 
-  const roots: THREE.Vector3[] = [];
-  const tips: THREE.Vector3[] = [];
+  /** Angle around the collar for a spine index — 0 at the crown. */
+  const angleOf = (index: number): number => (index / FRILL_SPINE_COUNT) * Math.PI * 2;
 
-  for (let index = 0; index < FRILL_SPINE_COUNT; index += 1) {
-    // 0 at the crown, running right round to the throat and back.
-    const angle = (index / FRILL_SPINE_COUNT) * Math.PI * 2;
+  /**
+   * A point on the collar surface.
+   *
+   * @param angle Around the ring, 0 at the crown.
+   * @param out 0 at the skull, 1 at a spine tip.
+   * @param inset Radial pull-back, for the scalloped web rim between spines.
+   */
+  const crestPoint = (angle: number, out: number, inset = 0): THREE.Vector3 => {
     const up = Math.cos(angle);
     // Pulled in below the horizontal, where the jaw is. Full spread everywhere
     // else, so the collar still closes into a complete ring.
-    const spread = FRILL_SPREAD * (1 - FRILL_THROAT_TUCK * Math.max(0, -up));
+    const spread = FRILL_SPREAD * (1 - FRILL_THROAT_TUCK * Math.max(0, -up)) - inset;
+    const radial = 0.98 + (spread - 0.98) * out;
 
-    const root = new THREE.Vector3(
-      FRILL_ROOT_AXIAL * dims.x,
-      section.centerY + up * section.halfHeight * 0.98,
-      Math.sin(angle) * section.halfWidth * 0.98,
+    return new THREE.Vector3(
+      // Back on the way out, forward again by the tip: `out` linear for the rake
+      // and squared for the curl, which is what bends the spine instead of
+      // simply aiming it somewhere else.
+      rootX - dims.x * FRILL_RAKE * out + dims.x * FRILL_CURL * out * out,
+      section.centerY + up * section.halfHeight * radial,
+      Math.sin(angle) * section.halfWidth * radial,
     );
-    const tip = new THREE.Vector3(
-      FRILL_ROOT_AXIAL * dims.x - dims.x * FRILL_RAKE,
-      section.centerY + up * section.halfHeight * spread,
-      Math.sin(angle) * section.halfWidth * spread,
-    );
+  };
 
-    roots.push(root);
-    tips.push(tip);
-
-    const length = root.distanceTo(tip);
+  for (let index = 0; index < FRILL_SPINE_COUNT; index += 1) {
+    const angle = angleOf(index);
+    const up = Math.cos(angle);
     // Thickest over the crown and thinnest under the throat, so the ring has a
     // direction to it rather than reading as a machined part.
     const radius = dims.z * (0.05 + 0.022 * up);
-    const spine = mesh(
+
+    /*
+     * Two segments meeting at the bend, like every other bone on this animal: a
+     * barely tapered shaft out to the knuckle, then the point. Drawn as straight
+     * runs between three samples of the same curve the web is built from, so the
+     * spine and the skin it carries cannot drift apart.
+     */
+    const stations = [0, 0.55, 1].map(out => crestPoint(angle, out));
+    const spine = new THREE.Group();
+    spine.name = `dragon-male-crest-spine-${index + 1}`;
+
+    const shaftLength = stations[0].distanceTo(stations[1]);
+    const shaft = mesh(
       revolvedUv(
-        new THREE.ConeGeometry(radius, length, detail(6)),
+        new THREE.CylinderGeometry(radius * 0.6, radius, shaftLength, detail(6)),
         radius,
-        length,
+        shaftLength,
         HORN_TILE,
         palette,
       ),
       spineMaterial,
     );
-    spine.name = `dragon-male-crest-spine-${index + 1}`;
-    spine.position.copy(root).lerp(tip, 0.5);
-    spine.quaternion.setFromUnitVectors(
+    shaft.position.copy(stations[0]).lerp(stations[1], 0.5);
+    shaft.quaternion.setFromUnitVectors(
       new THREE.Vector3(0, 1, 0),
-      tip.clone().sub(root).normalize(),
+      stations[1].clone().sub(stations[0]).normalize(),
     );
+    spine.add(shaft);
+
+    const pointLength = stations[1].distanceTo(stations[2]);
+    const point = mesh(
+      revolvedUv(
+        new THREE.ConeGeometry(radius * 0.6, pointLength, detail(6)),
+        radius * 0.6,
+        pointLength,
+        HORN_TILE,
+        palette,
+      ),
+      spineMaterial,
+    );
+    point.position.copy(stations[1]).lerp(stations[2], 0.5);
+    point.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      stations[2].clone().sub(stations[1]).normalize(),
+    );
+    spine.add(point);
+
     group.add(spine);
   }
 
-  // Webbing: one quad per gap, split into two triangles, spanning root-to-root
-  // and tip-to-tip. The last gap wraps back to the first, which is what closes
-  // the collar into a ring. Double-sided via the membrane material, so it reads
-  // from either side without a second surface.
+  /*
+   * The web, as a tessellated strip per gap rather than one quad.
+   *
+   * A single quad can only be flat, and flat is exactly what has to go: the rim
+   * has to fall back between the spines and the surface has to follow the spines'
+   * curve on the way out. Both are sampled from `crestPoint`, so a change to the
+   * rake, the curl or the spread carries the skin with it.
+   *
+   * The last gap wraps back to the first, which is what closes the collar into a
+   * ring. Double-sided via the membrane material, so it reads from either side
+   * without a second surface.
+   */
   const positions: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
+  const columns = FRILL_WEB_OUT + 1;
 
   for (let index = 0; index < FRILL_SPINE_COUNT; index += 1) {
-    const next = (index + 1) % FRILL_SPINE_COUNT;
-    const base = index * 4;
-    for (const point of [roots[index], tips[index], roots[next], tips[next]]) {
-      positions.push(point.x, point.y, point.z);
+    const from = angleOf(index);
+    // Not `angleOf(index + 1)`: the wrap gap has to span forward past 2π rather
+    // than back to zero, or the last panel is stretched right round the collar.
+    const step = (Math.PI * 2) / FRILL_SPINE_COUNT;
+    const base = positions.length / 3;
+
+    for (let across = 0; across <= FRILL_WEB_ACROSS; across += 1) {
+      const u = across / FRILL_WEB_ACROSS;
+      // 0 at each spine, 1 midway between them: no inset where the skin is
+      // pinned to bone, most where it hangs free.
+      const sag = Math.sin(u * Math.PI);
+      for (let outStep = 0; outStep <= FRILL_WEB_OUT; outStep += 1) {
+        const out = (outStep / FRILL_WEB_OUT) * FRILL_WEB_SPAN;
+        // The scallop is a rim effect: it grows with distance out, so the skin
+        // still meets the skull flush at the root ring.
+        const point = crestPoint(from + step * u, out, FRILL_WEB_SCALLOP * sag * out);
+        positions.push(point.x, point.y, point.z);
+        uvs.push(u, out);
+      }
     }
-    // Around the collar, then out along it — so the membrane's thin edge lands
-    // at the rim where a real one is thinnest.
-    uvs.push(0, 0, 0, 1, 1, 0, 1, 1);
-    indices.push(base, base + 1, base + 3, base, base + 3, base + 2);
+
+    for (let across = 0; across < FRILL_WEB_ACROSS; across += 1) {
+      for (let outStep = 0; outStep < FRILL_WEB_OUT; outStep += 1) {
+        const a = base + across * columns + outStep;
+        const b = a + 1;
+        const c = a + columns;
+        const d = c + 1;
+        indices.push(a, c, b, b, c, d);
+      }
+    }
   }
 
   const web = new THREE.BufferGeometry();
@@ -1287,7 +1538,46 @@ function buildJaw(
     toothHeight: visualNumber(part, 'toothHeight', defaults.toothHeight),
     toothRadius: visualNumber(part, 'toothRadius', defaults.toothRadius),
     toothStart: visualNumber(part, 'toothStart', defaults.toothStart),
+    noseHornLength: visualNumber(part, 'noseHornLength', defaults.noseHornLength),
   };
+
+  /*
+   * The nose horn: on the bridge of the upper jaw, immediately behind the
+   * nostrils, on the midline.
+   *
+   * It belongs to the jaw rather than the skull because the jaw *is* the snout a
+   * viewer sees — it mounts over the skull's muzzle, so a horn placed on the head
+   * would sit on the seam between the two or be swallowed by the part in front
+   * of it.
+   *
+   * Behind the nostrils by a fixed offset from `NOSTRIL_ALONG` and not by a
+   * separate number, for the same reason the fangs read that constant: if the
+   * nostrils move, the horn behind them has to move with them or it ends up
+   * between them.
+   */
+  const noseHornLength = dims.y * style.noseHornLength;
+  if (variant === 'upper' && noseHornLength > 0) {
+    const along = NOSTRIL_ALONG - 0.14;
+    const noseHorn = buildHorn(
+      noseHornLength,
+      Math.max(dims.y, dims.z) * 0.11,
+      hornMaterial(palette),
+      palette,
+      // Barely any bend. At this size a curl is not read as a curl, only as a
+      // kink halfway up.
+      -0.1,
+    );
+    noseHorn.name = 'dragon-nose-horn';
+    // Sunk a little into the bridge so the base disc finishes inside the jaw
+    // rather than standing on the surface.
+    noseHorn.position.set(dims.x * along, topSurfaceY(along) - noseHornLength * 0.06, 0);
+    // Upright with a slight forward lean. The snout is already sloping away
+    // ahead of it, and laying the horn over as far as the pair on the skull would
+    // point it along the nose instead of up off it.
+    noseHorn.rotation.set(0, 0, -0.22);
+    group.add(noseHorn);
+  }
+
   const fangScale = visualNumber(part, 'fangScale', 1);
   const enamel = toothMaterial(palette);
   const toothHeight = dims.y * style.toothHeight * fangScale;
@@ -1528,12 +1818,16 @@ function buildGraspArm(part: AssemblyPart, palette: DragonPalette): THREE.Group 
  * The hand: a short palm and three long hooked fingers, splayed and held clear
  * of the ground.
  *
- * The fingers are the same {@link buildTalon} the feet wear, and that is the
- * point rather than a saving — a grasping hand is a foot whose claws got long
- * enough to close on something, so the two should be visibly the same keratin.
- * What separates them is proportion: a talon on a foot is a stub against a
- * broad pad, and here each finger is longer than the palm it grows from, which
- * is the silhouette that reads as *grabs* from any distance.
+ * Each finger is a digit rather than a spike — two scaled phalanges bending at
+ * a knuckle, ending in the same {@link buildTalon} keratin the feet wear. The
+ * whole-keratin version this replaced read as a fork: three cones stuck in a
+ * brick, with nothing in the silhouette to say the thing could close. Skin on
+ * the segments and claw only on the tip is what separates a talon *on a finger*
+ * from a talon *for a toe*, and the two bends are what make the curl legible
+ * from any distance.
+ *
+ * Proportion carries the rest: a talon on a foot is a stub against a broad pad,
+ * and here each finger is longer than the palm it grows from.
  *
  * They point forward along +x and hook down, so the hand is a curl waiting to
  * close rather than a rake pointing at the floor.
@@ -1572,22 +1866,22 @@ function buildGraspHand(part: AssemblyPart, palette: DragonPalette): THREE.Group
   const fingerRadius = dims.y * style.fingerRadius;
 
   for (const [index, side] of spreadPositions(style.fingerCount, 2).entries()) {
-    const finger = buildTalon(fingerRadius, fingerLength, palette);
-    finger.name = `dragon-grasp-finger-${index + 1}`;
+    const finger = buildGraspFinger(fingerRadius, fingerLength, palette, index + 1);
     finger.position.set(
       dims.x * style.palmLength * 0.42,
       dims.y * 0.04,
       side * dims.z * style.fingerSplay,
     );
     /*
-     * -90° about z lays the talon's own +y axis along +x. The extra third of a
-     * radian pitches the whole finger down from there, and it is doing real
-     * work: `buildTalon` curls only its outer segment, so without this the
-     * finger reads as a spike with a bent tip rather than as something closing.
-     * The yaw fans the outer two outward, so the three enclose a volume instead
-     * of lying in one plane — which is the difference between a hand and a fork.
+     * -90° about z lays the finger's own +y axis along +x. The extra fifth of a
+     * radian pitches the whole digit down from there, on top of the two bends
+     * inside it: the knuckle and the claw curl toward the palm, and starting
+     * the chain already tipped is what aims that curl at something in front of
+     * the hand rather than at the sky. The yaw fans the outer two outward, so
+     * the three enclose a volume instead of lying in one plane — which is the
+     * difference between a hand and a fork.
      */
-    finger.rotation.set(0, -side * style.fingerSplay, -Math.PI / 2 - 0.32);
+    finger.rotation.set(0, -side * style.fingerSplay, -Math.PI / 2 - 0.2);
     group.add(finger);
   }
 
@@ -1595,6 +1889,104 @@ function buildGraspHand(part: AssemblyPart, palette: DragonPalette): THREE.Group
   const wrist = buildJointBall(dims.y * 0.5 * scale, palette, 'dragon-grasp-wrist-ball');
   wrist.position.set(-dims.x * style.palmLength * 0.5, dims.y * 0.1, 0);
   group.add(wrist);
+
+  return group;
+}
+
+/**
+ * One finger: two scaled phalanges and a claw, curling along its own +y.
+ *
+ * The proportions are a hand's rather than a foot's. The proximal segment is
+ * the longest and the only one that stays straight — it is what carries the
+ * finger clear of the palm, and bending it would tuck the whole digit back
+ * under the hand. Everything after it bends, cumulatively: the knuckle takes
+ * a third of a radian and the claw another two thirds, so the tip finishes
+ * about 55° round from where the finger left the palm. That is a grip closing
+ * on something, not a hook hanging open.
+ *
+ * The claw is {@link buildTalon} at finger scale, deliberately: a hand's claw
+ * and a foot's talon are the same keratin on the same animal, and a student
+ * comparing the two should see one shape used twice.
+ *
+ * Sized entirely from `radius` and `length` so the caller — and through it the
+ * claw gene — owns the scale.
+ */
+function buildGraspFinger(
+  radius: number,
+  length: number,
+  palette: DragonPalette,
+  index: number,
+): THREE.Group {
+  const group = new THREE.Group();
+  group.name = `dragon-grasp-finger-${index}`;
+  const skin = scaleMaterial(palette);
+
+  const proximalLength = length * 0.46;
+  const proximal = mesh(
+    revolvedUv(
+      new THREE.CylinderGeometry(radius * 0.88, radius, proximalLength, detail(8)),
+      radius,
+      proximalLength,
+      SCALE_TILE,
+      palette,
+    ),
+    skin,
+  );
+  proximal.position.y = -length * 0.5 + proximalLength * 0.5;
+  group.add(proximal);
+
+  // The base knuckle, on the palm rim. Mostly swallowed by the palm, like every
+  // other joint ball on the animal — it is there so the finger reads as seated
+  // in the hand rather than glued to the front of it.
+  const base = buildJointBall(radius * 1.04, palette, `dragon-grasp-finger-${index}-base`);
+  base.position.y = -length * 0.5 + radius * 0.2;
+  group.add(base);
+
+  const knuckle = new THREE.Group();
+  knuckle.position.y = -length * 0.5 + proximalLength;
+  knuckle.rotation.z = 0.34;
+  group.add(knuckle);
+
+  const knuckleBall = buildJointBall(
+    radius * 0.94,
+    palette,
+    `dragon-grasp-finger-${index}-knuckle`,
+  );
+  knuckle.add(knuckleBall);
+
+  const middleLength = length * 0.34;
+  const middle = mesh(
+    revolvedUv(
+      new THREE.CylinderGeometry(radius * 0.62, radius * 0.86, middleLength, detail(8)),
+      radius * 0.74,
+      middleLength,
+      SCALE_TILE,
+      palette,
+    ),
+    skin,
+  );
+  middle.position.y = middleLength * 0.5;
+  knuckle.add(middle);
+
+  const clawPivot = new THREE.Group();
+  clawPivot.position.y = middleLength;
+  clawPivot.rotation.z = 0.62;
+  knuckle.add(clawPivot);
+
+  /*
+   * Slimmer than the digit it grows from — about half its width — and longer
+   * than either segment. A claw as wide as the finger reads as the end cap of
+   * a sausage; the step down from skin to keratin is what says the tip is a
+   * different material doing a different job.
+   */
+  const clawLength = length * 0.52;
+  const claw = buildTalon(radius * 0.62, clawLength, palette);
+  claw.name = `dragon-grasp-claw-${index}`;
+  // Its own blunt end reaches back behind its origin; seating it that far
+  // forward buries the root in the segment it grows out of instead of leaving
+  // a step between keratin and skin.
+  claw.position.y = clawLength * TALON_BLUNT_END * 0.6;
+  clawPivot.add(claw);
 
   return group;
 }
@@ -1742,6 +2134,14 @@ export interface DragonJawStyle {
    * {@link TOOTH_ROW_SPAN}.
    */
   toothStart: number;
+  /**
+   * Nose horn length, as a fraction of jaw depth. 0 draws no nose horn.
+   *
+   * A jaw parameter rather than a head one because the horn sits on the bridge of
+   * the upper jaw, behind the nostrils — the same part that owns the nostrils it
+   * is placed from. The lower jaw ignores it.
+   */
+  noseHornLength: number;
 }
 
 /**
@@ -1833,14 +2233,24 @@ export const DEFAULT_DRAGON_STYLE: DragonStyle = {
   body: { spikeCount: 6, spikeSpread: 0.73, spikeHeight: 0.2, spikeRadius: 0.051, spikeLean: 0.56 },
   // The row starts behind the fang station (`NOSTRIL_ALONG`): at 0.38 the front
   // tooth grew out of the same spot as the fang and disappeared inside it.
-  jaw: { toothCount: 4, toothHeight: 1.15, toothRadius: 0.1, toothStart: 0.28 },
+  // The nose horn is a little over half the jaw's depth: a horn on the snout,
+  // clearly smaller than the pair on the skull that leads the silhouette.
+  jaw: { toothCount: 4, toothHeight: 1.15, toothRadius: 0.1, toothStart: 0.28, noseHornLength: 0.62 },
   // Horn lengths were authored against the old sphere's radius (dims.x / 2 on a
   // uniform head); they now key off head height, which is the same number on
   // the shipped horned head.
-  head: { ...DEFAULT_HEAD_SHAPE, hornLength: 1.35, hornRadius: 0.16, browLength: 0.45 },
+  // Long and slim. The stout 0.21 version read as a pair of tusks; at 0.13 over
+  // 1.8 head-heights the same forward drive comes from the *reach* instead, which
+  // is what a horn on a hunting skull looks like. The taper inside `buildHorn`
+  // keeps it from going wiry: it holds its width to the joint and only then
+  // points.
+  head: { ...DEFAULT_HEAD_SHAPE, hornLength: 1.8, hornRadius: 0.13, browLength: 0.45 },
   foot: { talonCount: 3, talonLength: 0.6, talonRadius: 0.42 },
-  // Three fingers, each longer than the palm: the proportion is the trait.
-  grasp: { fingerCount: 3, fingerLength: 1.15, fingerRadius: 0.34, palmLength: 0.55, fingerSplay: 0.34 },
+  // Three fingers, each longer than the palm: the proportion is the trait. They
+  // are thicker and longer than the cones they replaced because a digit that
+  // bends twice has to be readable at each segment — a thin one just reads as a
+  // bent wire once the knuckle is in it.
+  grasp: { fingerCount: 3, fingerLength: 1.3, fingerRadius: 0.36, palmLength: 0.55, fingerSplay: 0.38 },
   tailClub: { spikeCount: 5, spikeLength: 0.85, spikeRadius: 0.18 },
   joint: { ball: 1.06 },
 };
@@ -1883,6 +2293,16 @@ export function getActiveWingShape(): WingMembraneShape {
 const BASE_WING_SPAN_SEGMENTS = 26;
 const BASE_WING_CHORD_SEGMENTS = 8;
 
+/**
+ * Radius of every bone in the wing, as a fraction of the plate's thickness.
+ *
+ * One number for the arm and the fingers, because they used to differ by a factor
+ * of two and that is exactly what made the leading edge read as scaffolding: a
+ * pole twice the width of the digits beside it. The fingers still thin outboard
+ * from here, but within a range you read as one skeleton.
+ */
+const BONE_RADIUS = 0.26;
+
 function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
   const dims = part.dimensions;
@@ -1901,12 +2321,12 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   // Chordwise coordinates: +x is the dragon's forward, membrane trails backward.
   const leadingAt = (s: number): number => wingLeadingEdge(dims, s);
   // Straight lines between the stations the fingers pin, so the trailing edge
-  // is a run of flat panels with corners on the fingers. The old smooth taper
-  // curved away from the last finger and left the tip trailing behind itself.
+  // has a corner on every finger. The scallop below then cuts each run inward
+  // between them, which is what turns a taper into a bat's outline.
   const flatTrailingAt = (s: number): number => leadingAt(s) - chord * wingChordFraction(s);
-  const fingerStops = [WING_STATIONS[1], WING_STATIONS[2]];
-  // Root, the two finger tips, and the wingtip: the membrane is pinned at each
-  // and free to sag between them.
+  const fingerStops = WING_FINGER_STATIONS;
+  // Root, each finger tip, and the wingtip: the membrane is pinned at each and
+  // free to sag between them.
   const anchors = [0, ...fingerStops, 1];
 
   /** 0 where the membrane is pinned to a bone, 1 midway between two of them. */
@@ -1920,37 +2340,15 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
     return 0;
   };
 
-  /*
-   * Folding.
-   *
-   * A wing at rest is not a spread wing rotated — it is a wing bent at the
-   * wrist, with the membrane gathered between the fingers like a closed fan.
-   * Rotating the spread part rigidly (which is what the resting stance used to
-   * do on its own) leaves a fully extended wing pointing backwards, and no
-   * amount of angle fixes that.
-   *
-   * This is geometry rather than a new part on purpose. An articulated fold
-   * would need a forearm part, which means a catalog entry, a physics collider,
-   * authored sockets, a joint, a regenerated model pack, and the hardcoded part
-   * counts in `classic-dragon-test.spec.ts` — all to express something the
-   * builder can already describe, because every point in here is a function of
-   * the span fraction `s`.
-   *
-   * 0 is the flight pose and stays the default, so the arena is untouched.
-   */
-  const fold = Math.max(0, Math.min(1, visualNumber(part, 'wingFold', 0)));
   const ELBOW_S = WING_ELBOW_S;
-  const outboard = wingFoldEase;
 
   // Trailing edge scallops inward between the fingers, pulling toward the
-  // leading edge (larger x) where nothing holds the membrane out. Folding
-  // gathers it further: the fingers close, so the membrane between them has
-  // nowhere to be.
-  const trailingAt = (s: number): number => {
-    const spread = flatTrailingAt(s) + chord * form.scallop * betweenFingers(s);
-    const gather = fold * 0.62 * outboard(s);
-    return leadingAt(s) + (spread - leadingAt(s)) * (1 - gather);
-  };
+  // leading edge (larger x) where nothing holds the membrane out. This is the
+  // scalloped edge a bat wing is read by: skin under tension between two spread
+  // digits cuts back in, so the outline is a run of shallow arcs hung off the
+  // finger tips rather than one straight hem.
+  const trailingAt = (s: number): number =>
+    flatTrailingAt(s) + chord * form.scallop * betweenFingers(s);
 
   const zOf = (s: number): number => span / 2 - s * span;
 
@@ -1968,85 +2366,89 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
     return form.dihedral * span * s - sag * Math.sin(Math.max(0, Math.min(1, c)) * Math.PI);
   };
 
-  /*
-   * Swings everything outboard of the wrist back toward the tail.
-   *
-   * A rotation about the vertical through the wrist. The outboard direction is
-   * -z, and this formula turns -z toward -x, so the hand ends up trailing along
-   * the flank; past 90 degrees it continues inboard and tucks against the body.
-   *
-   * Applied as a single post-transform to every point the builder emits, which
-   * is what keeps the membrane, the arm bone and the finger struts folding as
-   * one piece instead of drifting apart.
-   */
-  const elbowX = leadingAt(ELBOW_S);
-  const elbowZ = zOf(ELBOW_S);
-
-  const foldPoint = (point: THREE.Vector3, s: number): THREE.Vector3 => {
-    const folded = foldWingPoint(point, s, fold, elbowX, elbowZ);
-    return point.set(folded.x, folded.y, folded.z);
-  };
-
   group.add(mesh(
-    buildWingMembraneGeometry(leadingAt, trailingAt, zOf, membraneY, foldPoint),
+    buildWingMembraneGeometry(leadingAt, trailingAt, zOf, membraneY),
     membraneMaterial(palette),
   ));
 
   const bone = hornMaterial(palette, THREE.DoubleSide);
 
   /*
-   * The arm: two straight bones meeting at the wrist, not a curve through it.
+   * The arm: **one** bone along the leading edge, in two straight runs meeting at
+   * the wrist.
    *
-   * This was a Catmull-Rom spline, and it is most of what read as the wing
-   * "curving back" — a spline through the fold points rounds the wrist into an
-   * arc and bows the whole leading edge with it. Real wing bones are straight
-   * and the bend is at the joint, which is also the angular reading: two
-   * segments and a corner. Samples only at the ends and the wrist, because
-   * anything in between is on the line anyway.
+   * One, because there used to be two poles up here and the wing read as a pair
+   * of parallel broomsticks. The other was the outermost finger strut: with the
+   * tip drawn to a point, its target at the trailing edge came so close to the
+   * leading edge that it ran alongside this bone for most of the span. That strut
+   * is gone (the fingers now stop at the stations they actually pin) and this bone
+   * is drawn at the finger radius instead of twice it — the wide pole was the one
+   * that read as scaffolding.
+   *
+   * Straight runs rather than a spline: this was a Catmull-Rom curve, and it is
+   * most of what read as the wing "curving back" — a spline through the arm
+   * points rounds the wrist into an arc and bows the whole leading edge with it.
+   * Real wing bones are straight and the bend is at the joint. Samples only at
+   * the ends and the wrist, because anything in between is on the line anyway.
    */
-  const armStations = [0.02, ELBOW_S, 0.98] as const;
+  const armRadius = thickness * BONE_RADIUS;
+  const armStations = [0.02, ELBOW_S, 0.99] as const;
   const armPoints = armStations.map(s =>
-    foldPoint(
-      new THREE.Vector3(
-        leadingAt(s) + (s === ELBOW_S ? 0.01 : -0.015),
-        thickness * (s < ELBOW_S ? 0.1 : s === ELBOW_S ? 0.5 : 0.2) + membraneY(s, 0),
-        zOf(s),
-      ),
-      s,
+    new THREE.Vector3(
+      leadingAt(s) + (s === ELBOW_S ? 0.01 : -0.015),
+      thickness * (s < ELBOW_S ? 0.1 : s === ELBOW_S ? 0.5 : 0.2) + membraneY(s, 0),
+      zOf(s),
     ),
   );
   const armCurve = new THREE.CurvePath<THREE.Vector3>();
   for (let index = 1; index < armPoints.length; index += 1) {
     armCurve.add(new THREE.LineCurve3(armPoints[index - 1], armPoints[index]));
   }
-  group.add(mesh(
+  const armBone = mesh(
     tubeUv(
-      new THREE.TubeGeometry(armCurve, 14, thickness * 0.5, 6),
+      new THREE.TubeGeometry(armCurve, 14, armRadius, 6),
       armCurve.getLength(),
-      thickness * 0.5,
+      armRadius,
       HORN_TILE,
       palette,
     ),
     bone,
-  ));
+  );
+  armBone.name = 'dragon-wing-arm-bone';
+  group.add(armBone);
 
   const elbow = new THREE.Vector3(
     leadingAt(ELBOW_S),
     thickness * 0.3 + membraneY(ELBOW_S, 0),
     zOf(ELBOW_S),
   );
-  // Folded through the same transform as the membrane they hold out, so the
-  // fingers close with it rather than staying splayed across a gathered sheet.
-  const fingerTargets = [...fingerStops, 0.99].map(stop =>
-    foldPoint(new THREE.Vector3(trailingAt(stop), membraneY(stop, 1), zOf(stop)), stop),
-  );
-  for (const target of fingerTargets) {
+  /*
+   * The fingers, fanning from the wrist to the trailing edge — one to each of the
+   * stations the membrane is pinned at, and no further.
+   *
+   * There used to be an extra strut out at 0.99, on the theory that the tip needed
+   * holding too. Once the planform came to a point the tip's chord was so shallow
+   * that the strut ran parallel to the arm bone all the way out, and the wing had
+   * two poles along its leading edge. The tip is pinned by the arm bone that
+   * already ends there.
+   *
+   * Each finger is pinned to the corner it makes in the outline, so the strut and
+   * the scallop it holds out cannot drift apart: whatever the planform does, a
+   * finger ends exactly where the membrane changes direction.
+   *
+   * They thin outboard. The inner digit carries the deepest span of membrane and
+   * the outer one the shallowest, and a fan of identical rods reads as a garden
+   * trellis — the taper is what makes it a hand.
+   */
+  for (const [index, stop] of fingerStops.entries()) {
+    const target = new THREE.Vector3(trailingAt(stop), membraneY(stop, 1), zOf(stop));
+    const radius = thickness * BONE_RADIUS * (1 - 0.2 * (index / Math.max(fingerStops.length - 1, 1)));
     const strut = new THREE.LineCurve3(elbow, target);
     group.add(mesh(
       tubeUv(
-        new THREE.TubeGeometry(strut, 1, thickness * 0.26, 5),
+        new THREE.TubeGeometry(strut, 1, radius, 5),
         elbow.distanceTo(target),
-        thickness * 0.26,
+        radius,
         HORN_TILE,
         palette,
       ),
@@ -2076,8 +2478,6 @@ function buildWingMembraneGeometry(
   trailingAt: (s: number) => number,
   zOf: (s: number) => number,
   membraneY: (s: number, c: number) => number,
-  /** Post-transform applied to every vertex; the resting fold rides on this. */
-  transform: (point: THREE.Vector3, s: number) => THREE.Vector3,
 ): THREE.BufferGeometry {
   const positions: number[] = [];
   const uvs: number[] = [];
@@ -2097,11 +2497,7 @@ function buildWingMembraneGeometry(
 
     for (let column = 0; column <= WING_CHORD_SEGMENTS; column += 1) {
       const c = column / WING_CHORD_SEGMENTS;
-      const point = transform(
-        new THREE.Vector3(leading + (trailing - leading) * c, membraneY(s, c), z),
-        s,
-      );
-      positions.push(point.x, point.y, point.z);
+      positions.push(leading + (trailing - leading) * c, membraneY(s, c), z);
       // The membrane is the one part that maps its texture once rather than
       // tiling it: the vein network has to run root-to-tip with the anatomy, so
       // the UVs are the parametric coordinates themselves — chord across, span

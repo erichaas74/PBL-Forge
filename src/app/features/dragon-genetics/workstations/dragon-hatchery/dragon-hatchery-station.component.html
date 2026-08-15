@@ -37,7 +37,7 @@
   }
 
   <div class="station-grid">
-    <div class="hatchery-family-stage">
+    <div class="hatchery-family-stage" [class.parents-hidden]="!parents()">
       @if (parents(); as parentPair) {
         <article class="parent-model mom-model">
           <header>
@@ -59,6 +59,7 @@
         [copy]="copy()"
         [feedback]="feedback()"
         [openLab]="openLab()"
+        [showClutchRecord]="showClutchRecord()"
         (stageEvent)="onStageEvent($event)"
       />
 

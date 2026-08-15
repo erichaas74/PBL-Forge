@@ -3,6 +3,7 @@
     <header class="project-header">
       <a routerLink="/catalog">← Science 7</a>
       <span>Dragon Genetics Lab</span>
+      <a class="wise-preview-link" routerLink="/dragon-genetics/wise-dragon">Preview Wise Dragon</a>
     </header>
 
     <section class="mission" aria-labelledby="mission-title">
@@ -13,7 +14,10 @@
       </div>
       <div class="progress" aria-label="Project completion">
         <strong>{{ view.progressPercent }}%</strong>
-        <span>{{ view.completedRequiredCount }}/{{ view.requiredActivityCount }} required complete</span>
+        <span
+          >{{ view.completedRequiredCount }}/{{ view.requiredActivityCount }} required
+          complete</span
+        >
         <div
           role="progressbar"
           aria-label="Required project work complete"
@@ -124,7 +128,10 @@
           @for (stage of view.stages; track stage.id) {
             @for (activity of stage.activities; track activity.id) {
               @if (activity.evidenceCount) {
-                <li><span>{{ activity.title }}</span><strong>{{ activity.evidenceCount }}</strong></li>
+                <li>
+                  <span>{{ activity.title }}</span
+                  ><strong>{{ activity.evidenceCount }}</strong>
+                </li>
               }
             }
           }

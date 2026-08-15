@@ -104,6 +104,7 @@ export class DragonHatcheryStationComponent {
   readonly parents = input<readonly [DragonParentProfile, DragonParentProfile] | null>(null);
   /** Removes the lesson sequence and opens every hatchery tool immediately. */
   readonly openLab = input(false);
+  readonly showClutchRecord = input(true);
   readonly motherSource = computed(() => {
     const parents = this.parents();
     return parents ? dragonParentCanvasSource(parents[0], 'female') : null;
