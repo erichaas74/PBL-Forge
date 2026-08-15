@@ -84,6 +84,7 @@ export class IncubatorSamplerComponent implements OnDestroy {
   readonly traits = DRAGON_TRAITS;
   readonly sampleSizes = [4, 8, 12, 25, 50, 100] as const;
   readonly originalParentIds = signal<readonly [string | null, string | null]>([null, null]);
+  readonly activeParentRole = signal<ParentRole>('a');
   readonly activeParentIds = signal<readonly [string | null, string | null]>([null, null]);
   readonly activeBreedingPoolIds = signal<readonly string[]>([]);
   readonly selectedTraitId = signal<DragonTraitId>(DRAGON_TRAITS[0].id);
@@ -108,6 +109,11 @@ export class IncubatorSamplerComponent implements OnDestroy {
   readonly account = computed(() => this.accountLibrary.recordsFor(this.studentId()));
   readonly parentA = computed(() => this.findSpecimen(this.activeParentIds()[0]));
   readonly parentB = computed(() => this.findSpecimen(this.activeParentIds()[1]));
+  readonly activeInventoryDragonId = computed(() =>
+    this.activeParentRole() === 'a'
+      ? this.originalParentIds()[0]
+      : this.originalParentIds()[1],
+  );
   readonly breedingPool = computed(() =>
     this.activeBreedingPoolIds()
       .map((id) => this.findSpecimen(id))
@@ -208,6 +214,18 @@ export class IncubatorSamplerComponent implements OnDestroy {
   selectAccountRecord(role: ParentRole, record: AccountGeneticsRecord): void {
     if (record.kind !== 'dragon') return;
     this.selectParent(role, record);
+  }
+
+  selectActiveAccountRecord(record: AccountGeneticsRecord): void {
+    const role = this.activeParentRole();
+    this.selectAccountRecord(role, record);
+    const parents = this.originalParentIds();
+    if (role === 'a' && !parents[1]) this.activeParentRole.set('b');
+    if (role === 'b' && !parents[0]) this.activeParentRole.set('a');
+  }
+
+  setActiveParent(role: ParentRole): void {
+    if (!this.selectionLocked()) this.activeParentRole.set(role);
   }
 
   allowParentDrop(event: DragEvent): void {

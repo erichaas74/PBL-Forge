@@ -12,7 +12,7 @@ export type ExpressiveDragonTraitId =
   | 'scales'
   | 'body-color'
   | 'crest'
-  | 'ears'
+  | 'glow'
   | 'fangs'
   | 'spikes'
   | 'eye-color';
@@ -60,7 +60,14 @@ export const EXPRESSIVE_DRAGON_TRAITS: readonly ExpressiveDragonTraitDefinition[
   trait('scales', 'Scale pattern', 'S', 'Chr 3', 'Banded scales', 'Solid scales', 'Applies two-tone banding or one solid body color.'),
   trait('body-color', 'Body color', 'B', 'Chr 3', 'Bronze body', 'Teal body', 'Repaints the complete procedural dragon.'),
   trait('crest', 'Crest height', 'R', 'Chr 3', 'Tall crest', 'Low crest', 'Changes the height of crown fins on the head.'),
-  trait('ears', 'Ear shape', 'A', 'Chr 4', 'Pointed ears', 'Rounded ears', 'Builds pointed or rounded ear structures on the head.'),
+  /*
+   * Bioluminescence replaced an ear-shape gene whose two phenotypes — a small
+   * pointed flap or a small rounded one — were nearly impossible to tell apart
+   * on a thumbnail, which made it useless for the one job a trait has here:
+   * being read off the animal. Light is a channel nothing else in this genome
+   * uses, so it can never be mistaken for a horn, a crest, or a colour.
+   */
+  trait('glow', 'Bioluminescence', 'N', 'Chr 4', 'Glowing markings', 'No glow', 'Lights a row of living lanterns along the flanks, throat and tail.'),
   trait('fangs', 'Fang length', 'G', 'Chr 4', 'Long fangs', 'Short fangs', 'Changes the size of the real jaw teeth.'),
   trait('spikes', 'Back spikes', 'P', 'Chr 4', 'Many tall spikes', 'Few low spikes', 'Changes dorsal spike number and height.'),
   {
@@ -81,7 +88,7 @@ export const DEFAULT_EXPRESSIVE_DRAGON: ExpressiveDragonProfile = {
     scales: ['S', 's'],
     'body-color': ['B', 'b'],
     crest: ['R', 'r'],
-    ears: ['A', 'a'],
+    glow: ['N', 'n'],
     fangs: ['G', 'g'],
     spikes: ['P', 'p'],
     'eye-color': ['E', 'e'],

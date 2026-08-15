@@ -45,10 +45,20 @@ export const FALLBACK_ABILITY_COPY: Record<AssemblyAbilityId, AbilityCopy> = {
     detail: 'Snaps the jaws shut on whatever is in front.',
     missingDetail: 'No jaw parts, so there is nothing to bite with.',
   },
+  'claw-rake': {
+    name: 'Claw rake',
+    detail: 'A fast swipe of the foreclaws. Little damage, but almost no commitment.',
+    missingDetail: 'No limbs, so there is nothing to rake with.',
+  },
   'wing-buffet': {
     name: 'Wing buffet',
     detail: 'Slams both wings down to knock an opponent back.',
     missingDetail: 'No wings, so this move is unavailable.',
+  },
+  'horn-charge': {
+    name: 'Horn charge',
+    detail: 'Drops the head and runs the target down, knocking it off its feet.',
+    missingDetail: 'This creature does not carry the horned phenotype.',
   },
   'tail-sweep': {
     name: 'Tail sweep',

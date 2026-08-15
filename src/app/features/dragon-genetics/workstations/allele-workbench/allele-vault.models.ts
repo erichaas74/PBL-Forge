@@ -100,7 +100,7 @@ const VAULT_GENE_METADATA: readonly VaultGeneMetadata[] = [
   { id: 'scales', locus: 'SCL-17', icon: 'S' },
   { id: 'body-color', locus: 'CLR-12', icon: 'B' },
   { id: 'crest', locus: 'CRS-21', icon: 'R' },
-  { id: 'ears', locus: 'EAR-05', icon: 'A' },
+  { id: 'glow', locus: 'GLO-05', icon: 'N' },
   { id: 'fangs', locus: 'FNG-13', icon: 'G' },
   { id: 'spikes', locus: 'SPK-22', icon: 'P' },
 ];

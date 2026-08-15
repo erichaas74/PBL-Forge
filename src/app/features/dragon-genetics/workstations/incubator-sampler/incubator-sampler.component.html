@@ -66,15 +66,33 @@
     <span class="rivet right" aria-hidden="true"></span>
   </section>
 
+  <app-account-genetics-file
+    class="breeding-inventory"
+    [studentId]="studentId()"
+    [selectedRecordId]="activeInventoryDragonId()"
+    [dragonsOnly]="true"
+    [disabled]="selectionLocked()"
+    label="Breeding dragon inventory"
+    (recordSelected)="selectActiveAccountRecord($event)"
+  />
+
   <div class="workbench">
     <aside
       class="parent-station parent-a"
       [class.loaded]="parentA()"
+      [class.inventory-target]="activeParentRole() === 'a'"
       (dragover)="allowParentDrop($event)"
       (drop)="dropParent('a', $event)"
     >
-      <header>
-        <span>{{ offspringPoolActive() ? 'POOL SAMPLE A' : 'PARENT A' }}</span>
+      <header
+        role="button"
+        [attr.tabindex]="selectionLocked() ? -1 : 0"
+        [attr.aria-pressed]="activeParentRole() === 'a'"
+        (click)="setActiveParent('a')"
+        (keydown.enter)="setActiveParent('a')"
+        (keydown.space)="setActiveParent('a'); $event.preventDefault()"
+      >
+        <span>{{ offspringPoolActive() ? 'POOL SAMPLE A' : activeParentRole() === 'a' ? 'PARENT A · INVENTORY TARGET' : 'PARENT A' }}</span>
         <strong>{{ parentA()?.name ?? 'Choose a dragon' }}</strong>
         @if (parentA(); as parent) {
           <small>{{ parent.title }}</small>
@@ -101,14 +119,6 @@
           }
         </dl>
       }
-      <app-account-genetics-file
-        [studentId]="studentId()"
-        [selectedRecordId]="originalParentIds()[0]"
-        [dragonsOnly]="true"
-        [compact]="true"
-        [disabled]="selectionLocked()"
-        (recordSelected)="selectAccountRecord('a', $event)"
-      />
     </aside>
 
     <main class="machine-column">
@@ -246,11 +256,19 @@
     <aside
       class="parent-station parent-b"
       [class.loaded]="parentB()"
+      [class.inventory-target]="activeParentRole() === 'b'"
       (dragover)="allowParentDrop($event)"
       (drop)="dropParent('b', $event)"
     >
-      <header>
-        <span>{{ offspringPoolActive() ? 'POOL SAMPLE B' : 'PARENT B' }}</span>
+      <header
+        role="button"
+        [attr.tabindex]="selectionLocked() ? -1 : 0"
+        [attr.aria-pressed]="activeParentRole() === 'b'"
+        (click)="setActiveParent('b')"
+        (keydown.enter)="setActiveParent('b')"
+        (keydown.space)="setActiveParent('b'); $event.preventDefault()"
+      >
+        <span>{{ offspringPoolActive() ? 'POOL SAMPLE B' : activeParentRole() === 'b' ? 'PARENT B · INVENTORY TARGET' : 'PARENT B' }}</span>
         <strong>{{ parentB()?.name ?? 'Choose a dragon' }}</strong>
         @if (parentB(); as parent) {
           <small>{{ parent.title }}</small>
@@ -277,14 +295,6 @@
           }
         </dl>
       }
-      <app-account-genetics-file
-        [studentId]="studentId()"
-        [selectedRecordId]="originalParentIds()[1]"
-        [dragonsOnly]="true"
-        [compact]="true"
-        [disabled]="selectionLocked()"
-        (recordSelected)="selectAccountRecord('b', $event)"
-      />
     </aside>
   </div>
 

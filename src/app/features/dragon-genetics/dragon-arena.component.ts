@@ -16,15 +16,18 @@ import { ArenaViewportComponent } from '../../shared/assembly-arena/components/a
 import {
   ArenaControlFrame,
   BattleBodySnapshot,
+  BattleDefenseSnapshot,
   BattlePlayMode,
   BattleTeam,
   ControlFrameByCombatant,
+  MoveLicenseByCombatant,
 } from '../../shared/assembly-arena/models/arena.models';
 import { AttackMoveStep } from '../../shared/assembly-arena/models/attack-move.models';
 import { AssemblyArenaPhysicsService } from '../../shared/assembly-arena/physics/assembly-arena-physics.service';
 import { AssemblyArenaRendererService } from '../../shared/assembly-arena/rendering/assembly-arena-renderer.service';
 import { AssemblyArenaStore } from '../../shared/assembly-arena/state/assembly-arena.store';
 import {
+  applyMoveLicense,
   buildControlFrames,
   buildSensors,
   createActionControlFrame,
@@ -36,14 +39,18 @@ import { findParent, materializeDragon, runDragonBatch } from './dragon-genetics
 import { DragonBattleResult, StudentDragonRecord } from './dragon-genetics.models';
 import { DRAGON_MOVE_CARDS, DragonMoveCard, findDragonMoveCards } from './dragon-move-cards';
 
-type ControlKey = 'forward' | 'back' | 'left' | 'right' | 'boost';
-type AttackType = 'bite' | 'wing' | 'tail' | 'fire';
+type ControlKey = 'forward' | 'back' | 'left' | 'right' | 'boost' | 'guard';
+type AttackType = 'bite' | 'claw' | 'wing' | 'tail' | 'horn' | 'fire';
 
-/** Standard-mapping gamepad indices: A, B, X, right trigger, d-pad. */
+/** Standard-mapping gamepad indices: face buttons, bumpers, triggers, d-pad. */
 const PAD_BITE = 0;
 const PAD_TAIL = 1;
 const PAD_WING = 2;
 const PAD_FIRE = 3;
+const PAD_GUARD = 4;
+const PAD_DODGE = 5;
+const PAD_CLAW = 6;
+const PAD_HORN = 10;
 const PAD_BOOST = 7;
 const PAD_UP = 12;
 const PAD_DOWN = 13;
@@ -85,13 +92,21 @@ export class DragonArenaComponent implements OnChanges {
   readonly battleFinished = output<DragonBattleResult>();
   readonly arena = inject(AssemblyArenaStore);
   readonly sound = inject(DragonArenaSoundService);
+  /**
+   * The same instance the viewport steps: the providers live on this component,
+   * so reading the fight's combat state here needs no new plumbing.
+   */
+  private readonly physics = inject(AssemblyArenaPhysicsService);
   private readonly library = inject(CreationLibraryService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly controls = signal<ReadonlySet<ControlKey>>(new Set());
   private biteUntil = 0;
+  private clawUntil = 0;
   private wingUntil = 0;
   private tailUntil = 0;
+  private hornUntil = 0;
   private fireUntil = 0;
+  private dodgeUntil = 0;
   private reportedMatchId: number | null = null;
   private studentAssetId = '';
   private opponentAssetId = '';
@@ -116,22 +131,70 @@ export class DragonArenaComponent implements OnChanges {
     this.champion().genome.wings.some(allele => allele === 'W'));
   readonly canFireAttack = computed(() =>
     this.champion().genome.fire.some(allele => allele === 'F'));
+  /**
+   * Horns are the armoured genotype in this model — `armor-density` is already
+   * derived from them — so they are what grants both the charge and the brace.
+   * Wings grant the roll, matching the buffet they already grant.
+   */
+  readonly canHornCharge = computed(() =>
+    this.champion().genome.horns.some(allele => allele === 'H'));
+  readonly canGuard = this.canHornCharge;
+  readonly canDodge = this.canWingAttack;
+  /** Live defensive state of the player's dragon, for the HUD readout. */
+  readonly playerDefense = signal<BattleDefenseSnapshot | null>(null);
 
   readonly controlFrameFactory = (snapshots: BattleBodySnapshot[]): ControlFrameByCombatant => {
     const state = this.arena.state();
+    const awareness = this.physics.getCombatAwareness(state);
+    // Published for the HUD from the same read the controllers use, so the
+    // brace indicator can never disagree with the brace the physics is running.
+    this.playerDefense.set(awareness['red-1']?.defense ?? null);
     const frames = buildControlFrames(
       state,
       snapshots,
       this.arena.strategyPrograms(),
       this.manualFrame(),
+      {},
+      { awareness, licenses: this.moveLicenses() },
     );
 
     // In the turn duel, the scripted combatant is driven entirely by its move
     // cards — the base program (manual or AI) is replaced, not merged.
     const scripted = this.scriptFrame(state, snapshots);
-    if (scripted) frames[scripted.combatantId] = scripted.frame;
+    if (scripted) {
+      frames[scripted.combatantId] = applyMoveLicense(
+        scripted.frame,
+        this.moveLicenses()[scripted.combatantId],
+      );
+    }
     return frames;
   };
+
+  /**
+   * Which moves each dragon's genotype grants.
+   *
+   * Enforced here rather than only on the buttons, because the challenger is
+   * driven by a strategy program that never sees the UI — without this it could
+   * charge with horns it did not inherit.
+   */
+  private moveLicenses(): MoveLicenseByCombatant {
+    const licenses: MoveLicenseByCombatant = {};
+    const genomes: [string, StudentDragonRecord | null][] = [
+      ['red-1', this.champion()],
+      ['blue-1', this.opponentRecord],
+    ];
+
+    for (const [combatantId, record] of genomes) {
+      if (!record) continue;
+      licenses[combatantId] = {
+        wings: record.genome.wings.includes('W'),
+        fire: record.genome.fire.includes('F'),
+        horns: record.genome.horns.includes('H'),
+      };
+    }
+
+    return licenses;
+  }
 
   constructor() {
     effect(() => {
@@ -237,9 +300,16 @@ export class DragonArenaComponent implements OnChanges {
   }
 
   attack(type: AttackType): void {
-    const until = performance.now() + 360;
+    const now = performance.now();
+    const until = now + 360;
     if (type === 'bite') {
       this.biteUntil = until;
+      this.sound.playBite();
+    }
+    if (type === 'claw') {
+      // Shorter buffer than the rest: the rake is a half-second move, and a
+      // 360ms request would keep re-triggering it the moment it ended.
+      this.clawUntil = now + 180;
       this.sound.playBite();
     }
     if (type === 'wing' && this.canWingAttack()) {
@@ -250,10 +320,31 @@ export class DragonArenaComponent implements OnChanges {
       this.tailUntil = until;
       this.sound.playTail();
     }
+    if (type === 'horn' && this.canHornCharge()) {
+      this.hornUntil = until;
+      this.sound.playImpact();
+    }
     if (type === 'fire' && this.canFireAttack()) {
-      this.fireUntil = performance.now() + 520;
+      this.fireUntil = now + 520;
       this.sound.playFire();
     }
+  }
+
+  /** The roll. Tapped, not held, so it buffers the same way an attack does. */
+  dodge(): void {
+    if (!this.canDodge()) return;
+    this.dodgeUntil = performance.now() + 140;
+    this.sound.playWing();
+  }
+
+  /** Whether the player's dragon is braced right now, for the HUD. */
+  isGuarding(): boolean {
+    return this.playerDefense()?.guarding ?? false;
+  }
+
+  /** How much of the brace budget is spent, 0 through 100. */
+  guardFatiguePercent(): number {
+    return Math.round(100 * (this.playerDefense()?.guardFatigue ?? 0));
   }
 
   healthPercent(value: number | undefined, max: number | undefined): number {
@@ -277,12 +368,14 @@ export class DragonArenaComponent implements OnChanges {
 
   canUseCard(card: DragonMoveCard): boolean {
     return (!card.requiresWings || this.canWingAttack())
-      && (!card.requiresFire || this.canFireAttack());
+      && (!card.requiresFire || this.canFireAttack())
+      && (!card.requiresHorns || this.canHornCharge());
   }
 
   cardUnavailableReason(card: DragonMoveCard): string {
     if (card.requiresWings && !this.canWingAttack()) return 'Unavailable: wingless genotype';
     if (card.requiresFire && !this.canFireAttack()) return 'Unavailable: no fire genotype';
+    if (card.requiresHorns && !this.canHornCharge()) return 'Unavailable: smooth-headed genotype';
     return card.detail;
   }
 
@@ -351,10 +444,13 @@ export class DragonArenaComponent implements OnChanges {
   /** The Warden rotates through simple genotype-legal plans by turn number. */
   private playWardenTurn(): void {
     const winged = this.opponentRecord?.genome.wings.includes('W') ?? false;
+    const horned = this.opponentRecord?.genome.horns.includes('H') ?? false;
     const patterns: string[][] = [
-      ['advance', 'bite'],
+      ['advance', 'claw', 'bite'],
       winged ? ['advance', 'wing'] : ['charge', 'bite'],
-      ['charge', 'tail'],
+      horned ? ['horn'] : ['charge', 'tail'],
+      // Its defensive turn: whichever answer its genotype grants, then a poke.
+      horned ? ['guard', 'claw'] : winged ? ['roll', 'claw'] : ['retreat', 'claw'],
       ['bite', 'tail'],
     ];
     const pattern = patterns[(this.arena.state().turnNumber - 1) % patterns.length];
@@ -422,9 +518,25 @@ export class DragonArenaComponent implements OnChanges {
   @HostListener('window:blur')
   clearControls(): void {
     this.controls.set(new Set());
+    // Buffered moves are cleared too: a bite requested just as the window lost
+    // focus should not fire when the student comes back to a paused arena.
+    this.biteUntil = 0;
+    this.clawUntil = 0;
+    this.wingUntil = 0;
+    this.tailUntil = 0;
+    this.hornUntil = 0;
+    this.fireUntil = 0;
+    this.dodgeUntil = 0;
   }
 
-  /** Keyboard scheme: WASD/arrows move, Shift boosts, J/K/L/F attack. */
+  /**
+   * Keyboard scheme: WASD/arrows move, Shift leaps, U/J/K/L/H/F attack, G
+   * braces (held), Space rolls.
+   *
+   * Attacks stay on the home row where they were, so a student who learned the
+   * old four does not have to relearn them; the new moves take the keys around
+   * them, with defence on the two that are easiest to reach in a hurry.
+   */
   private applyKey(key: string, active: boolean): boolean {
     switch (key) {
       case 'w': case 'arrowup': this.setControl('forward', active); return true;
@@ -432,9 +544,13 @@ export class DragonArenaComponent implements OnChanges {
       case 'a': case 'arrowleft': this.setControl('left', active); return true;
       case 'd': case 'arrowright': this.setControl('right', active); return true;
       case 'shift': this.setControl('boost', active); return true;
+      case 'g': this.setControl('guard', active); return true;
+      case ' ': if (active) this.dodge(); return true;
+      case 'u': if (active) this.attack('claw'); return true;
       case 'j': if (active) this.attack('bite'); return true;
       case 'k': if (active) this.attack('wing'); return true;
       case 'l': if (active) this.attack('tail'); return true;
+      case 'h': if (active) this.attack('horn'); return true;
       case 'f': if (active) this.attack('fire'); return true;
       default: return false;
     }
@@ -457,9 +573,13 @@ export class DragonArenaComponent implements OnChanges {
       steer: clampAxis(keyboardSteer + (pad?.steer ?? 0)),
       boost: controls.has('boost') || (pad?.boost ?? false),
       biteAttack: now < this.biteUntil,
+      clawAttack: now < this.clawUntil,
       wingAttack: now < this.wingUntil,
       tailAttack: now < this.tailUntil,
+      hornCharge: now < this.hornUntil,
       fireAttack: now < this.fireUntil,
+      guard: controls.has('guard') || (pad?.guard ?? false),
+      dodge: now < this.dodgeUntil,
     };
   }
 
@@ -468,7 +588,12 @@ export class DragonArenaComponent implements OnChanges {
    * A/X/B/Y attack. Buttons route through attack() on the press edge so gating
    * and sounds behave exactly like the keyboard.
    */
-  private readGamepad(): { throttle: number; steer: number; boost: boolean } | null {
+  private readGamepad(): {
+    throttle: number;
+    steer: number;
+    boost: boolean;
+    guard: boolean;
+  } | null {
     const pads = navigator.getGamepads?.() ?? [];
     const pad = pads.find(candidate => candidate?.connected);
     if (!pad) {
@@ -485,6 +610,8 @@ export class DragonArenaComponent implements OnChanges {
       [PAD_WING, 'wing'],
       [PAD_TAIL, 'tail'],
       [PAD_FIRE, 'fire'],
+      [PAD_CLAW, 'claw'],
+      [PAD_HORN, 'horn'],
     ];
     for (const [index, type] of attackButtons) {
       if (pressed(index)) {
@@ -497,10 +624,22 @@ export class DragonArenaComponent implements OnChanges {
       }
     }
 
+    // The roll fires on the press edge like an attack; the brace is held, so it
+    // is read as a level rather than an edge.
+    if (pressed(PAD_DODGE)) {
+      if (!this.padButtonsDown.has(PAD_DODGE)) {
+        this.padButtonsDown.add(PAD_DODGE);
+        this.dodge();
+      }
+    } else {
+      this.padButtonsDown.delete(PAD_DODGE);
+    }
+
     return {
       throttle: clampAxis(-axis(pad.axes[1]) + Number(pressed(PAD_UP)) - Number(pressed(PAD_DOWN))),
       steer: clampAxis(axis(pad.axes[0]) + Number(pressed(PAD_RIGHT)) - Number(pressed(PAD_LEFT))),
       boost: (pad.buttons[PAD_BOOST]?.value ?? 0) > 0.35 || pressed(PAD_BOOST),
+      guard: pressed(PAD_GUARD),
     };
   }
 }

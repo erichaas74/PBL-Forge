@@ -8,6 +8,10 @@ export type CreationAction =
   | 'avoid-wall'
   | 'aim'
   | 'bite'
+  | 'claw-rake'
   | 'wing-buffet'
   | 'tail-sweep'
-  | 'fire-breath';
+  | 'horn-charge'
+  | 'fire-breath'
+  | 'guard'
+  | 'dodge';

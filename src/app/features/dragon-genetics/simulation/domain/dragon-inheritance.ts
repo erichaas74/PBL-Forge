@@ -387,12 +387,22 @@ export interface EducationalDragonBuild {
   combatProfile: AssemblyCombatProfile;
 }
 
+/** Parts that carry the bioluminescent row when the `N` locus expresses it. */
+const GLOWING_PROFILE_IDS = new Set([
+  'dragon-body',
+  'dragon-head-horned',
+  'dragon-tail',
+  'dragon-tail-club',
+  'dragon-tail-stinger',
+]);
+
 /** Visible controls carried by one expressed dragon, never by the global Parts Lab style. */
 export interface DragonVisualExpression {
   legPairs?: 1 | 2;
   clawScale?: number;
   crestScale?: number;
-  earShape?: 'pointed' | 'rounded';
+  /** Living lanterns down the flanks, throat and tail. */
+  glowMarkings?: boolean;
   fangScale?: number;
   backSpikeCount?: number;
   backSpikeScale?: number;
@@ -477,9 +487,17 @@ export function createEducationalAssembly(
     }
     if (profileId.startsWith('dragon-head-')) {
       if (expression.crestScale !== undefined) parameters['crestScale'] = expression.crestScale;
-      if (expression.earShape) parameters['earShape'] = expression.earShape;
       if (expression.eyeColor) parameters['eyeColor'] = expression.eyeColor;
       if (expression.sex) parameters['sex'] = expression.sex;
+    }
+    /*
+     * Glow is the one expression that runs the length of the animal rather than
+     * belonging to a single body part. Whichever way a dragon is turned, and
+     * however small the thumbnail, some of it is lit — which is the entire
+     * reason this trait replaced ear shape.
+     */
+    if (expression.glowMarkings !== undefined && GLOWING_PROFILE_IDS.has(profileId)) {
+      parameters['glowMarkings'] = expression.glowMarkings;
     }
     if (profileId === 'dragon-upper-jaw' || profileId === 'dragon-lower-jaw') {
       if (expression.fangScale !== undefined) parameters['fangScale'] = expression.fangScale;

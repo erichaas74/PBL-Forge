@@ -29,7 +29,7 @@ export const DRAGON_GENE_DNA_CATALOG: readonly DragonGeneDnaRecord[] = [
     alleleBSequence: 'CATCCATGCTTG',
   },
   { geneId: 'crest', alleleASequence: 'ATGCATGCATGC', alleleBSequence: 'ATGAATGCAGGC' },
-  { geneId: 'ears', alleleASequence: 'TGCATGCATGCA', alleleBSequence: 'TGCTTGCATCCA' },
+  { geneId: 'glow', alleleASequence: 'TGCATGCATGCA', alleleBSequence: 'TGCTTGCATCCA' },
   { geneId: 'fangs', alleleASequence: 'GCATGCATGCAT', alleleBSequence: 'GCAGGCATGAAT' },
   { geneId: 'spikes', alleleASequence: 'CATGCATGCATG', alleleBSequence: 'CATCCATGCTTG' },
 ];

@@ -307,7 +307,7 @@ export function createExpressiveDragonBenchBuild(
     legPairs: dominant(profile, 'legs') ? 2 : 1,
     clawScale: dominant(profile, 'claws') ? 1.5 : 0.62,
     crestScale: dominant(profile, 'crest') ? 1.35 : 0.42,
-    earShape: dominant(profile, 'ears') ? 'pointed' : 'rounded',
+    glowMarkings: dominant(profile, 'glow'),
     fangScale: dominant(profile, 'fangs') ? 1.5 : 0.58,
     backSpikeCount: dominant(profile, 'spikes') ? 10 : 3,
     backSpikeScale: dominant(profile, 'spikes') ? 1.15 : 0.52,
@@ -442,11 +442,14 @@ function expressiveTraitRoles(traitId: ExpressiveDragonTraitId): readonly Assemb
       return ['jaw'];
     case 'horns':
     case 'crest':
-    case 'ears':
     case 'eye-color':
       return ['head'];
     case 'spikes':
       return ['core'];
+    // The lantern row is the one trait that is not confined to a body region:
+    // it runs the head, the torso and the tail together.
+    case 'glow':
+      return ['head', 'core', 'tail'];
     case 'scales':
     case 'body-color':
       return [];

@@ -84,7 +84,7 @@ export function createDragonProceduralObject(part: AssemblyPart): THREE.Object3D
     case 'dragon-secondary-wing':
       return buildWing(part, palette);
     case 'dragon-tail':
-      return buildTailSegment(dims, palette);
+      return buildTailSegment(part, palette);
     case 'dragon-tail-club':
       return buildTailClub(part, palette);
     case 'dragon-tail-stinger':
@@ -354,6 +354,49 @@ function eyeHighlightMaterial(): THREE.MeshStandardMaterial {
   return material;
 }
 
+/**
+ * A living lantern.
+ *
+ * The `N` locus's whole phenotype, and the reason it can be read at any size:
+ * emission does not depend on the light in the scene, on which way the dragon
+ * is facing, or on how many pixels it covers. A horn at thumbnail size is a
+ * bump; a lit node is still a lit node.
+ *
+ * The hue comes from the membrane colour rather than being fixed, so a glowing
+ * dragon lights up in its *own* colour and the marking never fights the animal
+ * it is on. Brightened hard in HSL first: membrane colours run dark, and an
+ * emissive that dim reads as a smudge instead of a light.
+ */
+function glowMaterial(palette: DragonPalette): THREE.MeshStandardMaterial {
+  const light = shiftHsl(palette.membrane, 0, 1.45, 1.9);
+  const material = new THREE.MeshStandardMaterial({
+    color: light,
+    emissive: light,
+    emissiveIntensity: 1.35,
+    roughness: 0.28,
+    metalness: 0,
+  });
+  // Survives team tint and damage recolour, exactly as the eyes do: a light
+  // that changes colour when a part is damaged stops reading as a light.
+  material.userData['preserveAppearance'] = true;
+  return material;
+}
+
+/**
+ * One node of the row: a flattened bead that sits proud of the hide.
+ *
+ * Squashed along its own axis so it domes out of the surface rather than
+ * hanging off it like a berry.
+ */
+function buildGlowNode(palette: DragonPalette, radius: number): THREE.Mesh {
+  const node = mesh(new THREE.SphereGeometry(Math.max(radius, 0.01), detail(10), detail(8)), glowMaterial(palette));
+  node.scale.set(0.55, 1, 1);
+  // A lantern lights its surroundings; it does not take a shadow across itself.
+  node.castShadow = false;
+  node.receiveShadow = false;
+  return node;
+}
+
 function mesh(geometry: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
   const result = new THREE.Mesh(geometry, material);
   result.castShadow = true;
@@ -478,7 +521,44 @@ function buildBody(part: AssemblyPart, palette: DragonPalette): THREE.Group {
     group.add(spike);
   }
 
+  if (visualFlag(part, 'glowMarkings')) {
+    addFlankLanterns(group, dims, length, palette);
+  }
+
   return group;
+}
+
+/**
+ * The bioluminescent row down both flanks.
+ *
+ * Placed on the widest part of the torso and rising slightly toward the
+ * shoulder, which is where an animal's own light would be least occluded by its
+ * legs. Each node is seated on the sampled body radius rather than at a fixed
+ * offset, so it stays flush on a stocky dragon and on a lean one alike.
+ */
+function addFlankLanterns(
+  group: THREE.Group,
+  dims: { x: number; y: number; z: number },
+  length: number,
+  palette: DragonPalette,
+): void {
+  for (const side of [-1, 1] as const) {
+    for (const [index, t] of spreadPositions(6, 0.72, -0.02).entries()) {
+      const radius = sampleDragonBodyRadius(t);
+      // Biggest at the shoulder and tapering back, the way markings on a real
+      // flank follow the body rather than marching down it evenly.
+      const size = dims.y * 0.062 * (1.15 - index * 0.07);
+      const node = buildGlowNode(palette, size);
+      node.name = `dragon-glow-flank-${index + 1}-${side < 0 ? 'left' : 'right'}`;
+      node.position.set(
+        t * length,
+        -dims.y * 0.06 + radius * (dims.y / 2) * 0.22,
+        side * radius * (dims.z / 2) * 0.94,
+      );
+      node.rotation.y = Math.PI / 2;
+      group.add(node);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -785,22 +865,17 @@ function addExpressiveHeadFeatures(
     }
   }
 
-  const earShape = visualString(part, 'earShape', '');
-  if (earShape === 'pointed' || earShape === 'rounded') {
-    const material = scaleMaterial(palette, 0.35);
+  if (visualFlag(part, 'glowMarkings')) {
+    // The jaw hinge and the cheek: the two places a light on the skull is
+    // visible from the front, the side, and from above.
     for (const side of [-1, 1] as const) {
-      const mount = dragonHeadSurfacePoint(dims, -0.2, side * 0.72, shape);
-      const ear = earShape === 'pointed'
-        ? mesh(new THREE.ConeGeometry(dims.z * 0.1, dims.y * 0.34, detail(7)), material)
-        : mesh(new THREE.SphereGeometry(dims.y * 0.13, detail(10), detail(7)), material);
-      ear.name = `dragon-${earShape}-ear-${side < 0 ? 'left' : 'right'}`;
-      ear.position.set(mount.x - dims.x * 0.04, mount.y + dims.y * 0.08, mount.z);
-      if (earShape === 'pointed') {
-        ear.rotation.set(0, 0, side * -0.58);
-      } else {
-        ear.scale.set(0.65, 1.05, 0.45);
+      for (const [index, axial] of [-0.34, -0.05].entries()) {
+        const mount = dragonHeadSurfacePoint(dims, axial, side * 0.78, shape);
+        const lantern = buildGlowNode(palette, dims.y * (index === 0 ? 0.13 : 0.1));
+        lantern.name = `dragon-glow-head-${index + 1}-${side < 0 ? 'left' : 'right'}`;
+        lantern.position.set(mount.x, mount.y, mount.z);
+        group.add(lantern);
       }
-      group.add(ear);
     }
   }
 
@@ -982,6 +1057,10 @@ function visualNumber(part: AssemblyPart, key: string, fallback: number): number
 function visualString(part: AssemblyPart, key: string, fallback: string): string {
   const value = part.visualProfile?.parameters?.[key];
   return typeof value === 'string' ? value : fallback;
+}
+
+function visualFlag(part: AssemblyPart, key: string): boolean {
+  return part.visualProfile?.parameters?.[key] === true;
 }
 
 function headStyleFor(part: AssemblyPart): DragonHeadStyle {
@@ -1677,14 +1756,29 @@ const TAIL_PROFILE: readonly [number, number][] = [
   [0.5, 1.0],
 ];
 
-function buildTailSegment(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
+function buildTailSegment(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
+  const dims = part.dimensions;
   const lathe = new THREE.LatheGeometry(
     TAIL_PROFILE.map(([t, radius]) => new THREE.Vector2(radius * dims.x, t * dims.y)),
     detail(14),
   );
   revolvedUv(lathe, dims.x * 0.76, dims.y, SCALE_TILE, palette);
   group.add(mesh(lathe, scaleMaterial(palette)));
+
+  // One lantern per side per segment. Across a whole tail that is a line of
+  // lights trailing the animal, and it is the part of the glow a student sees
+  // most in the arena, where the tail swings out past the body.
+  if (visualFlag(part, 'glowMarkings')) {
+    for (const side of [-1, 1] as const) {
+      const node = buildGlowNode(palette, dims.x * 0.3);
+      node.name = `dragon-glow-tail-${side < 0 ? 'left' : 'right'}`;
+      node.position.set(0, dims.y * 0.1, side * dims.x * 0.62);
+      node.rotation.y = Math.PI / 2;
+      group.add(node);
+    }
+  }
+
   return group;
 }
 
@@ -1744,6 +1838,16 @@ function buildTailClub(part: AssemblyPart, palette: DragonPalette): THREE.Group 
     spike.quaternion.setFromUnitVectors(coneAxis, outward);
     spike.position.copy(root).addScaledVector(outward, spikeLength * 0.5);
     group.add(spike);
+  }
+
+  // The brightest node on the animal, on the one part that swings out past the
+  // whole silhouette. A tail sweep from a glowing dragon draws its own arc.
+  if (visualFlag(part, 'glowMarkings')) {
+    const beacon = buildGlowNode(palette, dims.z * 0.42);
+    beacon.name = 'dragon-glow-tail-beacon';
+    beacon.position.set(0, knobCentre.y - dims.z * 0.55, 0);
+    beacon.scale.set(1, 0.72, 1);
+    group.add(beacon);
   }
 
   return group;

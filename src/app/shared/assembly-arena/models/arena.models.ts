@@ -77,6 +77,8 @@ export interface BattleDamageEvent {
   bodyKey: string;
   amount: number;
   reason: string;
+  /** Set when a defensive move absorbed part of the blow, for the event log. */
+  mitigatedBy?: 'guard';
 }
 
 /** Active fire-breath cone, reported by physics so the renderer can draw it. */
@@ -94,11 +96,53 @@ export interface BattleAttackPoseSnapshot {
   phase: number;
 }
 
+/** What a combatant is doing defensively right now, for the HUD and the AI. */
+export interface BattleDefenseSnapshot {
+  combatantId: string;
+  /** Braced: absorbing damage, barely mobile, cannot attack. */
+  guarding: boolean;
+  /** Fraction of the guard's hold budget already spent, 0 through 1. */
+  guardFatigue: number;
+  /** Mid-roll. Null when not dodging. */
+  dodgePhase: number | null;
+  /** Inside the roll's invulnerable window. */
+  invulnerable: boolean;
+  /** Down after a knockdown, unable to act. */
+  knockedDown: boolean;
+}
+
+/**
+ * A combatant's live combat state, published so controllers can react to it.
+ *
+ * Without this an AI can only see where its opponent *is*, never what it is
+ * *doing* — which is why the old challenger had exactly one plan and ran it
+ * into the player's face regardless of what the player did.
+ */
+export interface BattleCombatantAwareness {
+  combatantId: string;
+  /** The move currently being performed, if any. */
+  ability: AssemblyAbilityId | null;
+  /** How far through that move, 0 through 1. */
+  phase: number;
+  /** True once the wind-up is done and the blow is about to land. */
+  striking: boolean;
+  defense: BattleDefenseSnapshot;
+  /** Riding on top of another combatant's torso. */
+  mounted: boolean;
+  /** Off the ground under its own power. */
+  airborne: boolean;
+  /** Seconds until this combatant may next use each ability. */
+  cooldowns: Partial<Record<AssemblyAbilityId, number>>;
+}
+
+export type CombatAwarenessByCombatant = Record<string, BattleCombatantAwareness>;
+
 export interface BattlePhysicsFrame {
   snapshots: BattleBodySnapshot[];
   damageEvents: BattleDamageEvent[];
   fireCones?: FireConeSnapshot[];
   attackPoses?: BattleAttackPoseSnapshot[];
+  defenses?: BattleDefenseSnapshot[];
 }
 
 export interface ArenaControlFrame {
@@ -107,10 +151,27 @@ export interface ArenaControlFrame {
   strafe: number;
   boost: boolean;
   biteAttack?: boolean;
+  clawAttack?: boolean;
   wingAttack?: boolean;
   tailAttack?: boolean;
+  hornCharge?: boolean;
   fireAttack?: boolean;
+  /** Held, not tapped: the brace lasts as long as the button is down. */
+  guard?: boolean;
+  dodge?: boolean;
 }
+
+/**
+ * Moves a combatant's genotype permits. Absent means "no genome on file" — the
+ * assembly sandbox loads creations that were never bred — and nothing is gated.
+ */
+export interface CombatantMoveLicense {
+  wings: boolean;
+  fire: boolean;
+  horns: boolean;
+}
+
+export type MoveLicenseByCombatant = Record<string, CombatantMoveLicense>;
 
 export type ControlFrameByCombatant = Record<string, ArenaControlFrame>;
 

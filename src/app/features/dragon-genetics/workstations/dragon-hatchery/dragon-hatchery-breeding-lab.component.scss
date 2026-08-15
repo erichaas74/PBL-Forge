@@ -35,19 +35,7 @@
 .parent-selector .role { color: #9d95b8; font-size: .75rem; font-weight: 850; letter-spacing: .09em; }
 .parent-selector > header strong { font-size: .9rem; }
 .parent-selector > header small { color: #aaa3bb; font-size: .75rem; }
-.dragon-choice-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; padding: .7rem; }
-.dragon-choice { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .55rem; align-items: center; min-width: 0; min-height: 4.5rem; padding: .55rem; color: #e8e2f7; background: #1a182d; border: 1px solid #48425f; border-radius: .65rem; text-align: left; cursor: grab; }
-.dragon-choice:hover { border-color: #8c80ba; }
-.dragon-choice:active { cursor: grabbing; }
-.female .dragon-choice.selected { border-color: #d9629e; box-shadow: inset 3px 0 #d9629e; }
-.male .dragon-choice.selected { border-color: #35bad8; box-shadow: inset 3px 0 #35bad8; }
-.dragon-choice i { display: grid; grid-row: 1 / span 2; place-items: center; width: 2.65rem; height: 2.65rem; color: #fff; background: radial-gradient(circle at 34% 30%, var(--dragon-accent), var(--dragon-color) 62%); border: 2px solid var(--dragon-accent); border-radius: 50% 50% 45% 55%; font-style: normal; font-weight: 900; }
-.dragon-choice > span { display: grid; min-width: 0; }
-.dragon-choice > span strong, .dragon-choice > span small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dragon-choice > span strong { font-size: .8rem; }
-.dragon-choice > span small { color: #928ca7; font-size: .75rem; }
-.dragon-choice > b { grid-column: 2; color: #aaa3bb; font-size: .75rem; }
-.dragon-choice.selected > b { color: #ffe9a7; }
+.parent-selector > app-account-genetics-file { display: block; padding: .7rem; }
 .pair-mark { display: grid; place-content: center; justify-items: center; color: #726b88; }
 .pair-mark span { font-size: 1.8rem; }
 .pair-mark small { writing-mode: vertical-rl; font-size: .75rem; letter-spacing: .09em; }
@@ -82,7 +70,6 @@
 .hatchery-output app-dragon-hatchery-station { display: block; border-top: 1px solid #383451; }
 
 @media (max-width: 1050px) {
-  .dragon-choice-list { grid-template-columns: 1fr; }
   .gamete-chambers { grid-template-columns: 1fr auto 1fr; }
   .fertilize { grid-column: 1 / -1; }
 }
@@ -90,13 +77,8 @@
 @media (max-width: 700px) {
   .lab-head { align-items: start; flex-direction: column; }
   .parent-selectors { grid-template-columns: 1fr; }
-  .dragon-choice-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pair-mark small { writing-mode: horizontal-tb; }
   .gamete-chambers { grid-template-columns: 1fr; }
   .fusion { justify-content: center; }
   .fertilize { grid-column: auto; }
-}
-
-@media (max-width: 480px) {
-  .dragon-choice-list { grid-template-columns: 1fr; }
 }

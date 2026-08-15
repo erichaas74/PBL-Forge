@@ -1,4 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
+import { generateMeiosisRun } from './meiosis-gamete.domain';
 import { DragonHatcheryBreedingLabComponent } from './dragon-hatchery-breeding-lab.component';
 
 describe('DragonHatcheryBreedingLabComponent', () => {
@@ -24,17 +27,18 @@ describe('DragonHatcheryBreedingLabComponent', () => {
 
   it('keeps whole-dragon selectors inside the parent setup and splits them by sex', () => {
     const root = fixture.nativeElement as HTMLElement;
+    const inventories = fixture.debugElement.queryAll(By.directive(AccountGeneticsFileComponent));
 
-    expect(root.querySelector('app-account-genetics-file')).toBeNull();
+    expect(inventories.length).toBe(2);
+    expect(inventories[0].componentInstance.sexFilter()).toBe('female');
+    expect(inventories[1].componentInstance.sexFilter()).toBe('male');
     expect(root.textContent).not.toContain('Chromosomes');
-    expect(root.querySelectorAll('.parent-selector.female .dragon-choice').length).toBe(2);
-    expect(root.querySelectorAll('.parent-selector.male .dragon-choice').length).toBe(2);
     expect(root.querySelector('.allele-objective')).toBeNull();
   });
 
   it('loads each dragon only into its matching parent role', () => {
-    const female = component.femaleDragons()[0];
-    const male = component.maleDragons()[0];
+    const female = component.account().dragons.find((dragon) => dragon.sex === 'female')!;
+    const male = component.account().dragons.find((dragon) => dragon.sex === 'male')!;
 
     component.selectParent('female', female);
     component.selectParent('male', male);
@@ -45,5 +49,39 @@ describe('DragonHatcheryBreedingLabComponent', () => {
     component.selectParent('female', male);
     expect(component.eggParent()?.id).toBe(female.id);
     expect(component.statusMessage()).toContain('female dragon');
+  });
+
+  it('saves each fertilized hatchling to the shared inventory with its modeled sex', () => {
+    const female = component.account().dragons.find((dragon) => dragon.sex === 'female')!;
+    const male = component.account().dragons.find((dragon) => dragon.sex === 'male')!;
+    component.selectParent('female', female);
+    component.selectParent('male', male);
+
+    const eggRun = generateMeiosisRun(female, 'female', 'inventory-egg', 'scales');
+    const spermRun = generateMeiosisRun(male, 'male', 'inventory-sperm', 'scales');
+    const spermGamete =
+      spermRun.gametes.find((gamete) =>
+        gamete.chromosomes.some((chromosome) => chromosome.sexChromosome === 'Y'),
+      ) ?? spermRun.gametes[0];
+    component.selectGamete('female', {
+      run: eggRun,
+      gamete: eggRun.gametes[0],
+      reason: '',
+      selectedAtIso: new Date().toISOString(),
+    });
+    component.selectGamete('male', {
+      run: spermRun,
+      gamete: spermGamete,
+      reason: '',
+      selectedAtIso: new Date().toISOString(),
+    });
+
+    component.fertilize();
+
+    const saved = component.account().dragons.find((dragon) => dragon.source === 'student')!;
+    expect(saved.id).toBe(component.clutch()[0].id);
+    expect(saved.sex).toBe('male');
+    expect(saved.parentIds).toEqual([female.id, male.id]);
+    expect(saved.generation).toBe(1);
   });
 });

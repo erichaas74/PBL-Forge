@@ -140,8 +140,72 @@ function whipLiftCurve(phase: number): number {
 const BITE_REAR_RADIANS = 0.42;
 const FIRE_REAR_RADIANS = 0.6;
 const TAIL_REAR_RADIANS = 0.16;
+/**
+ * The charge's crouch, applied as a *negative* rear. Shallower than any of the
+ * rears above: a dragon that pitched its nose much further down than this drove
+ * its own jaw into the floor before it reached anything.
+ */
+const CHARGE_CROUCH_RADIANS = 0.2;
+
+/**
+ * Rake: one forelimb sweep, out and back, with none of the wind-up a bite has.
+ * The whole curve is a single lobe so the move reads as a flick rather than a
+ * committed swing — which is what separates a jab from a haymaker on screen.
+ */
+function rakeCurve(phase: number): number {
+  return Math.sin(phase * Math.PI) ** 2;
+}
+
+/**
+ * Charge: gather onto the hindquarters, then drive the head through. Held low
+ * and flat through the strike, because a charge is horizontal — the rear here
+ * is a crouch, not a rise, which is why the curve is negative.
+ */
+function chargeCurve(phase: number): number {
+  const gather = 0.42;
+  if (phase < gather) return Math.sin((phase / gather) * Math.PI * 0.5);
+  const t = (phase - gather) / (1 - gather);
+  return Math.cos(t * Math.PI * 0.5) - Math.sin(t * Math.PI) * 0.45;
+}
 
 const ABILITY_DEMOS: Readonly<Record<AssemblyAbilityId, AbilityDemo>> = {
+  'claw-rake': {
+    ability: 'claw-rake',
+    durationSeconds: SCRIPTED_ASSEMBLY_ATTACKS['claw-rake'].durationSeconds,
+    strikeAt: SCRIPTED_ASSEMBLY_ATTACKS['claw-rake'].strikeAt,
+    bendsAt: phase => {
+      const rake = rakeCurve(phase);
+      return [
+        // The forelimbs do the work; nothing else commits, which is the point.
+        { role: 'leg', radians: rake * 0.52, axis: AXIS_Z, mirrorAcrossZ: true },
+        // A short head dip follows the claw in, so the strike has a direction.
+        { role: 'head', radians: rake * 0.12, axis: AXIS_Z },
+        // Just enough jaw to snarl.
+        { role: 'jaw', radians: -rake * 0.18, axis: AXIS_Z },
+      ];
+    },
+  },
+  'horn-charge': {
+    ability: 'horn-charge',
+    durationSeconds: SCRIPTED_ASSEMBLY_ATTACKS['horn-charge'].durationSeconds,
+    strikeAt: SCRIPTED_ASSEMBLY_ATTACKS['horn-charge'].strikeAt,
+    bendsAt: phase => {
+      const drive = chargeCurve(phase);
+      return [
+        // Head tucked so the horns lead, and held there through the run.
+        { role: 'head', radians: drive * 0.38, axis: AXIS_Z },
+        { role: 'jaw', radians: -drive * 0.22, axis: AXIS_Z },
+        // Legs drive back underneath as the body launches forward.
+        { role: 'leg', radians: -drive * 0.34, axis: AXIS_Z, mirrorAcrossZ: true },
+        // Wings sweep back out of the way rather than catching air.
+        { role: 'wing', radians: -drive * 0.3, axis: AXIS_X, mirrorAcrossZ: true },
+        // Tail streams out behind as a counterweight.
+        { role: 'tail', radians: drive * 0.16, axis: AXIS_Z },
+      ];
+    },
+    // Negative: the chest drops toward the floor for the run instead of rearing.
+    rearUpAt: phase => -chargeCurve(phase) * CHARGE_CROUCH_RADIANS,
+  },
   bite: {
     ability: 'bite',
     durationSeconds: SCRIPTED_ASSEMBLY_ATTACKS.bite.durationSeconds,

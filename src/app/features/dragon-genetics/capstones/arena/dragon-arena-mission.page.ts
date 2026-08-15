@@ -6,6 +6,11 @@ import { DragonBattleResult, StudentDragonRecord } from '../../dragon-genetics.m
 import { DragonAdaptiveStore } from '../../adaptive/dragon-adaptive.store';
 import { DragonCapstoneProgressRepository } from '../../project/dragon-capstone-progress.repository';
 import { DragonHatcheryBreedingRepository } from '../../workstations/dragon-hatchery/dragon-hatchery-breeding.repository';
+import { AccountGeneticsFileComponent } from '../../workstations/shared/account-genetics-file.component';
+import {
+  AccountDragonRecord,
+  AccountGeneticsRecord,
+} from '../../workstations/shared/account-genetics-library.models';
 import { AccountGeneticsLibraryService } from '../../workstations/shared/account-genetics-library.service';
 import { buildArenaChampionRoster } from './dragon-arena-champions';
 import {
@@ -20,7 +25,7 @@ import { DragonArenaMissionRepository } from './dragon-arena-mission.repository'
 
 @Component({
   selector: 'app-dragon-arena-mission-page',
-  imports: [RouterLink, DragonArenaComponent],
+  imports: [RouterLink, DragonArenaComponent, AccountGeneticsFileComponent],
   templateUrl: './dragon-arena-mission.page.html',
   styleUrl: './dragon-arena-mission.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,6 +55,7 @@ export class DragonArenaMissionPage {
       null
     );
   });
+  readonly eligibleChampionIds = computed(() => this.champions().map((champion) => champion.id));
   readonly selectedTrials = computed(() => {
     const championId = this.selectedChampion()?.id;
     return championId
@@ -82,10 +88,10 @@ export class DragonArenaMissionPage {
     });
   }
 
-  selectChampion(event: Event): void {
-    const selectedChampionId = (event.target as HTMLSelectElement).value;
-    if (!this.champions().some((champion) => champion.id === selectedChampionId)) return;
-    this.saveMission({ ...this.mission(), selectedChampionId });
+  selectChampion(record: AccountGeneticsRecord): void {
+    if (record.kind !== 'dragon') return;
+    if (!this.champions().some((champion) => champion.id === record.id)) return;
+    this.saveMission({ ...this.mission(), selectedChampionId: record.id });
   }
 
   recordTrial(result: DragonBattleResult): void {
@@ -113,6 +119,28 @@ export class DragonArenaMissionPage {
     const hatchery = this.hatcheryRepository.load(studentId);
     const account = this.accountLibrary.recordsFor(studentId);
     const champions = buildArenaChampionRoster(hatchery, account);
+    const storedIds = new Set(account.dragons.map((dragon) => dragon.id));
+    const missingRecords = champions.flatMap((champion) => {
+      if (storedIds.has(champion.id)) return [];
+      const fertilization = hatchery.fertilizations.find(
+        (record) => record.offspringId === champion.id,
+      );
+      if (!fertilization) return [];
+      const sexChromosome = fertilization.spermSelection.gamete.chromosomes.find(
+        (chromosome) => chromosome.chromosome === 'Chr X',
+      )?.sexChromosome;
+      return [
+        {
+          kind: 'dragon',
+          ...champion,
+          sex: sexChromosome === 'Y' ? 'male' : 'female',
+          source: 'student',
+          storedAtIso: fertilization.createdAtIso,
+          originRecordId: fertilization.id,
+        } satisfies AccountDragonRecord,
+      ];
+    });
+    if (missingRecords.length) this.accountLibrary.saveDragons(studentId, missingRecords);
     const mission = this.missionRepository.load(studentId);
     const selectedChampionId = champions.some(
       (champion) => champion.id === mission.selectedChampionId,

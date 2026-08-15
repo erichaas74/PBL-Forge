@@ -13,6 +13,7 @@ export interface DragonMoveCard {
   steps: AttackMoveStep[];
   requiresWings?: boolean;
   requiresFire?: boolean;
+  requiresHorns?: boolean;
 }
 
 export const DRAGON_MOVE_CARDS: readonly DragonMoveCard[] = [
@@ -44,6 +45,36 @@ export const DRAGON_MOVE_CARDS: readonly DragonMoveCard[] = [
     ],
   },
   {
+    id: 'claw',
+    name: 'Claw rake',
+    detail: 'A quick swipe. Cheap enough to fit two other moves around it.',
+    steps: [{ action: 'claw-rake', durationSeconds: 0.6, amount: 1 }],
+  },
+  {
+    id: 'horn',
+    name: 'Horn charge',
+    detail: 'Run them down. Heaviest hit in the duel, and it knocks them flat.',
+    requiresHorns: true,
+    steps: [
+      { action: 'aim', durationSeconds: 0.3, amount: 1 },
+      { action: 'horn-charge', durationSeconds: 1.5, amount: 1 },
+    ],
+  },
+  {
+    id: 'guard',
+    name: 'Brace',
+    detail: 'Plant behind the horns: most incoming damage is absorbed.',
+    requiresHorns: true,
+    steps: [{ action: 'guard', durationSeconds: 1.4, amount: 1 }],
+  },
+  {
+    id: 'roll',
+    name: 'Evasive roll',
+    detail: 'Dive aside. Untouchable through the middle of the roll.',
+    requiresWings: true,
+    steps: [{ action: 'dodge', durationSeconds: 0.6, amount: 1 }],
+  },
+  {
     id: 'wing',
     name: 'Wing buffet',
     detail: 'Wing slam that knocks the opponent back.',
@@ -68,8 +99,8 @@ export const DRAGON_MOVE_CARDS: readonly DragonMoveCard[] = [
   },
   {
     id: 'brace',
-    name: 'Brace',
-    detail: 'Hold your ground and stay planted.',
+    name: 'Hold position',
+    detail: 'Stand still and give up the turn. Costs nothing, absorbs nothing.',
     steps: [{ action: 'stop', durationSeconds: 1.2, amount: 1 }],
   },
 ];

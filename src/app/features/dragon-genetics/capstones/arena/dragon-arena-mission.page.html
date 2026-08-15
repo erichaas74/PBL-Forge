@@ -8,14 +8,16 @@
 
   @if (selectedChampion(); as champion) {
     <section class="champion-bar" aria-label="Arena champion and trial summary">
-      <label>
-        Champion
-        <select [value]="champion.id" (change)="selectChampion($event)">
-          @for (candidate of champions(); track candidate.id) {
-            <option [value]="candidate.id">{{ candidate.name }}</option>
-          }
-        </select>
-      </label>
+      <app-account-genetics-file
+        class="champion-inventory"
+        [studentId]="studentId()"
+        [dragonsOnly]="true"
+        [compact]="true"
+        [eligibleDragonIds]="eligibleChampionIds()"
+        [selectedRecordId]="champion.id"
+        label="Arena dragon inventory"
+        (recordSelected)="selectChampion($event)"
+      />
       <dl>
         <div><dt>Trials</dt><dd>{{ selectedTrials().length }}</dd></div>
         <div><dt>Wins</dt><dd>{{ wins() }}</dd></div>

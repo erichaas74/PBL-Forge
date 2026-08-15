@@ -3,9 +3,18 @@ import {
   ArenaControlFrame,
   BattleArenaState,
   BattleBodySnapshot,
+  BattleCombatant,
+  BattleCombatantAwareness,
+  CombatAwarenessByCombatant,
+  CombatantMoveLicense,
   ControlFrameByCombatant,
+  MoveLicenseByCombatant,
 } from '../models/arena.models';
-import { getBodyKey } from '../utils/battle-assembly';
+import {
+  coreHalfExtents,
+  getBodyKey,
+  horizontalTorsoSupport,
+} from '../utils/battle-assembly';
 import {
   ControllerProgram,
   StrategyAction,
@@ -26,12 +35,31 @@ export const NEUTRAL_CONTROL_FRAME: ArenaControlFrame = {
   strafe: 0,
   boost: false,
   biteAttack: false,
+  clawAttack: false,
   wingAttack: false,
   tailAttack: false,
+  hornCharge: false,
   fireAttack: false,
+  guard: false,
+  dodge: false,
 };
 
+/** Every dragon can do these, whatever it inherited. */
+const UNGATED_MOVES: readonly StrategyAction[] = ['bite', 'claw-rake', 'tail-sweep'];
+
 const sensorMemory = new Map<string, SensorMemory>();
+
+/**
+ * Live combat context. Optional throughout: the assembly sandbox drives arenas
+ * with creations that were never bred and have no genome to gate against, and
+ * it must keep working exactly as it does today.
+ */
+export interface ControlFrameContext {
+  /** What each combatant is doing right now, from the physics service. */
+  awareness?: CombatAwarenessByCombatant;
+  /** Which moves each combatant's genotype permits. */
+  licenses?: MoveLicenseByCombatant;
+}
 
 export function buildControlFrames(
   state: BattleArenaState,
@@ -39,6 +67,7 @@ export function buildControlFrames(
   programsByCombatant: Record<string, ControllerProgram>,
   manualControls: ArenaControlFrame,
   overrideControlsByCombatant: ControlFrameByCombatant = {},
+  context: ControlFrameContext = {},
 ): ControlFrameByCombatant {
   const frames: ControlFrameByCombatant = {};
 
@@ -52,18 +81,58 @@ export function buildControlFrames(
       ? getStrategyPreset('static-target')
       : getStrategyPreset('manual-keyboard');
     const program = programsByCombatant[combatant.id] ?? fallbackProgram;
-    const sensors = buildSensors(state, snapshots, combatant.id);
+    const sensors = buildSensors(state, snapshots, combatant.id, context);
     const programFrame = runControllerProgram(program, sensors, manualControls);
     const baseFrame = combatant.controller === 'player'
       ? mergeManualOverride(programFrame, manualControls)
       : programFrame;
-
-    frames[combatant.id] = overrideControlsByCombatant[combatant.id]
+    const merged = overrideControlsByCombatant[combatant.id]
       ? mergeManualOverride(baseFrame, overrideControlsByCombatant[combatant.id])
       : baseFrame;
+
+    // Gating is applied last, to every controller alike. Doing it in the UI
+    // only — which is where the wing and fire rules used to live — left the AI
+    // free to breathe fire it had never inherited.
+    frames[combatant.id] = applyMoveLicense(merged, context.licenses?.[combatant.id]);
   }
 
   return frames;
+}
+
+/**
+ * Strips moves the combatant's genotype does not grant.
+ *
+ * A missing licence means "nothing on file", not "nothing allowed": creations
+ * from the garage have no genome and keep every move.
+ */
+export function applyMoveLicense(
+  frame: ArenaControlFrame,
+  license: CombatantMoveLicense | undefined,
+): ArenaControlFrame {
+  if (!license) return frame;
+
+  return {
+    ...frame,
+    wingAttack: frame.wingAttack && license.wings,
+    fireAttack: frame.fireAttack && license.fire,
+    hornCharge: frame.hornCharge && license.horns,
+    guard: frame.guard && license.horns,
+    dodge: frame.dodge && license.wings,
+  };
+}
+
+/** The moves a licence grants, named the way a strategy block names them. */
+export function licensedMoves(license: CombatantMoveLicense | undefined): StrategyAction[] {
+  if (!license) {
+    return [...UNGATED_MOVES, 'wing-buffet', 'fire-breath', 'horn-charge', 'guard', 'dodge'];
+  }
+
+  return [
+    ...UNGATED_MOVES,
+    ...(license.wings ? (['wing-buffet', 'dodge'] as const) : []),
+    ...(license.fire ? (['fire-breath'] as const) : []),
+    ...(license.horns ? (['horn-charge', 'guard'] as const) : []),
+  ];
 }
 
 export function createActionControlFrame(
@@ -91,9 +160,13 @@ export function runControllerProgram(
     strafe: clamp(frame.strafe, -1, 1),
     boost: frame.boost,
     biteAttack: frame.biteAttack,
+    clawAttack: frame.clawAttack,
     wingAttack: frame.wingAttack,
     tailAttack: frame.tailAttack,
+    hornCharge: frame.hornCharge,
     fireAttack: frame.fireAttack,
+    guard: frame.guard,
+    dodge: frame.dodge,
   };
 }
 
@@ -101,9 +174,11 @@ export function buildSensors(
   state: BattleArenaState,
   snapshots: BattleBodySnapshot[],
   combatantId: string,
+  context: ControlFrameContext = {},
 ): StrategySensors {
   const combatant = state.combatants.find(item => item.id === combatantId);
   const opponent = state.combatants.find(item => item.id !== combatantId);
+  const combat = buildCombatSensors(context, combatantId, opponent?.id ?? null);
   const coreSnapshot = combatant
     ? findCoreSnapshot(snapshots, combatant.id, combatant.corePartId)
     : null;
@@ -129,12 +204,28 @@ export function buildSensors(
       wallAvoidSteer: 0,
       elapsedSeconds: state.elapsedSeconds,
       coreHealthRatio: 1,
+      ...combat,
     };
   }
 
   const dx = opponentCoreSnapshot.position.x - coreSnapshot.position.x;
   const dz = opponentCoreSnapshot.position.z - coreSnapshot.position.z;
   const distance = Math.hypot(dx, dz) || 1;
+  /*
+   * Reported distance is the *gap between the two animals*, not the gap between
+   * the two points at their centres.
+   *
+   * A dragon torso is nearly four units long, so two dragons standing nose to
+   * nose have their cores 3.8 apart. Every threshold in every strategy program
+   * was written as though that number meant "how close am I" — which made
+   * "if distance less than 3" a condition that could not occur between two
+   * dragons, and left the challenger with nothing but `chase` to run. Measuring
+   * hide to hide is what makes those thresholds mean what they look like they
+   * mean, and it is the same measurement the attack ranges use.
+   */
+  const gap = Math.max(0, distance
+    - torsoSupport(combatant, coreSnapshot, dx / distance, dz / distance)
+    - torsoSupport(opponent, opponentCoreSnapshot, dx / distance, dz / distance));
   const linearSpeed = Math.hypot(coreSnapshot.velocity.x, coreSnapshot.velocity.z);
   const upVectorY = getUpVectorY(coreSnapshot);
   const tipped = upVectorY < 0.55;
@@ -192,7 +283,7 @@ export function buildSensors(
   }
 
   return {
-    distanceToOpponent: distance,
+    distanceToOpponent: gap,
     throttleTowardOpponent,
     strafeTowardOpponent,
     steerTowardOpponent,
@@ -208,7 +299,93 @@ export function buildSensors(
     wallAvoidSteer,
     elapsedSeconds: state.elapsedSeconds,
     coreHealthRatio,
+    ...combat,
   };
+}
+
+/**
+ * The combat half of the sensor set.
+ *
+ * Falls back to "nothing is happening and every move is ready" when no
+ * awareness was supplied, so a program written against these sensors still runs
+ * — it simply never sees an opening it can react to.
+ */
+function buildCombatSensors(
+  context: ControlFrameContext,
+  combatantId: string,
+  opponentId: string | null,
+): Pick<
+  StrategySensors,
+  | 'opponentAttacking'
+  | 'opponentStriking'
+  | 'opponentCommitted'
+  | 'opponentGuarding'
+  | 'mounted'
+  | 'pinned'
+  | 'airborne'
+  | 'knockedDown'
+  | 'guardFatigue'
+  | 'readyMoves'
+> {
+  const self = context.awareness?.[combatantId];
+  const other = opponentId ? context.awareness?.[opponentId] : undefined;
+  const license = context.licenses?.[combatantId];
+
+  return {
+    opponentAttacking: Boolean(other?.ability),
+    opponentStriking: Boolean(other?.striking),
+    // Only the slow moves are worth reading and answering; a claw rake is over
+    // before any controller could respond to it.
+    opponentCommitted: isCommittedMove(other),
+    opponentGuarding: Boolean(other?.defense.guarding),
+    mounted: Boolean(self?.mounted),
+    pinned: Boolean(other?.mounted),
+    airborne: Boolean(self?.airborne),
+    knockedDown: Boolean(self?.defense.knockedDown),
+    guardFatigue: self?.defense.guardFatigue ?? 0,
+    readyMoves: resolveReadyMoves(self, license),
+  };
+}
+
+function isCommittedMove(awareness: BattleCombatantAwareness | undefined): boolean {
+  if (!awareness?.ability) return false;
+  return awareness.ability === 'horn-charge'
+    || awareness.ability === 'fire-breath'
+    || awareness.ability === 'bite';
+}
+
+function resolveReadyMoves(
+  awareness: BattleCombatantAwareness | undefined,
+  license: CombatantMoveLicense | undefined,
+): StrategyAction[] {
+  const licensed = licensedMoves(license);
+  if (!awareness) return licensed;
+
+  return licensed.filter(move => {
+    const cooldown = awareness.cooldowns[move as keyof typeof awareness.cooldowns];
+    return cooldown === undefined || cooldown <= 0;
+  });
+}
+
+/**
+ * How far a combatant's torso reaches toward a direction, from the blueprint.
+ *
+ * Zero for anything without a resolvable core, which keeps the gap equal to the
+ * centre distance for creations this cannot measure rather than inventing a
+ * size for them.
+ */
+function torsoSupport(
+  combatant: BattleCombatant | undefined,
+  snapshot: BattleBodySnapshot,
+  dirX: number,
+  dirZ: number,
+): number {
+  const corePart = combatant?.assembly.parts.find(part => part.id === combatant.corePartId);
+  if (!corePart) return 0;
+
+  const forward = rotateVectorByQuaternion({ x: 1, y: 0, z: 0 }, snapshot.quaternion);
+  const horizontal = normalizeHorizontal(forward.x, forward.z, { x: 1, z: 0 });
+  return horizontalTorsoSupport(coreHalfExtents(corePart), horizontal.x, horizontal.z, dirX, dirZ);
 }
 
 /** Core forward (+x) and right (+z) axes projected to the ground plane. */
@@ -279,7 +456,17 @@ function applyBlock(
       };
     }
     case 'dragon-attack':
-      return applyAction(frame, sensors, getActionParamByKey(block, 'attack', 'bite'), getNumberParam(block, 'amount', 1));
+    case 'dragon-defend': {
+      const fallback: StrategyAction = block.type === 'dragon-defend' ? 'guard' : 'bite';
+      const key = block.type === 'dragon-defend' ? 'defense' : 'attack';
+      const move = getActionParamByKey(block, key, fallback);
+      // A move the genotype never granted, or one still on cooldown, is not
+      // silently swapped for another: the program simply does nothing this
+      // frame, so a student reading it sees the gene decide the outcome.
+      return sensors.readyMoves.includes(move)
+        ? applyAction(frame, sensors, move, getNumberParam(block, 'amount', 1))
+        : frame;
+    }
     case 'aim-at-opponent':
     case 'turn-toward-opponent':
       return {
@@ -296,6 +483,20 @@ function applyBlock(
         : frame;
     case 'if-distance-less':
       return sensors.distanceToOpponent < getNumberParam(block, 'threshold', 2.8)
+        ? applyChildBlocks(block, frame, sensors, manualControls)
+        : frame;
+    case 'if-distance-more':
+      return sensors.distanceToOpponent > getNumberParam(block, 'threshold', 4)
+        ? applyChildBlocks(block, frame, sensors, manualControls)
+        : frame;
+    case 'if-opponent-attacking':
+      return (getBooleanParam(block, 'committedOnly', true)
+        ? sensors.opponentCommitted
+        : sensors.opponentAttacking)
+        ? applyChildBlocks(block, frame, sensors, manualControls)
+        : frame;
+    case 'if-health-below':
+      return sensors.coreHealthRatio < getNumberParam(block, 'ratio', 0.4)
         ? applyChildBlocks(block, frame, sensors, manualControls)
         : frame;
     case 'if-tipped':
@@ -386,11 +587,51 @@ function applyAction(
     case 'bite':
       return {
         ...frame,
-        throttle: sensors.throttleTowardOpponent,
+        // Closing pressure, not a charge. Driving at full throttle into a body
+        // it is already touching is how a dragon ends up climbing the sloped
+        // torso in front of it — the lunge belongs to the animation, and the
+        // one move that is meant to travel is the charge.
+        throttle: sensors.throttleTowardOpponent * 0.45,
         strafe: sensors.strafeTowardOpponent * 0.35,
         steer: sensors.steerTowardOpponent,
-        boost: true,
+        // Deliberately no longer boosting. Boost is a wing beat, and a
+        // controller that held it while closing simply took off and landed on
+        // whatever it was chasing — which is exactly how the challenger used to
+        // end up parked on top of the player.
         biteAttack: true,
+      };
+    case 'claw-rake':
+      return {
+        ...frame,
+        throttle: Math.max(frame.throttle, sensors.throttleTowardOpponent * 0.25),
+        steer: sensors.steerTowardOpponent,
+        clawAttack: true,
+      };
+    case 'horn-charge':
+      return {
+        ...frame,
+        // The charge supplies its own forward drive, so the controller only has
+        // to be pointing the right way when it commits.
+        throttle: 0,
+        steer: sensors.steerTowardOpponent,
+        hornCharge: true,
+      };
+    case 'guard':
+      return {
+        ...frame,
+        throttle: 0,
+        strafe: 0,
+        steer: sensors.steerTowardOpponent * 0.4,
+        boost: false,
+        guard: true,
+      };
+    case 'dodge':
+      return {
+        ...frame,
+        // Roll away from the threat, not into it.
+        throttle: -Math.abs(sensors.throttleTowardOpponent) * amount,
+        strafe: sensors.strafeTowardOpponent * amount,
+        dodge: true,
       };
     case 'wing-buffet':
       return {
@@ -472,9 +713,13 @@ function getActionParamByKey(block: StrategyBlock, key: string, fallback: Strate
     value === 'avoid-wall' ||
     value === 'aim' ||
     value === 'bite' ||
+    value === 'claw-rake' ||
     value === 'wing-buffet' ||
     value === 'tail-sweep' ||
-    value === 'fire-breath'
+    value === 'horn-charge' ||
+    value === 'fire-breath' ||
+    value === 'guard' ||
+    value === 'dodge'
   ) {
     return value;
   }
@@ -501,9 +746,13 @@ function mergeManualOverride(
     strafe: hasManualMotion ? manualControls.strafe : programFrame.strafe,
     boost: programFrame.boost || manualControls.boost,
     biteAttack: programFrame.biteAttack || manualControls.biteAttack,
+    clawAttack: programFrame.clawAttack || manualControls.clawAttack,
     wingAttack: programFrame.wingAttack || manualControls.wingAttack,
     tailAttack: programFrame.tailAttack || manualControls.tailAttack,
+    hornCharge: programFrame.hornCharge || manualControls.hornCharge,
     fireAttack: programFrame.fireAttack || manualControls.fireAttack,
+    guard: programFrame.guard || manualControls.guard,
+    dodge: programFrame.dodge || manualControls.dodge,
   };
 }
 

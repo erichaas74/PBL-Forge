@@ -9,6 +9,10 @@ export interface AccountDragonRecord extends DragonParentProfile {
   sex: DragonSex;
   source: 'foundation' | 'student';
   storedAtIso: string;
+  /** Breeding metadata is absent only on legacy records created before the shared inventory. */
+  generation?: number;
+  parentIds?: readonly [string, string];
+  originRecordId?: string;
 }
 
 export interface AccountChromosomeRecord {

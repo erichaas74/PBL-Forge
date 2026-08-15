@@ -45,29 +45,14 @@
             </div>
           </header>
 
-          <div class="dragon-choice-list" aria-label="Female dragons">
-            @for (dragon of femaleDragons(); track dragon.id) {
-              <button
-                type="button"
-                class="dragon-choice"
-                [class.selected]="eggParentId() === dragon.id"
-                [attr.aria-pressed]="eggParentId() === dragon.id"
-                draggable="true"
-                (click)="selectParent('female', dragon)"
-                (dragstart)="startParentDrag($event, dragon)"
-              >
-                <i
-                  [style.--dragon-color]="dragon.color"
-                  [style.--dragon-accent]="dragon.accentColor"
-                  aria-hidden="true"
-                >
-                  {{ dragon.name.slice(0, 1) }}
-                </i>
-                <span><strong>{{ dragon.name }}</strong><small>{{ dragon.title }}</small></span>
-                <b>{{ eggParentId() === dragon.id ? 'Selected ✓' : 'Choose' }}</b>
-              </button>
-            }
-          </div>
+          <app-account-genetics-file
+            [studentId]="studentId()"
+            [dragonsOnly]="true"
+            [sexFilter]="'female'"
+            [selectedRecordId]="eggParentId()"
+            label="Egg-parent inventory"
+            (recordSelected)="selectInventoryParent('female', $event)"
+          />
         </article>
 
         <div class="pair-mark" aria-hidden="true"><span>×</span><small>BREEDING PAIR</small></div>
@@ -91,29 +76,14 @@
             </div>
           </header>
 
-          <div class="dragon-choice-list" aria-label="Male dragons">
-            @for (dragon of maleDragons(); track dragon.id) {
-              <button
-                type="button"
-                class="dragon-choice"
-                [class.selected]="spermParentId() === dragon.id"
-                [attr.aria-pressed]="spermParentId() === dragon.id"
-                draggable="true"
-                (click)="selectParent('male', dragon)"
-                (dragstart)="startParentDrag($event, dragon)"
-              >
-                <i
-                  [style.--dragon-color]="dragon.color"
-                  [style.--dragon-accent]="dragon.accentColor"
-                  aria-hidden="true"
-                >
-                  {{ dragon.name.slice(0, 1) }}
-                </i>
-                <span><strong>{{ dragon.name }}</strong><small>{{ dragon.title }}</small></span>
-                <b>{{ spermParentId() === dragon.id ? 'Selected ✓' : 'Choose' }}</b>
-              </button>
-            }
-          </div>
+          <app-account-genetics-file
+            [studentId]="studentId()"
+            [dragonsOnly]="true"
+            [sexFilter]="'male'"
+            [selectedRecordId]="spermParentId()"
+            label="Sperm-parent inventory"
+            (recordSelected)="selectInventoryParent('male', $event)"
+          />
         </article>
       </div>
     </section>

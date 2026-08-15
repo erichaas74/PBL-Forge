@@ -16,6 +16,7 @@ import {
   ASSEMBLY_CONTACT_ABILITIES,
   AssemblyAbilityId,
   AssemblyContactAbility,
+  DEFENSE_TUNING,
   FIRE_BREATH_TUNING,
   SCRIPTED_ASSEMBLY_ATTACKS,
 } from '../../assembly/combat/assembly-abilities';
@@ -28,11 +29,18 @@ import {
   BattleBodySnapshot,
   BattleCombatant,
   BattleDamageEvent,
+  BattleDefenseSnapshot,
   BattlePhysicsFrame,
+  CombatAwarenessByCombatant,
   ControlFrameByCombatant,
   FireConeSnapshot,
 } from '../models/arena.models';
-import { getBodyKey } from '../utils/battle-assembly';
+import {
+  CoreHalfExtents,
+  coreHalfExtents,
+  getBodyKey,
+  horizontalTorsoSupport,
+} from '../utils/battle-assembly';
 
 interface BodyMeta {
   bodyKey: string;
@@ -46,13 +54,6 @@ interface BodyMeta {
    * cylinder torso all report the same three numbers.
    */
   half: CoreHalfExtents;
-}
-
-/** Half-extents of a torso: along its spine, across it, and vertically. */
-interface CoreHalfExtents {
-  length: number;
-  width: number;
-  height: number;
 }
 
 /** One torso riding on top of another, with the way off already chosen. */
@@ -77,16 +78,45 @@ interface ActiveScriptedAttack {
   hitResolved: boolean;
 }
 
+/** A brace being held, or the recovery after one collapsed. */
+interface GuardState {
+  /** Seconds of brace spent so far this hold. */
+  heldSeconds: number;
+  /** Set when the brace collapsed; no guarding until then. */
+  recoveredAtSeconds: number | null;
+}
+
+/** An evasive roll in flight. */
+interface ActiveDodge {
+  startedAtSeconds: number;
+  /** Ground-plane direction of the roll, already normalized. */
+  direction: { x: number; z: number };
+}
+
 const EMPTY_CONTROL_FRAME: ArenaControlFrame = {
   throttle: 0,
   steer: 0,
   strafe: 0,
   boost: false,
   biteAttack: false,
+  clawAttack: false,
   wingAttack: false,
   tailAttack: false,
+  hornCharge: false,
   fireAttack: false,
+  guard: false,
+  dodge: false,
 };
+
+/**
+ * Knockdown.
+ *
+ * A charge that connects puts its target on the floor: no control, no attacks,
+ * and the upright assist deliberately left switched off for long enough that
+ * the fall reads. This is the reward the heavy move is built around, and the
+ * reason a defender wants an answer to it.
+ */
+const KNOCKDOWN_SECONDS = 1.05;
 
 /** Fire breath: cone AoE gated by genotype at the control layer. */
 const FIRE_BREATH_RANGE = FIRE_BREATH_TUNING.range;
@@ -122,8 +152,17 @@ const ABILITY_DEFINITIONS = ASSEMBLY_CONTACT_ABILITIES;
  * that is *added* to the requested velocity rather than replaced by it.
  */
 const MOUNT_SEPARATION = {
-  /** Fraction of the summed half-heights above which one torso counts as riding another. */
-  heightRatio: 0.5,
+  /**
+   * Fraction of the summed half-heights above which one torso counts as riding
+   * another.
+   *
+   * Deliberately low: catching a climb while it is still a scramble up the
+   * flank, rather than once the rider is settled on the back, is what stops the
+   * pair getting into the pin in the first place. Two dragons standing on the
+   * same floor differ in height by nothing at all, so there is a wide margin
+   * before this can fire by accident.
+   */
+  heightRatio: 0.32,
   /** How far a rider may sit outside the carrier's footprint and still count, as a fraction of its own half-extents. */
   footprintSlack: 0.35,
   /** Peak slide-off speed, in metres per second, at full overlap. */
@@ -134,6 +173,54 @@ const MOUNT_SEPARATION = {
   buckLift: 4.2,
   /** Seconds between buck throws, so holding boost is not a continuous cannon. */
   buckCooldownSeconds: 0.8,
+  /**
+   * How much of its own requested move a rider keeps.
+   *
+   * Near zero on purpose. A rider's controller assigns horizontal velocity
+   * outright, so at full authority it simply drove back onto the torso it had
+   * just been slid off — the slide and the chase were fighting over the same
+   * variable and the chase always won. A dragon standing on another one has
+   * nothing to push against; it gets to fall off, not to steer.
+   */
+  riderDriveScale: 0.12,
+  /**
+   * The slide grows the longer a pin lasts, reaching this multiple after
+   * `escalationSeconds`. No pin can be held, whatever either dragon does.
+   */
+  slideEscalation: 2.4,
+  escalationSeconds: 1.1,
+  /** A carrier starts shrugging on its own after this long, without any input. */
+  autoShrugAfterSeconds: 0.35,
+  /** Repeat interval and strength of that automatic shrug. */
+  autoShrugIntervalSeconds: 0.4,
+  autoShrugImpulse: 5,
+  /** How long a rider must be clear before its pin clock resets. */
+  dismountGraceSeconds: 0.3,
+  /** Damage per tick dealt to a torso being stood on, so a pin is worth attempting. */
+  crushDamage: 2.5,
+  crushIntervalSeconds: 0.5,
+} as const;
+
+/**
+ * Flight.
+ *
+ * Boost used to grant lift on every frame it was held, which is exactly how the
+ * challenger ended up hovering on the player's back: it never stopped pressing
+ * boost, so it never came down. Lift is now a discrete flap — one beat, then a
+ * cooldown, and none at all while standing on somebody.
+ */
+const WING_FLAP = {
+  cooldownSeconds: 0.85,
+  /** Upward impulse per beat, as a multiple of body mass and wing count. */
+  impulsePerWing: 1.2,
+  maxWings: 4,
+  /**
+   * A leap needs footing: no beat unless the dragon is within this multiple of
+   * its own standing height. A ceiling alone was not enough — a dragon could
+   * still beat its wings again just below it and hang there indefinitely, which
+   * is the hover this is here to prevent.
+   */
+  groundedRatio: 1.35,
 } as const;
 
 /**
@@ -161,6 +248,19 @@ export class AssemblyArenaPhysicsService {
   /** Combatants currently riding on top of another torso. Rebuilt every step. */
   private readonly mountedOn = new Map<string, MountState>();
   private readonly lastBuckAt = new Map<string, number>();
+  /** When each ongoing pin began, so the slide can escalate out of it. */
+  private readonly mountedSince = new Map<string, number>();
+  /** Last frame each rider was actually on top, for the dismount grace. */
+  private readonly lastMountedAt = new Map<string, number>();
+  private readonly lastCrushAt = new Map<string, number>();
+  private readonly lastFlapAt = new Map<string, number>();
+  /** Last time each combatant *started* a given ability, for its cooldown. */
+  private readonly lastAttackStartedAt = new Map<string, number>();
+  private readonly guardStates = new Map<string, GuardState>();
+  private readonly activeDodges = new Map<string, ActiveDodge>();
+  private readonly lastDodgeAt = new Map<string, number>();
+  /** Combatants flattened by a charge, with the time they may act again. */
+  private readonly knockedDownUntil = new Map<string, number>();
   private readonly fixedTimeStep = 1 / 60;
   private readonly maxSubSteps = 6;
   private currentSetupStyleId: ArenaSetupStyleId = 'duel-arena';
@@ -176,8 +276,12 @@ export class AssemblyArenaPhysicsService {
   }
 
   step(state: BattleArenaState, deltaSeconds: number, controlFrames: ControlFrameByCombatant): BattlePhysicsFrame {
+    // Defence is resolved before the attacks that read it: a guard raised on
+    // this frame has to be up before the frame's blows are scored, or blocking
+    // would always be one frame late.
+    this.updateDefenses(state, controlFrames, deltaSeconds);
     this.updateScriptedAttacks(state, controlFrames);
-    this.updateMountState();
+    this.updateMountState(state.elapsedSeconds);
     this.applyControllers(state, controlFrames);
     this.updateJointBehaviors(state.elapsedSeconds);
 
@@ -195,6 +299,7 @@ export class AssemblyArenaPhysicsService {
         damageEvents: [],
         fireCones: this.getFireCones(state),
         attackPoses: this.getAttackPoses(state.elapsedSeconds),
+        defenses: this.getDefenseSnapshots(state),
       };
     }
 
@@ -214,15 +319,59 @@ export class AssemblyArenaPhysicsService {
 
     return {
       snapshots: this.getSnapshots(),
-      damageEvents: [
+      // Every route to a health change passes through the defence filter, so a
+      // brace protects against a wall slam and a falling opponent exactly as it
+      // protects against a bite. A defence that only worked against the moves
+      // we remembered to route through it would be the worst kind of rule.
+      damageEvents: this.applyDefenseMitigation(state, [
         ...this.getBrokenJointDamageEvents(state),
         ...this.getAbilityDamageEvents(state),
         ...this.getFireBreathDamageEvents(state),
+        ...this.getCrushDamageEvents(state),
         ...rateLimited,
-      ],
+      ]),
       fireCones: this.getFireCones(state),
       attackPoses: this.getAttackPoses(state.elapsedSeconds),
+      defenses: this.getDefenseSnapshots(state),
     };
+  }
+
+  /**
+   * What every combatant is doing right now.
+   *
+   * Read by the strategy layer so a controller can answer an incoming attack
+   * instead of only chasing a position.
+   */
+  getCombatAwareness(state: BattleArenaState): CombatAwarenessByCombatant {
+    const awareness: CombatAwarenessByCombatant = {};
+
+    for (const combatant of state.combatants) {
+      const attack = this.activeAttacks.get(combatant.id);
+      const phase = attack ? getAttackPhase(attack, state.elapsedSeconds) : 0;
+      const timing = attack ? SCRIPTED_ASSEMBLY_ATTACKS[attack.ability] : null;
+      const core = this.getCoreBody(combatant.id);
+      const cooldowns: Partial<Record<AssemblyAbilityId, number>> = {};
+
+      for (const definition of ASSEMBLY_CONTACT_ABILITIES) {
+        const last = this.lastAttackStartedAt.get(`${combatant.id}:${definition.ability}`);
+        cooldowns[definition.ability] = last === undefined
+          ? 0
+          : Math.max(0, definition.cooldownSeconds - (state.elapsedSeconds - last));
+      }
+
+      awareness[combatant.id] = {
+        combatantId: combatant.id,
+        ability: attack?.ability ?? null,
+        phase,
+        striking: Boolean(timing) && phase >= (timing!.strikeAt - timing!.activeWindow),
+        defense: this.getDefenseSnapshot(combatant.id, state.elapsedSeconds),
+        mounted: this.mountedOn.has(combatant.id),
+        airborne: Boolean(core) && !this.mountedOn.has(combatant.id) && core!.velocity.y > 1.2,
+        cooldowns,
+      };
+    }
+
+    return awareness;
   }
 
   clear(): void {
@@ -244,6 +393,15 @@ export class AssemblyArenaPhysicsService {
     this.attackReactions.clear();
     this.mountedOn.clear();
     this.lastBuckAt.clear();
+    this.mountedSince.clear();
+    this.lastMountedAt.clear();
+    this.lastCrushAt.clear();
+    this.lastFlapAt.clear();
+    this.lastAttackStartedAt.clear();
+    this.guardStates.clear();
+    this.activeDodges.clear();
+    this.lastDodgeAt.clear();
+    this.knockedDownUntil.clear();
   }
 
   private addCombatant(combatant: BattleCombatant): void {
@@ -548,9 +706,11 @@ export class AssemblyArenaPhysicsService {
       // change the player's requested direction.
       const forward = getHorizontalAxis(core, new CANNON.Vec3(1, 0, 0));
       const right = getHorizontalAxis(core, new CANNON.Vec3(0, 0, 1));
-      const speed = controls.boost ? 5.2 : 3.4;
-      const desiredX = (forward.x * controls.throttle + right.x * controls.strafe * 0.65) * speed;
-      const desiredZ = (forward.z * controls.throttle + right.z * controls.strafe * 0.65) * speed;
+      const drive = this.resolveDragonDrive(combatant, controls, elapsedSeconds);
+      const desiredX = (forward.x * controls.throttle + right.x * controls.strafe * 0.65)
+        * drive.speed + drive.overrideX;
+      const desiredZ = (forward.z * controls.throttle + right.z * controls.strafe * 0.65)
+        * drive.speed + drive.overrideZ;
       const reaction = this.attackReactions.get(combatant.id);
       // Separation is added, not blended: assigning velocity outright is what
       // keeps the controls direct, but it also discards the solver's contact
@@ -566,12 +726,14 @@ export class AssemblyArenaPhysicsService {
         reaction.scale(0.84, reaction);
         if (reaction.lengthSquared() < 0.01) this.attackReactions.delete(combatant.id);
       }
-      core.applyTorque(new CANNON.Vec3(0, -controls.steer * 34, 0));
+      // A braced dragon plants itself and a flattened one cannot turn at all.
+      core.applyTorque(new CANNON.Vec3(0, -controls.steer * 34 * drive.turnScale, 0));
       if (controls.boost) {
         this.applyBuck(combatant.id, core, elapsedSeconds);
       }
-      this.applyWingLift(combatant, core, controls);
-      this.applyDragonStance(combatant, core, controls);
+      this.applyAutoShrug(combatant.id, elapsedSeconds);
+      this.applyWingFlap(combatant, core, controls, elapsedSeconds);
+      this.applyDragonStance(combatant, core, controls, elapsedSeconds);
       return;
     }
 
@@ -587,11 +749,110 @@ export class AssemblyArenaPhysicsService {
   }
 
   /**
-   * Winged genotypes get lift while boosting: WW/Ww dragons leap and glide,
-   * ww dragons stay planted — inherited wings visibly change how they move.
+   * How fast this dragon may travel this frame, and any motion it does not own.
+   *
+   * Everything that can take control of a torso is decided in one place, in
+   * priority order, so two systems can never quietly both be driving: a
+   * knockdown beats a roll, a roll beats a charge, a charge beats a brace, and
+   * a dragon standing on another one keeps almost nothing.
    */
-  private applyWingLift(combatant: BattleCombatant, core: CANNON.Body, controls: ArenaControlFrame): void {
-    if (!controls.boost || core.velocity.y > 2.2) {
+  private resolveDragonDrive(
+    combatant: BattleCombatant,
+    controls: ArenaControlFrame,
+    elapsedSeconds: number,
+  ): { speed: number; turnScale: number; overrideX: number; overrideZ: number } {
+    const still = { speed: 0, turnScale: 0, overrideX: 0, overrideZ: 0 };
+
+    if (this.isKnockedDown(combatant.id, elapsedSeconds)) {
+      return still;
+    }
+
+    const dodge = this.activeDodges.get(combatant.id);
+    if (dodge) {
+      // The roll travels on its own line, ignoring the stick, so an evade is a
+      // committed movement a student can read and time rather than a nudge.
+      const phase = (elapsedSeconds - dodge.startedAtSeconds) / DEFENSE_TUNING.dodge.durationSeconds;
+      const speed = DEFENSE_TUNING.dodge.speed * Math.max(0, 1 - phase) ** 0.6;
+      return {
+        speed: 0,
+        turnScale: 0.2,
+        overrideX: dodge.direction.x * speed,
+        overrideZ: dodge.direction.z * speed,
+      };
+    }
+
+    const charge = this.getChargeDrive(combatant.id, elapsedSeconds);
+    if (charge) {
+      return { speed: 0, turnScale: 0.25, overrideX: charge.x, overrideZ: charge.z };
+    }
+
+    if (this.isGuarding(combatant.id)) {
+      return {
+        speed: 3.4 * DEFENSE_TUNING.guard.moveScale,
+        turnScale: DEFENSE_TUNING.guard.moveScale,
+        overrideX: 0,
+        overrideZ: 0,
+      };
+    }
+
+    const base = controls.boost ? 5.2 : 3.4;
+    const mounted = this.mountedOn.has(combatant.id);
+    return {
+      speed: mounted ? base * MOUNT_SEPARATION.riderDriveScale : base,
+      turnScale: mounted ? MOUNT_SEPARATION.riderDriveScale : 1,
+      overrideX: 0,
+      overrideZ: 0,
+    };
+  }
+
+  /**
+   * The forward run a charge carries through its active window, or null.
+   *
+   * A heavy attack that did not travel could only ever be walked into, which
+   * made it strictly worse than a bite. Driving the attacker forward is what
+   * turns it into something a defender has to actually answer.
+   */
+  private getChargeDrive(combatantId: string, elapsedSeconds: number): { x: number; z: number } | null {
+    const attack = this.activeAttacks.get(combatantId);
+    if (!attack) return null;
+
+    const definition = ABILITY_DEFINITIONS.find(item => item.ability === attack.ability);
+    if (!definition?.driveSpeed) return null;
+
+    const timing = SCRIPTED_ASSEMBLY_ATTACKS[attack.ability];
+    const phase = getAttackPhase(attack, elapsedSeconds);
+    const from = timing.strikeAt - timing.activeWindow * 1.5;
+    const until = timing.strikeAt + timing.activeWindow;
+    if (phase < from || phase > until) return null;
+
+    const core = this.getCoreBody(combatantId);
+    if (!core) return null;
+
+    // Fastest at the moment of impact, tapering off through the follow-through.
+    const ramp = phase <= timing.strikeAt
+      ? (phase - from) / Math.max(timing.strikeAt - from, 1e-6)
+      : 1 - (phase - timing.strikeAt) / Math.max(until - timing.strikeAt, 1e-6);
+    const forward = getHorizontalAxis(core, new CANNON.Vec3(1, 0, 0));
+    const speed = definition.driveSpeed * Math.max(0, ramp);
+    return { x: forward.x * speed, z: forward.z * speed };
+  }
+
+  /**
+   * Winged genotypes leap on boost: WW/Ww dragons get airborne, ww dragons stay
+   * planted — inherited wings visibly change how they move.
+   *
+   * One beat per cooldown, never while standing on another dragon, and never
+   * above a ceiling. Applying lift on every frame boost was held is what let
+   * the challenger park itself on the player's back and stay there: it held
+   * boost permanently, so it never came down.
+   */
+  private applyWingFlap(
+    combatant: BattleCombatant,
+    core: CANNON.Body,
+    controls: ArenaControlFrame,
+    elapsedSeconds: number,
+  ): void {
+    if (!controls.boost || this.mountedOn.has(combatant.id)) {
       return;
     }
 
@@ -600,7 +861,23 @@ export class AssemblyArenaPhysicsService {
       return;
     }
 
-    core.applyForce(new CANNON.Vec3(0, Math.min(wingCount, 4) * core.mass * 2.6, 0));
+    const corePart = combatant.assembly.parts.find(part => part.id === combatant.corePartId);
+    const grounded = (corePart?.position.y ?? 1) * WING_FLAP.groundedRatio;
+    if (core.position.y > grounded) {
+      return;
+    }
+
+    const last = this.lastFlapAt.get(combatant.id);
+    if (last !== undefined && elapsedSeconds - last < WING_FLAP.cooldownSeconds) {
+      return;
+    }
+
+    this.lastFlapAt.set(combatant.id, elapsedSeconds);
+    core.applyImpulse(new CANNON.Vec3(
+      0,
+      Math.min(wingCount, WING_FLAP.maxWings) * core.mass * WING_FLAP.impulsePerWing,
+      0,
+    ));
   }
 
   /**
@@ -611,7 +888,15 @@ export class AssemblyArenaPhysicsService {
     combatant: BattleCombatant,
     core: CANNON.Body,
     controls: ArenaControlFrame,
+    elapsedSeconds: number,
   ): void {
+    // Flattened by a charge: no ride height, no upright assist, no aim. The
+    // dragon lies where it landed until the knockdown expires, which is the
+    // only thing that makes the heavy attack feel heavy.
+    if (this.isKnockedDown(combatant.id, elapsedSeconds)) {
+      return;
+    }
+
     this.applyDragonRideHeight(combatant, core);
 
     // Upright assist: torque that rotates body-up toward world-up, damped so the
@@ -726,7 +1011,7 @@ export class AssemblyArenaPhysicsService {
    * carrier must not still be jacking up a rider that an earlier iteration
    * already decided had slid off.
    */
-  private updateMountState(): void {
+  private updateMountState(elapsedSeconds: number): void {
     this.mountedOn.clear();
     const cores = this.getCoreBodies();
 
@@ -741,10 +1026,126 @@ export class AssemblyArenaPhysicsService {
         const slide = resolveMountSlide(rider, riderMeta, carrier, carrierMeta);
         if (!slide) continue;
 
-        this.mountedOn.set(riderMeta.combatantId, { carrierId: carrierMeta.combatantId, slide });
+        // The longer a pin lasts the harder it pushes, so however hard a rider
+        // drives back on, the exchange has a bounded length. This is the
+        // guarantee the old separation was missing: it pushed at a constant
+        // speed the rider's own drive could simply out-run.
+        const since = this.mountedSince.get(riderMeta.combatantId) ?? elapsedSeconds;
+        this.mountedSince.set(riderMeta.combatantId, since);
+        const escalation = 1 + (MOUNT_SEPARATION.slideEscalation - 1)
+          * Math.min(1, (elapsedSeconds - since) / MOUNT_SEPARATION.escalationSeconds);
+
+        this.mountedOn.set(riderMeta.combatantId, {
+          carrierId: carrierMeta.combatantId,
+          slide: { x: slide.x * escalation, z: slide.z * escalation },
+        });
         break;
       }
     }
+
+    /*
+     * A pin's clock survives a brief loss of contact.
+     *
+     * A rider bouncing on its carrier crosses the mount threshold several times
+     * a second, and clearing the clock on every one of those restarted the
+     * escalation from zero — so the separation never grew and the ride went on
+     * far longer than the escalation was supposed to allow. Only a rider that
+     * has genuinely been off for a moment gets a fresh start.
+     */
+    for (const [combatantId, since] of Array.from(this.mountedSince.entries())) {
+      if (this.mountedOn.has(combatantId)) {
+        this.lastMountedAt.set(combatantId, elapsedSeconds);
+        continue;
+      }
+
+      const lastSeen = this.lastMountedAt.get(combatantId) ?? since;
+      if (elapsedSeconds - lastSeen >= MOUNT_SEPARATION.dismountGraceSeconds) {
+        this.mountedSince.delete(combatantId);
+        this.lastMountedAt.delete(combatantId);
+      }
+    }
+  }
+
+  /**
+   * A carrier throws off a rider on its own, without being asked.
+   *
+   * The manual buck is still there and still stronger, but it cannot be the
+   * only way out: a student being stood on may not know the move exists, and
+   * "press the button you were never told about" is not a mechanic. This makes
+   * a pin something that costs the rider time rather than something that ends
+   * the fight.
+   */
+  private applyAutoShrug(carrierId: string, elapsedSeconds: number): void {
+    for (const [riderId, mount] of this.mountedOn) {
+      if (mount.carrierId !== carrierId) continue;
+
+      const since = this.mountedSince.get(riderId);
+      if (since === undefined || elapsedSeconds - since < MOUNT_SEPARATION.autoShrugAfterSeconds) {
+        continue;
+      }
+
+      const lastShrug = this.lastBuckAt.get(carrierId);
+      if (
+        lastShrug !== undefined
+        && elapsedSeconds - lastShrug < MOUNT_SEPARATION.autoShrugIntervalSeconds
+      ) {
+        continue;
+      }
+
+      const riderCore = this.getCoreBody(riderId);
+      if (!riderCore) continue;
+
+      const length = Math.hypot(mount.slide.x, mount.slide.z) || 1;
+      riderCore.wakeUp();
+      riderCore.applyImpulse(new CANNON.Vec3(
+        (mount.slide.x / length) * riderCore.mass * MOUNT_SEPARATION.autoShrugImpulse,
+        riderCore.mass * MOUNT_SEPARATION.autoShrugImpulse * 0.35,
+        (mount.slide.z / length) * riderCore.mass * MOUNT_SEPARATION.autoShrugImpulse,
+      ));
+      // Carried in the reaction channel as well as the impulse: the rider's own
+      // controller assigns horizontal velocity outright each frame and would
+      // otherwise erase the throw before it travelled anywhere.
+      this.attackReactions.set(riderId, new CANNON.Vec3(
+        (mount.slide.x / length) * MOUNT_SEPARATION.autoShrugImpulse * 0.6,
+        0,
+        (mount.slide.z / length) * MOUNT_SEPARATION.autoShrugImpulse * 0.6,
+      ));
+      this.lastBuckAt.set(carrierId, elapsedSeconds);
+    }
+  }
+
+  /**
+   * Being stood on hurts, slowly.
+   *
+   * Without a cost, a pin is only an annoyance and there is no reason for
+   * either dragon to care how it ends. With one — and with the escalating
+   * slide and the automatic shrug guaranteeing it ends — a mount becomes a
+   * brief advantage worth taking rather than a stalemate.
+   */
+  private getCrushDamageEvents(state: BattleArenaState): BattleDamageEvent[] {
+    const events: BattleDamageEvent[] = [];
+
+    for (const [riderId, mount] of this.mountedOn) {
+      const carrier = state.combatants.find(item => item.id === mount.carrierId);
+      if (!carrier) continue;
+
+      const lastCrush = this.lastCrushAt.get(riderId);
+      if (
+        lastCrush !== undefined
+        && state.elapsedSeconds - lastCrush < MOUNT_SEPARATION.crushIntervalSeconds
+      ) {
+        continue;
+      }
+
+      this.lastCrushAt.set(riderId, state.elapsedSeconds);
+      events.push({
+        bodyKey: getBodyKey(carrier.id, carrier.corePartId),
+        amount: MOUNT_SEPARATION.crushDamage,
+        reason: 'pinned',
+      });
+    }
+
+    return events;
   }
 
   /**
@@ -870,6 +1271,191 @@ export class AssemblyArenaPhysicsService {
     return null;
   }
 
+  // ---------------------------------------------------------------------------
+  // Defence.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Advances guards, rolls, and knockdowns for the frame.
+   *
+   * Guard is a held state with a budget: it drains while braced, refills while
+   * not, and collapses into a recovery window if held to the end. Dodge is a
+   * one-shot with an invulnerable middle. Both are refused outright to a dragon
+   * that is already on the floor, which is what gives the charge its teeth.
+   */
+  private updateDefenses(
+    state: BattleArenaState,
+    controlFrames: ControlFrameByCombatant,
+    deltaSeconds: number,
+  ): void {
+    const now = state.elapsedSeconds;
+
+    for (const [combatantId, dodge] of this.activeDodges) {
+      if (now - dodge.startedAtSeconds >= DEFENSE_TUNING.dodge.durationSeconds) {
+        this.activeDodges.delete(combatantId);
+      }
+    }
+
+    for (const combatant of state.combatants) {
+      if (combatant.controlMode !== 'dragon-attack') continue;
+
+      const controls = controlFrames[combatant.id] ?? EMPTY_CONTROL_FRAME;
+      const disabled = this.isKnockedDown(combatant.id, now) || this.mountedOn.has(combatant.id);
+      const guard = this.guardStates.get(combatant.id)
+        ?? { heldSeconds: 0, recoveredAtSeconds: null };
+
+      // A collapsed brace stays down until its recovery elapses, however hard
+      // the button is held — otherwise "hold guard forever" is still the answer
+      // to every question the fight can ask.
+      if (guard.recoveredAtSeconds !== null && now >= guard.recoveredAtSeconds) {
+        guard.recoveredAtSeconds = null;
+        guard.heldSeconds = 0;
+      }
+
+      // Dodge is resolved first so that a frame asking for both takes the roll.
+      // A program can legitimately request either answer to the same threat,
+      // and the roll is the one that has to win: it is the committed, timed
+      // option, and it is over in half a second either way.
+      if (controls.dodge && !disabled) {
+        this.startDodge(combatant, controls, now);
+      }
+
+      const wantsGuard = Boolean(controls.guard) && !disabled && !this.activeDodges.has(combatant.id);
+      if (wantsGuard && guard.recoveredAtSeconds === null) {
+        guard.heldSeconds += deltaSeconds;
+        if (guard.heldSeconds >= DEFENSE_TUNING.guard.maxHoldSeconds) {
+          guard.recoveredAtSeconds = now + DEFENSE_TUNING.guard.recoverySeconds;
+        }
+      } else if (guard.recoveredAtSeconds === null) {
+        // Recovers at half the rate it drains, so trading brace for stamina is
+        // a real decision rather than a free default stance.
+        guard.heldSeconds = Math.max(0, guard.heldSeconds - deltaSeconds * 0.5);
+      }
+
+      this.guardStates.set(combatant.id, guard);
+    }
+  }
+
+  private startDodge(combatant: BattleCombatant, controls: ArenaControlFrame, now: number): void {
+    if (this.activeDodges.has(combatant.id)) return;
+    const last = this.lastDodgeAt.get(combatant.id);
+    if (last !== undefined && now - last < DEFENSE_TUNING.dodge.cooldownSeconds) return;
+
+    const core = this.getCoreBody(combatant.id);
+    if (!core) return;
+
+    const forward = getHorizontalAxis(core, new CANNON.Vec3(1, 0, 0));
+    const right = getHorizontalAxis(core, new CANNON.Vec3(0, 0, 1));
+    let x = forward.x * controls.throttle + right.x * controls.strafe;
+    let z = forward.z * controls.throttle + right.z * controls.strafe;
+
+    // No direction held: roll away from whoever is threatening, which is what a
+    // player pressing dodge alone means by it.
+    if (Math.hypot(x, z) < 0.05) {
+      const opponent = this.getOpponentCoreBody(combatant.id);
+      if (opponent) {
+        x = core.position.x - opponent.position.x;
+        z = core.position.z - opponent.position.z;
+      } else {
+        x = -forward.x;
+        z = -forward.z;
+      }
+    }
+
+    const length = Math.hypot(x, z) || 1;
+    this.activeDodges.set(combatant.id, {
+      startedAtSeconds: now,
+      direction: { x: x / length, z: z / length },
+    });
+    this.lastDodgeAt.set(combatant.id, now);
+    // Any move being wound up is abandoned: rolling out of a bite is a choice
+    // to give up the bite.
+    this.activeAttacks.delete(combatant.id);
+  }
+
+  private isGuarding(combatantId: string): boolean {
+    const guard = this.guardStates.get(combatantId);
+    return Boolean(guard) && guard!.recoveredAtSeconds === null && guard!.heldSeconds > 0;
+  }
+
+  private isInvulnerable(combatantId: string, now: number): boolean {
+    const dodge = this.activeDodges.get(combatantId);
+    if (!dodge) return false;
+    const phase = (now - dodge.startedAtSeconds) / DEFENSE_TUNING.dodge.durationSeconds;
+    return phase >= DEFENSE_TUNING.dodge.invulnerableFrom
+      && phase <= DEFENSE_TUNING.dodge.invulnerableUntil;
+  }
+
+  private isKnockedDown(combatantId: string, now: number): boolean {
+    const until = this.knockedDownUntil.get(combatantId);
+    return until !== undefined && now < until;
+  }
+
+  private getDefenseSnapshot(combatantId: string, now: number): BattleDefenseSnapshot {
+    const guard = this.guardStates.get(combatantId);
+    const dodge = this.activeDodges.get(combatantId);
+
+    return {
+      combatantId,
+      guarding: this.isGuarding(combatantId),
+      guardFatigue: Math.min(1, (guard?.heldSeconds ?? 0) / DEFENSE_TUNING.guard.maxHoldSeconds),
+      dodgePhase: dodge
+        ? Math.min(1, (now - dodge.startedAtSeconds) / DEFENSE_TUNING.dodge.durationSeconds)
+        : null,
+      invulnerable: this.isInvulnerable(combatantId, now),
+      knockedDown: this.isKnockedDown(combatantId, now),
+    };
+  }
+
+  private getDefenseSnapshots(state: BattleArenaState): BattleDefenseSnapshot[] {
+    return state.combatants.map(combatant =>
+      this.getDefenseSnapshot(combatant.id, state.elapsedSeconds));
+  }
+
+  /**
+   * Rewrites a frame's damage through whatever the target was doing about it:
+   * a roll's invulnerable window drops the event entirely, a brace keeps a
+   * fraction of it and marks the event so the log can say the hit was blocked.
+   */
+  private applyDefenseMitigation(
+    state: BattleArenaState,
+    events: BattleDamageEvent[],
+  ): BattleDamageEvent[] {
+    const mitigated: BattleDamageEvent[] = [];
+
+    for (const event of events) {
+      const combatantId = this.bodyOwner(event.bodyKey);
+      if (!combatantId) {
+        mitigated.push(event);
+        continue;
+      }
+
+      if (this.isInvulnerable(combatantId, state.elapsedSeconds)) {
+        continue;
+      }
+
+      if (this.isGuarding(combatantId)) {
+        mitigated.push({
+          ...event,
+          amount: event.amount * DEFENSE_TUNING.guard.damageTaken,
+          mitigatedBy: 'guard',
+        });
+        continue;
+      }
+
+      mitigated.push(event);
+    }
+
+    return mitigated;
+  }
+
+  private bodyOwner(bodyKey: string): string | null {
+    for (const meta of this.bodyMetaById.values()) {
+      if (meta.bodyKey === bodyKey) return meta.combatantId;
+    }
+    return null;
+  }
+
   private updateScriptedAttacks(
     state: BattleArenaState,
     controlFrames: ControlFrameByCombatant,
@@ -890,14 +1476,45 @@ export class AssemblyArenaPhysicsService {
         continue;
       }
 
+      // A dragon that is braced, rolling, flattened, or standing on somebody is
+      // busy. Committing to defence means giving up offence for its duration —
+      // that trade is the whole point of having a defence.
+      if (
+        this.isGuarding(combatant.id)
+        || this.activeDodges.has(combatant.id)
+        || this.isKnockedDown(combatant.id, state.elapsedSeconds)
+        || this.mountedOn.has(combatant.id)
+      ) {
+        continue;
+      }
+
       const ability = requestedAttack(controlFrames[combatant.id]);
-      if (!ability) continue;
+      if (!ability || !this.isAbilityReady(combatant.id, ability, state.elapsedSeconds)) {
+        continue;
+      }
+
       this.activeAttacks.set(combatant.id, {
         ability,
         startedAtSeconds: state.elapsedSeconds,
         hitResolved: false,
       });
+      this.lastAttackStartedAt.set(`${combatant.id}:${ability}`, state.elapsedSeconds);
     }
+  }
+
+  /**
+   * Per-move cooldowns, enforced at the point a move is *started*.
+   *
+   * The catalog has always carried a `cooldownSeconds` for every ability and
+   * nothing read it, so the only limit on a move was the length of its own
+   * animation. That is why the fight had no rhythm: the heavy hitters cost
+   * exactly as much to throw as the light ones.
+   */
+  private isAbilityReady(combatantId: string, ability: AssemblyAbilityId, now: number): boolean {
+    const cooldown = ABILITY_DEFINITIONS.find(item => item.ability === ability)?.cooldownSeconds;
+    if (cooldown === undefined) return true;
+    const last = this.lastAttackStartedAt.get(`${combatantId}:${ability}`);
+    return last === undefined || now - last >= cooldown;
   }
 
   private getAttackPoses(elapsedSeconds: number): BattleAttackPoseSnapshot[] {
@@ -948,7 +1565,7 @@ export class AssemblyArenaPhysicsService {
         reason: definition.ability,
       });
       if (definition.knockback) {
-        this.applyAbilityKnockback(combatant.id, target.combatantId);
+        this.applyAbilityKnockback(combatant.id, target.combatantId, definition, elapsedSeconds);
       }
     }
 
@@ -973,7 +1590,24 @@ export class AssemblyArenaPhysicsService {
       const dx = body.position.x - attacker.position.x;
       const dz = body.position.z - attacker.position.z;
       const distance = Math.hypot(dx, dz);
-      if (distance > range || distance < 0.001 || Math.abs(body.position.y - attacker.position.y) > 2) {
+      if (distance < 0.001 || Math.abs(body.position.y - attacker.position.y) > 2) {
+        continue;
+      }
+      /*
+       * Range is measured to the target's *hide*, not to the point at its
+       * centre.
+       *
+       * Every authored range already budgets for the attacker's own torso
+       * (`TORSO_REACH`) and nothing budgeted for the defender's. A dragon torso
+       * is 3.8 units long, so two dragons standing chest to chest have their
+       * cores 3.8 apart — further than a bite's 2.7 reach. The result was that
+       * melee could not connect at all between two dragons, and the only thing
+       * that ever did anything was running into each other. Measuring to the
+       * surface is what makes a move that visibly touches an opponent count as
+       * having touched it.
+       */
+      const reach = distance - horizontalSupport(body, meta, dx / distance, dz / distance);
+      if (reach > range) {
         continue;
       }
       if (coneDot !== null && (dx * forward.x + dz * forward.z) / distance < coneDot) {
@@ -1059,7 +1693,12 @@ export class AssemblyArenaPhysicsService {
     };
   }
 
-  private applyAbilityKnockback(attackerId: string, targetId: string): void {
+  private applyAbilityKnockback(
+    attackerId: string,
+    targetId: string,
+    definition: AbilityDefinition,
+    elapsedSeconds: number,
+  ): void {
     const attackerCore = this.getCoreBody(attackerId);
     const targetCore = this.getCoreBody(targetId);
     if (!attackerCore || !targetCore) return;
@@ -1069,13 +1708,35 @@ export class AssemblyArenaPhysicsService {
     if (direction.lengthSquared() < 0.001) return;
     direction.normalize();
 
+    // A braced dragon is moved barely at all and never goes down. Standing your
+    // ground against a charge is the horned genotype's whole reward.
+    const guarding = this.isGuarding(targetId);
+    const scale = guarding ? DEFENSE_TUNING.guard.knockbackScale : 1;
+
     targetCore.wakeUp();
-    this.attackReactions.set(targetId, new CANNON.Vec3(direction.x * 2.4, 0, direction.z * 2.4));
-    targetCore.applyImpulse(new CANNON.Vec3(
-      direction.x * (6 + targetCore.mass * 1.5),
-      2.5 + targetCore.mass * 0.4,
-      direction.z * (6 + targetCore.mass * 1.5),
+    this.attackReactions.set(targetId, new CANNON.Vec3(
+      direction.x * 2.4 * scale,
+      0,
+      direction.z * 2.4 * scale,
     ));
+    targetCore.applyImpulse(new CANNON.Vec3(
+      direction.x * (6 + targetCore.mass * 1.5) * scale,
+      (2.5 + targetCore.mass * 0.4) * scale,
+      direction.z * (6 + targetCore.mass * 1.5) * scale,
+    ));
+
+    if (definition.knockdown && !guarding) {
+      this.knockedDownUntil.set(targetId, elapsedSeconds + KNOCKDOWN_SECONDS);
+      // Spun as it falls, so the knockdown reads as being bowled over rather
+      // than as the dragon suddenly refusing to respond.
+      targetCore.applyTorque(new CANNON.Vec3(
+        direction.z * targetCore.mass * 90,
+        0,
+        -direction.x * targetCore.mass * 90,
+      ));
+      this.activeAttacks.delete(targetId);
+      this.guardStates.delete(targetId);
+    }
   }
 
   private getCollisionDamageEvents(): BattleDamageEvent[] {
@@ -1297,27 +1958,6 @@ const DEFAULT_ARENA_SETUP: ArenaSetupConfig = {
 };
 
 /**
- * Torso half-extents in the body's own frame.
- *
- * Mirrors `createAssemblyGeometry`'s reading of `dimensions`: a sphere carries
- * a radius in `x`, a cylinder a radius in `x` and a full height in `y`, and a
- * box three full extents.
- */
-function coreHalfExtents(part: AssemblyPart): CoreHalfExtents {
-  if (part.shape === 'sphere') {
-    return { length: part.dimensions.x, width: part.dimensions.x, height: part.dimensions.x };
-  }
-  if (part.shape === 'cylinder') {
-    return { length: part.dimensions.x, width: part.dimensions.x, height: part.dimensions.y / 2 };
-  }
-  return {
-    length: part.dimensions.x / 2,
-    width: part.dimensions.z / 2,
-    height: part.dimensions.y / 2,
-  };
-}
-
-/**
  * Slide-off velocity for `rider` if it is standing on `carrier`, else null.
  *
  * The footprint test runs in the carrier's horizontal frame, and the exit is
@@ -1374,11 +2014,19 @@ function withoutConnectedCollision<T extends CANNON.Constraint>(constraint: T): 
   return constraint;
 }
 
+/**
+ * Which move a control frame is asking for.
+ *
+ * Ordered by commitment, heaviest first: if a student is somehow holding two
+ * buttons, the one they had to mean is the one that costs the most to throw.
+ */
 function requestedAttack(controls: ArenaControlFrame | undefined): AssemblyAbilityId | null {
+  if (controls?.hornCharge) return 'horn-charge';
+  if (controls?.fireAttack) return 'fire-breath';
   if (controls?.biteAttack) return 'bite';
   if (controls?.wingAttack) return 'wing-buffet';
   if (controls?.tailAttack) return 'tail-sweep';
-  if (controls?.fireAttack) return 'fire-breath';
+  if (controls?.clawAttack) return 'claw-rake';
   return null;
 }
 
@@ -1402,6 +2050,17 @@ function getBestRoleDamageMultiplier(
     best = Math.max(best, combatant.combatProfile.parts[part.id]?.damageMultiplier ?? 1);
   }
   return best;
+}
+
+/** The shared torso support function, fed from a live physics body. */
+function horizontalSupport(
+  body: CANNON.Body,
+  meta: BodyMeta,
+  dirX: number,
+  dirZ: number,
+): number {
+  const forward = getHorizontalAxis(body, new CANNON.Vec3(1, 0, 0));
+  return horizontalTorsoSupport(meta.half, forward.x, forward.z, dirX, dirZ);
 }
 
 /** A body-local axis projected onto the ground plane and normalized. */

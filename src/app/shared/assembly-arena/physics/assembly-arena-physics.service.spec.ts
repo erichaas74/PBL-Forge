@@ -282,6 +282,182 @@ describe('AssemblyArenaPhysicsService', () => {
     expect(fastestThrow).toBeGreaterThan(3);
   });
 
+  it('shakes off a rider that keeps driving back on top', () => {
+    // The reported bug, as a test: the challenger held boost permanently, which
+    // granted lift on every frame, and drove itself onto the player's back where
+    // its own chase velocity kept re-mounting it faster than the slide could
+    // separate the pair. The rider here does exactly that — full throttle at
+    // the dragon underneath, boost held — and must still end up on the floor.
+    const asset = createScaledDragonAsset();
+    const setup = getArenaSetup('duel-arena');
+    const core = asset.assembly.parts.find(part => part.id === 'classic-dragon-body')!;
+    const bottom = createCombatant(
+      'red-1', asset, 'red', { x: 0, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const top = createCombatant(
+      'blue-1', asset, 'blue', { x: 0, y: core.dimensions.y * 1.2, z: 0 }, 'ai', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const state = createTestState(setup, [bottom, top], 7);
+    const service = new AssemblyArenaPhysicsService();
+    service.rebuild(state);
+
+    // The invariant is not "never on top" — a dragon may land on another one,
+    // and that is fine. It is that a mount cannot be *held*: no unbroken stretch
+    // of riding may outlast the escalating slide and the carrier's shrug.
+    let ridingFrames = 0;
+    let longestRide = 0;
+    for (let frame = 0; frame < 60 * 8; frame += 1) {
+      state.elapsedSeconds = frame / 60;
+      service.step(state, 1 / 60, {
+        'red-1': { throttle: 0, steer: 0, strafe: 0, boost: false },
+        'blue-1': { throttle: 1, steer: 0, strafe: 0, boost: true, biteAttack: true },
+      });
+
+      const rise = coreSnapshot(service, top).position.y - coreSnapshot(service, bottom).position.y;
+      ridingFrames = rise > core.dimensions.y ? ridingFrames + 1 : 0;
+      longestRide = Math.max(longestRide, ridingFrames);
+    }
+
+    expect(longestRide / 60)
+      .withContext(`pinned for ${(longestRide / 60).toFixed(2)}s of a driven re-mount`)
+      .toBeLessThan(2);
+  });
+
+  it('does not let a held boost turn into a hover', () => {
+    // Lift is a wing beat on a cooldown, not a per-frame force. Holding boost
+    // must therefore reach a bounded height and come back down rather than
+    // climbing for as long as the button is down.
+    const asset = createScaledDragonAsset();
+    const setup = getArenaSetup('duel-arena');
+    const combatant = createCombatant(
+      'red-1', asset, 'red', setup.redSpawn, 'player', 'dragon-attack', setup.redInitialRotation,
+    );
+    const state = createTestState(setup, [combatant], 8);
+    const service = new AssemblyArenaPhysicsService();
+    service.rebuild(state);
+
+    const standing = asset.assembly.parts.find(part => part.id === combatant.corePartId)!.position.y;
+    let peak = 0;
+    for (let frame = 0; frame < 60 * 6; frame += 1) {
+      state.elapsedSeconds = frame / 60;
+      service.step(state, 1 / 60, {
+        'red-1': { throttle: 0, steer: 0, strafe: 0, boost: true },
+      });
+      peak = Math.max(peak, coreSnapshot(service, combatant).position.y);
+    }
+
+    expect(peak).withContext('boost never left the ground').toBeGreaterThan(standing);
+    expect(peak).withContext(`climbed to ${peak} on held boost`).toBeLessThan(standing * 4);
+  });
+
+  it('absorbs most of a hit for a guarding dragon and none for a rolling one', () => {
+    const dragonAsset = createScaledDragonAsset();
+    const targetAsset = createTargetAsset();
+    const setup = getArenaSetup('duel-arena');
+    const attacker = createCombatant(
+      'red-1', dragonAsset, 'red', { x: 0, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const defender = createCombatant(
+      'blue-1', targetAsset, 'blue', { x: 2.2, y: 1.32, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+
+    const bite = (defence: 'none' | 'guard' | 'dodge'): number => {
+      const state = createTestState(setup, [attacker, defender], 9);
+      const service = new AssemblyArenaPhysicsService();
+      service.rebuild(state);
+      let total = 0;
+
+      for (let frame = 0; frame < 90; frame += 1) {
+        state.elapsedSeconds = 2 + frame / 60;
+        const result = service.step(state, 1 / 60, {
+          'red-1': { throttle: 0, steer: 0, strafe: 0, boost: false, biteAttack: frame === 0 },
+          'blue-1': {
+            throttle: 0,
+            steer: 0,
+            strafe: 0,
+            boost: false,
+            guard: defence === 'guard',
+            // Timed so the invulnerable window covers the strike rather than
+            // being thrown early — which is the skill the roll is testing.
+            dodge: defence === 'dodge' && frame === 30,
+          },
+        });
+        total += result.damageEvents
+          .filter(event => event.reason === 'bite')
+          .reduce((sum, event) => sum + event.amount, 0);
+      }
+
+      return total;
+    };
+
+    const open = bite('none');
+    expect(open).withContext('the bite never landed at all').toBeGreaterThan(0);
+    expect(bite('guard')).toBeLessThan(open * 0.5);
+    expect(bite('dodge')).toBe(0);
+  });
+
+  it('knocks a charged dragon down and takes its controls away', () => {
+    const dragonAsset = createScaledDragonAsset();
+    const setup = getArenaSetup('duel-arena');
+    const attacker = createCombatant(
+      'red-1', dragonAsset, 'red', { x: 0, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const defender = createCombatant(
+      'blue-1', dragonAsset, 'blue', { x: 3, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: Math.PI, z: 0 },
+    );
+    const state = createTestState(setup, [attacker, defender], 10);
+    const service = new AssemblyArenaPhysicsService();
+    service.rebuild(state);
+    const reasons: string[] = [];
+    let knockedDown = false;
+
+    for (let frame = 0; frame < 60 * 3; frame += 1) {
+      state.elapsedSeconds = 2 + frame / 60;
+      const result = service.step(state, 1 / 60, {
+        'red-1': { throttle: 0, steer: 0, strafe: 0, boost: false, hornCharge: frame === 0 },
+        'blue-1': { throttle: 0, steer: 0, strafe: 0, boost: false },
+      });
+      reasons.push(...result.damageEvents.map(event => event.reason));
+      knockedDown ||= (result.defenses ?? [])
+        .some(defence => defence.combatantId === 'blue-1' && defence.knockedDown);
+    }
+
+    expect(reasons).toContain('horn-charge');
+    expect(knockedDown).withContext('the charge landed without putting anyone down').toBe(true);
+  });
+
+  it('holds each move to its own cooldown', () => {
+    // Every ability has carried a cooldown in the catalog for as long as the
+    // catalog has existed and nothing enforced it, so the only limit on a move
+    // was its own animation length.
+    const dragonAsset = createScaledDragonAsset();
+    const targetAsset = createTargetAsset();
+    const setup = getArenaSetup('duel-arena');
+    const attacker = createCombatant(
+      'red-1', dragonAsset, 'red', { x: 0, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const target = createCombatant(
+      'blue-1', targetAsset, 'blue', { x: 2.2, y: 1.32, z: 0 }, 'static', 'static-target', { x: 0, y: 0, z: 0 },
+    );
+    const state = createTestState(setup, [attacker, target], 11);
+    const service = new AssemblyArenaPhysicsService();
+    service.rebuild(state);
+    let charges = 0;
+
+    // Six seconds of mashing the charge. At a two-second cooldown that is at
+    // most three of them, however many frames requested it.
+    for (let frame = 0; frame < 60 * 6; frame += 1) {
+      state.elapsedSeconds = 2 + frame / 60;
+      const result = service.step(state, 1 / 60, {
+        'red-1': { throttle: 0, steer: 0, strafe: 0, boost: false, hornCharge: true },
+      });
+      charges += result.damageEvents.filter(event => event.reason === 'horn-charge').length;
+    }
+
+    expect(charges).toBeGreaterThan(0);
+    expect(charges).withContext(`${charges} charges landed in six seconds`).toBeLessThanOrEqual(3);
+  });
+
   it('runs a timed bite pose and hit without requiring limb contact', () => {
     const dragonAsset = createScaledDragonAsset();
     const targetAsset = createTargetAsset();

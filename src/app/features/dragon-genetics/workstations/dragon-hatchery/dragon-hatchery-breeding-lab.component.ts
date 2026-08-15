@@ -20,9 +20,10 @@ import {
 import {
   ACCOUNT_GENETICS_RECORD_DRAG_TYPE,
   AccountDragonRecord,
-  accountGeneticsDragPayload,
+  AccountGeneticsRecord,
   parseAccountGeneticsDragPayload,
 } from '../shared/account-genetics-library.models';
+import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
 import { AccountGeneticsLibraryService } from '../shared/account-genetics-library.service';
 import { DragonHatcheryBreedingRepository } from './dragon-hatchery-breeding.repository';
 import {
@@ -42,7 +43,11 @@ type ParentRole = 'female' | 'male';
 
 @Component({
   selector: 'app-dragon-hatchery-breeding-lab',
-  imports: [MeiosisGameteSelectorComponent, DragonHatcheryStationComponent],
+  imports: [
+    MeiosisGameteSelectorComponent,
+    DragonHatcheryStationComponent,
+    AccountGeneticsFileComponent,
+  ],
   templateUrl: './dragon-hatchery-breeding-lab.component.html',
   styleUrl: './dragon-hatchery-breeding-lab.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -67,12 +72,6 @@ export class DragonHatcheryBreedingLabComponent {
   readonly statusMessage = signal('Choose one female dragon and one male dragon for this family.');
 
   readonly account = computed(() => this.accountLibrary.recordsFor(this.studentId()));
-  readonly femaleDragons = computed(() =>
-    this.account().dragons.filter((dragon) => dragon.sex === 'female'),
-  );
-  readonly maleDragons = computed(() =>
-    this.account().dragons.filter((dragon) => dragon.sex === 'male'),
-  );
   readonly eggParent = computed(() => this.findDragon(this.eggParentId()));
   readonly spermParent = computed(() => this.findDragon(this.spermParentId()));
   readonly parentsReady = computed(() => Boolean(this.eggParent() && this.spermParent()));
@@ -95,14 +94,8 @@ export class DragonHatcheryBreedingLabComponent {
     this.assignParent(role, dragon);
   }
 
-  startParentDrag(event: DragEvent, dragon: AccountDragonRecord): void {
-    if (!event.dataTransfer) return;
-    event.dataTransfer.effectAllowed = 'copy';
-    event.dataTransfer.setData(
-      ACCOUNT_GENETICS_RECORD_DRAG_TYPE,
-      JSON.stringify(accountGeneticsDragPayload(dragon)),
-    );
-    event.dataTransfer.setData('text/plain', `dragon:${dragon.id}`);
+  selectInventoryParent(role: ParentRole, record: AccountGeneticsRecord): void {
+    if (record.kind === 'dragon') this.assignParent(role, record);
   }
 
   allowDrop(event: DragEvent): void {
@@ -176,6 +169,7 @@ export class DragonHatcheryBreedingLabComponent {
       `Hatchling ${sequence}`,
       sequence,
     );
+    const createdAtIso = new Date(stamp).toISOString();
     const record: HatcheryFertilizationRecord = {
       id: recordId,
       eggParentId: eggParent.id,
@@ -185,16 +179,15 @@ export class DragonHatcheryBreedingLabComponent {
       spermSelection,
       offspringId,
       offspringGenome: offspring.genome,
-      createdAtIso: new Date(stamp).toISOString(),
+      createdAtIso,
     };
+    this.accountLibrary.saveDragon(this.studentId(), this.inventoryRecordFor(offspring, record));
     this.clutch.update((current) => [...current, offspring]);
     this.fertilizations.update((current) => [...current, record]);
     this.eggSelection.set(null);
     this.spermSelection.set(null);
     this.activeRole.set('female');
-    this.statusMessage.set(
-      `Egg ${sequence} was fertilized from the two selected gametes and moved to the Hatchery.`,
-    );
+    this.statusMessage.set(`Egg ${sequence} was fertilized and saved to your Dragon inventory.`);
     this.persist();
   }
 
@@ -255,7 +248,9 @@ export class DragonHatcheryBreedingLabComponent {
     this.eggSelection.set(eggParent?.sex === 'female' ? snapshot.pendingEggSelection : null);
     this.spermSelection.set(spermParent?.sex === 'male' ? snapshot.pendingSpermSelection : null);
     this.fertilizations.set(snapshot.fertilizations);
-    this.clutch.set(this.restoreClutch(snapshot.fertilizations));
+    const clutch = this.restoreClutch(snapshot.fertilizations);
+    this.clutch.set(clutch);
+    this.syncClutchToInventory(clutch, snapshot.fertilizations);
     this.activeRole.set(this.eggSelection() ? 'male' : 'female');
   }
 
@@ -283,6 +278,43 @@ export class DragonHatcheryBreedingLabComponent {
         return [];
       }
     });
+  }
+
+  private syncClutchToInventory(
+    clutch: readonly DragonOffspring[],
+    records: readonly HatcheryFertilizationRecord[],
+  ): void {
+    const existingIds = new Set(this.account().dragons.map((dragon) => dragon.id));
+    const missing = clutch.flatMap((offspring) => {
+      if (existingIds.has(offspring.id)) return [];
+      const record = records.find((candidate) => candidate.offspringId === offspring.id);
+      return record ? [this.inventoryRecordFor(offspring, record)] : [];
+    });
+    if (missing.length) this.accountLibrary.saveDragons(this.studentId(), missing);
+  }
+
+  private inventoryRecordFor(
+    offspring: DragonOffspring,
+    record: HatcheryFertilizationRecord,
+  ): AccountDragonRecord {
+    const sexChromosome = record.spermSelection.gamete.chromosomes.find(
+      (chromosome) => chromosome.chromosome === 'Chr X',
+    )?.sexChromosome;
+    return {
+      kind: 'dragon',
+      id: offspring.id,
+      name: offspring.name,
+      title: offspring.title,
+      color: offspring.color,
+      accentColor: offspring.accentColor,
+      genome: offspring.genome,
+      sex: sexChromosome === 'Y' ? 'male' : 'female',
+      source: 'student',
+      storedAtIso: record.createdAtIso,
+      generation: offspring.generation,
+      parentIds: offspring.parentIds,
+      originRecordId: record.id,
+    };
   }
 
   private persist(): void {

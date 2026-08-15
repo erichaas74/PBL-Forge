@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
 import { DRAGON_PARENTS, DRAGON_TRAITS } from '../../simulation/domain/dragon-inheritance';
 import { DragonLabGenome, DragonTraitId } from '../../simulation/domain/dragon-lab.models';
@@ -28,7 +28,10 @@ const FOUNDATION_SEX: Readonly<Record<string, DragonSex>> = {
  */
 @Injectable({ providedIn: 'root' })
 export class AccountGeneticsLibraryService {
+  private readonly revision = signal(0);
+
   recordsFor(studentId: string): AccountGeneticsLibrarySnapshot {
+    this.revision();
     const normalizedStudentId = studentId.trim() || 'local-student';
     const local = loadStoredLibrary(normalizedStudentId);
     const dragons = mergeDragons(foundationDragons(), local.dragons);
@@ -49,14 +52,22 @@ export class AccountGeneticsLibraryService {
   }
 
   saveDragon(studentId: string, dragon: AccountDragonRecord): AccountGeneticsLibrarySnapshot {
+    return this.saveDragons(studentId, [dragon]);
+  }
+
+  saveDragons(
+    studentId: string,
+    nextDragons: readonly AccountDragonRecord[],
+  ): AccountGeneticsLibrarySnapshot {
     const normalizedStudentId = studentId.trim() || 'local-student';
     const stored = loadStoredLibrary(normalizedStudentId);
-    const nextDragon = cloneDragon({ ...dragon, kind: 'dragon', source: 'student' });
-    const dragons = [
-      ...stored.dragons.filter((candidate) => candidate.id !== nextDragon.id),
-      nextDragon,
-    ];
+    const replacements = nextDragons.map((dragon) =>
+      cloneDragon({ ...dragon, kind: 'dragon', source: 'student' }),
+    );
+    const replacementIds = new Set(replacements.map((dragon) => dragon.id));
+    const dragons = [...stored.dragons.filter((dragon) => !replacementIds.has(dragon.id)), ...replacements];
     saveStoredLibrary({ schemaVersion: 1, studentId: normalizedStudentId, dragons });
+    this.revision.update((value) => value + 1);
     return this.recordsFor(normalizedStudentId);
   }
 }
@@ -69,6 +80,7 @@ function foundationDragons(): AccountDragonRecord[] {
     sex: FOUNDATION_SEX[dragon.id] ?? legacyDragonSex(dragon.id),
     source: 'foundation' as const,
     storedAtIso: FOUNDATION_DATE,
+    generation: 0,
   }));
 }
 

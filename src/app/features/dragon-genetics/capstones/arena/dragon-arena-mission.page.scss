@@ -55,22 +55,9 @@ h1 {
   padding: 1rem 0;
 }
 
-.champion-bar label {
-  display: grid;
-  gap: 0.35rem;
-  color: #8ca5b0;
-  font-size: var(--text-sm);
-  font-weight: 800;
-}
-
-select {
-  width: min(24rem, 100%);
-  padding: 0.65rem 0.75rem;
-  border: 1px solid rgb(255 255 255 / 18%);
-  border-radius: 0.45rem;
-  background: #132630;
-  color: white;
-  font: inherit;
+.champion-inventory {
+  display: block;
+  min-width: min(25rem, 50vw);
 }
 
 .champion-bar dl {
