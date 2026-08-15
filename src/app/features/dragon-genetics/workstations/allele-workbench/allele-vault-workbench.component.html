@@ -18,23 +18,19 @@
       <i>{{ availableChromosomes().length }}</i>
     </header>
 
-    <div class="chromosome-rack" role="group" aria-label="Available chromosomes">
-      @for (chromosome of availableChromosomes(); track chromosome) {
-        <button
-          type="button"
-          class="chromosome-selector"
-          [class.active]="chromosome === activeChromosome()"
-          [attr.aria-pressed]="chromosome === activeChromosome()"
-          [disabled]="disabled()"
-          (click)="selectChromosome(chromosome)"
-        >
-          <span class="chromosome-icon" aria-hidden="true"></span>
-          <span
-            ><small>CHROMOSOME</small><b>{{ chromosomeNumber(chromosome) }}</b></span
-          >
-        </button>
-      }
-    </div>
+    <app-cell-chromosome-viewport
+      class="vault-cell-viewport"
+      [chromosomes]="cellChromosomes()"
+      [selectedChromosome]="activeChromosome()"
+      [selectedLocus]="activeGene().sampleCode"
+      [selectable]="!disabled()"
+      [locusSelectable]="!disabled()"
+      [showLoci]="true"
+      ariaLabel="Released dragon chromosomes"
+      layout="inspect"
+      (chromosomeSelected)="selectChromosome($event)"
+      (locusSelected)="selectViewportLocus($event)"
+    />
 
     <footer>
       <span class="vault-light"></span>
@@ -69,13 +65,6 @@
             </button>
           }
         </div>
-        <app-chromosome-svg
-          class="gene-selector-chromosome"
-          [chromosome]="selectorChromosomeModel()"
-          [selectedLocus]="activeGene().sampleCode"
-          [interactive]="true"
-          (locusSelected)="selectGeneByLocus($event)"
-        />
       </header>
       <div class="gene-alleles" aria-label="Allele samples for selected gene">
         @for (allele of allelesForGene(activeGeneId()); track allele.id) {

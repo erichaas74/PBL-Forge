@@ -4,6 +4,7 @@ import {
   AlleleVaultAllele,
   AlleleVaultGene,
 } from '../allele-workbench/allele-vault.models';
+import { LOCAL_WORKSTATION_STUDENT_ID } from './dragon-workstation-context.models';
 
 export interface AlleleExperimentRecord {
   id: string;
@@ -40,7 +41,7 @@ export interface DiscoveryClaimResult {
 }
 
 export function createEmptyGeneticsNotebook(
-  studentId = 'local-student',
+  studentId = LOCAL_WORKSTATION_STUDENT_ID,
   assignmentId = 'default',
 ): GeneticsNotebookSnapshot {
   return {

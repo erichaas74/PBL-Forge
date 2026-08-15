@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
 import {
+  LOCAL_WORKSTATION_STUDENT_ID,
+  normalizeWorkstationStudentId,
+} from '../shared/dragon-workstation-context.models';
+import {
   TRAIT_EVIDENCE_SCHEMA_VERSION,
   TraitEvidenceClaim,
   TraitEvidenceClassification,
@@ -39,7 +43,9 @@ export class TraitEvidenceRepository {
   }
 }
 
-export function emptyTraitEvidenceSnapshot(studentId = 'local-student'): TraitEvidenceSnapshot {
+export function emptyTraitEvidenceSnapshot(
+  studentId = LOCAL_WORKSTATION_STUDENT_ID,
+): TraitEvidenceSnapshot {
   return {
     schemaVersion: TRAIT_EVIDENCE_SCHEMA_VERSION,
     studentId: normalizeStudentId(studentId),
@@ -115,7 +121,7 @@ function stringList(value: unknown): string[] {
 }
 
 function normalizeStudentId(studentId: string): string {
-  return studentId.trim() || 'local-student';
+  return normalizeWorkstationStudentId(studentId);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

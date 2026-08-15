@@ -18,9 +18,11 @@ import {
 import {
   DEFAULT_WING_SHAPE,
   WING_ELBOW_S,
+  WING_STATIONS,
   WingMembraneShape,
   foldWingPoint,
   wingChord,
+  wingChordFraction,
   wingFoldEase,
   wingLeadingEdge,
 } from './dragon-wing-profile';
@@ -71,7 +73,11 @@ export function createDragonProceduralObject(part: AssemblyPart): THREE.Object3D
     case 'dragon-lower-jaw':
       return buildJaw(part, palette, 'lower');
     case 'dragon-leg':
-      return buildLeg(dims, palette);
+      return buildLeg(part, palette);
+    case 'dragon-grasp-arm':
+      return buildGraspArm(part, palette);
+    case 'dragon-grasp-hand':
+      return buildGraspHand(part, palette);
     case 'dragon-foot':
       return buildFoot(part, palette);
     case 'dragon-claw':
@@ -514,6 +520,8 @@ function buildBody(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   belly.position.set(length * 0.04, -dims.y * 0.22, 0);
   group.add(belly);
 
+  addTorsoSockets(group, part, palette);
+
   const defaults = getActiveDragonStyle().body;
   const style: DragonBodyStyle = {
     spikeCount: visualNumber(part, 'spikeCount', defaults.spikeCount),
@@ -538,10 +546,52 @@ function buildBody(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   }
 
   if (visualFlag(part, 'glowMarkings')) {
-    addFlankLanterns(group, dims, length, palette);
+    addFlankLanterns(group, dims, length);
   }
 
   return group;
+}
+
+/**
+ * The two holes in the torso, and what plugs them.
+ *
+ * The body is a lathe that stops while it still has width — 0.28 of the section
+ * at the tail and 0.42 at the neck — so both ends are open pipes. Nothing on the
+ * animal was ever wide enough to cover them: a tail link is a third of the
+ * body's depth and the skull sits forward of its own pivot, so between the rim
+ * and whatever plugged it there was a crescent of open space looking straight
+ * into the torso, worst from below and from either side.
+ *
+ * The cap is an **ellipsoid matched to the opening**, not a sphere. The opening
+ * is an ellipse — the lathe is scaled by half-height and half-depth separately,
+ * and on the shipped body those differ by half again — so a sphere wide enough
+ * to close the flanks stands well proud of the spine and belly. Matching the
+ * section means the cap disappears into the silhouette instead of reading as a
+ * ball stuck on the end.
+ *
+ * The dome runs to the *narrower* of the two radii, which is what keeps it a
+ * shoulder rather than a snout: it needs enough depth to stay inside the neck
+ * or tail through their full swing, and no more.
+ */
+function addTorsoSockets(group: THREE.Group, part: AssemblyPart, palette: DragonPalette): void {
+  const dims = part.dimensions;
+  const scale = jointBallScale(part);
+
+  for (const [end, name] of [
+    [0.5, 'dragon-body-neck-socket'],
+    [-0.5, 'dragon-body-tail-socket'],
+  ] as const) {
+    const radial = sampleDragonBodyRadius(end);
+    const halfHeight = radial * (dims.y / 2) * scale;
+    const halfDepth = radial * (dims.z / 2) * scale;
+    const socket = buildJointBall(
+      { x: Math.min(halfHeight, halfDepth), y: halfHeight, z: halfDepth },
+      palette,
+      name,
+    );
+    socket.position.x = end * dims.x;
+    group.add(socket);
+  }
 }
 
 /**
@@ -556,7 +606,6 @@ function addFlankLanterns(
   group: THREE.Group,
   dims: { x: number; y: number; z: number },
   length: number,
-  palette: DragonPalette,
 ): void {
   // Seated with the same helper the limb sockets use, so a lantern lands on the
   // torso a student can see rather than inside the one the bounding box
@@ -712,6 +761,21 @@ function buildSkull(
   return { skull: mesh(geometry, scaleMaterial(palette, 0.5)), shape };
 }
 
+/**
+ * Where the skull hinges on the neck, as a fraction of the head's own length.
+ *
+ * The shipped skeleton hangs the head off `pivotOnChild.x = -0.36` against a
+ * 0.84-long head extent, which is -0.43 — just inside the back of the skull.
+ */
+const NECK_PIVOT_AXIAL = -0.43;
+
+/**
+ * The station the neck ball is sized from. Forward of the pivot, because the
+ * skull has already tapered to its rear cap by then and a ball that small
+ * leaves the throat open.
+ */
+const NECK_SECTION_AXIAL = -0.3;
+
 function buildHornedHead(
   part: AssemblyPart,
   dims: { x: number; y: number; z: number },
@@ -721,6 +785,25 @@ function buildHornedHead(
   const style = headStyleFor(part);
   const { skull, shape } = buildSkull(dims, palette, style);
   group.add(skull);
+
+  /*
+   * The neck.
+   *
+   * The skull hinges off the torso with nothing between them, and its pivot
+   * sits behind its own occiput — so the animal is held together by the skull
+   * being buried in the shoulder, and any real head turn drags it partway out
+   * and opens a crescent at the throat. A ball on the pivot closes it from
+   * every angle, and is sized from the occiput rather than the widest section
+   * so it reads as a neck and not as a second head.
+   */
+  const neckSection = dragonHeadSection(dims, NECK_SECTION_AXIAL, shape);
+  const neck = buildJointBall(
+    ((neckSection.halfHeight + neckSection.halfWidth) / 2) * jointBallScale(part),
+    palette,
+    'dragon-neck-ball',
+  );
+  neck.position.set(NECK_PIVOT_AXIAL * dims.x, neckSection.centerY, 0);
+  group.add(neck);
 
   // Horn sizes stay keyed to the head's height, so a longer snout lengthens the
   // skull without also growing the horns.
@@ -917,23 +1000,41 @@ function addExpressiveHeadFeatures(
 }
 
 /**
- * The male's head crest.
+ * The male frill's proportions.
  *
- * This replaced a flat `RingGeometry` disc standing up behind the skull with a
- * ring of spikes around its rim, plus a tapered box hanging under the jaw. That
- * is a frilled lizard's collar and a lizard's dewlap, and together they were the
- * single thing making the animal read as a reptile in a costume rather than as a
- * dragon — a flat disc has no thickness from any angle, and side-on it vanished
- * to a line with spikes floating off it.
+ * `FRILL_SPREAD` is a multiple of the skull's own cross-section at the root
+ * ring, so it scales with the head the genome produced rather than with a world
+ * measurement. Everything else is a fraction of the head as well.
+ */
+const FRILL_SPINE_COUNT = 16;
+/** Where the ring sits along the skull: behind the brow, ahead of the occiput. */
+const FRILL_ROOT_AXIAL = -0.16;
+/** Tip radius as a multiple of the skull section — a collar twice the head. */
+const FRILL_SPREAD = 2.35;
+/** How far the tips rake back, as a fraction of head length. Depth, not a plate. */
+const FRILL_RAKE = 0.62;
+/** How much the ring pulls in under the throat, where the jaw is. */
+const FRILL_THROAT_TUCK = 0.46;
+
+/**
+ * The male's frill.
  *
- * What replaces it is a **swept-back crest**: a fan of horn spines rising from
- * the back of the skull and raked backwards, with membrane webbed between each
- * neighbouring pair. It is the same silhouette language as the dorsal ridge and
- * the wing — spines carrying a membrane — so the head now belongs to the rest of
- * the animal instead of being borrowed from another one.
+ * A **collar that encircles the whole skull**: a ring of horn spines radiating
+ * outward from the head's own cross-section, webbed between every neighbouring
+ * pair including the wrap, so the animal looks out through the middle of it.
+ * At full spread the tips stand more than twice the height of the skull, which
+ * is the point — this is a display structure, and one that reads as jewellery
+ * rather than as armour has failed at its only job.
  *
- * The web is built as explicit triangles rather than a ring segment because the
- * gap between two spines is a triangle, not an annulus, and filling it with an
+ * Two things keep it from becoming the flat disc this replaced once before. It
+ * is a **cone, not a plate**: every tip is raked back, so side-on you see a
+ * V with real depth instead of a line with spikes floating off it. And the
+ * radius is pulled in under the throat, where a ring at full spread would run
+ * straight through the lower jaw — the frill is widest across the crown and
+ * cheeks, exactly where a display structure is meant to be seen from.
+ *
+ * The web is explicit triangles rather than a ring segment because the gap
+ * between two spines is a triangle, not an annulus, and filling it with an
  * annulus is what forced the flat disc in the first place.
  */
 function buildMaleCrest(
@@ -942,51 +1043,42 @@ function buildMaleCrest(
   palette: DragonPalette,
   shape: DragonHeadShape,
 ): void {
-  const rearSection = dragonHeadSection(dims, -0.28, shape);
+  const section = dragonHeadSection(dims, FRILL_ROOT_AXIAL, shape);
   const spineMaterial = hornMaterial(palette);
   const webMaterial = membraneMaterial(palette);
 
-  const SPINE_COUNT = 7;
-  const baseX = -dims.x * 0.3;
-  const rootRadius = Math.max(rearSection.halfHeight, rearSection.halfWidth) * 0.78;
-
-  /**
-   * Spine tips, fanned across the back of the skull from one side to the other.
-   *
-   * The centre spine is the longest and they shorten toward the ears, which is
-   * what gives the crest a peak instead of a rim. All of them rake backwards in
-   * -x, so the crest reads as swept even from directly ahead.
-   */
-  const tips: THREE.Vector3[] = [];
   const roots: THREE.Vector3[] = [];
+  const tips: THREE.Vector3[] = [];
 
-  for (let index = 0; index < SPINE_COUNT; index += 1) {
-    // -1 at the left ear, 0 over the crown, +1 at the right ear.
-    const across = (index / (SPINE_COUNT - 1)) * 2 - 1;
-    // Cosine falloff: a smooth peak rather than a triangular gable.
-    const height = dims.y * (0.34 + 0.5 * Math.cos(across * Math.PI * 0.5));
-    const angle = across * Math.PI * 0.42;
+  for (let index = 0; index < FRILL_SPINE_COUNT; index += 1) {
+    // 0 at the crown, running right round to the throat and back.
+    const angle = (index / FRILL_SPINE_COUNT) * Math.PI * 2;
+    const up = Math.cos(angle);
+    // Pulled in below the horizontal, where the jaw is. Full spread everywhere
+    // else, so the collar still closes into a complete ring.
+    const spread = FRILL_SPREAD * (1 - FRILL_THROAT_TUCK * Math.max(0, -up));
 
     const root = new THREE.Vector3(
-      baseX,
-      rearSection.centerY + Math.cos(angle) * rootRadius * 0.62,
-      Math.sin(angle) * rootRadius * 0.92,
+      FRILL_ROOT_AXIAL * dims.x,
+      section.centerY + up * section.halfHeight * 0.98,
+      Math.sin(angle) * section.halfWidth * 0.98,
     );
     const tip = new THREE.Vector3(
-      // Raked back, and the outer spines rake hardest.
-      baseX - height * (0.52 + 0.3 * Math.abs(across)),
-      root.y + Math.cos(angle) * height * 0.92,
-      root.z + Math.sin(angle) * height * 0.34,
+      FRILL_ROOT_AXIAL * dims.x - dims.x * FRILL_RAKE,
+      section.centerY + up * section.halfHeight * spread,
+      Math.sin(angle) * section.halfWidth * spread,
     );
 
     roots.push(root);
     tips.push(tip);
 
     const length = root.distanceTo(tip);
-    const radius = dims.z * (0.055 - 0.018 * Math.abs(across));
+    // Thickest over the crown and thinnest under the throat, so the ring has a
+    // direction to it rather than reading as a machined part.
+    const radius = dims.z * (0.05 + 0.022 * up);
     const spine = mesh(
       revolvedUv(
-        new THREE.ConeGeometry(radius, length, detail(7)),
+        new THREE.ConeGeometry(radius, length, detail(6)),
         radius,
         length,
         HORN_TILE,
@@ -1004,19 +1096,21 @@ function buildMaleCrest(
   }
 
   // Webbing: one quad per gap, split into two triangles, spanning root-to-root
-  // and tip-to-tip. Double-sided via the membrane material, so it reads from
-  // either side without a second surface.
+  // and tip-to-tip. The last gap wraps back to the first, which is what closes
+  // the collar into a ring. Double-sided via the membrane material, so it reads
+  // from either side without a second surface.
   const positions: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
 
-  for (let index = 0; index < SPINE_COUNT - 1; index += 1) {
+  for (let index = 0; index < FRILL_SPINE_COUNT; index += 1) {
+    const next = (index + 1) % FRILL_SPINE_COUNT;
     const base = index * 4;
-    for (const point of [roots[index], tips[index], roots[index + 1], tips[index + 1]]) {
+    for (const point of [roots[index], tips[index], roots[next], tips[next]]) {
       positions.push(point.x, point.y, point.z);
     }
-    // Span across the crest, height up it — so the membrane's thin trailing
-    // edge lands at the top of the web where a real one is thinnest.
+    // Around the collar, then out along it — so the membrane's thin edge lands
+    // at the rim where a real one is thinnest.
     uvs.push(0, 0, 0, 1, 1, 0, 1, 1);
     indices.push(base, base + 1, base + 3, base, base + 3, base + 2);
   }
@@ -1259,6 +1353,55 @@ function buildJaw(
 }
 
 // ---------------------------------------------------------------------------
+// Joints.
+// ---------------------------------------------------------------------------
+
+/** Radius of a lathe profile at `t` along its length, clamped at both ends. */
+function latheProfileRadius(profile: readonly [number, number][], t: number): number {
+  for (let index = 1; index < profile.length; index += 1) {
+    const [fromT, fromRadius] = profile[index - 1];
+    const [toT, toRadius] = profile[index];
+    if (t <= toT) {
+      const blend = (t - fromT) / Math.max(toT - fromT, 1e-6);
+      return fromRadius + (toRadius - fromRadius) * Math.max(0, Math.min(1, blend));
+    }
+  }
+  return profile[profile.length - 1][1];
+}
+
+/** Ball scale for one part: its own override first, then the shared style. */
+function jointBallScale(part: AssemblyPart): number {
+  return visualNumber(part, 'jointBall', getActiveDragonStyle().joint.ball);
+}
+
+/**
+ * One joint ball. See {@link DragonJointStyle} for why it exists and why it is
+ * seated on the pivot rather than on the end of the mesh.
+ *
+ * Takes radii rather than a radius because the two openings it has to close are
+ * not all circular: a limb's is, but the torso's neck and tail sockets are the
+ * ellipse the body lathe ends on, and a sphere big enough to cover the wide axis
+ * of one of those bulges out of the narrow axis.
+ *
+ * Deliberately coarse: these are small, mostly buried, and there are sixteen of
+ * them on one dragon, so a body-grade sphere here costs more than it shows.
+ */
+function buildJointBall(
+  radii: number | { x: number; y: number; z: number },
+  palette: DragonPalette,
+  name: string,
+): THREE.Mesh {
+  const size = typeof radii === 'number' ? { x: radii, y: radii, z: radii } : radii;
+  const ball = mesh(
+    sphereUv(new THREE.SphereGeometry(1, detail(10), detail(7)), size, SCALE_TILE, palette),
+    scaleMaterial(palette),
+  );
+  ball.scale.set(size.x, size.y, size.z);
+  ball.name = name;
+  return ball;
+}
+
+// ---------------------------------------------------------------------------
 // Legs, feet, talons.
 // ---------------------------------------------------------------------------
 
@@ -1277,14 +1420,182 @@ const LEG_PROFILE: readonly [number, number][] = [
   [0.5, 0.88],
 ];
 
-function buildLeg(dims: { x: number; y: number; z: number }, palette: DragonPalette): THREE.Group {
+/**
+ * Where a leg's upper joint sits along its own length, as a fraction of it.
+ *
+ * Read off the shipped skeleton rather than chosen: every hip and knee in the
+ * pack puts `pivotOnChild.y` at 0.40 of the segment's height — 0.24 of 0.6 on a
+ * foreleg, 0.264 of 0.66 on a hind, and the lower legs within a hundredth of
+ * the same. The lower joint is simpler: it is the end of the part, at -0.5.
+ *
+ * A ball has to sit on the pivot, not on the rim, or it swings with the part
+ * and opens the gap it was added to close.
+ */
+const LEG_SOCKET_T = 0.4;
+
+function buildLeg(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
+  const dims = part.dimensions;
   const lathe = new THREE.LatheGeometry(
     LEG_PROFILE.map(([t, radius]) => new THREE.Vector2(radius * dims.x, t * dims.y)),
     detail(16),
   );
   revolvedUv(lathe, dims.x * 0.7, dims.y, SCALE_TILE, palette);
-  group.add(mesh(lathe, scaleMaterial(palette)));
+  const skin = mesh(lathe, scaleMaterial(palette));
+  skin.name = 'dragon-leg-skin';
+  group.add(skin);
+
+  addLimbJointBalls(group, part, palette, LEG_PROFILE, 'dragon-leg');
+  return group;
+}
+
+/**
+ * The two balls every limb segment carries.
+ *
+ * Both ends, because one segment is two different joints depending on where it
+ * sits in the chain: an upper leg's top ball is a hip and its bottom one a knee
+ * cap, and on the lower leg the same two are the other half of that knee and
+ * the ankle. The socket ball is mostly swallowed by whatever it plugs into —
+ * the body at the hip, the thigh at the knee — which is the intended look.
+ */
+function addLimbJointBalls(
+  group: THREE.Group,
+  part: AssemblyPart,
+  palette: DragonPalette,
+  profile: readonly [number, number][],
+  namePrefix: string,
+): void {
+  const dims = part.dimensions;
+  const scale = jointBallScale(part);
+
+  const socket = buildJointBall(
+    latheProfileRadius(profile, LEG_SOCKET_T) * dims.x * scale,
+    palette,
+    `${namePrefix}-socket-ball`,
+  );
+  socket.position.y = LEG_SOCKET_T * dims.y;
+  group.add(socket);
+
+  const heel = buildJointBall(
+    latheProfileRadius(profile, -0.5) * dims.x * scale,
+    palette,
+    `${namePrefix}-heel-ball`,
+  );
+  heel.position.y = -0.5 * dims.y;
+  group.add(heel);
+}
+
+// ---------------------------------------------------------------------------
+// Grasping forelimbs.
+// ---------------------------------------------------------------------------
+
+/**
+ * The arm of a dragon that does not walk on its hands.
+ *
+ * Read against {@link LEG_PROFILE}: a leg is a column, widest at the top where
+ * it carries weight and barely narrowing, because everything about it is
+ * compression. An arm that only ever reaches carries nothing, so it is thinner
+ * throughout, keeps its one piece of bulk at the shoulder or elbow it pulls
+ * from, and tapers hard toward the wrist. That taper is most of what tells a
+ * student at a glance which animal they are looking at, before they have found
+ * the hand.
+ */
+const GRASP_ARM_PROFILE: readonly [number, number][] = [
+  [-0.5, 0.34],
+  [-0.28, 0.4],
+  [0.02, 0.5],
+  [0.3, 0.72],
+  [0.5, 0.64],
+];
+
+function buildGraspArm(part: AssemblyPart, palette: DragonPalette): THREE.Group {
+  const group = new THREE.Group();
+  const dims = part.dimensions;
+  const lathe = new THREE.LatheGeometry(
+    GRASP_ARM_PROFILE.map(([t, radius]) => new THREE.Vector2(radius * dims.x, t * dims.y)),
+    detail(14),
+  );
+  revolvedUv(lathe, dims.x * 0.6, dims.y, SCALE_TILE, palette);
+  const skin = mesh(lathe, scaleMaterial(palette));
+  skin.name = 'dragon-grasp-arm-skin';
+  group.add(skin);
+
+  addLimbJointBalls(group, part, palette, GRASP_ARM_PROFILE, 'dragon-grasp-arm');
+  return group;
+}
+
+/**
+ * The hand: a short palm and three long hooked fingers, splayed and held clear
+ * of the ground.
+ *
+ * The fingers are the same {@link buildTalon} the feet wear, and that is the
+ * point rather than a saving — a grasping hand is a foot whose claws got long
+ * enough to close on something, so the two should be visibly the same keratin.
+ * What separates them is proportion: a talon on a foot is a stub against a
+ * broad pad, and here each finger is longer than the palm it grows from, which
+ * is the silhouette that reads as *grabs* from any distance.
+ *
+ * They point forward along +x and hook down, so the hand is a curl waiting to
+ * close rather than a rake pointing at the floor.
+ */
+function buildGraspHand(part: AssemblyPart, palette: DragonPalette): THREE.Group {
+  const group = new THREE.Group();
+  const dims = part.dimensions;
+  const defaults = getActiveDragonStyle().grasp;
+  const style: DragonGraspStyle = {
+    fingerCount: visualNumber(part, 'fingerCount', defaults.fingerCount),
+    fingerLength: visualNumber(part, 'fingerLength', defaults.fingerLength),
+    fingerRadius: visualNumber(part, 'fingerRadius', defaults.fingerRadius),
+    palmLength: visualNumber(part, 'palmLength', defaults.palmLength),
+    fingerSplay: visualNumber(part, 'fingerSplay', defaults.fingerSplay),
+  };
+
+  // Tapered hard toward the fingers: a palm drawn as a slab reads as a brick
+  // with claws stuck in it, and the wedge is what makes the hand look like it
+  // narrows into the grip.
+  const palm = mesh(
+    boxUv(
+      createTaperedBoxGeometry(dims.x * style.palmLength, dims.y, dims.z * 0.82, 0.56, 0.5),
+      SCALE_TILE,
+      palette,
+    ),
+    scaleMaterial(palette),
+  );
+  palm.name = 'dragon-grasp-palm';
+  palm.position.x = -dims.x * 0.06;
+  group.add(palm);
+
+  // The claw gene reaches the hand for the same reason it reaches the foot:
+  // these are the same claws, and a dragon with big talons has big fingers.
+  const clawScale = visualNumber(part, 'clawScale', 1);
+  const fingerLength = dims.x * style.fingerLength * clawScale;
+  const fingerRadius = dims.y * style.fingerRadius;
+
+  for (const [index, side] of spreadPositions(style.fingerCount, 2).entries()) {
+    const finger = buildTalon(fingerRadius, fingerLength, palette);
+    finger.name = `dragon-grasp-finger-${index + 1}`;
+    finger.position.set(
+      dims.x * style.palmLength * 0.42,
+      dims.y * 0.04,
+      side * dims.z * style.fingerSplay,
+    );
+    /*
+     * -90° about z lays the talon's own +y axis along +x. The extra third of a
+     * radian pitches the whole finger down from there, and it is doing real
+     * work: `buildTalon` curls only its outer segment, so without this the
+     * finger reads as a spike with a bent tip rather than as something closing.
+     * The yaw fans the outer two outward, so the three enclose a volume instead
+     * of lying in one plane — which is the difference between a hand and a fork.
+     */
+    finger.rotation.set(0, -side * style.fingerSplay, -Math.PI / 2 - 0.32);
+    group.add(finger);
+  }
+
+  const scale = jointBallScale(part);
+  const wrist = buildJointBall(dims.y * 0.5 * scale, palette, 'dragon-grasp-wrist-ball');
+  wrist.position.set(-dims.x * style.palmLength * 0.5, dims.y * 0.1, 0);
+  group.add(wrist);
+
   return group;
 }
 
@@ -1385,6 +1696,7 @@ function buildTalon(radius: number, length: number, palette: DragonPalette): THR
 export {
   DEFAULT_WING_SHAPE,
   WING_SHAPES,
+  WING_STATIONS,
   type WingMembraneShape,
 } from './dragon-wing-profile';
 
@@ -1454,6 +1766,23 @@ export interface DragonFootStyle {
   talonRadius: number;
 }
 
+/**
+ * The grasping hand. Separate from {@link DragonFootStyle} because these are
+ * answering different questions: a foot's talons are a stub on a weight-bearing
+ * pad, and a finger is longer than the palm it grows from.
+ */
+export interface DragonGraspStyle {
+  fingerCount: number;
+  /** Finger length, as a fraction of hand length. Above 1 means past the palm. */
+  fingerLength: number;
+  /** Finger base radius, as a fraction of hand height. */
+  fingerRadius: number;
+  /** Palm length, as a fraction of hand length. */
+  palmLength: number;
+  /** How far the outer fingers fan out, as a fraction of hand depth. */
+  fingerSplay: number;
+}
+
 export interface DragonTailClubStyle {
   spikeCount: number;
   /** Spike length, as a fraction of club depth. */
@@ -1462,12 +1791,38 @@ export interface DragonTailClubStyle {
   spikeRadius: number;
 }
 
+/**
+ * The balls that close a joint.
+ *
+ * A limb is a lathe: a tube, open at both ends, meeting the next tube at an
+ * angle. Straight on it looks solid, but bend the joint and the two rims part
+ * company — the outside of the bend opens a wedge, and through it you see the
+ * hollow inside of both parts. Every hinge on the animal has this: hip, knee,
+ * ankle, each tail link, and the skull against the torso.
+ *
+ * The fix is one sphere per joint, seated **on the pivot** rather than on the
+ * end of the mesh. That position is what makes it work at every angle: a sphere
+ * centred on the axis of rotation does not move when the joint turns, so it
+ * plugs the wedge at 5 degrees and at 50 without ever sliding out of the socket
+ * it is filling.
+ */
+export interface DragonJointStyle {
+  /**
+   * Ball radius, as a multiple of the part's own radius where the joint sits.
+   * Slightly over 1 so it always breaks the surface instead of meeting it
+   * exactly, where a coincident face z-fights against the limb's own skin.
+   */
+  ball: number;
+}
+
 export interface DragonStyle {
   wing: WingMembraneShape;
   body: DragonBodyStyle;
   jaw: DragonJawStyle;
   head: DragonHeadStyle;
   foot: DragonFootStyle;
+  grasp: DragonGraspStyle;
+  joint: DragonJointStyle;
   tailClub: DragonTailClubStyle;
 }
 
@@ -1484,7 +1839,10 @@ export const DEFAULT_DRAGON_STYLE: DragonStyle = {
   // the shipped horned head.
   head: { ...DEFAULT_HEAD_SHAPE, hornLength: 1.35, hornRadius: 0.16, browLength: 0.45 },
   foot: { talonCount: 3, talonLength: 0.6, talonRadius: 0.42 },
+  // Three fingers, each longer than the palm: the proportion is the trait.
+  grasp: { fingerCount: 3, fingerLength: 1.15, fingerRadius: 0.34, palmLength: 0.55, fingerSplay: 0.34 },
   tailClub: { spikeCount: 5, spikeLength: 0.85, spikeRadius: 0.18 },
+  joint: { ball: 1.06 },
 };
 
 /**
@@ -1542,9 +1900,11 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
 
   // Chordwise coordinates: +x is the dragon's forward, membrane trails backward.
   const leadingAt = (s: number): number => wingLeadingEdge(dims, s);
-  const flatTrailingAt = (s: number): number =>
-    leadingAt(s) - chord * (1 - 0.62 * Math.pow(s, 1.8));
-  const fingerStops = [0.42, 0.74];
+  // Straight lines between the stations the fingers pin, so the trailing edge
+  // is a run of flat panels with corners on the fingers. The old smooth taper
+  // curved away from the last finger and left the tip trailing behind itself.
+  const flatTrailingAt = (s: number): number => leadingAt(s) - chord * wingChordFraction(s);
+  const fingerStops = [WING_STATIONS[1], WING_STATIONS[2]];
   // Root, the two finger tips, and the wingtip: the membrane is pinned at each
   // and free to sag between them.
   const anchors = [0, ...fingerStops, 1];
@@ -1601,8 +1961,11 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
    */
   const membraneY = (s: number, c: number): number => {
     const sag = (form.camber + form.fingerSag * betweenFingers(s)) * chord;
-    // sin() pins the sheet at both edges and bows it in between.
-    return form.dihedral * span * s * s - sag * Math.sin(Math.max(0, Math.min(1, c)) * Math.PI);
+    // Lift is linear in span: a straight rake out to the tip, not the quadratic
+    // arc this used to describe. The arc was the wing's other curve — the one
+    // that bowed it upward along its whole length — and at the tip the two
+    // agree, so the hand claw still lands on the surface.
+    return form.dihedral * span * s - sag * Math.sin(Math.max(0, Math.min(1, c)) * Math.PI);
   };
 
   /*
@@ -1631,20 +1994,31 @@ function buildWing(part: AssemblyPart, palette: DragonPalette): THREE.Group {
 
   const bone = hornMaterial(palette, THREE.DoubleSide);
 
-  // Extra samples outboard of the wrist so the arm bends around the fold as a
-  // curve instead of cutting the corner with one long straight segment.
-  const armCurve = new THREE.CatmullRomCurve3(
-    ([0.02, ELBOW_S, 0.62, 0.8, 0.98] as const).map(s =>
-      foldPoint(
-        new THREE.Vector3(
-          leadingAt(s) + (s === ELBOW_S ? 0.01 : -0.015),
-          thickness * (s < ELBOW_S ? 0.1 : s === ELBOW_S ? 0.5 : 0.2) + membraneY(s, 0),
-          zOf(s),
-        ),
-        s,
+  /*
+   * The arm: two straight bones meeting at the wrist, not a curve through it.
+   *
+   * This was a Catmull-Rom spline, and it is most of what read as the wing
+   * "curving back" — a spline through the fold points rounds the wrist into an
+   * arc and bows the whole leading edge with it. Real wing bones are straight
+   * and the bend is at the joint, which is also the angular reading: two
+   * segments and a corner. Samples only at the ends and the wrist, because
+   * anything in between is on the line anyway.
+   */
+  const armStations = [0.02, ELBOW_S, 0.98] as const;
+  const armPoints = armStations.map(s =>
+    foldPoint(
+      new THREE.Vector3(
+        leadingAt(s) + (s === ELBOW_S ? 0.01 : -0.015),
+        thickness * (s < ELBOW_S ? 0.1 : s === ELBOW_S ? 0.5 : 0.2) + membraneY(s, 0),
+        zOf(s),
       ),
+      s,
     ),
   );
+  const armCurve = new THREE.CurvePath<THREE.Vector3>();
+  for (let index = 1; index < armPoints.length; index += 1) {
+    armCurve.add(new THREE.LineCurve3(armPoints[index - 1], armPoints[index]));
+  }
   group.add(mesh(
     tubeUv(
       new THREE.TubeGeometry(armCurve, 14, thickness * 0.5, 6),
@@ -1777,15 +2151,7 @@ const TAIL_PROFILE: readonly [number, number][] = [
 
 /** Radius factor of the tail lathe at `t` along its length, clamped at both ends. */
 function tailProfileRadius(t: number): number {
-  for (let index = 1; index < TAIL_PROFILE.length; index += 1) {
-    const [fromT, fromRadius] = TAIL_PROFILE[index - 1];
-    const [toT, toRadius] = TAIL_PROFILE[index];
-    if (t <= toT) {
-      const blend = (t - fromT) / Math.max(toT - fromT, 1e-6);
-      return fromRadius + (toRadius - fromRadius) * Math.max(0, Math.min(1, blend));
-    }
-  }
-  return TAIL_PROFILE[TAIL_PROFILE.length - 1][1];
+  return latheProfileRadius(TAIL_PROFILE, t);
 }
 
 function buildTailSegment(part: AssemblyPart, palette: DragonPalette): THREE.Group {
@@ -1796,7 +2162,27 @@ function buildTailSegment(part: AssemblyPart, palette: DragonPalette): THREE.Gro
     detail(14),
   );
   revolvedUv(lathe, dims.x * 0.76, dims.y, SCALE_TILE, palette);
-  group.add(mesh(lathe, scaleMaterial(palette)));
+  const skin = mesh(lathe, scaleMaterial(palette));
+  skin.name = 'dragon-tail-skin';
+  group.add(skin);
+
+  /*
+   * A vertebra at each end. Tail links hinge at exactly their own ends — every
+   * pivot in the chain is ±0.5 of the segment — and they are the joints that
+   * bend furthest, since the droop accumulates down the chain and a sweep
+   * swings all of them at once. Reading as a row of knuckles down the tail is
+   * a side effect, and a welcome one.
+   */
+  const scale = jointBallScale(part);
+  for (const end of [-0.5, 0.5] as const) {
+    const ball = buildJointBall(
+      tailProfileRadius(end) * dims.x * scale,
+      palette,
+      `dragon-tail-${end < 0 ? 'tip' : 'root'}-ball`,
+    );
+    ball.position.y = end * dims.y;
+    group.add(ball);
+  }
 
   // One lantern per side per segment. Across a whole tail that is a line of
   // lights trailing the animal, and it is the part of the glow a student sees

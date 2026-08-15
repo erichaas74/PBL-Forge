@@ -372,7 +372,12 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     childSnapId: 'dragon-upper-jaw-root',
     jointType: 'fixed',
     axis: { x: 0, y: 1, z: 0 },
-    childSnapPosition: { x: -0.2, y: 0, z: 0 },
+    // Top-back of the jaw, not its back centre. The head socket is the top of
+    // the muzzle at the same station, so mating these two puts the roof of the
+    // mouth level with the top of the snout instead of slung half a jaw's
+    // height below it. The jaw's tapered box is at full height here — it only
+    // narrows ahead of its middle — so this edge is the real top surface.
+    childSnapPosition: { x: -0.2, y: 0.1, z: 0 },
     behavior: BREAKABLE_LIGHT,
     extraSnapPoints: [
       // Back-bottom corner of the upper jaw: the jaw joint. The lower jaw hangs
@@ -464,6 +469,47 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     extraSnapPoints: [
       socket('dragon-foot-socket', 'Foot socket', { x: 0, y: -0.3, z: 0 }, 'dragon-foot-root'),
     ],
+  }),
+  /*
+   * The grasping forelimb: upper arm, forearm, hand.
+   *
+   * Catalogued but deliberately not on any preset. A dragon gets these by
+   * genotype — the `ll` form of the leg gene swaps the front walking chain for
+   * them at expression time — so the shipped model has no slot for one. They
+   * are here so the mesh can be authored and inspected in the Parts Lab like
+   * every other part, rather than only ever existing inside an expressed
+   * blueprint nobody can open.
+   */
+  dragonPart('dragon-grasp-upper-arm', 'Grasping Upper Arm', 'cylinder', { x: 0.14, y: 0.33, z: 0.14 }, 0.16, '#166534', {
+    parentSnapId: 'dragon-front-left-leg-socket',
+    childSnapId: 'dragon-leg-hip',
+    jointType: 'hinge',
+    axis: { x: 0, y: 0, z: 1 },
+    childSnapPosition: { x: 0, y: 0.132, z: 0 },
+    behavior: LEG_SPRING_HINGE,
+    extraSnapPoints: [
+      socket('dragon-elbow-socket', 'Elbow socket', { x: 0, y: -0.165, z: 0 }, 'dragon-elbow-root'),
+    ],
+  }),
+  dragonPart('dragon-grasp-forearm', 'Grasping Forearm', 'cylinder', { x: 0.11, y: 0.29, z: 0.11 }, 0.11, '#15803d', {
+    parentSnapId: 'dragon-elbow-socket',
+    childSnapId: 'dragon-elbow-root',
+    jointType: 'hinge',
+    axis: { x: 0, y: 0, z: 1 },
+    childSnapPosition: { x: 0, y: 0.116, z: 0 },
+    childRotation: quaternionFromAxisAngle({ x: 0, y: 0, z: 1 }, 0.38),
+    behavior: LEG_SPRING_HINGE,
+    extraSnapPoints: [
+      socket('dragon-wrist-socket', 'Wrist socket', { x: 0, y: -0.145, z: 0 }, 'dragon-wrist-root'),
+    ],
+  }),
+  dragonPart('dragon-grasp-hand', 'Grasping Hand', 'box', { x: 0.2, y: 0.11, z: 0.17 }, 0.07, '#365314', {
+    parentSnapId: 'dragon-wrist-socket',
+    childSnapId: 'dragon-wrist-root',
+    jointType: 'fixed',
+    axis: { x: 0, y: 1, z: 0 },
+    childSnapPosition: { x: -0.055, y: 0.04, z: 0 },
+    behavior: BREAKABLE_LIGHT,
   }),
   dragonPart('dragon-clawed-foot', 'Clawed Foot', 'box', { x: 0.408, y: 0.168, z: 0.336 }, 0.22, '#365314', {
     parentSnapId: 'dragon-foot-socket',
@@ -966,6 +1012,16 @@ function getDefaultVisualProfile(
 
   if (id.includes('tail-stinger')) {
     return visualProfile('dragon-tail-stinger', 'dragon-horn');
+  }
+
+  // Grasping forelimb before the generic claw and leg rules: the hand is a
+  // hand, not a foot, and the arm segments are not legs.
+  if (id.includes('grasp-hand')) {
+    return visualProfile('dragon-grasp-hand', 'dragon-scale-green');
+  }
+
+  if (id.includes('grasp')) {
+    return visualProfile('dragon-grasp-arm', 'dragon-scale-green');
   }
 
   if (id.includes('clawed-foot')) {

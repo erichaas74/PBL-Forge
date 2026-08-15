@@ -240,13 +240,17 @@ export function dragonParentSource(parent: DragonParentProfile): SpecimenSource 
  * Everything the test bench needs for one dragon.
  *
  * The bench reports health and damage from the combat profile, and fire breath
- * is a genotype call rather than a part, so all three travel together — built
- * from the same `createEducationalAssembly` call the hatchery and arena use.
+ * and horns are genotype calls rather than parts, so all four travel together —
+ * built from the same `createEducationalAssembly` call the hatchery and arena
+ * use. Horns ride along for the same reason fire breath does: the skull carries
+ * them as horn lengths on one part, so nothing in the blueprint announces them
+ * and a horned dragon would otherwise be told it cannot charge.
  */
 export interface DragonBenchBuild {
   source: SpecimenSource;
   combatProfile: AssemblyCombatProfile;
   fireBreathing: boolean;
+  horned: boolean;
 }
 
 export function createDragonBenchBuild(
@@ -271,6 +275,7 @@ export function createDragonBenchBuild(
     },
     combatProfile: build.combatProfile,
     fireBreathing: showsDominantPhenotype(genome.fire, 'fire'),
+    horned: showsDominantPhenotype(genome.horns, 'horns'),
   };
 }
 
@@ -304,7 +309,7 @@ export function createExpressiveDragonBenchBuild(
   engineGenome.loci['tail-length'].paternal.value = 0.62;
 
   const build = createEducationalAssembly(coreGenome, engineGenome, identity, {
-    legPairs: dominant(profile, 'legs') ? 2 : 1,
+    forelimbs: dominant(profile, 'legs') ? 'walking' : 'grasping',
     clawScale: dominant(profile, 'claws') ? 1.5 : 0.62,
     crestScale: dominant(profile, 'crest') ? 1.35 : 0.42,
     glowMarkings: dominant(profile, 'glow'),
@@ -329,6 +334,7 @@ export function createExpressiveDragonBenchBuild(
     },
     combatProfile: build.combatProfile,
     fireBreathing: dominant(profile, 'fire'),
+    horned: dominant(profile, 'horns'),
   };
 }
 
@@ -392,6 +398,25 @@ function buildExpressiveTraitReadouts(profile: ExpressiveDragonProfile): Specime
       valueLabel: `${profile.sex === 'female' ? 'Female' : 'Male'} · ${sexChromosomes(profile.sex)}`,
       detail:
         'This fictional dragon population uses an XX/XY model; real species use many systems.',
+      roles: ['head'],
+    },
+    /*
+     * Head anatomy is listed separately from the chromosomes because it is the
+     * only thing on this list a student can see. The sex pair is invisible on
+     * the animal; the crest or the frills are the read-out of it, and pairing
+     * them here is what makes the X-linked eye gene below legible as a
+     * different kind of claim.
+     */
+    {
+      id: 'sex-anatomy',
+      label: 'Head anatomy',
+      valueLabel: profile.sex === 'female' ? 'Neck frills' : 'Swept-back crest',
+      detail:
+        profile.sex === 'female'
+          ? 'A pair of membrane frills swept back from the jaw hinge. Sex anatomy, not a gene on '
+            + 'this bench — no allele here turns it on or off.'
+          : 'A fan of horn spines webbed with membrane, raised from the back of the skull and '
+            + 'raked backwards. Sex anatomy, not a gene on this bench.',
       roles: ['head'],
     },
     ...EXPRESSIVE_DRAGON_TRAITS.map((trait) => ({

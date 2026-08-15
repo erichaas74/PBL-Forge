@@ -154,7 +154,7 @@ export function applyDragonPhenotype(
  * solver snaps the misaligned parts together on spawn with enough violence to
  * break every joint instantly.
  */
-function realignPartsToJoints(blueprint: AssemblyBlueprint): void {
+export function realignPartsToJoints(blueprint: AssemblyBlueprint): void {
   const partsById = new Map(blueprint.parts.map(part => [part.id, part]));
   const childIds = new Set(blueprint.joints.map(joint => joint.childPartId));
   const aligned = new Set(

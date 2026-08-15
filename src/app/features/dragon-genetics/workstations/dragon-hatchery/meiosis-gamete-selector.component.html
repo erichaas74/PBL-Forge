@@ -51,14 +51,15 @@
             (dragstart)="startGameteDrag($event, gamete)"
           >
             <header class="gamete-card-head">
-              <span class="gamete-orb" aria-hidden="true">
-                @for (chromosome of gamete.chromosomes; track chromosome.chromosome) {
-                  <i
-                    [class.recombinant]="chromosome.recombinant"
-                    [attr.data-sex]="chromosome.sexChromosome"
-                  ></i>
-                }
-              </span>
+              <app-cell-chromosome-viewport
+                class="gamete-cell-viewport"
+                [chromosomes]="chromosomesForGamete(gamete.id)"
+                [selectedChromosome]="null"
+                [selectable]="false"
+                [showLoci]="true"
+                [ariaLabel]="'Chromosomes in gamete ' + (gamete.index + 1)"
+                layout="thumbnail"
+              />
               <div class="gamete-identity">
                 <span>GAMETE {{ gamete.index + 1 }}</span>
                 <strong>{{ alleleSummary(gamete) }}</strong>
@@ -72,26 +73,6 @@
                 </span>
               }
             </header>
-
-            <ul class="gamete-chromosomes" aria-label="Chromosomes and alleles">
-              @for (chromosome of gamete.chromosomes; track chromosome.chromosome) {
-                <li [class.recombinant]="chromosome.recombinant">
-                  <strong>
-                    {{ chromosome.sexChromosome === 'Y' ? 'Chr Y' : chromosome.chromosome }}
-                  </strong>
-                  <app-chromosome-svg
-                    [chromosome]="gameteChromosomeModel(chromosome)"
-                    [showAllLoci]="true"
-                  />
-                  <small>
-                    {{
-                      chromosome.sexChromosome ??
-                        (chromosome.recombinant ? 'recombined' : 'parental')
-                    }}
-                  </small>
-                </li>
-              }
-            </ul>
 
             <button type="button" class="choose" (click)="chooseAndSend(gamete.index)">
               @if (chosenGameteIndex() === gamete.index) {

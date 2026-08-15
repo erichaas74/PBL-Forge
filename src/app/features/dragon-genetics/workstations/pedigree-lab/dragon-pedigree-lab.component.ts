@@ -19,6 +19,10 @@ import {
   provideDragonSpecimenProfile,
 } from '../../simulation/domain/dragon-specimen.profile';
 import {
+  LOCAL_WORKSTATION_STUDENT_ID,
+  normalizeWorkstationStudentId,
+} from '../shared/dragon-workstation-context.models';
+import {
   DeducedDragonState,
   deducePedigree,
   modelUniverse,
@@ -104,7 +108,7 @@ const CLUTCH_SIZE = 6;
 export class DragonPedigreeLabComponent {
   private readonly repository = inject(PedigreeLabRepository);
 
-  readonly studentId = input('local-student');
+  readonly studentId = input.required<string>();
   readonly goal = input(
     'Determine which living dragons still carry an allele that stopped being visible generations ago.',
   );
@@ -137,7 +141,9 @@ export class DragonPedigreeLabComponent {
     'uncertain',
   ];
 
-  readonly snapshot = signal<PedigreeLabSnapshot>(createEmptySnapshot('local-student'));
+  readonly snapshot = signal<PedigreeLabSnapshot>(
+    createEmptySnapshot(LOCAL_WORKSTATION_STUDENT_ID),
+  );
   readonly focusId = signal<string>(BLOODLINE_INVESTIGATIONS[0].ancestorId);
   readonly selectedId = signal<string | null>(BLOODLINE_INVESTIGATIONS[0].ancestorId);
   readonly ancestorDepth = signal(2);
@@ -453,7 +459,7 @@ export class DragonPedigreeLabComponent {
 
   constructor() {
     effect(() => {
-      const studentId = this.studentId().trim() || 'local-student';
+      const studentId = normalizeWorkstationStudentId(this.studentId());
       if (studentId === this.loadedStudentId) return;
       this.loadedStudentId = studentId;
       const loaded = this.repository.load(studentId);
@@ -885,7 +891,7 @@ export class DragonPedigreeLabComponent {
   private updateSnapshot(update: (snapshot: PedigreeLabSnapshot) => PedigreeLabSnapshot): void {
     const next: PedigreeLabSnapshot = {
       ...update(this.snapshot()),
-      studentId: this.studentId().trim() || 'local-student',
+      studentId: normalizeWorkstationStudentId(this.studentId()),
       updatedAtIso: new Date().toISOString(),
     };
     this.snapshot.set(next);

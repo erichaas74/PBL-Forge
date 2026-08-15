@@ -14,6 +14,7 @@ describe('BloodCompatibilityLabComponent', () => {
       providers: [provideRouter([])],
     }).compileComponents();
     fixture = TestBed.createComponent(BloodCompatibilityLabComponent);
+    fixture.componentRef.setInput('studentId', 'blood-compatibility-component-spec');
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

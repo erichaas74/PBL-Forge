@@ -5,6 +5,8 @@
   --stripe-blue: #aeb9d8;
   --stripe-green: #b9dbc7;
   --stripe-violet: #b996d6;
+  /* SVG user units scale with the viewBox; this renders at the app's readable text floor. */
+  --chromosome-svg-label-size: 3.25px;
 
   display: block;
   width: 100%;
@@ -54,7 +56,7 @@
 .allele-symbol,
 .locus-label {
   font-family: var(--font-body);
-  font-size: 3.25px;
+  font-size: var(--chromosome-svg-label-size);
 }
 
 .arm-label {
@@ -98,7 +100,7 @@
 
 .allele-symbol {
   font-family: var(--font-display);
-  font-size: 3.25px;
+  font-size: var(--chromosome-svg-label-size);
   font-weight: 700;
   text-anchor: middle;
 }

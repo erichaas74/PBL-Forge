@@ -15,6 +15,7 @@ import {
   parseAccountGeneticsDragPayload,
 } from '../shared/account-genetics-library.models';
 import { AccountGeneticsLibraryService } from '../shared/account-genetics-library.service';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   BLOOD_TYPE_DEFINITIONS,
   BloodEmergencyRecord,
@@ -49,7 +50,7 @@ export class BloodCompatibilityLabComponent {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);
   private readonly repository = inject(BloodCompatibilityRepository);
 
-  readonly studentId = input('local-student');
+  readonly studentId = input.required<string>();
   readonly bloodTypes = BLOOD_TYPE_DEFINITIONS;
   readonly reagents: readonly { marker: BloodMarker; name: string; code: string }[] = [
     { marker: 'a', name: 'Anti-A serum', code: 'AA' },
@@ -143,7 +144,7 @@ export class BloodCompatibilityLabComponent {
 
   constructor() {
     effect(() => {
-      const studentId = this.studentId().trim() || 'local-student';
+      const studentId = normalizeWorkstationStudentId(this.studentId());
       if (studentId === this.loadedStudentId) return;
       this.loadedStudentId = studentId;
       this.records.set(this.repository.load(studentId));

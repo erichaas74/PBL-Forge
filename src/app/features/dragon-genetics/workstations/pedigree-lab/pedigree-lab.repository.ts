@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   INHERITANCE_MODELS,
   InheritanceModel,
@@ -28,7 +29,7 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.pedigree-lab.v1';
 @Injectable({ providedIn: 'root' })
 export class PedigreeLabRepository {
   load(studentId: string): PedigreeLabSnapshot {
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     const empty = createEmptySnapshot(normalizedStudentId);
     if (typeof localStorage === 'undefined') return empty;
     try {

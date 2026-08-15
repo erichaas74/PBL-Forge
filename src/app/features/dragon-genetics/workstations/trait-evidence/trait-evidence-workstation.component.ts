@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import { provideDragonSpecimenProfile } from '../../simulation/domain/dragon-specimen.profile';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import { DRAGON_LEARNED_BEHAVIOR_MOTIONS, DRAGON_NOTICE_MOTION } from './dragon-learned-behaviors';
 import {
   TRAIT_EVIDENCE_DRAGONS,
@@ -46,7 +47,7 @@ import { TraitEvidenceRepository, emptyTraitEvidenceSnapshot } from './trait-evi
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TraitEvidenceWorkstationComponent {
-  readonly studentId = input('local-student');
+  readonly studentId = input.required<string>();
   readonly snapshotChange = output<TraitEvidenceSnapshot>();
 
   @ViewChild('viewport') private viewport?: SpecimenViewportComponent;
@@ -109,7 +110,7 @@ export class TraitEvidenceWorkstationComponent {
 
   constructor() {
     effect(() => {
-      const studentId = this.studentId().trim() || 'local-student';
+      const studentId = normalizeWorkstationStudentId(this.studentId());
       if (studentId === this.contextStudentId) return;
       this.contextStudentId = studentId;
       const snapshot = this.repository.load(studentId);

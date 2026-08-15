@@ -122,9 +122,27 @@ const STYLE_CONTROLS: Readonly<Record<string, readonly Omit<StyleControl, 'value
     { section: 'tailClub', key: 'spikeLength', label: 'Spike length', min: 0.1, max: 2, step: 0.05 },
     { section: 'tailClub', key: 'spikeRadius', label: 'Spike thickness', min: 0.04, max: 0.5, step: 0.01 },
   ],
+  'dragon-grasp-hand': [
+    { section: 'grasp', key: 'fingerCount', label: 'Finger count', min: 2, max: 5, step: 1 },
+    { section: 'grasp', key: 'fingerLength', label: 'Finger length', min: 0.4, max: 2.2, step: 0.05 },
+    { section: 'grasp', key: 'fingerRadius', label: 'Finger thickness', min: 0.1, max: 0.7, step: 0.02 },
+    { section: 'grasp', key: 'palmLength', label: 'Palm length', min: 0.2, max: 0.9, step: 0.02 },
+    { section: 'grasp', key: 'fingerSplay', label: 'Finger splay', min: 0, max: 0.7, step: 0.02 },
+    jointBallControl(),
+  ],
+  'dragon-grasp-arm': [jointBallControl()],
+  // The joint balls that close a hinge. One control, on every part that carries
+  // one, because a hip that needs a wider ball almost certainly means the knees
+  // and the tail links do too.
+  'dragon-leg': [jointBallControl()],
+  'dragon-tail': [jointBallControl()],
   'dragon-wing': wingControls(),
   'dragon-secondary-wing': wingControls(),
 };
+
+function jointBallControl(): Omit<StyleControl, 'value'> {
+  return { section: 'joint', key: 'ball', label: 'Joint ball', min: 0.6, max: 1.8, step: 0.02 };
+}
 
 function jawControls(): readonly Omit<StyleControl, 'value'>[] {
   return [
@@ -545,7 +563,9 @@ function cloneStyle(style: DragonStyle): DragonStyle {
     jaw: { ...style.jaw },
     head: { ...style.head },
     foot: { ...style.foot },
+    grasp: { ...style.grasp },
     tailClub: { ...style.tailClub },
+    joint: { ...style.joint },
   };
 }
 

@@ -2,7 +2,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 37rem;
+  min-height: 47rem;
 }
 
 .allele-instrument {
@@ -17,7 +17,7 @@
   grid-template-rows: auto repeat(2, minmax(0, 1fr));
   gap: 0.65rem;
   height: 100%;
-  min-height: 37rem;
+  min-height: 47rem;
   padding: 0.75rem;
   overflow: hidden;
   border: 1px solid rgb(240 164 78 / 18%);
@@ -87,11 +87,6 @@ button {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-}
-
-.gene-selector-chromosome {
-  width: 100%;
-  min-width: 0;
 }
 
 .gene-selector > header small {
@@ -305,89 +300,13 @@ button {
   font-style: normal;
 }
 
-.chromosome-rack {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr));
-  gap: 0.35rem;
-  align-content: center;
-  min-height: 0;
-}
+.vault-cell-viewport {
+  --cell-viewport-accent: var(--vault-flame);
+  --cell-viewport-edge: rgb(240 164 78 / 42%);
+  --cell-viewport-glow: rgb(168 145 201 / 16%);
+  --cell-viewport-panel: rgb(16 13 10 / 72%);
 
-.chromosome-selector {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.55rem;
-  align-items: center;
-  min-height: 3.2rem;
-  padding: 0.45rem 0.65rem;
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 0.65rem;
-  background: linear-gradient(145deg, #241d16, #15110d 72%);
-  color: #a1978a;
-  cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.chromosome-selector:hover:not(:disabled) {
-  border-color: rgb(240 164 78 / 50%);
-  color: #fdf4e6;
-  transform: translateY(-0.1rem);
-}
-
-.chromosome-selector.active {
-  border-color: var(--vault-flame);
-  color: #fdf4e6;
-  box-shadow: 0 0 18px rgb(240 164 78 / 14%);
-}
-
-.chromosome-selector > span:last-child {
-  display: grid;
-  gap: 0.05rem;
-  min-width: 0;
-}
-
-.chromosome-selector small {
-  color: #8e8478;
-  font-size: var(--text-xs);
-  letter-spacing: 0.08em;
-}
-
-.chromosome-selector b {
-  overflow: hidden;
-  color: currentcolor;
-  font-size: var(--text-sm);
-  letter-spacing: 0.06em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chromosome-icon {
-  position: relative;
-  display: block;
-  width: 1.35rem;
-  height: 2rem;
-}
-
-.chromosome-icon::before,
-.chromosome-icon::after {
-  position: absolute;
-  top: 0;
-  left: 0.48rem;
-  width: 0.38rem;
-  height: 2rem;
-  border: 1px solid rgb(240 164 78 / 65%);
-  border-radius: 50%;
-  background: rgb(255 255 255 / 5%);
-  content: '';
-  transform: rotate(28deg);
-}
-
-.chromosome-icon::after {
-  transform: rotate(-28deg);
+  min-width: 28rem;
 }
 
 .allele-token {
@@ -1759,19 +1678,18 @@ button {
     grid-template-rows: auto auto auto auto auto;
   }
   .allele-vault {
-    grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: stretch;
   }
   .allele-vault > header {
-    min-width: 7rem;
-    padding: 0 0.45rem 0 0;
+    min-width: 0;
+    padding: 0 0 0.45rem;
     border: 0;
-    border-right: 1px solid rgb(255 255 255 / 7%);
+    border-bottom: 1px solid rgb(255 255 255 / 7%);
   }
-  .chromosome-rack {
-    grid-template-columns: repeat(4, minmax(4rem, 1fr));
-    padding: 0 0.35rem;
+  .vault-cell-viewport {
+    min-width: 0;
   }
   .allele-token {
     aspect-ratio: auto;
@@ -1850,17 +1768,6 @@ button {
     padding: 0 0 0.4rem;
     border: 0;
     border-bottom: 1px solid rgb(255 255 255 / 7%);
-  }
-  .chromosome-rack {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  .chromosome-selector {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    padding: 0.35rem;
-  }
-  .chromosome-selector > span:last-child {
-    justify-items: center;
   }
   .split-screen {
     grid-template-columns: minmax(0, 1fr);

@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { AssemblyAbilityId } from '../combat/assembly-abilities';
 import { SpecimenSource } from './specimen.models';
-import { DRAGON_IDLE_BREATH, DRAGON_RESTING_POSE } from './specimen-stance';
+import { DRAGON_IDLE_BREATH, DRAGON_RESTING_POSE, dragonRestingPose } from './specimen-stance';
 import { SpecimenMotionDefinition } from './specimen-motion';
 import { SPECIMEN_PROFILES, SpecimenProfileRegistry } from './specimen-profile.registry';
 import { SpecimenRendererService, isSpecimenRenderingAvailable } from './specimen-renderer.service';
@@ -72,8 +72,13 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
     effect(() => {
       if (!this.mounted()) return;
       const descriptor = this.descriptor();
-      if (descriptor) this.renderer.show(descriptor);
-      else this.renderer.clear();
+      // The stance is a property of the animal, not of this surface: a dragon
+      // whose forelimbs grasp has to rear, and it does so wherever it is shown.
+      if (descriptor) {
+        this.renderer.show(descriptor, { pose: dragonRestingPose(descriptor.blueprint) });
+      } else {
+        this.renderer.clear();
+      }
     });
 
     effect(() => {

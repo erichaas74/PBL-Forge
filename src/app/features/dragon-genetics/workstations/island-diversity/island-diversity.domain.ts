@@ -1,3 +1,4 @@
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   CONSERVATION_LOCI,
   ConservationGenome,
@@ -95,7 +96,7 @@ export interface AccountConservationCandidate {
 }
 
 export function createInitialWorld(studentId: string): IslandDiversityWorld {
-  const seed = `archipelago:${studentId.trim() || 'local-student'}`;
+  const seed = `archipelago:${normalizeWorkstationStudentId(studentId)}`;
   const islands = Object.fromEntries(
     ISLAND_DEFINITIONS.map((definition) => {
       const population = createPopulation(definition, POPULATION_PROFILES[definition.id], seed);

@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
@@ -16,14 +17,15 @@ import {
 } from '../allele-workbench/allele-vault.models';
 import { chromosomeVisual, DRAGON_LOCUS_COLORS } from '../shared/dragon-chromosome.catalog';
 import { ChromosomeSvgComponent, ChromosomeSvgModel } from '../shared/chromosome-svg.component';
+import { DnaComparisonRepository } from './dna-comparison.repository';
 import {
   DnaAnalysisCase,
+  DnaComparisonScope,
   DnaEvidenceResult,
-  DnaSequenceAnalysisComponent,
   DnaSequenceChanged,
-} from './dna-sequence-analysis.component';
-
-type ComparisonScope = 'gene' | 'chromosome';
+  MolecularEvidenceRecord,
+} from './dna-process.models';
+import { DnaSequenceAnalysisComponent } from './dna-sequence-analysis.component';
 
 interface DnaSpecimen {
   id: string;
@@ -37,21 +39,6 @@ interface DnaSpecimen {
   transferred?: boolean;
 }
 
-interface MolecularEvidenceRecord extends DnaEvidenceResult {
-  id: string;
-  recordedAtIso: string;
-}
-
-interface PersistedDnaLabState {
-  scope?: ComparisonScope;
-  specimenAId?: string | null;
-  specimenBId?: string | null;
-  workingSequences?: Record<string, string>;
-  evidence?: MolecularEvidenceRecord[];
-}
-
-const LAB_STATE_KEY = 'pbl-forge.dragon-genetics.dna-comparison-lab.v2';
-
 @Component({
   selector: 'app-dragon-dna-repair-lab',
   imports: [DnaSequenceAnalysisComponent, ChromosomeSvgComponent],
@@ -60,7 +47,9 @@ const LAB_STATE_KEY = 'pbl-forge.dragon-genetics.dna-comparison-lab.v2';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonDnaRepairLabComponent {
-  readonly studentId = input('local-student');
+  private readonly repository = inject(DnaComparisonRepository);
+
+  readonly studentId = input.required<string>();
   readonly goal = input(
     'Determine how two DNA records differ and whether a selected repair restores their sequence agreement.',
   );
@@ -70,7 +59,7 @@ export class DragonDnaRepairLabComponent {
   readonly alleles = input<readonly AlleleVaultAllele[]>(ALLELE_VAULT_ALLELES);
   readonly modelSelected = output<'replication' | 'transcription' | 'mutation' | 'repair'>();
 
-  readonly comparisonScope = signal<ComparisonScope>('gene');
+  readonly comparisonScope = signal<DnaComparisonScope>('gene');
   readonly specimenAId = signal<string | null>(null);
   readonly specimenBId = signal<string | null>(null);
   readonly evidence = signal<MolecularEvidenceRecord[]>([]);
@@ -195,7 +184,7 @@ export class DragonDnaRepairLabComponent {
       const studentId = this.studentId();
       if (this.loadedStudentId === studentId) return;
       this.loadedStudentId = studentId;
-      const stored = loadState(studentId);
+      const stored = this.repository.load(studentId);
       untracked(() => {
         this.comparisonScope.set(stored.scope ?? 'gene');
         this.specimenAId.set(stored.specimenAId ?? null);
@@ -230,7 +219,7 @@ export class DragonDnaRepairLabComponent {
     });
   }
 
-  selectScope(scope: ComparisonScope): void {
+  selectScope(scope: DnaComparisonScope): void {
     if (scope === this.comparisonScope()) return;
     this.comparisonScope.set(scope);
     const specimens = scope === 'gene' ? this.geneSpecimens() : this.chromosomeSpecimens();
@@ -298,33 +287,12 @@ export class DragonDnaRepairLabComponent {
   }
 
   private persistState(): void {
-    saveState(this.studentId(), {
+    this.repository.save(this.studentId(), {
       scope: this.comparisonScope(),
       specimenAId: this.specimenAId(),
       specimenBId: this.specimenBId(),
       workingSequences: this.workingSequences(),
       evidence: this.evidence(),
     });
-  }
-}
-
-function storageKey(studentId: string): string {
-  return `${LAB_STATE_KEY}:${studentId}`;
-}
-
-function loadState(studentId: string): PersistedDnaLabState {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(storageKey(studentId)) ?? '{}');
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveState(studentId: string, state: PersistedDnaLabState): void {
-  try {
-    localStorage.setItem(storageKey(studentId), JSON.stringify(state));
-  } catch {
-    // The comparison bench remains usable when device storage is unavailable.
   }
 }

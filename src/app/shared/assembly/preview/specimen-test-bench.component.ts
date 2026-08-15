@@ -15,7 +15,7 @@ import { SpecimenDescriptor, SpecimenSource } from './specimen.models';
 import { SPECIMEN_PROFILES, SpecimenProfileRegistry } from './specimen-profile.registry';
 import { isSpecimenRenderingAvailable } from './specimen-renderer.service';
 import { SpecimenAssay, assaySpecimen } from './specimen-assay';
-import { SpecimenBenchCopy, resolveAbilityCopy } from './specimen-bench.content';
+import { SpecimenBenchCopy, SpecimenBenchMotion, resolveAbilityCopy } from './specimen-bench.content';
 import { SpecimenViewportComponent } from './specimen-viewport.component';
 
 interface AbilityRow {
@@ -49,6 +49,11 @@ interface DefenseRow {
  *
  * Nothing here simulates combat. The damage and cooldown figures are the
  * arena's own tuning, read from `shared/assembly/combat`.
+ *
+ * A species that never fights can turn the combat panels off with
+ * `showCombat=false` and project its own readout into the panel column
+ * instead — the model, the framing and the motions are the same instrument
+ * either way, and only the questions asked about the animal change.
  */
 @Component({
   selector: 'app-specimen-test-bench',
@@ -63,10 +68,25 @@ export class SpecimenTestBenchComponent {
   readonly combatProfile = input<AssemblyCombatProfile | null>(null);
   /** Fire breath is a genotype call, not a part, so the host supplies it. */
   readonly fireBreathing = input(false);
+  /**
+   * Horns are drawn onto the skull rather than carried as a part, so the host
+   * supplies them for the same reason as fire breath. Without it a horned
+   * dragon is told it cannot charge.
+   */
+  readonly horned = input(false);
   readonly copy = input<SpecimenBenchCopy | null>(null);
   readonly heading = input('Test bench');
+  /**
+   * Attack, defence and fitness panels. Off for a species with no combat
+   * model, where those numbers would be an invention rather than a reading.
+   */
+  readonly showCombat = input(true);
+  /** Non-combat motions the model can be asked to perform. */
+  readonly motions = input<readonly SpecimenBenchMotion[]>([]);
+  readonly motionsHeading = input('Trained behaviours');
 
   readonly abilityPlayed = output<AssemblyAbilityId>();
+  readonly motionPlayed = output<string>();
   readonly assayed = output<SpecimenAssay>();
 
   @ViewChild('viewport', { static: true })
@@ -74,9 +94,11 @@ export class SpecimenTestBenchComponent {
 
   private readonly registry = inject(SpecimenProfileRegistry);
   private readonly playing = signal<AssemblyAbilityId | null>(null);
+  private readonly playingMotion = signal<string | null>(null);
 
   readonly renderingAvailable = isSpecimenRenderingAvailable();
   readonly activeAbility = this.playing.asReadonly();
+  readonly activeMotion = this.playingMotion.asReadonly();
 
   private readonly resolution = computed(() => this.registry.resolve(this.source()));
 
@@ -95,6 +117,7 @@ export class SpecimenTestBenchComponent {
     if (!descriptor) return null;
     return assaySpecimen(descriptor.blueprint, this.combatProfile(), {
       fireBreathing: this.fireBreathing(),
+      horned: this.horned(),
     });
   });
 
@@ -150,6 +173,7 @@ export class SpecimenTestBenchComponent {
       const descriptor = this.descriptor();
       if (!descriptor) return;
       this.playing.set(null);
+      this.playingMotion.set(null);
     });
 
     effect(() => {
@@ -166,6 +190,15 @@ export class SpecimenTestBenchComponent {
     await this.viewport.playAbility(row.ability);
     // A newer press may have taken over while this one finished.
     if (this.playing() === row.ability) this.playing.set(null);
+  }
+
+  async playMotion(row: SpecimenBenchMotion): Promise<void> {
+    if (!this.renderingAvailable) return;
+
+    this.playingMotion.set(row.id);
+    this.motionPlayed.emit(row.id);
+    await this.viewport.playMotion(row.motion);
+    if (this.playingMotion() === row.id) this.playingMotion.set(null);
   }
 
   percent(score: number): string {

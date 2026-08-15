@@ -1,0 +1,67 @@
+<svg
+  [attr.viewBox]="'0 0 ' + theme().shell.viewBoxWidth + ' ' + theme().shell.viewBoxHeight"
+  preserveAspectRatio="xMidYMid meet"
+  focusable="false"
+  aria-hidden="true"
+>
+  <defs>
+    <clipPath [attr.id]="clipId()">
+      <path [attr.d]="theme().shell.path" />
+    </clipPath>
+  </defs>
+
+  @if (status() !== 'intact') {
+    <ellipse class="aura" cx="32" cy="48" rx="27" ry="36" />
+  }
+
+  <path class="shell" [attr.d]="theme().shell.path" />
+
+  <g [attr.clip-path]="'url(#' + clipId() + ')'">
+    @for (speckle of speckles(); track $index) {
+      <circle
+        class="speckle"
+        [attr.cx]="speckle.cx"
+        [attr.cy]="speckle.cy"
+        [attr.r]="speckle.r"
+      />
+    }
+
+    @if (status() === 'examined' || status() === 'sampled') {
+      <!-- Candling light: the shell is lit from behind so the trait record can be read. -->
+      <ellipse class="candle" cx="32" cy="47" rx="17" ry="24" />
+      <path class="candle-edge" d="M20 33c7-5 17-5 24 0" />
+    }
+
+    @if (status() === 'sampled') {
+      <!-- Sampling needle and the strand it drew out. -->
+      <path class="needle" d="M52 20 36 41" />
+      <circle class="needle-tip" cx="35" cy="42" r="2.4" />
+      <path class="strand" d="M25 50c0 6 14 6 14 12s-14 6-14 12" />
+      <path class="strand second" d="M39 50c0 6-14 6-14 12s14 6 14 12" />
+      <path class="rung" d="M27 56h10M25 62h14M27 68h10" />
+    }
+
+    @if (status() === 'hatched') {
+      <path class="crack" d="M4 46l10-6 7 8 8-10 7 9 9-8 8 7 8-5" />
+      <path class="crack minor" d="M22 42l4-12 6 9 5-11" />
+    }
+
+    @for (label of alleleLabels().slice(0, 3); track $index) {
+      <g class="allele-locus" [attr.transform]="'translate(32 ' + locusY($index) + ')'">
+        <rect x="-11" y="-7" width="22" height="14" rx="3" />
+        <text x="0" y="3.2" text-anchor="middle">{{ label }}</text>
+      </g>
+    }
+  </g>
+
+  @if (locked()) {
+    <g class="lock" transform="translate(26,38)">
+      <rect x="1" y="7" width="12" height="10" rx="2" />
+      <path class="shackle" d="M3.6 7V4.8a3.4 3.4 0 0 1 6.8 0V7" />
+    </g>
+  }
+
+  @if (staged()) {
+    <path class="stage-ring" [attr.d]="theme().shell.path" />
+  }
+</svg>

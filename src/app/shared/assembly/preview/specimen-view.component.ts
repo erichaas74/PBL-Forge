@@ -19,7 +19,7 @@ import {
   SpecimenSource,
   SpecimenTraitReadout,
 } from './specimen.models';
-import { DRAGON_RESTING_POSE } from './specimen-stance';
+import { DRAGON_RESTING_POSE, dragonRestingPose } from './specimen-stance';
 import { SpecimenFrame } from './specimen-pose';
 import { SPECIMEN_PROFILES, SpecimenProfileRegistry } from './specimen-profile.registry';
 import {
@@ -118,6 +118,8 @@ export class SpecimenViewComponent implements AfterViewInit, OnDestroy {
       this.renderer.show(descriptor, {
         frame: this.frame(),
         focusedTraitId: this.activeTraitId(),
+        // Body plan, not surface preference — see `dragonRestingPose`.
+        pose: dragonRestingPose(descriptor.blueprint),
       });
       this.resolved.emit(descriptor);
     });

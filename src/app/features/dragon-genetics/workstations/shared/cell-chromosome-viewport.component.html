@@ -1,0 +1,89 @@
+<section
+  class="cell-chromosome-viewport"
+  [class.cell-chromosome-viewport--overview]="layout() === 'overview'"
+  [class.cell-chromosome-viewport--inspect]="layout() === 'inspect'"
+  [class.cell-chromosome-viewport--thumbnail]="layout() === 'thumbnail'"
+  [class.cell-chromosome-viewport--has-selection]="!!resolvedSelectedChromosome()"
+  [attr.aria-label]="ariaLabel()"
+>
+  <div class="viewport-layout">
+    <div class="cell-panel">
+      @if (layout() !== 'thumbnail') {
+        <span class="panel-label">CELL VIEW</span>
+      }
+
+      <div class="cell-membrane" role="group" aria-label="Chromosomes inside the cell">
+        @for (item of chromosomes(); track item.id) {
+          <button
+            type="button"
+            class="chromosome-in-cell"
+            [class.chromosome-in-cell--selected]="isSelected(item)"
+            [class.chromosome-in-cell--recombinant]="item.recombinant"
+            [disabled]="!selectable()"
+            [attr.aria-label]="chromosomeAriaLabel(item)"
+            [attr.aria-pressed]="selectable() ? isSelected(item) : null"
+            [attr.data-chromosome]="item.id"
+            [attr.data-display-chromosome]="item.label"
+            (click)="selectChromosome(item.id)"
+          >
+            <span class="chromosome-name">{{ displayShortLabel(item) }}</span>
+            <app-chromosome-svg
+              [chromosome]="item.model"
+              [compact]="layout() !== 'overview'"
+              [showAllLoci]="showLoci()"
+              [selectedLocus]="isSelected(item) ? selectedLocus() : null"
+            />
+            @if (item.recombinant && layout() !== 'thumbnail') {
+              <span class="recombinant-mark">R</span>
+            }
+          </button>
+        }
+
+        @if (!chromosomes().length) {
+          <p class="empty-cell">No chromosomes available</p>
+        }
+      </div>
+    </div>
+
+    @if (layout() === 'inspect' && selectedItem(); as selected) {
+      <aside class="inspection-panel" [attr.aria-label]="selected.label + ' detail'">
+        <header>
+          <span>CHROMOSOME VIEW</span>
+          <strong>{{ selected.label }}</strong>
+          @if (selected.recombinant) {
+            <small>RECOMBINANT</small>
+          }
+        </header>
+        <div class="inspection-chromosome">
+          <app-chromosome-svg
+            [chromosome]="selected.model"
+            [showAllLoci]="showLoci()"
+            [selectedLocus]="selectedLocus()"
+            [interactive]="selectable() && locusSelectable()"
+            (locusSelected)="selectLocus(selected.id, $event)"
+          />
+        </div>
+      </aside>
+    }
+  </div>
+
+  @if (layout() !== 'thumbnail' && chromosomes().length) {
+    <div class="chromosome-controls" role="group" aria-label="Choose a chromosome">
+      @for (item of chromosomes(); track item.id) {
+        <button
+          type="button"
+          [class.active]="isSelected(item)"
+          [disabled]="!selectable()"
+          [attr.aria-pressed]="isSelected(item)"
+          (click)="selectChromosome(item.id)"
+        >
+          {{ displayShortLabel(item) }}
+        </button>
+      }
+    </div>
+
+    <output class="selection-readout" aria-live="polite">
+      Selected: <strong>{{ selectedItem().label }}</strong>
+    </output>
+  }
+</section>

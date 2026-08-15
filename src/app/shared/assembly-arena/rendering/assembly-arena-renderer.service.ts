@@ -32,7 +32,6 @@ import {
   installStageEnvironment,
 } from '../../assembly/rendering/scene-environment';
 import {
-  ArenaSetupStyleId,
   ArenaSetupConfig,
   BattleAttackPoseSnapshot,
   BattleArenaState,
@@ -58,9 +57,13 @@ const BERK_MATERIALS = {
   timberDark: 0x4e3f2c,
   sandBase: '#c2a878',
   sandSpeckle: '#8a7350',
+  sandWear: 0x766044,
   apron: 0x5c6552,
   stone: 0x7d8288,
+  stoneDark: 0x484641,
   chain: 0x2f2a24,
+  iron: 0x292d2d,
+  bone: 0xc0aa7c,
   emberCore: 0xff7a2b,
   emberGlow: 0xffb347,
   seaStack: 0x6d726d,
@@ -151,7 +154,7 @@ export class AssemblyArenaRendererService {
   private controls: OrbitControls | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private environmentGroup: THREE.Group | null = null;
-  private currentSetupStyleId: ArenaSetupStyleId | null = null;
+  private currentEnvironmentKey: string | null = null;
   private quality: RenderQuality = 'high';
   private postPipeline: StagePostPipeline | null = null;
   private skyTexture: THREE.CanvasTexture | null = null;
@@ -228,18 +231,23 @@ export class AssemblyArenaRendererService {
     this.flashUntilByBodyKey.clear();
     this.syncFireCones([]);
 
-    this.syncArenaEnvironment(state.setup);
+    // Match loading may override a setup's default control modes. The live
+    // combatants are therefore the source of truth for dragon-only scenery.
+    this.syncArenaEnvironment(
+      state.setup,
+      state.combatants.some((combatant) => combatant.controlMode === 'dragon-attack'),
+    );
     const nextBodyKeys = new Set<string>();
     this.dragonRigs.clear();
     this.coreRefs.clear();
 
     for (const combatant of state.combatants) {
-      const corePart = combatant.assembly.parts.find(part => part.id === combatant.corePartId);
+      const corePart = combatant.assembly.parts.find((part) => part.id === combatant.corePartId);
       this.coreRefs.set(combatant.id, {
         bodyKey: getBodyKey(combatant.id, combatant.corePartId),
         name: combatant.name,
         team: combatant.team,
-        bodyKeys: combatant.assembly.parts.map(part => getBodyKey(combatant.id, part.id)),
+        bodyKeys: combatant.assembly.parts.map((part) => getBodyKey(combatant.id, part.id)),
         standingHeight: corePart?.position.y ?? 0,
       });
       if (combatant.controlMode === 'dragon-attack') {
@@ -292,8 +300,8 @@ export class AssemblyArenaRendererService {
     attackPoses: BattleAttackPoseSnapshot[] = [],
   ): void {
     this.syncFireCones(fireCones);
-    const snapshotsByBodyKey = new Map(snapshots.map(snapshot => [snapshot.bodyKey, snapshot]));
-    const attacksByCombatant = new Map(attackPoses.map(attack => [attack.combatantId, attack]));
+    const snapshotsByBodyKey = new Map(snapshots.map((snapshot) => [snapshot.bodyKey, snapshot]));
+    const attacksByCombatant = new Map(attackPoses.map((attack) => [attack.combatantId, attack]));
     const scriptedBodyKeys = new Set<string>();
 
     for (const [combatantId, rig] of this.dragonRigs) {
@@ -352,7 +360,6 @@ export class AssemblyArenaRendererService {
 
     this.render();
   }
-
 
   render(): void {
     if (!this.scene || !this.camera || !this.renderer) {
@@ -497,7 +504,10 @@ export class AssemblyArenaRendererService {
     this.updateHitFlash(object, snapshot.bodyKey, statuses[snapshot.bodyKey]);
   }
 
-  private updateDamageAppearance(object: THREE.Object3D, status: BattlePartStatus | undefined): void {
+  private updateDamageAppearance(
+    object: THREE.Object3D,
+    status: BattlePartStatus | undefined,
+  ): void {
     if (!status) {
       return;
     }
@@ -708,7 +718,11 @@ export class AssemblyArenaRendererService {
 
     const now = performance.now();
     const previousHealth = this.lastHealthByBodyKey.get(bodyKey);
-    if (previousHealth !== undefined && status.health < previousHealth - 0.01 && !status.destroyed) {
+    if (
+      previousHealth !== undefined &&
+      status.health < previousHealth - 0.01 &&
+      !status.destroyed
+    ) {
       this.flashUntilByBodyKey.set(bodyKey, now + 240);
       const dealt = previousHealth - status.health;
       // Severity relative to the part's own maximum, so a chipped claw and a
@@ -774,25 +788,27 @@ export class AssemblyArenaRendererService {
     const seconds = performance.now() / 1000;
 
     for (const brazier of this.braziers) {
-      const flicker = 0.82
-        + Math.sin(seconds * brazier.rate + brazier.phase) * 0.12
-        + Math.sin(seconds * brazier.rate * 2.7 + brazier.phase) * 0.06;
+      const flicker =
+        0.82 +
+        Math.sin(seconds * brazier.rate + brazier.phase) * 0.12 +
+        Math.sin(seconds * brazier.rate * 2.7 + brazier.phase) * 0.06;
       brazier.light.intensity = brazier.baseIntensity * flicker;
       const material = brazier.ember.material as THREE.MeshStandardMaterial;
       material.emissiveIntensity = 3.2 * flicker;
     }
   }
 
-  private syncArenaEnvironment(setup: ArenaSetupConfig): void {
-    if (!this.scene || this.currentSetupStyleId === setup.id) {
+  private syncArenaEnvironment(setup: ArenaSetupConfig, dragonPit: boolean): void {
+    const environmentKey = `${setup.id}:${dragonPit ? 'dragon-pit' : 'standard'}`;
+    if (!this.scene || this.currentEnvironmentKey === environmentKey) {
       return;
     }
 
     this.removeEnvironment();
-    this.currentSetupStyleId = setup.id;
+    this.currentEnvironmentKey = environmentKey;
     this.environmentGroup = new THREE.Group();
     this.scene.add(this.environmentGroup);
-    this.addArena(this.environmentGroup, setup);
+    this.addArena(this.environmentGroup, setup, dragonPit);
   }
 
   private removeEnvironment(): void {
@@ -803,47 +819,31 @@ export class AssemblyArenaRendererService {
     this.scene.remove(this.environmentGroup);
     disposeAssemblyObject(this.environmentGroup);
     this.environmentGroup = null;
-    this.currentSetupStyleId = null;
+    this.currentEnvironmentKey = null;
     // The braziers live inside the environment group, so their handles go with it.
     this.braziers.length = 0;
   }
 
-  /**
-   * Whether this scenario gets the training-pit props.
-   *
-   * The *lighting* is Berk everywhere — there is only one theme now. What is
-   * conditional is the set dressing, because the same renderer serves car
-   * crash tests and the pinewood derby, and a timber palisade with a chain net
-   * over a downhill race track would be nonsense. Control mode is the honest
-   * signal: it is what actually makes a scenario a dragon fight. Everything
-   * else is a sand yard under the same overcast sky.
-   */
-  private isDragonSetup(setup: ArenaSetupConfig): boolean {
-    return setup.redControlMode === 'dragon-attack' || setup.blueControlMode === 'dragon-attack';
-  }
-
-  private addArena(group: THREE.Group, setup: ArenaSetupConfig): void {
+  private addArena(group: THREE.Group, setup: ArenaSetupConfig, dragonPit: boolean): void {
     const radius = Math.max(setup.floorSize.x, setup.floorSize.z);
     // The pit is drawn round while physics keeps its rectangular walls. The
     // ring is inscribed in the floor so a dragon can never reach a stretch of
     // sand that has no palisade drawn behind it.
     const pitRadius = Math.min(setup.floorSize.x, setup.floorSize.z) / 2;
-    const pit = this.isDragonSetup(setup);
 
-    group.add(createStageLighting(
-      BERK_STAGE_THEME,
-      { width: setup.floorSize.x, depth: setup.floorSize.z },
-      this.quality,
-    ));
+    group.add(
+      createStageLighting(
+        BERK_STAGE_THEME,
+        { width: setup.floorSize.x, depth: setup.floorSize.z },
+        this.quality,
+      ),
+    );
 
     if (this.scene) {
       this.scene.fog = new THREE.Fog(BERK_STAGE_THEME.fogColor, radius * 1.8, radius * 6);
     }
 
-    const groundTexture = createGroundTexture(
-      BERK_MATERIALS.sandBase,
-      BERK_MATERIALS.sandSpeckle,
-    );
+    const groundTexture = createGroundTexture(BERK_MATERIALS.sandBase, BERK_MATERIALS.sandSpeckle);
     const floor = new THREE.Mesh(
       new THREE.BoxGeometry(setup.floorSize.x, setup.floorSize.y, setup.floorSize.z),
       new THREE.MeshStandardMaterial({
@@ -871,10 +871,13 @@ export class AssemblyArenaRendererService {
     apron.receiveShadow = true;
     group.add(apron);
 
-    if (pit) {
+    if (dragonPit) {
+      this.addFightingRing(group, pitRadius);
       this.addPalisade(group, pitRadius, setup.wallHeight);
       this.addKillRingGallery(group, pitRadius, setup.wallHeight);
+      this.addGatehouses(group, pitRadius, setup.wallHeight);
       this.addPalisadeShields(group, pitRadius, setup.wallHeight);
+      this.addClanBanners(group, pitRadius, setup.wallHeight);
       this.addChainDome(group, pitRadius, setup.wallHeight);
       this.addBraziers(group, pitRadius, setup.wallHeight);
       this.addSeaStacks(group, radius);
@@ -882,10 +885,26 @@ export class AssemblyArenaRendererService {
 
     const wallThickness = 0.24;
     const wallY = setup.wallHeight / 2;
-    this.addWallMesh(group, { x: 0, y: wallY, z: -setup.floorSize.z / 2 - wallThickness / 2 }, { x: setup.floorSize.x, y: setup.wallHeight, z: wallThickness });
-    this.addWallMesh(group, { x: 0, y: wallY, z: setup.floorSize.z / 2 + wallThickness / 2 }, { x: setup.floorSize.x, y: setup.wallHeight, z: wallThickness });
-    this.addWallMesh(group, { x: -setup.floorSize.x / 2 - wallThickness / 2, y: wallY, z: 0 }, { x: wallThickness, y: setup.wallHeight, z: setup.floorSize.z });
-    this.addWallMesh(group, { x: setup.floorSize.x / 2 + wallThickness / 2, y: wallY, z: 0 }, { x: wallThickness, y: setup.wallHeight, z: setup.floorSize.z });
+    this.addWallMesh(
+      group,
+      { x: 0, y: wallY, z: -setup.floorSize.z / 2 - wallThickness / 2 },
+      { x: setup.floorSize.x, y: setup.wallHeight, z: wallThickness },
+    );
+    this.addWallMesh(
+      group,
+      { x: 0, y: wallY, z: setup.floorSize.z / 2 + wallThickness / 2 },
+      { x: setup.floorSize.x, y: setup.wallHeight, z: wallThickness },
+    );
+    this.addWallMesh(
+      group,
+      { x: -setup.floorSize.x / 2 - wallThickness / 2, y: wallY, z: 0 },
+      { x: wallThickness, y: setup.wallHeight, z: setup.floorSize.z },
+    );
+    this.addWallMesh(
+      group,
+      { x: setup.floorSize.x / 2 + wallThickness / 2, y: wallY, z: 0 },
+      { x: wallThickness, y: setup.wallHeight, z: setup.floorSize.z },
+    );
 
     for (const obstacle of setup.obstacles) {
       this.addObstacleMesh(
@@ -895,6 +914,151 @@ export class AssemblyArenaRendererService {
         Number.parseInt(obstacle.color.replace('#', ''), 16),
         obstacle.rotation,
       );
+    }
+  }
+
+  /**
+   * A visual fighting ring layered over the rectangular physics floor.
+   *
+   * The curb and carved mark do not participate in collisions. Keeping the
+   * authoritative boundary in the physics setup avoids an invisible mismatch
+   * between scenery and combat while still making the dragon pit read as a
+   * deliberate Viking training ground.
+   */
+  private addFightingRing(group: THREE.Group, pitRadius: number): void {
+    const wear = new THREE.Mesh(
+      new THREE.RingGeometry(pitRadius * 0.7, pitRadius * 0.965, 64),
+      new THREE.MeshStandardMaterial({
+        color: BERK_MATERIALS.sandWear,
+        roughness: 1,
+        metalness: 0,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.DoubleSide,
+      }),
+    );
+    wear.rotation.x = -Math.PI / 2;
+    wear.position.y = 0.014;
+    group.add(wear);
+
+    const curb = new THREE.Mesh(
+      new THREE.TorusGeometry(pitRadius - 0.08, 0.2, 7, 64),
+      new THREE.MeshStandardMaterial({
+        color: BERK_MATERIALS.stone,
+        roughness: 0.94,
+        metalness: 0.03,
+        flatShading: true,
+      }),
+    );
+    curb.rotation.x = Math.PI / 2;
+    curb.position.y = 0.14;
+    curb.castShadow = true;
+    curb.receiveShadow = true;
+    group.add(curb);
+
+    const markMaterial = new THREE.MeshStandardMaterial({
+      color: BERK_MATERIALS.sandWear,
+      roughness: 1,
+      metalness: 0,
+      transparent: true,
+      opacity: 0.52,
+    });
+    const mark = new THREE.Group();
+    const innerRing = new THREE.Mesh(
+      new THREE.TorusGeometry(pitRadius * 0.18, 0.035, 5, 32),
+      markMaterial,
+    );
+    innerRing.rotation.x = Math.PI / 2;
+    mark.add(innerRing);
+
+    const barGeometry = new THREE.BoxGeometry(pitRadius * 0.42, 0.018, 0.06);
+    for (let index = 0; index < 6; index += 1) {
+      const bar = new THREE.Mesh(barGeometry, markMaterial);
+      bar.rotation.y = (index / 6) * Math.PI;
+      mark.add(bar);
+    }
+    mark.position.y = 0.028;
+    group.add(mark);
+  }
+
+  /** North and south timber gatehouses establish the arena's main axis. */
+  private addGatehouses(group: THREE.Group, pitRadius: number, wallHeight: number): void {
+    const timber = new THREE.MeshStandardMaterial({
+      color: BERK_MATERIALS.timberDark,
+      roughness: 0.95,
+      metalness: 0,
+    });
+    const iron = new THREE.MeshStandardMaterial({
+      color: BERK_MATERIALS.iron,
+      roughness: 0.68,
+      metalness: 0.58,
+    });
+    const bone = new THREE.MeshStandardMaterial({
+      color: BERK_MATERIALS.bone,
+      roughness: 0.88,
+      metalness: 0,
+    });
+    const gateWidth = 2.6;
+    const gateHeight = wallHeight * 1.55;
+
+    for (const side of [-1, 1]) {
+      const gate = new THREE.Group();
+      gate.position.set(0, 0, side * (pitRadius + 0.44));
+      gate.rotation.y = side > 0 ? Math.PI : 0;
+
+      for (const x of [-gateWidth / 2, gateWidth / 2]) {
+        const upright = new THREE.Mesh(new THREE.BoxGeometry(0.34, gateHeight, 0.44), timber);
+        upright.position.set(x, gateHeight / 2, 0);
+        upright.castShadow = true;
+        gate.add(upright);
+      }
+
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(gateWidth + 0.8, 0.42, 0.54), timber);
+      lintel.position.y = gateHeight;
+      lintel.castShadow = true;
+      gate.add(lintel);
+
+      for (let index = -2; index <= 2; index += 1) {
+        const bar = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.052, 0.052, gateHeight * 0.82, 6),
+          iron,
+        );
+        bar.position.set(index * 0.43, gateHeight * 0.41, 0.08);
+        gate.add(bar);
+      }
+
+      for (const hornSide of [-1, 1]) {
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.76, 7), bone);
+        horn.position.set(hornSide * gateWidth * 0.32, gateHeight + 0.45, 0);
+        horn.rotation.z = hornSide * 0.36;
+        gate.add(horn);
+      }
+
+      group.add(gate);
+    }
+  }
+
+  /** Muted clan cloth breaks up the gallery without competing with team colour. */
+  private addClanBanners(group: THREE.Group, pitRadius: number, wallHeight: number): void {
+    const colours = [0x74372c, 0x3f5663, 0x8d6d32, 0x65664a] as const;
+    const radius = pitRadius + 0.49;
+    const bannerY = wallHeight * 1.23;
+
+    for (let index = 0; index < 8; index += 1) {
+      const angle = (index / 8) * Math.PI * 2 + Math.PI / 8;
+      const banner = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.52, 0.94),
+        new THREE.MeshStandardMaterial({
+          color: colours[index % colours.length],
+          roughness: 0.94,
+          metalness: 0,
+          side: THREE.DoubleSide,
+        }),
+      );
+      banner.position.set(Math.cos(angle) * radius, bannerY, Math.sin(angle) * radius);
+      banner.rotation.y = -angle + Math.PI / 2;
+      banner.rotation.z = Math.sin(index * 1.71) * 0.045;
+      group.add(banner);
     }
   }
 
@@ -911,7 +1075,11 @@ export class AssemblyArenaRendererService {
     const postHeight = wallHeight * 1.7;
     const posts = new THREE.InstancedMesh(
       new THREE.CylinderGeometry(0.16, 0.19, postHeight, 7),
-      new THREE.MeshStandardMaterial({ color: BERK_MATERIALS.timber, roughness: 0.92, metalness: 0 }),
+      new THREE.MeshStandardMaterial({
+        color: BERK_MATERIALS.timber,
+        roughness: 0.92,
+        metalness: 0,
+      }),
       postCount,
     );
     posts.castShadow = true;
@@ -947,7 +1115,11 @@ export class AssemblyArenaRendererService {
     for (const height of [wallHeight * 0.45, wallHeight * 1.15]) {
       const band = new THREE.Mesh(
         new THREE.TorusGeometry(pitRadius + 0.24, 0.05, 6, 64),
-        new THREE.MeshStandardMaterial({ color: BERK_MATERIALS.timberDark, roughness: 1, metalness: 0 }),
+        new THREE.MeshStandardMaterial({
+          color: BERK_MATERIALS.timberDark,
+          roughness: 1,
+          metalness: 0,
+        }),
       );
       band.rotation.x = Math.PI / 2;
       band.position.y = height;
@@ -1022,10 +1194,7 @@ export class AssemblyArenaRendererService {
     posts.instanceMatrix.needsUpdate = true;
     group.add(posts);
 
-    const rail = new THREE.Mesh(
-      new THREE.TorusGeometry(innerRadius, 0.055, 6, 44),
-      timberDark,
-    );
+    const rail = new THREE.Mesh(new THREE.TorusGeometry(innerRadius, 0.055, 6, 44), timberDark);
     rail.rotation.x = Math.PI / 2;
     rail.position.y = deckY + railHeight;
     group.add(rail);
@@ -1117,7 +1286,11 @@ export class AssemblyArenaRendererService {
       const height = radius * (0.5 + Math.abs(wobble) * 0.72);
       const width = radius * (0.16 + Math.abs(wobble) * 0.1);
 
-      position.set(Math.cos(angle) * distance, height / 2 - radius * 0.08, Math.sin(angle) * distance);
+      position.set(
+        Math.cos(angle) * distance,
+        height / 2 - radius * 0.08,
+        Math.sin(angle) * distance,
+      );
       euler.set(wobble * 0.04, angle, wobble * 0.03);
       quaternion.setFromEuler(euler);
       scale.set(width, height, width);
@@ -1340,7 +1513,14 @@ function createContactShadowTexture(): THREE.CanvasTexture | null {
   const context = canvas.getContext('2d');
   if (!context) return null;
 
-  const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  const gradient = context.createRadialGradient(
+    size / 2,
+    size / 2,
+    0,
+    size / 2,
+    size / 2,
+    size / 2,
+  );
   for (let stop = 0; stop <= 10; stop += 1) {
     const t = stop / 10;
     gradient.addColorStop(t, `rgba(255,255,255,${(1 - t) * (1 - t)})`);

@@ -1,3 +1,4 @@
+import { AssemblyBlueprint } from '../domain/assembly.models';
 import { SpecimenIdleMotion } from './specimen-motion';
 import { SpecimenBend, SpecimenPoseOptions } from './specimen-pose';
 
@@ -137,6 +138,88 @@ export const DRAGON_RESTING_POSE: SpecimenPoseOptions = {
   droopRadians: TAIL_DROOP_RADIANS,
   bends: [...HIND_LIMB, ...FORE_LIMB, ...FOLDED_WINGS, ...RAISED_HEAD],
 };
+
+/**
+ * The other body plan: a dragon whose forelimbs grasp instead of walking.
+ *
+ * It cannot stand as a quadruped, because two of its four props are now arms
+ * held clear of the ground — posed as a quadruped it either floats on invisible
+ * front legs or noses into the floor. So it rears: weight on the hind limbs,
+ * spine pitched up, tail swung down behind as the counterweight, arms folded in
+ * at the chest.
+ *
+ * The pitch is the one number here that had to be measured rather than chosen.
+ * Too little and it reads as a quadruped whose front legs fell off; too much
+ * and the animal is standing to attention. 0.62 puts the spine at about
+ * thirty-five degrees, which is where the hind foot is still under the hip.
+ */
+const REARED_PITCH_RADIANS = 0.55;
+
+/**
+ * Hind limb under a reared body.
+ *
+ * Not the quadruped's angles rotated: once the torso pitches up, the same femur
+ * angle swings the foot out behind the animal. The femur is therefore gathered
+ * further forward and the tibia straightened to put the foot back under the
+ * hip, which is what carrying your own weight on two legs looks like.
+ */
+const REARED_HIND_LIMB: readonly SpecimenBend[] = [
+  { role: 'leg', matchPartId: id => isRear(id) && isUpperLeg(id), radians: 0.52, axis: SAGITTAL },
+  { role: 'leg', matchPartId: id => isRear(id) && isLowerLeg(id), radians: -0.72, axis: SAGITTAL },
+  { role: 'leg', matchPartId: id => isRear(id) && isFoot(id), radians: 0.2, axis: SAGITTAL },
+];
+
+/**
+ * Arms folded at the chest.
+ *
+ * The chain alternates, exactly like a leg: the upper arm swings back and down
+ * against the ribs, the forearm comes forward and up off it, and the hand turns
+ * the fingers forward so the animal reads as holding something it could close
+ * on. Three bends because one role bend would curl the whole arm into a hoop —
+ * the same reason the walking limbs need three.
+ */
+const TUCKED_ARMS: readonly SpecimenBend[] = [
+  { role: 'leg', matchPartId: id => isFront(id) && isUpperLeg(id), radians: -0.62, axis: SAGITTAL },
+  { role: 'leg', matchPartId: id => isFront(id) && isLowerLeg(id), radians: 1.45, axis: SAGITTAL },
+  { role: 'leg', matchPartId: id => isFront(id) && isFoot(id), radians: 0.35, axis: SAGITTAL },
+];
+
+/**
+/**
+ * Tail as a counterweight.
+ *
+ * Droop accumulates down the chain, so across three links this is roughly the
+ * rear-up pitch again, in the opposite direction — which is the point: the
+ * torso rotates the whole tail up with it, and the droop has to spend itself
+ * putting the tail back out level behind the animal. The quadruped's gentle
+ * 0.13 leaves it pointing at the sky along the dragon's own back; anything much
+ * past this and it curls under the feet.
+ */
+const REARED_TAIL_DROOP_RADIANS = 0.22;
+
+export const DRAGON_REARED_POSE: SpecimenPoseOptions = {
+  droopRadians: REARED_TAIL_DROOP_RADIANS,
+  bends: [...REARED_HIND_LIMB, ...TUCKED_ARMS, ...FOLDED_WINGS, ...RAISED_HEAD],
+  rootTilt: { radians: REARED_PITCH_RADIANS },
+};
+
+/**
+ * The stance a given animal should be shown in.
+ *
+ * Read off the blueprint rather than passed in, because every surface that
+ * shows a dragon — bench, hatchery, pedigree card, baked thumbnail — would
+ * otherwise have to know the body plan and ask for the right pose, and the
+ * first one to forget would show a reared dragon standing on hands it does not
+ * have. The blueprint already carries the answer.
+ */
+export function dragonRestingPose(blueprint: AssemblyBlueprint): SpecimenPoseOptions {
+  return hasGraspingForelimbs(blueprint) ? DRAGON_REARED_POSE : DRAGON_RESTING_POSE;
+}
+
+/** Grasping arms are named by their profile, not by a role: they are still limbs. */
+export function hasGraspingForelimbs(blueprint: AssemblyBlueprint): boolean {
+  return blueprint.parts.some(part => part.visualProfile?.profileId === 'dragon-grasp-arm');
+}
 
 /**
  * The resting breath.

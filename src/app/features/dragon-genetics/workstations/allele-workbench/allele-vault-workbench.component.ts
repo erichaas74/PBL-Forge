@@ -19,6 +19,11 @@ import {
   ChromosomeSvgModel,
 } from '../shared/chromosome-svg.component';
 import {
+  CellChromosomeLocusSelection,
+  CellChromosomeViewportComponent,
+  CellChromosomeViewportItem,
+} from '../shared/cell-chromosome-viewport.component';
+import {
   ALLELE_VAULT_ALLELES,
   ALLELE_VAULT_GENES,
   AlleleClaimFeedback,
@@ -45,7 +50,7 @@ type ExpressionState = 'idle' | 'running' | 'revealed';
 
 @Component({
   selector: 'app-allele-vault-workbench',
-  imports: [SpecimenViewportComponent, ChromosomeSvgComponent],
+  imports: [SpecimenViewportComponent, ChromosomeSvgComponent, CellChromosomeViewportComponent],
   templateUrl: './allele-vault-workbench.component.html',
   styleUrl: './allele-vault-workbench.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,7 +64,7 @@ export class AlleleVaultWorkbenchComponent {
   readonly disabled = input(false);
   readonly interaction = output<AlleleWorkbenchInteraction>();
 
-  readonly activeChromosome = signal('Chr 1');
+  readonly activeChromosome = signal<AlleleVaultGene['chromosome']>('Chr 1');
   readonly activeGeneId = signal('wings');
   readonly selectedAlleleId = signal<string | null>('wings-w');
   readonly pairIds = signal<readonly [string | null, string | null]>([null, null]);
@@ -75,6 +80,13 @@ export class AlleleVaultWorkbenchComponent {
   readonly genesForActiveChromosome = computed(() =>
     this.genes().filter((gene) => gene.chromosome === this.activeChromosome()),
   );
+  readonly cellChromosomes = computed<readonly CellChromosomeViewportItem[]>(() =>
+    this.availableChromosomes().map((chromosome) => ({
+      id: chromosome,
+      label: chromosome,
+      model: this.buildChromosomeModelFor(chromosome, null),
+    })),
+  );
 
   readonly activeGene = computed(
     () => this.genes().find((gene) => gene.id === this.activeGeneId()) ?? this.genes()[0],
@@ -84,7 +96,6 @@ export class AlleleVaultWorkbenchComponent {
   readonly rightAllele = computed(() => this.alleleById(this.pairIds()[1]));
   readonly leftChromosomeModel = computed(() => this.buildChromosomeModel('left'));
   readonly rightChromosomeModel = computed(() => this.buildChromosomeModel('right'));
-  readonly selectorChromosomeModel = computed(() => this.buildChromosomeModel(null));
   readonly pair = computed(
     () =>
       this.pairIds().map((id) => this.alleleById(id)) as [
@@ -234,11 +245,10 @@ export class AlleleVaultWorkbenchComponent {
     return chromosome.replace(/^Chr\s*/i, '');
   }
 
-  selectChromosome(chromosome: string): void {
-    if (this.disabled() || chromosome === this.activeChromosome()) return;
-    const firstGene = this.genes().find((gene) => gene.chromosome === chromosome);
+  selectChromosome(chromosomeId: string): void {
+    if (this.disabled() || chromosomeId === this.activeChromosome()) return;
+    const firstGene = this.genes().find((gene) => gene.chromosome === chromosomeId);
     if (!firstGene) return;
-    this.activeChromosome.set(chromosome);
     this.activateGene(firstGene.id, true);
   }
 
@@ -247,11 +257,13 @@ export class AlleleVaultWorkbenchComponent {
     this.activateGene(geneId, true);
   }
 
-  selectGeneByLocus(locus: string): void {
-    const gene = this.genesForActiveChromosome().find(
-      (candidate) => candidate.sampleCode === locus,
+  selectViewportLocus(selection: CellChromosomeLocusSelection): void {
+    if (this.disabled()) return;
+    const gene = this.genes().find(
+      (candidate) =>
+        candidate.chromosome === selection.chromosomeId && candidate.sampleCode === selection.locus,
     );
-    if (gene) this.selectGene(gene.id);
+    if (gene && gene.id !== this.activeGeneId()) this.activateGene(gene.id, true);
   }
 
   private activateGene(geneId: string, emitInteraction: boolean): void {
@@ -449,10 +461,23 @@ export class AlleleVaultWorkbenchComponent {
 
   private buildChromosomeModel(side: ComparisonSide | null): ChromosomeSvgModel {
     const chromosome = this.activeChromosome();
+    return this.buildChromosomeModelFor(chromosome, side);
+  }
+
+  private buildChromosomeModelFor(
+    chromosome: AlleleVaultGene['chromosome'],
+    side: ComparisonSide | null,
+  ): ChromosomeSvgModel {
     const visual = chromosomeVisual(chromosome);
     const loadedAllele =
-      side === 'left' ? this.leftAllele() : side === 'right' ? this.rightAllele() : null;
-    const activeGenes = this.genesForActiveChromosome();
+      chromosome !== this.activeChromosome()
+        ? null
+        : side === 'left'
+          ? this.leftAllele()
+          : side === 'right'
+            ? this.rightAllele()
+            : null;
+    const activeGenes = this.genes().filter((gene) => gene.chromosome === chromosome);
     const highlightBand = loadedAllele
       ? this.alleleHighlightBand(loadedAllele, visual, activeGenes)
       : null;

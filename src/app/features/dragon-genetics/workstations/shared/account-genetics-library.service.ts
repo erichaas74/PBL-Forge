@@ -9,6 +9,7 @@ import {
   AccountGeneticsRecord,
   StoredAccountGeneticsLibrary,
 } from './account-genetics-library.models';
+import { normalizeWorkstationStudentId } from './dragon-workstation-context.models';
 
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.account-library.v1';
 const FOUNDATION_DATE = '2026-01-01T00:00:00.000Z';
@@ -32,7 +33,7 @@ export class AccountGeneticsLibraryService {
 
   recordsFor(studentId: string): AccountGeneticsLibrarySnapshot {
     this.revision();
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     const local = loadStoredLibrary(normalizedStudentId);
     const dragons = mergeDragons(foundationDragons(), local.dragons);
     return {
@@ -59,7 +60,7 @@ export class AccountGeneticsLibraryService {
     studentId: string,
     nextDragons: readonly AccountDragonRecord[],
   ): AccountGeneticsLibrarySnapshot {
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     const stored = loadStoredLibrary(normalizedStudentId);
     const replacements = nextDragons.map((dragon) =>
       cloneDragon({ ...dragon, kind: 'dragon', source: 'student' }),

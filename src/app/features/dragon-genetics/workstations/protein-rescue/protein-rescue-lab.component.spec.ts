@@ -14,6 +14,7 @@ describe('ProteinRescueLabComponent', () => {
       providers: [provideRouter([])],
     }).compileComponents();
     fixture = TestBed.createComponent(ProteinRescueLabComponent);
+    fixture.componentRef.setInput('studentId', 'protein-rescue-component-spec');
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

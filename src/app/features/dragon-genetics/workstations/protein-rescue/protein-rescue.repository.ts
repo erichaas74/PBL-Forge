@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   DRAGON_FOODS,
   DigestionTrial,
@@ -15,7 +16,7 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.protein-rescue.v1';
 @Injectable({ providedIn: 'root' })
 export class ProteinRescueRepository {
   load(studentId: string): readonly ProteinRescueCaseRecord[] {
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     if (typeof localStorage === 'undefined') return [];
     try {
       const value = JSON.parse(
@@ -30,7 +31,7 @@ export class ProteinRescueRepository {
   }
 
   save(studentId: string, record: ProteinRescueCaseRecord): readonly ProteinRescueCaseRecord[] {
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     const records = [
       record,
       ...this.load(normalizedStudentId).filter((item) => item.id !== record.id),

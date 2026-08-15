@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { DRAGON_TRAITS } from '../../simulation/domain/dragon-inheritance';
 import { DragonTraitId } from '../../simulation/domain/dragon-lab.models';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import { IncubatorBatchRecord, IncubatorSamplerSnapshot } from './incubator-sampler.models';
 
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.incubator-sampler.v2';
@@ -8,7 +9,7 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.incubator-sampler.v2';
 @Injectable({ providedIn: 'root' })
 export class IncubatorSamplerRepository {
   load(studentId: string): IncubatorSamplerSnapshot {
-    const normalizedStudentId = normalizeStudentId(studentId);
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     const fallback = emptyIncubatorSnapshot(normalizedStudentId);
     if (typeof localStorage === 'undefined') return fallback;
     try {
@@ -23,7 +24,7 @@ export class IncubatorSamplerRepository {
 
   save(snapshot: IncubatorSamplerSnapshot): void {
     if (typeof localStorage === 'undefined') return;
-    const studentId = normalizeStudentId(snapshot.studentId);
+    const studentId = normalizeWorkstationStudentId(snapshot.studentId);
     localStorage.setItem(
       `${STORAGE_KEY_PREFIX}.${studentId}`,
       JSON.stringify({ ...snapshot, studentId }),
@@ -34,7 +35,7 @@ export class IncubatorSamplerRepository {
 export function emptyIncubatorSnapshot(studentId: string): IncubatorSamplerSnapshot {
   return {
     schemaVersion: 2,
-    studentId: normalizeStudentId(studentId),
+    studentId: normalizeWorkstationStudentId(studentId),
     originalParentIds: [null, null],
     activeParentIds: [null, null],
     activeBreedingPoolIds: [],
@@ -128,10 +129,6 @@ function normalizeStringArray(value: unknown): readonly string[] {
   return Array.isArray(value)
     ? [...new Set(value.filter((item): item is string => typeof item === 'string'))]
     : [];
-}
-
-function normalizeStudentId(studentId: string): string {
-  return studentId.trim() || 'local-student';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

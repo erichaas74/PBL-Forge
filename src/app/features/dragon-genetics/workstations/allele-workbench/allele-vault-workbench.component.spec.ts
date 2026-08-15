@@ -26,14 +26,16 @@ describe('AlleleVaultWorkbenchComponent', () => {
     const body = instrument?.querySelector(':scope > .instrument-body');
     expect(vault?.nextElementSibling).toBe(body);
     expect(body?.firstElementChild?.classList.contains('gene-selector')).toBeTrue();
-    expect(element.querySelectorAll('.chromosome-selector').length).toBe(4);
+    expect(element.querySelectorAll('.vault-cell-viewport .chromosome-in-cell').length).toBe(4);
     expect(element.querySelectorAll('.allele-token').length).toBe(2);
     expect(element.querySelectorAll('.genome-pane').length).toBe(2);
-    expect(element.querySelectorAll('app-chromosome-svg').length).toBe(5);
-    expect(element.querySelectorAll('.chromosome-svg').length).toBe(5);
+    expect(element.querySelectorAll('app-chromosome-svg').length).toBe(9);
+    expect(element.querySelectorAll('.chromosome-svg').length).toBe(9);
     expect(element.querySelectorAll('.chromosome-svg--placeholder').length).toBe(2);
-    expect(element.querySelectorAll('[data-band-start]').length).toBe(32);
-    expect(element.querySelectorAll('.gene-locus').length).toBe(3);
+    expect(
+      element.querySelectorAll('.vault-cell-viewport [data-band-start]').length,
+    ).toBeGreaterThan(0);
+    expect(element.querySelectorAll('.inspection-panel .gene-locus').length).toBe(3);
     expect(element.querySelectorAll('.allele-token-chromosome').length).toBe(2);
     expect(element.querySelectorAll('.allele-token-chromosome [data-pattern]').length).toBe(2);
     expect(
@@ -100,10 +102,10 @@ describe('AlleleVaultWorkbenchComponent', () => {
         button.textContent?.replace(/\s+/g, ' ').trim(),
       ),
     ).toEqual(['CH2-G1', 'CH2-G2', 'CH2-G3']);
-    const selectorHeader = element.querySelector('.gene-selector > header');
-    expect(selectorHeader?.querySelector('.gene-button-row')?.nextElementSibling?.tagName).toBe(
-      'APP-CHROMOSOME-SVG',
-    );
+    expect(
+      element.querySelector('.vault-cell-viewport [data-chromosome="Chr 2"]')?.classList,
+    ).toContain('chromosome-in-cell--selected');
+    expect(element.querySelector('.inspection-panel')?.textContent).toContain('Chr 2');
     expect(element.querySelector('.locus-readout')).toBeNull();
     expect(
       [...element.querySelectorAll<HTMLButtonElement>('.allele-token')].map((button) =>
@@ -126,13 +128,13 @@ describe('AlleleVaultWorkbenchComponent', () => {
 
     const selectors = [
       ...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
-        '.chromosome-selector',
+        '.vault-cell-viewport .chromosome-in-cell',
       ),
     ];
     expect(selectors.length).toBe(2);
-    expect(selectors.map((button) => button.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      'CHROMOSOME 1',
-      'CHROMOSOME 2',
+    expect(selectors.map((button) => button.getAttribute('data-display-chromosome'))).toEqual([
+      'Chr 1',
+      'Chr 2',
     ]);
   });
 
@@ -189,7 +191,9 @@ describe('AlleleVaultWorkbenchComponent', () => {
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('.chromosome-svg--placeholder'),
     ).toBeNull();
-    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.gene-locus').length).toBe(9);
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('.genome-pane .gene-locus').length,
+    ).toBe(6);
     expect((fixture.nativeElement as HTMLElement).querySelector('.test-allele-sockets')).toBeNull();
   });
 
@@ -235,7 +239,7 @@ describe('AlleleVaultWorkbenchComponent', () => {
 
   it('selects a gene by clicking its locus on the selector chromosome', () => {
     const locus = (fixture.nativeElement as HTMLElement).querySelector<SVGGElement>(
-      '.gene-selector [data-locus="CH1-G2"]',
+      '.vault-cell-viewport .inspection-panel [data-locus="CH1-G2"]',
     );
 
     locus?.dispatchEvent(new MouseEvent('click', { bubbles: true }));

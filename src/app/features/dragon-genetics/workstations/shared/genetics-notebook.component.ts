@@ -1,14 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { DragonAdaptiveStore } from '../../adaptive/dragon-adaptive.store';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import {
-  ALLELE_VAULT_ALLELES,
-  ALLELE_VAULT_GENES,
+  AlleleVaultAllele,
   AlleleVaultGene,
 } from '../allele-workbench/allele-vault.models';
 import {
   AlleleGeneDiscovery,
   completedExperimentCount,
   experimentsForGene,
+  GeneticsNotebookSnapshot,
   requiredExperimentKeys,
 } from './genetics-notebook.models';
 
@@ -19,15 +18,13 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GeneticsNotebookComponent {
-  readonly store = inject(DragonAdaptiveStore);
+  readonly genes = input.required<readonly AlleleVaultGene[]>();
+  readonly alleles = input.required<readonly AlleleVaultAllele[]>();
+  readonly notebook = input.required<GeneticsNotebookSnapshot>();
   readonly open = signal(false);
 
-  readonly genes = computed(() => {
-    const available = new Set(this.store.availableAlleleGeneIds());
-    return ALLELE_VAULT_GENES.filter((gene) => available.has(gene.id));
-  });
   readonly solvedCount = computed(() => {
-    const discoveries = this.store.geneticsNotebook().discoveries;
+    const discoveries = this.notebook().discoveries;
     return this.genes().filter((gene) => !!discoveries[gene.id]).length;
   });
   readonly complete = computed(
@@ -35,7 +32,7 @@ export class GeneticsNotebookComponent {
   );
 
   testCount(gene: AlleleVaultGene): number {
-    return completedExperimentCount(this.store.geneticsNotebook(), gene);
+    return completedExperimentCount(this.notebook(), gene);
   }
 
   requiredTestCount(gene: AlleleVaultGene): number {
@@ -43,21 +40,21 @@ export class GeneticsNotebookComponent {
   }
 
   experiments(geneId: string) {
-    return experimentsForGene(this.store.geneticsNotebook(), geneId).sort((first, second) =>
+    return experimentsForGene(this.notebook(), geneId).sort((first, second) =>
       this.allelePairLabel(first.alleleIds).localeCompare(this.allelePairLabel(second.alleleIds)),
     );
   }
 
   discovery(geneId: string): AlleleGeneDiscovery | null {
-    return this.store.geneticsNotebook().discoveries[geneId] ?? null;
+    return this.notebook().discoveries[geneId] ?? null;
   }
 
   traitName(traitId: string): string {
-    return ALLELE_VAULT_GENES.find((gene) => gene.id === traitId)?.name ?? traitId;
+    return this.genes().find((gene) => gene.id === traitId)?.name ?? traitId;
   }
 
   alleleSampleCode(alleleId: string): string {
-    return ALLELE_VAULT_ALLELES.find((allele) => allele.id === alleleId)?.sampleCode ?? alleleId;
+    return this.alleles().find((allele) => allele.id === alleleId)?.sampleCode ?? alleleId;
   }
 
   allelePairLabel(alleleIds: readonly string[]): string {

@@ -7,6 +7,10 @@ Product behavior is governed by
 Dedicated workstations are open investigations with no embedded question dock or scripted phase
 sequence.
 
+Architecture, source-of-truth ownership, the current audit, and instructions for moving a
+workstation are documented in
+[`docs/DRAGON_GENETICS_WORKSTATION_ARCHITECTURE.md`](../../../../../docs/DRAGON_GENETICS_WORKSTATION_ARCHITECTURE.md).
+
 - `allele-workbench/` owns allele selection, expression, and chart-building behavior.
 - `blood-compatibility/` owns antiserum testing, the multiple-allele blood catalog, donor supply
   constraints, transfusion compatibility, the Healing Chamber, and persistent emergency records.
@@ -41,8 +45,26 @@ sequence.
   not yet need a dedicated instrument.
 - `shared/` owns chromosome data, DNA catalog data, the genetics notebook, the reusable user-account
   genetics file shared across labs, and `visible-phenotype.ts` — the one place a phenotype-only lab
-  names an observable form without naming the allele pair behind it.
+  names an observable form without naming the allele pair behind it. It also owns
+  `CellChromosomeViewportComponent`, the standard cell/chromosome navigation surface. Consumers
+  adapt their domain records to `CellChromosomeViewportItem` using the existing
+  `ChromosomeSvgModel`; the shared viewport must not import a workstation-specific genetics model.
 
 Generic assembly rendering remains in `src/app/shared/assembly`. Semantic visual contracts and
 cross-workstation renderer primitives remain in `src/app/shared/dragon-visuals`; feature-specific
 workstation components do not belong there.
+
+## Reusing the chromosome viewport
+
+`CellChromosomeViewportComponent` is a controlled, presentational component:
+
+- pass `CellChromosomeViewportItem[]` containing a stable ID, display label, and the shared
+  `ChromosomeSvgModel`;
+- pass `selectedChromosome` from the owning workstation and handle `chromosomeSelected`;
+- handle `locusSelected` only when the workstation supports choosing loci;
+- choose `overview`, `inspect`, or `thumbnail` through the `layout` input; and
+- adapt domain records beside the owning workstation, as Hatchery does in
+  `meiosis-gamete.viewport.ts`.
+
+The viewport does not load catalogs, choose released records, persist state, or import a
+workstation domain model.

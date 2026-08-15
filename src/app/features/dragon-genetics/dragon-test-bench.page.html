@@ -1,67 +1,170 @@
 <div class="bench-page">
   <header class="bench-page__head">
     <span class="bench-page__eyebrow">Dragon test bench</span>
-    <h1>Build a dragon and test what it can do</h1>
-    <p class="bench-page__lede">
-      Set each gene, then try the attacks and read the measurements. Nothing here is a battle —
-      change one allele and the results update straight away.
-    </p>
+    @if (species() === 'lab') {
+      <h1>Build a dragon and test what it can do</h1>
+      <p class="bench-page__lede">
+        Set each gene, then try the attacks and read the measurements. Nothing here is a battle —
+        change one allele and the results update straight away.
+      </p>
+    } @else {
+      <h1>Build a mini dragon and look at what it shows</h1>
+      <p class="bench-page__lede">
+        A separate species with its own six genes and four different inheritance patterns. Choose
+        the visible form at each locus — the mini dragon's alleles stay hidden here, exactly as
+        they are in the companion show, because reading a genotype off an animal is the work.
+      </p>
+    }
+
+    <div class="species" role="group" aria-label="Species on the bench">
+      <button
+        type="button"
+        [class.species__choice--active]="species() === 'lab'"
+        [attr.aria-pressed]="species() === 'lab'"
+        class="species__choice"
+        (click)="selectSpecies('lab')"
+      >
+        Lab dragon
+        <small>13 genes · combat model</small>
+      </button>
+      <button
+        type="button"
+        [class.species__choice--active]="species() === 'mini'"
+        [attr.aria-pressed]="species() === 'mini'"
+        class="species__choice"
+        (click)="selectSpecies('mini')"
+      >
+        Mini dragon
+        <small>6 genes · show companion</small>
+      </button>
+    </div>
   </header>
 
-  <section class="bench-page__genome" aria-labelledby="genome-heading">
-    <h2 class="bench-page__section-title" id="genome-heading">Genotype</h2>
+  @if (species() === 'lab') {
+    <section class="bench-page__genome" aria-labelledby="genome-heading">
+      <h2 class="bench-page__section-title" id="genome-heading">Genotype</h2>
 
-    <section class="sex-model" aria-labelledby="sex-model-heading">
-      <div>
-        <span>Modeled sex chromosomes</span>
-        <strong id="sex-model-heading">{{ profile().sex === 'female' ? 'Female dragon' : 'Male dragon' }} · {{ sexChromosomes() }}</strong>
-        <small>This fictional dragon population uses an XX/XY model. Real organisms use many different sex-determination systems.</small>
+      <section class="sex-model" aria-labelledby="sex-model-heading">
+        <div>
+          <span>Modeled sex chromosomes</span>
+          <strong id="sex-model-heading">{{ profile().sex === 'female' ? 'Female dragon' : 'Male dragon' }} · {{ sexChromosomes() }}</strong>
+          <small>
+            This fictional dragon population uses an XX/XY model. Real organisms use many different
+            sex-determination systems. It also changes the head you see: a female grows neck
+            frills, a male a swept-back crest — anatomy, not one of the genes below.
+          </small>
+        </div>
+        <div class="sex-model__choices" role="group" aria-label="Dragon sex">
+          <button type="button" [class.active]="profile().sex === 'female'" [attr.aria-pressed]="profile().sex === 'female'" (click)="selectSex('female')">Female · XX</button>
+          <button type="button" [class.active]="profile().sex === 'male'" [attr.aria-pressed]="profile().sex === 'male'" (click)="selectSex('male')">Male · XY</button>
+        </div>
+      </section>
+
+      <div class="bench-page__genes">
+        @for (trait of traits; track trait.id) {
+          <fieldset
+            class="gene"
+            [class.gene--sex-linked]="trait.inheritance === 'x-linked'"
+            [class.gene--incomplete]="trait.inheritance === 'incomplete-dominance'"
+          >
+            <legend class="gene__name">{{ trait.name }}</legend>
+            <small class="gene__chromosome">
+              {{ trait.chromosome }}{{ trait.inheritance === 'x-linked' ? ' · SEX-LINKED' : trait.inheritance === 'incomplete-dominance' ? ' · INCOMPLETE DOMINANCE' : '' }}
+            </small>
+
+            <div class="gene__choices" role="group" [attr.aria-label]="trait.name + ' genotype'">
+              @for (choice of choicesFor(trait); track choice.label) {
+                <button
+                  type="button"
+                  class="gene__choice"
+                  [class.gene__choice--active]="isSelected(trait.id, choice)"
+                  [attr.aria-pressed]="isSelected(trait.id, choice)"
+                  (click)="select(trait.id, choice)"
+                >
+                  {{ choice.label }}
+                </button>
+              }
+            </div>
+
+            <p class="gene__phenotype">{{ phenotypeOf(trait.id) }}</p>
+          </fieldset>
+        }
       </div>
-      <div class="sex-model__choices" role="group" aria-label="Dragon sex">
-        <button type="button" [class.active]="profile().sex === 'female'" [attr.aria-pressed]="profile().sex === 'female'" (click)="selectSex('female')">Female · XX</button>
-        <button type="button" [class.active]="profile().sex === 'male'" [attr.aria-pressed]="profile().sex === 'male'" (click)="selectSex('male')">Male · XY</button>
-      </div>
+
+      <p class="bench-page__summary">{{ genotypeSummary() }}</p>
     </section>
 
-    <div class="bench-page__genes">
-      @for (trait of traits; track trait.id) {
-        <fieldset
-          class="gene"
-          [class.gene--sex-linked]="trait.inheritance === 'x-linked'"
-          [class.gene--incomplete]="trait.inheritance === 'incomplete-dominance'"
-        >
-          <legend class="gene__name">{{ trait.name }}</legend>
-          <small class="gene__chromosome">
-            {{ trait.chromosome }}{{ trait.inheritance === 'x-linked' ? ' · SEX-LINKED' : trait.inheritance === 'incomplete-dominance' ? ' · INCOMPLETE DOMINANCE' : '' }}
-          </small>
+    <app-specimen-test-bench
+      [source]="build().source"
+      [combatProfile]="build().combatProfile"
+      [fireBreathing]="build().fireBreathing"
+      [horned]="build().horned"
+      [copy]="copy"
+      [motions]="motions"
+      motionsHeading="Trained behaviours"
+      heading="What this dragon can do"
+    />
+  } @else {
+    <section class="bench-page__genome" aria-labelledby="mini-genome-heading">
+      <h2 class="bench-page__section-title" id="mini-genome-heading">Visible forms</h2>
 
-          <div class="gene__choices" role="group" [attr.aria-label]="trait.name + ' genotype'">
-            @for (choice of choicesFor(trait); track choice.label) {
-              <button
-                type="button"
-                class="gene__choice"
-                [class.gene__choice--active]="isSelected(trait.id, choice)"
-                [attr.aria-pressed]="isSelected(trait.id, choice)"
-                (click)="select(trait.id, choice)"
-              >
-                {{ choice.label }}
-              </button>
-            }
-          </div>
+      <div class="bench-page__genes">
+        @for (gene of miniGenes; track gene.id) {
+          <fieldset
+            class="gene"
+            [class.gene--incomplete]="gene.pattern !== 'complete-dominance'"
+          >
+            <legend class="gene__name">{{ gene.name }}</legend>
+            <small class="gene__chromosome">{{ miniPatternLabel(gene) }}</small>
 
-          <p class="gene__phenotype">{{ phenotypeOf(trait.id) }}</p>
-        </fieldset>
-      }
-    </div>
+            <div class="gene__choices gene__choices--stacked" role="group" [attr.aria-label]="gene.name + ' form'">
+              @for (form of gene.forms; track form.id) {
+                <button
+                  type="button"
+                  class="gene__choice"
+                  [class.gene__choice--active]="isMiniFormSelected(gene.id, form)"
+                  [attr.aria-pressed]="isMiniFormSelected(gene.id, form)"
+                  (click)="selectMiniForm(gene.id, form)"
+                >
+                  {{ form.label }}
+                </button>
+              }
+            </div>
 
-    <p class="bench-page__summary">{{ genotypeSummary() }}</p>
-  </section>
+            <p class="gene__phenotype">{{ gene.observation }}</p>
+          </fieldset>
+        }
+      </div>
 
-  <app-specimen-test-bench
-    [source]="build().source"
-    [combatProfile]="build().combatProfile"
-    [fireBreathing]="build().fireBreathing"
-    [copy]="copy"
-    heading="What this dragon can do"
-  />
+      <p class="bench-page__summary">{{ miniSummary() }}</p>
+    </section>
+
+    <app-specimen-test-bench
+      [source]="miniSource()"
+      [showCombat]="false"
+      [motions]="motions"
+      motionsHeading="Trained behaviours"
+      heading="What this mini dragon shows"
+    >
+      <section bench-panels class="mini-panel" aria-labelledby="mini-individual-heading">
+        <h4 class="mini-panel__title" id="mini-individual-heading">Not inherited</h4>
+        <p class="mini-panel__lede">
+          These vary between littermates and are not carried by any gene in this model. Two mini
+          dragons with identical genomes still differ here — which is why a breeder cannot use
+          them as evidence of anything.
+        </p>
+        <ul class="mini-panel__list">
+          @for (feature of miniFeatures(); track feature.label) {
+            <li>
+              <span class="mini-panel__label">{{ feature.label }}</span>
+              <span class="mini-panel__value">{{ feature.value }}</span>
+            </li>
+          }
+        </ul>
+        <button type="button" class="mini-panel__reroll" (click)="nextMiniIndividual()">
+          Draw another individual
+        </button>
+      </section>
+    </app-specimen-test-bench>
+  }
 </div>

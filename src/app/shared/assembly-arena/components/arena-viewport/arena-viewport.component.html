@@ -1,6 +1,14 @@
-<div #viewport class="arena-viewport" aria-label="Assembly battle arena viewport"></div>
+<div #viewport class="arena-viewport" [attr.aria-label]="ariaLabel()"></div>
 
-<div class="viewport-badge" aria-live="polite">
-  <span class="status-dot" [class.status-dot--active]="true"></span>
-  <span>Physics Arena</span>
+<div class="viewport-badge" [class.dragon-pit]="appearance() === 'dragon-pit'" aria-live="polite">
+  @if (appearance() === 'dragon-pit') {
+    <span class="badge-rune" aria-hidden="true">&#5845;</span>
+    <span class="badge-copy">
+      <small>Berk training grounds</small>
+      <strong>Dragon duel ring</strong>
+    </span>
+  } @else {
+    <span class="status-dot" aria-hidden="true"></span>
+    <span>Physics Arena</span>
+  }
 </div>

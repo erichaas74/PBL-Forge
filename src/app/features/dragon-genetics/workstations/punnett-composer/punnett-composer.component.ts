@@ -20,6 +20,10 @@ import {
 } from '../../simulation/domain/dragon-lab.models';
 import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
 import {
+  LOCAL_WORKSTATION_STUDENT_ID,
+  normalizeWorkstationStudentId,
+} from '../shared/dragon-workstation-context.models';
+import {
   ACCOUNT_GENETICS_RECORD_DRAG_TYPE,
   AccountGeneticsRecord,
   parseAccountGeneticsDragPayload,
@@ -48,14 +52,16 @@ export class PunnettComposerComponent {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);
   private readonly repository = inject(PunnettComposerRepository);
 
-  readonly studentId = input('local-student');
+  readonly studentId = input.required<string>();
   readonly goal = input(
     'Determine how one allele from each parent combines in possible offspring.',
   );
   readonly crossSaved = output<PunnettSavedCross>();
 
   readonly traits = DRAGON_TRAITS;
-  readonly snapshot = signal<PunnettComposerSnapshot>(createEmptyPunnettSnapshot('local-student'));
+  readonly snapshot = signal<PunnettComposerSnapshot>(
+    createEmptyPunnettSnapshot(LOCAL_WORKSTATION_STUDENT_ID),
+  );
   readonly stagedAccountRecord = signal<AccountGeneticsRecord | null>(null);
   readonly pendingGamete = signal<PendingPunnettGamete | null>(null);
   readonly selectedCellIndex = signal<number | null>(null);
@@ -131,7 +137,7 @@ export class PunnettComposerComponent {
 
   constructor() {
     effect(() => {
-      const studentId = this.studentId().trim() || 'local-student';
+      const studentId = normalizeWorkstationStudentId(this.studentId());
       if (studentId === this.loadedStudentId) return;
       this.loadedStudentId = studentId;
       this.snapshot.set(this.sanitizeSnapshot(this.repository.load(studentId)));
@@ -344,7 +350,7 @@ export class PunnettComposerComponent {
   ): void {
     const next = {
       ...update(this.snapshot()),
-      studentId: this.studentId().trim() || 'local-student',
+      studentId: normalizeWorkstationStudentId(this.studentId()),
       updatedAtIso: new Date().toISOString(),
     };
     this.snapshot.set(next);

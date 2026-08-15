@@ -32,6 +32,7 @@ import {
   normalizeGeneticsNotebook,
   recordAlleleExperiment as addAlleleExperiment,
 } from '../workstations/shared/genetics-notebook.models';
+import { LOCAL_WORKSTATION_STUDENT_ID } from '../workstations/shared/dragon-workstation-context.models';
 
 const LOCAL_ASSIGNMENT_KEY = 'pbl-forge.dragon-genetics.assignment.v1';
 const LOCAL_RUNS_KEY_PREFIX = 'pbl-forge.dragon-genetics.runs.v1';
@@ -46,7 +47,7 @@ export class DragonAdaptiveStore {
     {},
   );
   private readonly geneticsNotebookSignal = signal<GeneticsNotebookSnapshot>(
-    loadLocalGeneticsNotebook('local-student'),
+    loadLocalGeneticsNotebook(LOCAL_WORKSTATION_STUDENT_ID),
   );
   private readonly teacherPreviewLevelSignal = signal<InstructionLevel | null>(null);
   private hydratedUserId: string | null = null;
@@ -77,7 +78,7 @@ export class DragonAdaptiveStore {
 
   settingsFor(
     simulationId: DragonSimulationId,
-    studentId = this.session.user()?.uid ?? 'local-student',
+    studentId = this.session.user()?.uid ?? LOCAL_WORKSTATION_STUDENT_ID,
   ): ResolvedSimulationSettings {
     return resolveSimulationSettings(
       this.assignmentSignal(),
@@ -97,7 +98,7 @@ export class DragonAdaptiveStore {
   ): Promise<DragonSimulationRun> {
     await this.awaitCurrentHydration();
     const user = await this.session.ensureUser();
-    const studentId = user?.uid ?? 'local-student';
+    const studentId = user?.uid ?? LOCAL_WORKSTATION_STUDENT_ID;
     const settings = this.settingsFor(definition.id, studentId);
     const local = this.runsSignal()[definition.id];
     let remote: DragonSimulationRun | null = null;
@@ -293,7 +294,7 @@ export class DragonAdaptiveStore {
     const request = ++this.hydrationRequest;
     try {
       const user = await this.session.ensureUser();
-      const userId = user?.uid ?? 'local-student';
+      const userId = user?.uid ?? LOCAL_WORKSTATION_STUDENT_ID;
       this.hydratedUserId = user?.uid ?? null;
       const [assignment, remoteRuns, remoteNotebook] = await Promise.all([
         this.repository.loadAssignment(),
@@ -326,7 +327,7 @@ export class DragonAdaptiveStore {
   private putRun(run: DragonSimulationRun): void {
     this.runsSignal.update((runs) => {
       const next = { ...runs, [run.simulationId]: run };
-      saveLocalRuns(next, this.session.user()?.uid ?? 'local-student');
+      saveLocalRuns(next, this.session.user()?.uid ?? LOCAL_WORKSTATION_STUDENT_ID);
       return next;
     });
   }

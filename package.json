@@ -16,7 +16,7 @@
     "generate:dragon-pack": "node scripts/generate-dragon-model-pack.mjs",
     "check:model-packs": "node scripts/validate-model-packs.mjs",
     "check:dragon-model-compatibility": "node scripts/check-dragon-model-compatibility.mjs",
-    "build": "npm run check:model-packs && npm run check:dragon-model-compatibility && npm run check:designer-boundary && ng build pbl-forge",
+    "build": "npm run check:model-packs && npm run check:dragon-model-compatibility && npm run check:designer-boundary && npm run check:workstations && ng build pbl-forge",
     "build:designer": "npm run check:model-packs && ng build dragon-designer",
     "watch": "ng build pbl-forge --watch --configuration development",
     "test": "ng test pbl-forge",
@@ -27,6 +27,7 @@
     "check:type-scale": "node scripts/check-type-scale.mjs",
     "check:palette": "node scripts/check-palette.mjs",
     "check:designer-boundary": "node scripts/check-designer-boundary.mjs",
+    "check:workstations": "node scripts/check-workstation-boundaries.mjs",
     "verify": "npm run lint && npm run check:type-scale && npm run check:palette && npm run build && npm run build:designer && npm run test:ci && npm run test:designer:ci && npm run test:rules",
     "deploy": "npm run build && node scripts/firebase-cli.mjs deploy --only hosting,firestore",
     "lint": "ng lint"

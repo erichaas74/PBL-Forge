@@ -17,6 +17,18 @@ This feature consumes `AssemblyBlueprint` assets through the Creation Library an
 - `Car Crash Test`: narrow lane, crash wall, lane bumpers, and vehicle-style controls.
 - `Robot Righting`: tipped robot start, recovery rails, and righting-assist controls.
 
+## Presentation boundary
+
+- `ArenaViewportComponent` owns canvas mounting and render-loop lifecycle. Its optional
+  `appearance="dragon-pit"` input changes only the viewport badge; the default remains neutral for
+  robots, cars, and future assembly scenarios.
+- `AssemblyArenaRendererService` detects a dragon setup from its control modes. Dragon matches add
+  the circular fighting ring, palisade, gatehouses, clan banners, shields, braziers, gallery, and
+  island horizon. Non-dragon scenarios keep the shared floor, lighting, walls, and obstacles.
+- Dragon Genetics owns its arena masthead, health presentation, modes, controls, field guide, and
+  evidence language in `features/dragon-genetics/dragon-arena.component.*`. It does not duplicate
+  physics or combat state.
+
 ## Easy Control Modes
 
 - `Shove Drive`: direct prototype-friendly force controls.

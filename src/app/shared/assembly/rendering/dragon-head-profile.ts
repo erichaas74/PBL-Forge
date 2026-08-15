@@ -306,14 +306,20 @@ export function dragonHeadSurfacePoint(
 }
 
 /**
- * Where the upper jaw mounts.
+ * Where the upper jaw mounts: the **top** of the muzzle at the meeting station.
  *
- * Held under the fore-muzzle rather than on the bounding box, which is what the
+ * Read from the muzzle profile rather than the bounding box, which is what the
  * head definitions used to do: a flat `{ x: 0.34, y: -0.08, z: 0 }` put the
  * hinge in mid-air once the muzzle drooped, and left the jaw floating clear of
- * the skull it hangs from on any head that was not a sphere. Pulled slightly
- * inboard so the jaw's root finishes inside the muzzle instead of butting
- * against it, where the taper would open a gap.
+ * the skull it hangs from on any head that was not a sphere.
+ *
+ * This is the *top* edge and not a point inside the muzzle because the jaw
+ * mates to it corner to corner: the jaw's own root sits on its top-back face,
+ * so seating that root here puts the top of the jaw exactly level with the top
+ * of the snout it meets, on any skull and at any size the genome produces.
+ * Pairing two edges is the same trick the lower jaw already uses against the
+ * upper one, and it is why neither pair needs a hand-tuned offset that would go
+ * stale the moment a head was rescaled.
  */
 export function dragonHeadJawMount(
   dimensions: Vector3Data,
@@ -324,7 +330,7 @@ export function dragonHeadJawMount(
 
   return {
     x: axial * dimensions.x,
-    y: section.centerY - section.halfHeight * 0.45,
+    y: section.centerY + section.halfHeight,
     z: 0,
   };
 }

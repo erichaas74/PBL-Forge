@@ -1,0 +1,578 @@
+:host {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 520px;
+  overflow: hidden;
+  background:
+    linear-gradient(to bottom, #172028 0%, #27343a 42%, #4a4438 70%, #2a2118 100%);
+  isolation: isolate;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Main viewport shell                                                         */
+/* -------------------------------------------------------------------------- */
+
+.viking-viewport-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  overflow: hidden;
+  border: 8px solid #2f2117;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 72%, rgba(190, 133, 67, 0.18), transparent 34%),
+    linear-gradient(to bottom, #43515a 0%, #68747a 26%, #876f4f 68%, #51402d 100%);
+  box-shadow:
+    0 18px 35px rgba(14, 9, 5, 0.46),
+    inset 0 0 0 2px #8b6640,
+    inset 0 0 0 6px rgba(14, 9, 5, 0.64);
+}
+
+.viking-viewport-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, rgba(18, 12, 8, 0.48), transparent 9%, transparent 91%, rgba(18, 12, 8, 0.48)),
+    linear-gradient(to bottom, rgba(15, 12, 10, 0.24), transparent 20%, transparent 78%, rgba(13, 8, 5, 0.5));
+  box-shadow: inset 0 0 42px rgba(10, 7, 5, 0.52);
+}
+
+/* Subtle timber grain around the frame */
+.viking-viewport-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  opacity: 0.18;
+  background:
+    repeating-linear-gradient(
+      8deg,
+      transparent 0 17px,
+      rgba(255, 231, 184, 0.11) 18px 19px,
+      transparent 20px 34px
+    );
+  mix-blend-mode: overlay;
+}
+
+.arena-viewport {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+}
+
+/*
+ * The renderer mounts its canvas dynamically, so ::ng-deep is intentional here.
+ * It ensures the generated canvas fills this themed viewport under Angular's
+ * emulated style encapsulation.
+ */
+:host ::ng-deep .arena-viewport canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Background scenery                                                          */
+/* -------------------------------------------------------------------------- */
+
+.arena-scenery {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Cold mountain silhouettes behind the pit */
+.mountain {
+  position: absolute;
+  top: 3%;
+  width: 44%;
+  height: 40%;
+  opacity: 0.78;
+  background:
+    linear-gradient(145deg, transparent 0 32%, #28343a 33% 68%, transparent 69%),
+    linear-gradient(35deg, transparent 0 37%, #344047 38% 72%, transparent 73%);
+  filter: drop-shadow(0 14px 10px rgba(13, 15, 16, 0.28));
+}
+
+.mountain::after {
+  content: "";
+  position: absolute;
+  width: 46%;
+  height: 20%;
+  top: 20%;
+  left: 29%;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: rgba(218, 224, 220, 0.55);
+}
+
+.mountain--left {
+  left: -8%;
+  transform: scaleX(1.18);
+}
+
+.mountain--right {
+  right: -8%;
+  transform: scaleX(-1.12);
+}
+
+/* Back palisade */
+.palisade {
+  position: absolute;
+  background:
+    repeating-linear-gradient(
+      to right,
+      #3b281b 0 14px,
+      #5a3a23 14px 25px,
+      #2f2118 25px 31px
+    );
+  box-shadow:
+    inset 0 2px rgba(255, 230, 178, 0.12),
+    inset 0 -8px rgba(16, 10, 6, 0.3),
+    0 5px 12px rgba(17, 10, 6, 0.35);
+}
+
+.palisade::before {
+  content: "";
+  position: absolute;
+  inset: -20px 0 auto 0;
+  height: 25px;
+  background:
+    repeating-linear-gradient(
+      to right,
+      transparent 0 2px,
+      #4b321f 3px 13px,
+      transparent 14px 16px
+    );
+  clip-path: polygon(
+    0 100%, 2% 20%, 4% 100%,
+    6% 20%, 8% 100%,
+    10% 20%, 12% 100%,
+    14% 20%, 16% 100%,
+    18% 20%, 20% 100%,
+    22% 20%, 24% 100%,
+    26% 20%, 28% 100%,
+    30% 20%, 32% 100%,
+    34% 20%, 36% 100%,
+    38% 20%, 40% 100%,
+    42% 20%, 44% 100%,
+    46% 20%, 48% 100%,
+    50% 20%, 52% 100%,
+    54% 20%, 56% 100%,
+    58% 20%, 60% 100%,
+    62% 20%, 64% 100%,
+    66% 20%, 68% 100%,
+    70% 20%, 72% 100%,
+    74% 20%, 76% 100%,
+    78% 20%, 80% 100%,
+    82% 20%, 84% 100%,
+    86% 20%, 88% 100%,
+    90% 20%, 92% 100%,
+    94% 20%, 96% 100%,
+    98% 20%, 100% 100%
+  );
+}
+
+.palisade--back {
+  left: 7%;
+  right: 7%;
+  top: 24%;
+  height: 20%;
+  opacity: 0.84;
+  transform: perspective(420px) rotateX(-8deg);
+  transform-origin: top center;
+}
+
+.palisade--left,
+.palisade--right {
+  top: 31%;
+  bottom: 5%;
+  width: 12%;
+  opacity: 0.95;
+}
+
+.palisade--left {
+  left: -4%;
+  transform: skewY(-9deg);
+}
+
+.palisade--right {
+  right: -4%;
+  transform: skewY(9deg);
+}
+
+/* Watchtowers */
+.watchtower {
+  position: absolute;
+  top: 14%;
+  z-index: 2;
+  width: 8%;
+  min-width: 44px;
+  height: 32%;
+  border-left: 5px solid #3b2719;
+  border-right: 5px solid #3b2719;
+  background:
+    linear-gradient(to right, transparent 0 18%, #52351f 19% 30%, transparent 31% 69%, #52351f 70% 81%, transparent 82%),
+    repeating-linear-gradient(to bottom, transparent 0 28px, rgba(42, 27, 17, 0.9) 29px 34px);
+}
+
+.watchtower--left {
+  left: 4%;
+}
+
+.watchtower--right {
+  right: 4%;
+}
+
+.tower-roof {
+  position: absolute;
+  left: 50%;
+  top: -23px;
+  width: 150%;
+  height: 36px;
+  transform: translateX(-50%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: #2b211b;
+  filter: drop-shadow(0 5px 2px rgba(8, 5, 3, 0.4));
+}
+
+.tower-fire {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  width: 14px;
+  height: 19px;
+  transform: translateX(-50%);
+  border-radius: 65% 35% 60% 40%;
+  background: radial-gradient(circle at 50% 65%, #ffd768 0 24%, #f08a2b 25% 64%, #8f2d16 65% 100%);
+  box-shadow:
+    0 0 15px #f29d38,
+    0 0 34px rgba(238, 112, 28, 0.7);
+  animation: tower-flame 0.78s ease-in-out infinite alternate;
+}
+
+@keyframes tower-flame {
+  from { transform: translateX(-50%) scale(0.92) rotate(-4deg); }
+  to   { transform: translateX(-50%) scale(1.08) rotate(5deg); }
+}
+
+/* Arena stone rim */
+.arena-rim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  height: 28px;
+  background:
+    repeating-linear-gradient(
+      to right,
+      #544c41 0 38px,
+      #6c6254 38px 72px,
+      #40392f 72px 75px
+    );
+  box-shadow:
+    inset 0 2px rgba(255,255,255,0.1),
+    inset 0 -7px rgba(19, 14, 10, 0.35),
+    0 6px 12px rgba(16, 11, 8, 0.33);
+}
+
+.arena-rim--top {
+  top: 0;
+}
+
+.arena-rim--bottom {
+  bottom: 0;
+  height: 38px;
+}
+
+/* Shield racks */
+.shield-rack {
+  position: absolute;
+  top: 47%;
+  z-index: 5;
+  display: grid;
+  gap: 10px;
+}
+
+.shield-rack--left {
+  left: 11px;
+}
+
+.shield-rack--right {
+  right: 11px;
+}
+
+.shield {
+  position: relative;
+  width: 42px;
+  height: 48px;
+  border: 4px solid #2e2117;
+  border-radius: 50% 50% 45% 45%;
+  box-shadow:
+    inset 0 0 0 3px rgba(210, 174, 100, 0.38),
+    0 5px 8px rgba(17, 10, 7, 0.42);
+}
+
+.shield::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border: 3px solid #2b211a;
+  border-radius: 50%;
+  background: #7d7467;
+}
+
+.shield::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  transform: translateX(-50%);
+  background: rgba(41, 29, 20, 0.68);
+}
+
+.shield--red {
+  background: linear-gradient(90deg, #7f3027 0 48%, #c19a57 49% 54%, #7f3027 55%);
+}
+
+.shield--iron {
+  background: linear-gradient(90deg, #4b5254 0 48%, #8f9693 49% 54%, #4b5254 55%);
+}
+
+.shield--gold {
+  background: linear-gradient(90deg, #735325 0 48%, #c69a45 49% 54%, #735325 55%);
+}
+
+/* Torches */
+.torch {
+  position: absolute;
+  bottom: 11%;
+  z-index: 5;
+  width: 15px;
+  height: 82px;
+  background: linear-gradient(to right, #322117, #6b4527 48%, #352219);
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(12, 7, 4, 0.45);
+}
+
+.torch--left {
+  left: 8.5%;
+  transform: rotate(4deg);
+}
+
+.torch--right {
+  right: 8.5%;
+  transform: rotate(-4deg);
+}
+
+.torch-flame {
+  position: absolute;
+  left: 50%;
+  top: -31px;
+  width: 24px;
+  height: 36px;
+  transform: translateX(-50%);
+  border-radius: 65% 35% 62% 38%;
+  background:
+    radial-gradient(circle at 52% 70%, #fff0a4 0 14%, #ffc44f 15% 36%, #ec7327 37% 72%, #8c2418 73%);
+  filter: drop-shadow(0 0 9px #ff9a32);
+  box-shadow: 0 0 28px rgba(242, 110, 34, 0.78);
+  animation: torch-flicker 0.42s ease-in-out infinite alternate;
+}
+
+@keyframes torch-flicker {
+  from { transform: translateX(-50%) scale(0.92, 1.03) rotate(-3deg); }
+  to   { transform: translateX(-50%) scale(1.05, 0.95) rotate(4deg); }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Viking arena badge                                                          */
+/* -------------------------------------------------------------------------- */
+
+.viewport-badge {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 14px 6px 8px;
+  transform: translateX(-50%);
+  border: 3px solid #2c1d12;
+  border-radius: 5px 5px 12px 12px;
+  background:
+    linear-gradient(rgba(255,255,255,0.05), transparent),
+    repeating-linear-gradient(
+      7deg,
+      #4b301c 0 14px,
+      #583921 14px 26px,
+      #3e291a 26px 29px
+    );
+  color: #f4dfae;
+  box-shadow:
+    0 7px 16px rgba(15, 9, 5, 0.48),
+    inset 0 0 0 2px rgba(184, 135, 69, 0.34);
+}
+
+.badge-rune {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #b88e4d;
+  border-radius: 50%;
+  background: #2d2118;
+  color: #e4b45e;
+  font-size: 1.18rem;
+  font-weight: 900;
+  text-shadow: 0 0 7px rgba(234, 163, 65, 0.55);
+}
+
+.badge-copy {
+  display: grid;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.badge-copy small {
+  color: #c8a671;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.badge-copy strong {
+  margin-top: 3px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.86rem;
+  letter-spacing: 0.07em;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border: 2px solid rgba(34, 22, 14, 0.9);
+  border-radius: 50%;
+  background: #e4a73d;
+  box-shadow:
+    0 0 0 3px rgba(224, 151, 51, 0.18),
+    0 0 11px rgba(255, 161, 47, 0.85);
+}
+
+.status-dot--active {
+  animation: arena-ready-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes arena-ready-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(224,151,51,.16), 0 0 7px rgba(255,161,47,.62); }
+  50%      { box-shadow: 0 0 0 5px rgba(224,151,51,.08), 0 0 16px rgba(255,181,64,.92); }
+}
+
+/* Rune stones low in the pit corners */
+.pit-marker {
+  position: absolute;
+  bottom: 20px;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 42px;
+  border: 2px solid #28221d;
+  border-radius: 6px 6px 10px 10px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.08), transparent 40%),
+    #5e584d;
+  color: #d8b56d;
+  font-size: 1.16rem;
+  font-weight: 900;
+  box-shadow:
+    0 5px 7px rgba(10,7,5,.4),
+    inset 0 0 0 2px rgba(34,26,19,.35);
+  text-shadow: 0 0 6px rgba(227, 164, 72, 0.45);
+}
+
+.pit-marker--left {
+  left: 18%;
+  transform: rotate(-4deg);
+}
+
+.pit-marker--right {
+  right: 18%;
+  transform: rotate(4deg);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Responsive                                                                  */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  :host,
+  .viking-viewport-shell,
+  .arena-viewport {
+    min-height: 420px;
+  }
+
+  .viking-viewport-shell {
+    border-width: 5px;
+    border-radius: 12px;
+  }
+
+  .shield-rack,
+  .watchtower,
+  .pit-marker {
+    display: none;
+  }
+
+  .palisade--left,
+  .palisade--right {
+    width: 8%;
+  }
+
+  .torch--left { left: 4%; }
+  .torch--right { right: 4%; }
+
+  .viewport-badge {
+    top: 10px;
+    min-height: 42px;
+    padding-right: 10px;
+  }
+
+  .badge-rune {
+    width: 28px;
+    height: 28px;
+    font-size: 0.95rem;
+  }
+
+  .badge-copy strong {
+    font-size: 0.72rem;
+  }
+
+  .badge-copy small {
+    font-size: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tower-fire,
+  .torch-flame,
+  .status-dot--active {
+    animation: none;
+  }
+}

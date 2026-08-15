@@ -10,10 +10,7 @@ import {
   input,
   untracked,
 } from '@angular/core';
-import {
-  BattleBodySnapshot,
-  ControlFrameByCombatant,
-} from '../../models/arena.models';
+import { BattleBodySnapshot, ControlFrameByCombatant } from '../../models/arena.models';
 import { AssemblyArenaPhysicsService } from '../../physics/assembly-arena-physics.service';
 import { AssemblyArenaRendererService } from '../../rendering/assembly-arena-renderer.service';
 import { AssemblyArenaStore } from '../../state/assembly-arena.store';
@@ -27,6 +24,8 @@ const HIT_STOP_TIME_SCALE = 0.22;
 /** Redraw interval while the match is paused. 10fps: enough for firelight. */
 const IDLE_FRAME_INTERVAL_MS = 100;
 
+export type ArenaViewportAppearance = 'standard' | 'dragon-pit';
+
 @Component({
   selector: 'app-arena-viewport',
   templateUrl: './arena-viewport.component.html',
@@ -34,7 +33,10 @@ const IDLE_FRAME_INTERVAL_MS = 100;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArenaViewportComponent implements AfterViewInit, OnDestroy {
-  readonly controlFrameFactory = input.required<(snapshots: BattleBodySnapshot[]) => ControlFrameByCombatant>();
+  readonly controlFrameFactory =
+    input.required<(snapshots: BattleBodySnapshot[]) => ControlFrameByCombatant>();
+  readonly appearance = input<ArenaViewportAppearance>('standard');
+  readonly ariaLabel = input('Assembly battle arena viewport');
 
   @ViewChild('viewport', { static: true })
   private readonly viewportRef!: ElementRef<HTMLElement>;
@@ -74,7 +76,7 @@ export class ArenaViewportComponent implements AfterViewInit, OnDestroy {
      * 60fps behind a student reading a Punnett square.
      */
     this.visibility = new IntersectionObserver(
-      entries => this.onScreen = entries.some(entry => entry.isIntersecting),
+      (entries) => (this.onScreen = entries.some((entry) => entry.isIntersecting)),
       { threshold: 0.01 },
     );
     this.visibility.observe(this.viewportRef.nativeElement);
@@ -108,9 +110,8 @@ export class ArenaViewportComponent implements AfterViewInit, OnDestroy {
   };
 
   private readonly tick = (time: number): void => {
-    const deltaSeconds = this.lastFrameTime === 0
-      ? 0
-      : Math.min((time - this.lastFrameTime) / 1000, 0.05);
+    const deltaSeconds =
+      this.lastFrameTime === 0 ? 0 : Math.min((time - this.lastFrameTime) / 1000, 0.05);
 
     this.lastFrameTime = time;
 

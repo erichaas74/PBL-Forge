@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { DRAGON_TRAITS } from '../../simulation/domain/dragon-inheritance';
 import { DragonTraitId } from '../../simulation/domain/dragon-lab.models';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   DragonHatcheryBreedingSnapshot,
   HatcheryFertilizationRecord,
@@ -13,7 +14,7 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.hatchery-breeding.v1';
 @Injectable({ providedIn: 'root' })
 export class DragonHatcheryBreedingRepository {
   load(studentId: string): DragonHatcheryBreedingSnapshot {
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     const empty = emptySnapshot(normalizedStudentId);
     if (typeof localStorage === 'undefined') return empty;
     try {

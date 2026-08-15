@@ -1,0 +1,62 @@
+<section class="viking-viewport-shell">
+  <div class="arena-scenery" aria-hidden="true">
+    <div class="mountain mountain--left"></div>
+    <div class="mountain mountain--right"></div>
+
+    <div class="palisade palisade--back"></div>
+    <div class="palisade palisade--left"></div>
+    <div class="palisade palisade--right"></div>
+
+    <div class="watchtower watchtower--left">
+      <span class="tower-roof"></span>
+      <span class="tower-fire"></span>
+    </div>
+    <div class="watchtower watchtower--right">
+      <span class="tower-roof"></span>
+      <span class="tower-fire"></span>
+    </div>
+
+    <div class="shield-rack shield-rack--left">
+      <i class="shield shield--red"></i>
+      <i class="shield shield--iron"></i>
+      <i class="shield shield--gold"></i>
+    </div>
+    <div class="shield-rack shield-rack--right">
+      <i class="shield shield--gold"></i>
+      <i class="shield shield--iron"></i>
+      <i class="shield shield--red"></i>
+    </div>
+
+    <div class="torch torch--left">
+      <i class="torch-flame"></i>
+    </div>
+    <div class="torch torch--right">
+      <i class="torch-flame"></i>
+    </div>
+
+    <div class="arena-rim arena-rim--top"></div>
+    <div class="arena-rim arena-rim--bottom"></div>
+  </div>
+
+  <div
+    #viewport
+    class="arena-viewport"
+    aria-label="Viking dragon battle arena viewport"
+  ></div>
+
+  <div class="viewport-badge" aria-live="polite">
+    <span class="badge-rune" aria-hidden="true">ᛉ</span>
+    <span class="badge-copy">
+      <small>DRAGON TRAINING GROUNDS</small>
+      <strong>VIKING DUEL ARENA</strong>
+    </span>
+    <span class="status-dot" [class.status-dot--active]="true"></span>
+  </div>
+
+  <div class="pit-marker pit-marker--left" aria-hidden="true">
+    <span>ᚱ</span>
+  </div>
+  <div class="pit-marker pit-marker--right" aria-hidden="true">
+    <span>ᛏ</span>
+  </div>
+</section>

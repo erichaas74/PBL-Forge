@@ -1,6 +1,8 @@
 import {
   DEFAULT_WING_SHAPE,
   WING_SHAPES,
+  WING_STATIONS,
+  wingChordFraction,
   wingClawAnchor,
   wingLeadingEdge,
   wingRootMount,
@@ -45,6 +47,55 @@ describe('wing hand claw anchor', () => {
     expect(scaled.x).toBeCloseTo(anchor.x * 2, 6);
     expect(scaled.y).toBeCloseTo(anchor.y * 2, 6);
     expect(scaled.z).toBeCloseTo(anchor.z * 2, 6);
+  });
+});
+
+/**
+ * The planform is angular on purpose: straight edges meeting at the fingers.
+ * The curves these replaced — an `s^1.5` leading edge and a smooth chord taper
+ * — bent the front of the wing backwards like a scythe and left the tip
+ * trailing behind the last finger.
+ */
+describe('wing planform', () => {
+  it('sweeps the leading edge in a straight line', () => {
+    const root = wingLeadingEdge(WING, 0);
+    const middle = wingLeadingEdge(WING, 0.5);
+    const tip = wingLeadingEdge(WING, 1);
+
+    expect(middle).toBeCloseTo((root + tip) / 2, 9);
+    // Still swept, just not curved.
+    expect(tip).toBeLessThan(root);
+  });
+
+  it('joins the finger stations with straight chord runs', () => {
+    for (let index = 1; index < WING_STATIONS.length; index += 1) {
+      const from = WING_STATIONS[index - 1];
+      const to = WING_STATIONS[index];
+      const middle = (from + to) / 2;
+
+      expect(wingChordFraction(middle))
+        .withContext(`${from}..${to}`)
+        .toBeCloseTo((wingChordFraction(from) + wingChordFraction(to)) / 2, 9);
+    }
+  });
+
+  it('narrows from root to tip, with the corners on the fingers', () => {
+    const depths = WING_STATIONS.map(s => wingChordFraction(s));
+
+    for (let index = 1; index < depths.length; index += 1) {
+      expect(depths[index]).withContext(`station ${index}`).toBeLessThan(depths[index - 1]);
+    }
+    // A corner is a change of slope: the outer run has to taper harder than the
+    // inner one, or the "angular" planform is just a straight taper.
+    const inner = (depths[0] - depths[1]) / (WING_STATIONS[1] - WING_STATIONS[0]);
+    const outer = (depths[2] - depths[3]) / (WING_STATIONS[3] - WING_STATIONS[2]);
+    expect(outer).toBeGreaterThan(inner);
+  });
+
+  it('ships the flat-panelled shape, with no sag between the fingers', () => {
+    expect(DEFAULT_WING_SHAPE).toBe(WING_SHAPES.angular);
+    expect(DEFAULT_WING_SHAPE.fingerSag).toBe(0);
+    expect(DEFAULT_WING_SHAPE.scallop).toBe(0);
   });
 });
 

@@ -9,11 +9,10 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { SessionService } from '../../../core/firebase/session.service';
 import { DragonArenaComponent } from '../dragon-arena.component';
 import { DragonHatcheryBreedingLabComponent } from '../workstations/dragon-hatchery/dragon-hatchery-breeding-lab.component';
 import { DragonDnaRepairLabComponent } from '../workstations/dna-process-lab/dragon-dna-repair-lab.component';
-import { DnaAnalysisCase } from '../workstations/dna-process-lab/dna-sequence-analysis.component';
+import { DnaAnalysisCase } from '../workstations/dna-process-lab/dna-process.models';
 import { findParent, runDragonBatch } from '../dragon-genetics.domain';
 import { DragonBattleResult, StudentDragonRecord } from '../dragon-genetics.models';
 import { DRAGON_TRAITS, genotypeLabel } from '../simulation/domain/dragon-inheritance';
@@ -24,11 +23,10 @@ import {
 } from '../workstations/shared/dragon-chromosome.catalog';
 import { ChromosomeSvgModel } from '../workstations/shared/chromosome-svg.component';
 import {
-  ALLELE_VAULT_ALLELES,
-  ALLELE_VAULT_GENES,
   AlleleClaimFeedback,
   AlleleWorkbenchInteraction,
 } from '../workstations/allele-workbench/allele-vault.models';
+import { DragonWorkstationContextService } from '../workstations/shared/dragon-workstation-context.service';
 import { GeneticsNotebookComponent } from '../workstations/shared/genetics-notebook.component';
 import { DragonAdaptiveStore } from './dragon-adaptive.store';
 import {
@@ -68,7 +66,7 @@ import { IncubatorSamplerComponent } from '../workstations/incubator-sampler/inc
 })
 export class DragonSimulationExperiencePage {
   readonly store = inject(DragonAdaptiveStore);
-  readonly session = inject(SessionService);
+  private readonly workstationContext = inject(DragonWorkstationContextService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly simulationId = toSignal(
@@ -112,22 +110,21 @@ export class DragonSimulationExperiencePage {
       null
     );
   });
-  readonly availableAlleleGenes = computed(() => {
-    const available = new Set(this.store.availableAlleleGeneIds());
-    return ALLELE_VAULT_GENES.filter((gene) => available.has(gene.id));
-  });
-  readonly availableAlleles = computed(() => {
-    const available = new Set(this.availableAlleleGenes().map((gene) => gene.id));
-    return ALLELE_VAULT_ALLELES.filter((allele) => available.has(allele.geneId));
-  });
+  readonly studentId = this.workstationContext.studentId;
+  readonly isTeacherPreview = this.workstationContext.isTeacherPreview;
+  readonly availableAlleleGenes = this.workstationContext.availableGenes;
+  readonly availableAlleles = this.workstationContext.availableAlleles;
+  readonly geneticsNotebook = this.workstationContext.geneticsNotebook;
   readonly transferredDnaAnalysisCase = computed<DnaAnalysisCase | null>(() => {
     if (this.definition()?.id !== 'dna-process-lab') return null;
     const params = this.queryParams();
-    const gene = ALLELE_VAULT_GENES.find((candidate) => candidate.id === params.get('gene'));
-    const sampleA = ALLELE_VAULT_ALLELES.find(
+    const gene = this.availableAlleleGenes().find(
+      (candidate) => candidate.id === params.get('gene'),
+    );
+    const sampleA = this.availableAlleles().find(
       (candidate) => candidate.id === params.get('sampleA'),
     );
-    const sampleB = ALLELE_VAULT_ALLELES.find(
+    const sampleB = this.availableAlleles().find(
       (candidate) => candidate.id === params.get('sampleB'),
     );
     if (!gene || sampleA?.geneId !== gene.id || sampleB?.geneId !== gene.id) return null;
@@ -154,9 +151,11 @@ export class DragonSimulationExperiencePage {
   readonly transferredDnaChromosomeModel = computed<ChromosomeSvgModel | null>(() => {
     if (!this.transferredDnaAnalysisCase()) return null;
     const params = this.queryParams();
-    const activeGene = ALLELE_VAULT_GENES.find((candidate) => candidate.id === params.get('gene'));
+    const activeGene = this.availableAlleleGenes().find(
+      (candidate) => candidate.id === params.get('gene'),
+    );
     if (!activeGene) return null;
-    const chromosomeGenes = ALLELE_VAULT_GENES.filter(
+    const chromosomeGenes = this.availableAlleleGenes().filter(
       (candidate) => candidate.chromosome === activeGene.chromosome,
     );
     const visual = chromosomeVisual(activeGene.chromosome);

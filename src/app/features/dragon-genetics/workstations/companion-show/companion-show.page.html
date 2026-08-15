@@ -1,0 +1,15 @@
+<div class="companion-show-page">
+  <header class="page-header">
+    <a
+      class="exit"
+      routerLink="/dragon-genetics"
+      aria-label="Return to Dragon Genetics mission map"
+      >←</a
+    >
+    <div>
+      <span>DRAGON GENETICS · ROYAL MINI DRAGON SOCIETY</span>
+      <h1>Mini Dragon Show</h1>
+    </div>
+  </header>
+  <app-companion-show [studentId]="studentId()" (snapshotChange)="recordSnapshot($event)" />
+</div>

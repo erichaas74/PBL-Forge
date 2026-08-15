@@ -2,7 +2,12 @@ import { PUBLISHED_CLASSIC_DRAGON_PRESET } from '../../../../data/published-drag
 import { AssemblyBlueprint } from '../../../../shared/assembly/domain/assembly.models';
 import { AssemblyCombatProfile } from '../../../../shared/assembly/combat/assembly-combat.models';
 import { cloneAssemblyBlueprint } from '../../../../shared/assembly/domain/assembly-clone';
-import { createFounderDragonGenome, generateDragonAssembly } from './dragon-phenotype-builder';
+import {
+  createFounderDragonGenome,
+  generateDragonAssembly,
+  realignPartsToJoints,
+} from './dragon-phenotype-builder';
+import { dragonBodySurfacePoint } from '../../../../shared/assembly/rendering/dragon-body-profile';
 import {
   DragonLabGenome,
   DragonBredProfile,
@@ -398,7 +403,21 @@ const GLOWING_PROFILE_IDS = new Set([
 
 /** Visible controls carried by one expressed dragon, never by the global Parts Lab style. */
 export interface DragonVisualExpression {
-  legPairs?: 1 | 2;
+  /**
+   * The front limb's body plan.
+   *
+   * `walking` is the quadruped: four weight-bearing legs, the shipped skeleton
+   * untouched. `grasping` swaps the front chain for a short arm ending in a
+   * three-fingered hand, held clear of the ground.
+   *
+   * This replaced deleting the front legs outright. An absence is a poor
+   * phenotype: a student comparing two dragons could see that one had fewer
+   * limbs but had nothing to *read* on the recessive animal, and a dragon
+   * balanced on two legs with no counterweight looked broken rather than
+   * different. A grasping arm is the same recessive call with something visible
+   * on the other side of it.
+   */
+  forelimbs?: 'walking' | 'grasping';
   clawScale?: number;
   crestScale?: number;
   /** Living lanterns down the flanks, throat and tail. */
@@ -502,6 +521,9 @@ export function createEducationalAssembly(
     if (profileId === 'dragon-upper-jaw' || profileId === 'dragon-lower-jaw') {
       if (expression.fangScale !== undefined) parameters['fangScale'] = expression.fangScale;
     }
+    // The hand takes the claw gene too: those are the same claws, and the swap
+    // to a grasping forelimb happens after this pass, so the front foot is
+    // still a foot when the parameter is written.
     if (profileId === 'dragon-foot' && expression.clawScale !== undefined) {
       parameters['clawScale'] = expression.clawScale;
     }
@@ -538,18 +560,8 @@ export function createEducationalAssembly(
       : part;
   });
 
-  if (expression.legPairs === 1) {
-    const removedIds = new Set(
-      blueprint.parts
-        .filter((part) => part.id.includes('front') && part.roles?.includes('leg'))
-        .map((part) => part.id),
-    );
-    blueprint = {
-      parts: blueprint.parts.filter((part) => !removedIds.has(part.id)),
-      joints: blueprint.joints.filter(
-        (joint) => !removedIds.has(joint.parentPartId) && !removedIds.has(joint.childPartId),
-      ),
-    };
+  if (expression.forelimbs === 'grasping') {
+    applyGraspingForelimbs(blueprint);
   }
 
   /*
@@ -611,6 +623,117 @@ export function createEducationalAssembly(
   };
 
   return { assembly: blueprint, combatProfile };
+}
+
+// ---------------------------------------------------------------------------
+// The grasping forelimb.
+// ---------------------------------------------------------------------------
+
+/**
+ * How much smaller a grasping arm is than the walking leg it replaces.
+ *
+ * One number for the whole chain, so the arm stays a scaled-down limb rather
+ * than a set of three separately guessed parts, and so the genetics pipeline's
+ * own per-genome scaling still reads through it.
+ */
+const GRASP_ARM_SCALE = 0.56;
+const GRASP_HAND_SCALE = 0.52;
+
+/**
+ * Where the arm meets the torso, in radians around the spine from the belly.
+ *
+ * Higher than `HIP_ANGLE` (0.66) in the part catalog, and that is the anatomy:
+ * a leg hangs off the bottom of the ribcage to get under the animal's weight,
+ * while an arm that only reaches is slung on the side of the chest. Mounting it
+ * at the hip station left the hands dangling below the belly, which reads as a
+ * dragon with two long legs and two withered ones rather than as arms.
+ */
+const SHOULDER_ANGLE = 1.24;
+
+/**
+ * Swaps the front walking chain for arms, in place.
+ *
+ * Rescaling a limb is not just a matter of its dimensions: every joint pivot is
+ * a distance in some part's local frame, so a pivot left at full size hangs the
+ * new smaller part where the old bigger one used to reach, and the chain comes
+ * apart at every seam. Both sides of each pivot are therefore scaled by the
+ * factor belonging to *that side's* part, and the chain is re-derived from the
+ * joints afterwards — the same pass the phenotype builder runs after it scales
+ * a genome's parts, for the same reason.
+ */
+function applyGraspingForelimbs(blueprint: AssemblyBlueprint): void {
+  const body = blueprint.parts.find((part) => part.roles?.includes('core'));
+  const isFrontLimb = (id: string): boolean =>
+    id.includes('front')
+    && Boolean(blueprint.parts.find((part) => part.id === id)?.roles?.includes('leg'));
+  const isHand = (id: string): boolean => isFrontLimb(id) && id.includes('foot');
+
+  const factorFor = (id: string): number => (isHand(id) ? GRASP_HAND_SCALE : GRASP_ARM_SCALE);
+
+  blueprint.parts = blueprint.parts.map((part) => {
+    if (!isFrontLimb(part.id)) return part;
+    const factor = factorFor(part.id);
+
+    return {
+      ...part,
+      dimensions: {
+        x: part.dimensions.x * factor,
+        y: part.dimensions.y * factor,
+        z: part.dimensions.z * factor,
+      },
+      // Volume, not length: a limb at 0.56 scale has a fifth of the mass, and
+      // the arena reads mass for momentum and the combat profile for health.
+      // Leaving it at a leg's weight gives a dragon two heavy dead arms.
+      mass: part.mass * factor * factor * factor,
+      visualProfile: part.visualProfile
+        ? {
+            ...part.visualProfile,
+            profileId: isHand(part.id) ? 'dragon-grasp-hand' : 'dragon-grasp-arm',
+          }
+        : part.visualProfile,
+    };
+  });
+
+  blueprint.joints = blueprint.joints.map((joint) => {
+    const childIsLimb = isFrontLimb(joint.childPartId);
+    if (!childIsLimb) return joint;
+
+    const parentIsLimb = isFrontLimb(joint.parentPartId);
+    const pivotOnChild = scaleVector(joint.pivotOnChild, factorFor(joint.childPartId));
+
+    // The shoulder: re-seated up the flank rather than scaled, because its
+    // pivot is on the torso, which has not changed size at all.
+    const pivotOnParent = parentIsLimb
+      ? scaleVector(joint.pivotOnParent, factorFor(joint.parentPartId))
+      : body
+        ? shoulderMount(body.dimensions, joint.pivotOnParent)
+        : joint.pivotOnParent;
+
+    return { ...joint, pivotOnParent, pivotOnChild };
+  });
+
+  realignPartsToJoints(blueprint);
+}
+
+/** The shoulder station on the torso, at the same place along it as the old hip. */
+function shoulderMount(
+  bodyDimensions: { x: number; y: number; z: number },
+  hipPivot: { x: number; y: number; z: number },
+): { x: number; y: number; z: number } {
+  const axialFraction = hipPivot.x / Math.max(bodyDimensions.x, 1e-6);
+  const seat = dragonBodySurfacePoint(
+    bodyDimensions,
+    axialFraction,
+    SHOULDER_ANGLE * (hipPivot.z < 0 ? -1 : 1),
+  );
+  return { x: seat.x, y: seat.y, z: seat.z };
+}
+
+function scaleVector(
+  vector: { x: number; y: number; z: number },
+  factor: number,
+): { x: number; y: number; z: number } {
+  return { x: vector.x * factor, y: vector.y * factor, z: vector.z * factor };
 }
 
 /**

@@ -324,7 +324,11 @@ const PROFILE_INFLATION: Readonly<Record<string, Vector3Data>> = {
   'dragon-wing': { x: 2.8, y: 2.6, z: 1.1 },
   'dragon-secondary-wing': { x: 2.8, y: 2.6, z: 1.1 },
   'dragon-tail-club': { x: 1.8, y: 1.2, z: 1.8 },
-  'dragon-head-horned': { x: 1.4, y: 2.2, z: 1.4 },
+  // Wide enough for the male frill, which is a ring more than twice the skull's
+  // own section and raked back behind it. A female head never fills this, and
+  // over-padding the frame is the cheaper mistake: the alternative is cropping
+  // the one display structure the trait exists to show.
+  'dragon-head-horned': { x: 1.9, y: 2.2, z: 2.1 },
 };
 
 /**

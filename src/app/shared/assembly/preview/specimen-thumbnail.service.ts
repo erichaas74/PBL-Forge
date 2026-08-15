@@ -6,7 +6,7 @@ import {
   SpecimenRendererService,
   isSpecimenRenderingAvailable,
 } from './specimen-renderer.service';
-import { DRAGON_RESTING_POSE } from './specimen-stance';
+import { DRAGON_RESTING_POSE, dragonRestingPose } from './specimen-stance';
 
 /**
  * Bakes specimens to still images through a single offscreen WebGL context.
@@ -75,7 +75,9 @@ export class SpecimenThumbnailService implements OnDestroy {
     renderer.show(descriptor, {
       frame: options.frame ?? null,
       focusedTraitId: options.focusedTraitId ?? null,
-      pose: options.pose,
+      // A reared dragon has to be baked reared, or its card and its live
+      // viewport show two different animals.
+      pose: options.pose ?? dragonRestingPose(descriptor.blueprint),
     });
     const dataUrl = renderer.toDataUrl();
     if (!dataUrl) return null;

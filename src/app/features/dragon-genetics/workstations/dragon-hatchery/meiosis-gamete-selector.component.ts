@@ -15,17 +15,16 @@ import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
 import { DragonParentProfile, DragonTraitId } from '../../simulation/domain/dragon-lab.models';
 import { getTrait } from '../../simulation/domain/dragon-inheritance';
 import {
-  ChromosomeBand,
-  ChromosomeSvgComponent,
-  ChromosomeSvgModel,
-} from '../shared/chromosome-svg.component';
+  CellChromosomeViewportComponent,
+  CellChromosomeViewportItem,
+} from '../shared/cell-chromosome-viewport.component';
 import { chromosomeVisual, DRAGON_LOCUS_COLORS } from '../shared/dragon-chromosome.catalog';
 import { generateMeiosisRun, gameteAlleleSummary } from './meiosis-gamete.domain';
+import { meiosisGameteViewportItems } from './meiosis-gamete.viewport';
 import {
   MEIOSIS_GAMETE_DRAG_TYPE,
   MeiosisChromosomePair,
   MeiosisGamete,
-  MeiosisGameteChromosome,
   MeiosisLocusAllele,
   MeiosisRun,
   SelectedMeiosisGamete,
@@ -51,7 +50,7 @@ const PHASES: readonly MeiosisPhase[] = [
 
 @Component({
   selector: 'app-meiosis-gamete-selector',
-  imports: [ChromosomeSvgComponent],
+  imports: [CellChromosomeViewportComponent],
   templateUrl: './meiosis-gamete-selector.component.html',
   styleUrl: './meiosis-gamete-selector.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -75,6 +74,17 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
   readonly chosenGameteIndex = signal<number | null>(null);
   readonly reason = signal('');
   readonly run = signal<MeiosisRun | null>(null);
+  readonly gameteChromosomeViews = computed<
+    ReadonlyMap<string, readonly CellChromosomeViewportItem[]>
+  >(
+    () =>
+      new Map(
+        (this.run()?.gametes ?? []).map((gamete) => [
+          gamete.id,
+          meiosisGameteViewportItems(gamete.chromosomes),
+        ]),
+      ),
+  );
   readonly phase = computed(() => PHASES[this.phaseIndex()]);
   readonly complete = computed(() => this.phaseIndex() === PHASES.length - 1);
   readonly chosenGamete = computed(() => {
@@ -194,31 +204,8 @@ export class MeiosisGameteSelectorComponent implements AfterViewInit, OnDestroy 
     return gamete.chromosomes.some((chromosome) => chromosome.recombinant);
   }
 
-  gameteChromosomeModel(chromosome: MeiosisGameteChromosome): ChromosomeSvgModel {
-    const label = this.chromosomeLabel(chromosome.chromosome, chromosome.sexChromosome);
-    const visual = chromosomeVisual(label);
-    const arm = label.replace('Chr ', '');
-    const highlightBands: ChromosomeBand[] = chromosome.loci.map((locus, index) => ({
-      start: Math.max(0, locus.position - 0.055),
-      end: Math.min(1, locus.position + 0.055),
-      color: this.locusColor(label, locus.position, index),
-      pattern: locus.dominance === 'dominant' ? 'stripe-a' : 'stripe-b',
-      patternPlacement: 'center',
-    }));
-
-    return {
-      length: visual.length,
-      leftLabel: `${arm}p`,
-      rightLabel: `${arm}q`,
-      centromere: visual.centromere,
-      bands: [...visual.bands, ...highlightBands],
-      loci: chromosome.loci.map((locus, index) => ({
-        position: locus.position,
-        label: locus.geneSymbol,
-        symbol: locus.allele,
-        color: this.locusColor(label, locus.position, index),
-      })),
-    };
+  chromosomesForGamete(gameteId: string): readonly CellChromosomeViewportItem[] {
+    return this.gameteChromosomeViews().get(gameteId) ?? [];
   }
 
   trackPhase(index: number): number {

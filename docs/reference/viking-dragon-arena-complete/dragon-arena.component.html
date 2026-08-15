@@ -1,0 +1,157 @@
+<section class="arena-shell" [class.compact]="compact()" aria-label="Dragon battle arena">
+  <div class="arena-stage">
+    <app-arena-viewport [controlFrameFactory]="controlFrameFactory" />
+
+    <!-- Decorative only: keeps the arena renderer and battle logic untouched. -->
+    <div class="viking-arena-frame" aria-hidden="true">
+      <div class="arena-nameplate"><i></i><span>DRAGON TRAINING ARENA</span><i></i></div>
+      <div class="palisade palisade-left"></div>
+      <div class="palisade palisade-right"></div>
+      <div class="arena-shield shield-left"><b></b></div>
+      <div class="arena-shield shield-right"><b></b></div>
+      <div class="arena-torch torch-left"><i></i><b></b></div>
+      <div class="arena-torch torch-right"><i></i><b></b></div>
+      <div class="stone-rim"></div>
+    </div>
+    @if (!arena.state().isRunning && !arena.state().winnerId && playMode() === 'real-time') {
+      <div class="arena-overlay">
+        <span>Physics arena ready</span>
+        <strong>{{ champion().name }} vs. The Arena Warden</strong>
+        <button type="button" (click)="toggleBattle()">Begin battle</button>
+      </div>
+    }
+    @if (winnerName(); as winner) {
+      <div class="arena-overlay result">
+        <span>Battle complete</span>
+        <strong>{{ winner }} wins</strong>
+        <button type="button" (click)="resetBattle()">Run another trial</button>
+      </div>
+    }
+  </div>
+
+  <div class="scoreboard">
+    @for (entry of scoreboard(); track entry.combatantId) {
+      <article [class.opponent]="entry.team === 'blue'">
+        <div><span>{{ entry.team === 'red' ? 'Your champion' : 'AI challenger' }}</span><strong>{{ entry.name }}</strong></div>
+        <b>{{ entry.destroyedParts }}/{{ entry.partCount }} parts lost</b>
+        <div class="health"><i [style.width.%]="healthPercent(entry.totalHealth, entry.maxTotalHealth)"></i></div>
+      </article>
+    }
+  </div>
+
+  <div class="mode-row" role="group" aria-label="Battle mode">
+    <button type="button" class="mode-button" [class.active]="playMode() === 'real-time'" (click)="setMode('real-time')">Real-time battle</button>
+    <button type="button" class="mode-button" [class.active]="playMode() === 'turn-based'" (click)="setMode('turn-based')">Turn duel</button>
+    <button type="button" class="mode-button sound-toggle" (click)="sound.toggle()" [attr.aria-pressed]="sound.enabled()">
+      {{ sound.enabled() ? '🔊 Sound on' : '🔇 Sound off' }}
+    </button>
+  </div>
+
+  @if (playMode() === 'turn-based') {
+  <div class="turn-panel" aria-label="Turn duel controls">
+    @if (turnScript(); as script) {
+      <p class="turn-status">
+        {{ script.team === 'red' ? 'Playing your moves…' : 'The Arena Warden strikes back…' }}
+      </p>
+    } @else if (!arena.state().winnerId) {
+      <div class="turn-heading">
+        <span>Turn {{ arena.state().turnNumber }}</span>
+        <strong>Pick up to {{ maxCardsPerTurn }} moves, then play the turn</strong>
+      </div>
+      <div class="card-grid">
+        @for (card of moveCards; track card.id) {
+          <button
+            type="button"
+            class="move-card"
+            [class.selected]="selectionIndex(card.id) >= 0"
+            [disabled]="!canUseCard(card)"
+            (click)="toggleCard(card.id)">
+            @if (selectionIndex(card.id) >= 0) {
+              <i class="order">{{ selectionIndex(card.id) + 1 }}</i>
+            }
+            <span>{{ card.name }}</span>
+            <small>{{ cardUnavailableReason(card) }}</small>
+          </button>
+        }
+      </div>
+      <button
+        type="button"
+        class="play-turn"
+        [disabled]="!selectedCardIds().length"
+        (click)="playTurn()">
+        Play turn ({{ selectedCardIds().length }}/{{ maxCardsPerTurn }})
+      </button>
+    }
+  </div>
+  } @else {
+  <div class="battle-controls" aria-label="Arena controls">
+    <div class="move-pad">
+      <button type="button" aria-label="Move forward" (pointerdown)="setControl('forward', true)" (pointerup)="setControl('forward', false)" (pointerleave)="setControl('forward', false)">↑</button>
+      <button type="button" aria-label="Turn left" (pointerdown)="setControl('left', true)" (pointerup)="setControl('left', false)" (pointerleave)="setControl('left', false)">←</button>
+      <button type="button" aria-label="Move backward" (pointerdown)="setControl('back', true)" (pointerup)="setControl('back', false)" (pointerleave)="setControl('back', false)">↓</button>
+      <button type="button" aria-label="Turn right" (pointerdown)="setControl('right', true)" (pointerup)="setControl('right', false)" (pointerleave)="setControl('right', false)">→</button>
+    </div>
+    <div class="attack-controls">
+      <button type="button" (click)="attack('claw')"><span>Claw rake <kbd>U</kbd></span><small>Fast poke, low damage</small></button>
+      <button type="button" (click)="attack('bite')"><span>Bite <kbd>J</kbd></span><small>Close-range strike</small></button>
+      <button type="button" [disabled]="!canWingAttack()" (click)="attack('wing')"><span>Wing buffet <kbd>K</kbd></span><small>{{ canWingAttack() ? 'Winged genotype' : 'Unavailable: wingless' }}</small></button>
+      <button type="button" (click)="attack('tail')"><span>Tail sweep <kbd>L</kbd></span><small>Timing + position</small></button>
+      <button type="button" [disabled]="!canHornCharge()" (click)="attack('horn')"><span>Horn charge <kbd>H</kbd></span><small>{{ canHornCharge() ? 'Horned genotype: heavy, knocks down' : 'Unavailable: smooth-headed' }}</small></button>
+      <button type="button" class="fire" [disabled]="!canFireAttack()" (click)="attack('fire')"><span>Fire breath <kbd>F</kbd></span><small>{{ canFireAttack() ? 'Fire genotype' : 'Unavailable: no fire' }}</small></button>
+    </div>
+    <div class="defence-controls" aria-label="Defensive moves">
+      <button
+        type="button"
+        class="guard"
+        [class.active]="isGuarding()"
+        [disabled]="!canGuard()"
+        (pointerdown)="setControl('guard', true)"
+        (pointerup)="setControl('guard', false)"
+        (pointerleave)="setControl('guard', false)">
+        <span>Brace <kbd>G</kbd></span>
+        <small>{{ canGuard() ? 'Horned genotype: hold to absorb' : 'Unavailable: smooth-headed' }}</small>
+        @if (canGuard()) {
+          <i class="guard-meter"><b [style.width.%]="guardFatiguePercent()"></b></i>
+        }
+      </button>
+      <button type="button" class="dodge" [disabled]="!canDodge()" (click)="dodge()">
+        <span>Roll <kbd>Space</kbd></span>
+        <small>{{ canDodge() ? 'Winged genotype: brief invulnerability' : 'Unavailable: wingless' }}</small>
+      </button>
+      <button type="button" class="boost" (pointerdown)="setControl('boost', true)" (pointerup)="setControl('boost', false)" (pointerleave)="setControl('boost', false)"><span>Leap <kbd>Shift</kbd></span><small>Winged dragons beat their wings</small></button>
+    </div>
+    <button class="pause" type="button" (click)="toggleBattle()">{{ arena.state().isRunning ? 'Pause' : 'Resume' }}</button>
+  </div>
+  }
+
+  @if (compact()) {
+    <p class="controls-brief">
+      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Shift</kbd> leap ·
+      <kbd>U</kbd> claw · <kbd>J</kbd> bite · <kbd>K</kbd> wing · <kbd>L</kbd> tail ·
+      <kbd>H</kbd> horn charge · <kbd>F</kbd> fire · <kbd>G</kbd> brace · <kbd>Space</kbd> roll.
+      Gamepads work too. Prefer to plan instead of react? Switch to Turn duel.
+    </p>
+  } @else {
+  <div class="controls-guide" aria-label="How the dragon controls work">
+    <h3>How to control your dragon</h3>
+    <dl>
+      <div><dt>Move</dt><dd>Arrow pad on screen, or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrow keys. Forward charges toward the far wall; left and right swing your dragon sideways.</dd></div>
+      <div><dt>Leap</dt><dd>Hold the Leap button or <kbd>Shift</kbd> to run faster; winged dragons also beat their wings and get airborne. It is one beat per press, not a hover.</dd></div>
+      <div><dt>Claw rake</dt><dd>Claw button or <kbd>U</kbd>. The quick one: half a second start to finish and safe to throw, but it only chips away at an opponent. Every dragon has claws.</dd></div>
+      <div><dt>Bite</dt><dd>Bite button or <kbd>J</kbd>. Lunges the head forward; strongest when you are close and moving fast.</dd></div>
+      <div><dt>Wing buffet</dt><dd>Wing button or <kbd>K</kbd>. Only dragons that inherited at least one W allele can use it.</dd></div>
+      <div><dt>Tail sweep</dt><dd>Tail button or <kbd>L</kbd>. Whips the tail side to side — good when an opponent circles behind you.</dd></div>
+      <div><dt>Horn charge</dt><dd>Horn button or <kbd>H</kbd>. Runs your dragon forward and knocks the opponent flat. The heaviest hit in the game and the slowest — it can be seen coming, blocked, or rolled away from. Needs at least one H allele.</dd></div>
+      <div><dt>Fire breath</dt><dd>Fire button or <kbd>F</kbd>. Scorches a cone in front of you — only dragons that inherited at least one F allele can use it.</dd></div>
+      <div><dt>Brace</dt><dd>Hold the Brace button or <kbd>G</kbd>. Plants your dragon behind its horns: most of the damage is absorbed and nothing knocks you down, but you can barely move and cannot attack. The bar on the button is how much brace you have left — hold it too long and it collapses. Needs at least one H allele.</dd></div>
+      <div><dt>Roll</dt><dd>Roll button or <kbd>Space</kbd>. A wing-assisted dive to the side. There is a moment in the middle where nothing can hit you at all, so a well-timed roll beats even a horn charge — but throw it early and you spend a second going nowhere. Needs at least one W allele.</dd></div>
+      <div><dt>Gamepad</dt><dd>Plug in any controller: left stick or d-pad moves, <b>A</b> bites, <b>X</b> wing, <b>B</b> tail, <b>Y</b> fire, left trigger claws, right trigger leaps, <b>LB</b> braces, <b>RB</b> rolls.</dd></div>
+    </dl>
+    <p>Damage comes from real collisions and landed attacks: an attack that touches the opponent scores a hit even at low speed, and hit parts flash. The first moments after the spawn drop are a safe settling period, then the duel is live. Pause any time.</p>
+    <p><strong>Your genotype is your moveset.</strong> Claw, bite, and tail belong to every dragon. Wings grant the buffet <em>and</em> the roll; horns grant the charge <em>and</em> the brace; fire grants the breath. A dragon with neither W nor H can still win, but it has to do it without a way to defend — which is worth noticing when you choose which hatchling to take into the arena.</p>
+    <p><strong>Turn duel mode:</strong> no reflexes needed — pick up to three move cards, press Play turn, and watch the physics act them out. Then the Arena Warden takes its turn. Great for planning strategies or sharing one computer.</p>
+  </div>
+  }
+
+  <p class="arena-note"><strong>Science note:</strong> inherited traits influence the generated body and available moves, but player tactics, collisions, and physics also influence the winner. The battle result is not your genetics mastery grade.</p>
+</section>

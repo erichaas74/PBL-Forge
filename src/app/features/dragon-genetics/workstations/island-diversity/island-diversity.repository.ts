@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   ISLAND_IDS,
   IslandDiversityWorld,
@@ -15,7 +16,7 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.island-diversity.v1';
 @Injectable({ providedIn: 'root' })
 export class IslandDiversityRepository {
   load(studentId: string): IslandDiversityWorld {
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     if (typeof localStorage === 'undefined') return createInitialWorld(normalizedStudentId);
     try {
       const stored = JSON.parse(
@@ -29,7 +30,7 @@ export class IslandDiversityRepository {
   }
 
   save(studentId: string, world: IslandDiversityWorld): IslandDiversityWorld {
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     if (typeof localStorage !== 'undefined') {
       try {
         const stored: StoredIslandDiversityWorld = {

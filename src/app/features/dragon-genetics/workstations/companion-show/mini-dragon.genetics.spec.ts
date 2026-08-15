@@ -6,6 +6,8 @@ import {
   expressMiniGene,
   isMiniGenome,
   miniCoatPaint,
+  miniGenomeFromForms,
+  miniGenotypeForForm,
   miniIndividualFeatures,
   miniPhenotypeFormId,
   normalizeMiniGenotype,
@@ -247,6 +249,44 @@ describe('show ring trials', () => {
         }
       }
     }
+  });
+});
+
+describe('choosing a mini dragon by its visible form', () => {
+  it('produces a genotype that expresses the requested form, for every form of every gene', () => {
+    for (const gene of MINI_DRAGON_GENES) {
+      for (const form of gene.forms) {
+        const genome = genomeWith({ [gene.id]: miniGenotypeForForm(gene.id, form.id) });
+        expect(expressMiniGene(gene.id, genome).id)
+          .withContext(`${gene.id}/${form.id}`)
+          .toBe(form.id);
+      }
+    }
+  });
+
+  it('answers the homozygous genotype where a form has more than one, so nothing is implied about carriers', () => {
+    expect(miniGenotypeForForm('coat', 'coat:sleek')).toEqual(['F', 'F']);
+    expect(miniGenotypeForForm('ember', 'ember:rose')).toEqual(['Er', 'Er']);
+  });
+
+  it('builds a whole genome from one form per locus', () => {
+    const genome = miniGenomeFromForms({
+      coat: 'coat:fluffy',
+      horns: 'horns:straight',
+      wings: 'wings:small',
+      pattern: 'pattern:ash-gold',
+      ember: 'ember:blue',
+      size: 'size:teacup',
+    });
+
+    expect(isMiniGenome(genome)).toBe(true);
+    expect(expressMiniGene('wings', genome).id).toBe('wings:small');
+    expect(expressMiniGene('pattern', genome).id).toBe('pattern:ash-gold');
+    expect(expressMiniGene('size', genome).id).toBe('size:teacup');
+  });
+
+  it('rejects a form that does not belong to the gene', () => {
+    expect(() => miniGenotypeForForm('coat', 'size:teacup')).toThrow();
   });
 });
 

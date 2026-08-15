@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   MINI_DRAGON_GENES,
   MINI_FOUNDERS,
@@ -183,7 +184,7 @@ function isStringPair(value: unknown): value is readonly [string, string] {
 }
 
 function normalizeStudentId(studentId: string): string {
-  return studentId.trim() || 'local-student';
+  return normalizeWorkstationStudentId(studentId);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

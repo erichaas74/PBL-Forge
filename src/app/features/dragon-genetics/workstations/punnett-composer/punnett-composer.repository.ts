@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { DRAGON_TRAITS } from '../../simulation/domain/dragon-inheritance';
 import { DragonTraitId } from '../../simulation/domain/dragon-lab.models';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   createEmptyPunnettSnapshot,
   PunnettComposerSnapshot,
@@ -13,7 +14,7 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.punnett-composer.v1';
 @Injectable({ providedIn: 'root' })
 export class PunnettComposerRepository {
   load(studentId: string): PunnettComposerSnapshot {
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     if (typeof localStorage === 'undefined') return createEmptyPunnettSnapshot(normalizedStudentId);
     try {
       const stored = JSON.parse(

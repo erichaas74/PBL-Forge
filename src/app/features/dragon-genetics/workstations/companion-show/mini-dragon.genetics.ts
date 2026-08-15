@@ -199,6 +199,43 @@ export function miniPhenotypeLabel(geneId: MiniGeneId, genome: MiniGenome): stri
   return expressMiniGene(geneId, genome).label;
 }
 
+/**
+ * A genotype that produces the requested visible form.
+ *
+ * The inverse of {@link expressMiniGene}, and deliberately not a bijection: a
+ * sleek dragon may be `FF` or `Ff`, and this answers `FF`. That is the right
+ * answer for the one caller that needs it — a bench where a form is chosen and
+ * the animal drawn — because the genotype behind a *displayed* form is exactly
+ * what a student cannot read off a dragon. Anything that needs carriers must
+ * work from a genome, not from a form.
+ */
+export function miniGenotypeForForm(geneId: MiniGeneId, formId: string): MiniGenotype {
+  const gene = miniGene(geneId);
+  const index = gene.forms.findIndex((form) => form.id === formId);
+  if (index < 0) throw new Error(`Unknown form ${formId} for mini dragon gene ${geneId}.`);
+
+  switch (gene.pattern) {
+    case 'complete-dominance':
+      return index === 0 ? [gene.alleles[0], gene.alleles[0]] : [gene.alleles[1], gene.alleles[1]];
+
+    case 'incomplete-dominance':
+    case 'codominance':
+      return index === 1
+        ? [gene.alleles[0], gene.alleles[1]]
+        : [gene.alleles[index === 0 ? 0 : 1], gene.alleles[index === 0 ? 0 : 1]];
+
+    case 'multiple-alleles':
+      return [gene.alleles[index], gene.alleles[index]];
+  }
+}
+
+/** One genome per gene from a chosen visible form, for every locus. */
+export function miniGenomeFromForms(forms: Readonly<Record<MiniGeneId, string>>): MiniGenome {
+  return Object.fromEntries(
+    MINI_DRAGON_GENES.map((gene) => [gene.id, miniGenotypeForForm(gene.id, forms[gene.id])]),
+  ) as MiniGenome;
+}
+
 // ---------------------------------------------------------------------------
 // Breeding.
 // ---------------------------------------------------------------------------

@@ -77,8 +77,9 @@ keys:
 
 ```text
 backSpikeCount backSpikeScale browLength browRidge camber cheek clawScale cranium
-crestScale dihedral eyeAxial eyeColor fangScale fingerSag glowMarkings hornLength
-hornRadius muzzleDepth muzzleDrop muzzleWidth scalePattern scallop sex spikeCount
+crestScale dihedral eyeAxial eyeColor fangScale fingerCount fingerLength
+fingerRadius fingerSag fingerSplay glowMarkings hornLength hornRadius jointBall
+muzzleDepth muzzleDrop muzzleWidth palmLength scalePattern scallop sex spikeCount
 spikeHeight spikeLean spikeLength spikeRadius spikeSpread tailClubSpikeCount
 tailClubSpikeScale talonCount talonLength talonRadius toothCount toothHeight
 toothRadius toothStart wingFold
@@ -88,6 +89,27 @@ toothRadius toothStart wingFold
 specimen profile stamps 1 on its way to a viewer so a dragon on a bench has its
 wings folded while the same blueprint fights in the arena with them spread. It
 also suppresses the hand claw, which on a folded wing is tucked inside the fold.
+
+`fingerCount`, `fingerLength`, `fingerRadius`, `palmLength` and `fingerSplay`
+shape the grasping hand (`dragon-grasp-hand`), which with `dragon-grasp-arm` is
+the **second forelimb body plan**. A dragon carrying `ll` at the leg locus has
+its front walking chain swapped for these at expression time — see
+`applyGraspingForelimbs` in `dragon-inheritance.ts` — and is then shown reared
+onto its hind legs, because `dragonRestingPose` picks the stance off the
+blueprint. Neither part is on any preset: they exist only inside an expressed
+blueprint, and are catalogued purely so the Parts Lab can open them.
+
+`jointBall` is the width of the sphere that closes a hinge, as a multiple of the
+part's own radius where the joint sits. Every limb and tail link is an open
+lathe, so without it a bent hip, knee, ankle, tail joint, or neck shows the
+hollow inside both parts. The torso is the same story at a larger scale — its
+lathe stops at 0.28 of the section at the tail and 0.42 at the neck, so it caps
+its own two openings, with an **ellipsoid matched to the section** rather than a
+sphere, because the opening is an ellipse and a sphere wide enough to close the
+flanks stands proud of the spine and belly. It is written by `style.joint.ball` at export — spelled
+out rather than spread, because the style names it `joint.ball` and the factory
+reads a flat `jointBall` — and the balls are seated on the **pivot**, not on the
+end of the mesh, which is what keeps them in the socket at any bend angle.
 
 `scalePattern` is the odd one out: a 0/1 flag rather than a measurement, set on
 **every** part instead of one profile, and it selects a texture set rather than

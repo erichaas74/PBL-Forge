@@ -26,6 +26,8 @@
         <p class="bench__note" aria-live="polite">
           @if (activeAbility()) {
             Playing the move on the model.
+          } @else if (activeMotion()) {
+            Playing the behaviour on the model.
           } @else {
             Drag to turn the model. Use zoom to inspect details such as the frill membrane.
           }
@@ -34,117 +36,148 @@
     </div>
 
     <div class="bench__panels">
-      <!-- Attacks -->
-      <section class="bench__panel" aria-labelledby="bench-moves">
-        <h4 class="bench__panel-title" id="bench-moves">Attack moves</h4>
-        <ul class="bench__list">
-          @for (row of abilityRows(); track trackAbility($index, row)) {
-            <li>
-              <button
-                type="button"
-                class="bench__move"
-                [class.bench__move--locked]="!row.available"
-                [class.bench__move--active]="activeAbility() === row.ability"
-                [disabled]="!row.available || !renderingAvailable"
-                (click)="play(row)"
-              >
-                <span class="bench__move-head">
-                  <span class="bench__move-name">{{ row.name }}</span>
-                  @if (row.available) {
-                    <span class="bench__badge">{{ row.damagePerHit }} dmg</span>
-                  } @else {
-                    <span class="bench__badge bench__badge--locked">Not available</span>
-                  }
-                </span>
+      <!-- Host-supplied readout, for a species the combat model does not describe -->
+      <ng-content select="[bench-panels]" />
 
-                <span class="bench__move-detail">{{ row.detail }}</span>
-
-                @if (row.available) {
-                  <span class="bench__stats">
-                    <span>every {{ row.cooldownSeconds }}s</span>
-                    <span>{{ row.damagePerSecond }} dmg/s</span>
-                    @if (row.knockback) { <span>knocks back</span> }
-                  </span>
-                }
-              </button>
-            </li>
-          }
-        </ul>
-      </section>
-
-      <!-- Defences -->
-      @if (defenseRows().length) {
-        <section class="bench__panel" aria-labelledby="bench-defence">
-          <h4 class="bench__panel-title" id="bench-defence">Defensive features</h4>
+      @if (showCombat()) {
+        <!-- Attacks -->
+        <section class="bench__panel" aria-labelledby="bench-moves">
+          <h4 class="bench__panel-title" id="bench-moves">Attack moves</h4>
           <ul class="bench__list">
-            @for (row of defenseRows(); track row.id) {
-              <li class="bench__defence" [class.bench__defence--absent]="!row.present">
-                <span class="bench__move-head">
-                  <span class="bench__move-name">{{ row.name }}</span>
-                  @if (row.present) {
-                    <span class="bench__badge">{{ row.partCount }} part{{ row.partCount === 1 ? '' : 's' }}</span>
-                  } @else {
-                    <span class="bench__badge bench__badge--locked">Absent</span>
+            @for (row of abilityRows(); track trackAbility($index, row)) {
+              <li>
+                <button
+                  type="button"
+                  class="bench__move"
+                  [class.bench__move--locked]="!row.available"
+                  [class.bench__move--active]="activeAbility() === row.ability"
+                  [disabled]="!row.available || !renderingAvailable"
+                  (click)="play(row)"
+                >
+                  <span class="bench__move-head">
+                    <span class="bench__move-name">{{ row.name }}</span>
+                    @if (row.available) {
+                      <span class="bench__badge">{{ row.damagePerHit }} dmg</span>
+                    } @else {
+                      <span class="bench__badge bench__badge--locked">Not available</span>
+                    }
+                  </span>
+
+                  <span class="bench__move-detail">{{ row.detail }}</span>
+
+                  @if (row.available) {
+                    <span class="bench__stats">
+                      <span>every {{ row.cooldownSeconds }}s</span>
+                      <span>{{ row.damagePerSecond }} dmg/s</span>
+                      @if (row.knockback) { <span>knocks back</span> }
+                    </span>
                   }
-                </span>
-                <span class="bench__move-detail">{{ row.detail }}</span>
-                @if (row.present) {
-                  <span class="bench__stats"><span>{{ row.health }} health</span></span>
-                }
+                </button>
               </li>
             }
           </ul>
         </section>
+
+        <!-- Defences -->
+        @if (defenseRows().length) {
+          <section class="bench__panel" aria-labelledby="bench-defence">
+            <h4 class="bench__panel-title" id="bench-defence">Defensive features</h4>
+            <ul class="bench__list">
+              @for (row of defenseRows(); track row.id) {
+                <li class="bench__defence" [class.bench__defence--absent]="!row.present">
+                  <span class="bench__move-head">
+                    <span class="bench__move-name">{{ row.name }}</span>
+                    @if (row.present) {
+                      <span class="bench__badge">{{ row.partCount }} part{{ row.partCount === 1 ? '' : 's' }}</span>
+                    } @else {
+                      <span class="bench__badge bench__badge--locked">Absent</span>
+                    }
+                  </span>
+                  <span class="bench__move-detail">{{ row.detail }}</span>
+                  @if (row.present) {
+                    <span class="bench__stats"><span>{{ row.health }} health</span></span>
+                  }
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        <!-- Fitness -->
+        @if (assay(); as report) {
+          <section class="bench__panel" aria-labelledby="bench-fitness">
+            <h4 class="bench__panel-title" id="bench-fitness">Fitness in this model</h4>
+
+            <p class="bench__score">
+              <span class="bench__score-value">{{ report.fitness.overall }}</span>
+              <span class="bench__score-unit">/ 100</span>
+            </p>
+
+            <ul class="bench__list bench__list--plain">
+              @for (component of report.fitness.components; track component.id) {
+                <li class="bench__component">
+                  <span class="bench__component-head">
+                    <span class="bench__move-name">{{ component.label }}</span>
+                    <span class="bench__badge">{{ percent(component.score) }}</span>
+                  </span>
+                  <span class="bench__meter" aria-hidden="true">
+                    <span class="bench__meter-fill" [style.width]="percent(component.score)"></span>
+                  </span>
+                  <span class="bench__stats">
+                    <span>{{ component.measured }}</span>
+                    <span>{{ weightLabel(component.weight) }}</span>
+                  </span>
+                </li>
+              }
+            </ul>
+
+            <p class="bench__caveat">{{ fitnessCaveat() }}</p>
+
+            <dl class="bench__raw">
+              <div>
+                <dt>Total health</dt>
+                <dd>{{ report.defense.totalHealth }}</dd>
+              </div>
+              <div>
+                <dt>Body health</dt>
+                <dd>{{ report.defense.corePartHealth }}</dd>
+              </div>
+              <div>
+                <dt>Body damage reduction</dt>
+                <dd>{{ percent(report.defense.coreArmor) }}</dd>
+              </div>
+              <div>
+                <dt>Strongest hit</dt>
+                <dd>{{ report.offense.bestSingleHit }}</dd>
+              </div>
+            </dl>
+          </section>
+        }
       }
 
-      <!-- Fitness -->
-      @if (assay(); as report) {
-        <section class="bench__panel" aria-labelledby="bench-fitness">
-          <h4 class="bench__panel-title" id="bench-fitness">Fitness in this model</h4>
-
-          <p class="bench__score">
-            <span class="bench__score-value">{{ report.fitness.overall }}</span>
-            <span class="bench__score-unit">/ 100</span>
-          </p>
-
-          <ul class="bench__list bench__list--plain">
-            @for (component of report.fitness.components; track component.id) {
-              <li class="bench__component">
-                <span class="bench__component-head">
-                  <span class="bench__move-name">{{ component.label }}</span>
-                  <span class="bench__badge">{{ percent(component.score) }}</span>
-                </span>
-                <span class="bench__meter" aria-hidden="true">
-                  <span class="bench__meter-fill" [style.width]="percent(component.score)"></span>
-                </span>
-                <span class="bench__stats">
-                  <span>{{ component.measured }}</span>
-                  <span>{{ weightLabel(component.weight) }}</span>
-                </span>
+      <!-- Behaviours: taught, never inherited and never scored -->
+      @if (motions().length) {
+        <section class="bench__panel" aria-labelledby="bench-motions">
+          <h4 class="bench__panel-title" id="bench-motions">{{ motionsHeading() }}</h4>
+          <ul class="bench__list">
+            @for (row of motions(); track row.id) {
+              <li>
+                <button
+                  type="button"
+                  class="bench__move"
+                  [class.bench__move--active]="activeMotion() === row.id"
+                  [disabled]="!renderingAvailable"
+                  (click)="playMotion(row)"
+                >
+                  <span class="bench__move-head">
+                    <span class="bench__move-name">{{ row.name }}</span>
+                    <span class="bench__badge">Not inherited</span>
+                  </span>
+                  <span class="bench__move-detail">{{ row.detail }}</span>
+                </button>
               </li>
             }
           </ul>
-
-          <p class="bench__caveat">{{ fitnessCaveat() }}</p>
-
-          <dl class="bench__raw">
-            <div>
-              <dt>Total health</dt>
-              <dd>{{ report.defense.totalHealth }}</dd>
-            </div>
-            <div>
-              <dt>Body health</dt>
-              <dd>{{ report.defense.corePartHealth }}</dd>
-            </div>
-            <div>
-              <dt>Body damage reduction</dt>
-              <dd>{{ percent(report.defense.coreArmor) }}</dd>
-            </div>
-            <div>
-              <dt>Strongest hit</dt>
-              <dd>{{ report.offense.bestSingleHit }}</dd>
-            </div>
-          </dl>
         </section>
       }
     </div>

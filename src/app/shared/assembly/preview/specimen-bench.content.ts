@@ -1,5 +1,6 @@
 import { AssemblyAbilityId } from '../combat/assembly-abilities';
 import { AssemblyPartRole } from '../domain/assembly.models';
+import { SpecimenMotionDefinition } from './specimen-motion';
 
 /**
  * Wording for the test bench.
@@ -26,6 +27,20 @@ export interface DefensiveFeatureCopy {
   detail: string;
   /** Shown when no part carries any of those roles. */
   missingDetail: string;
+}
+
+/**
+ * A motion the bench can play that is *not* an attack.
+ *
+ * Kept separate from {@link AbilityCopy} because the distinction is the lesson:
+ * an ability is carried by the genome and read by the arena, while a motion is
+ * something the animal was taught or simply does. Nothing here reaches combat.
+ */
+export interface SpecimenBenchMotion {
+  id: string;
+  name: string;
+  detail: string;
+  motion: SpecimenMotionDefinition;
 }
 
 export interface SpecimenBenchCopy {

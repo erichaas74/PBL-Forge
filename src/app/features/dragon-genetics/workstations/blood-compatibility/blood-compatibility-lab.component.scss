@@ -756,7 +756,7 @@ button:disabled {
 .serum-vial {
   position: absolute;
   z-index: 4;
-  width: 1.65rem;
+  width: 2.8rem;
   height: 2.65rem;
   left: 50%;
   top: 0.4rem;
@@ -800,7 +800,7 @@ button:disabled {
   top: 1.15rem;
   width: 100%;
   color: #16323a;
-  font-size: 0.46rem;
+  font-size: var(--text-xs);
   font-weight: 950;
   text-align: center;
 }

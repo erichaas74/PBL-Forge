@@ -156,13 +156,15 @@ canvas[hidden],
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
   padding: 0;
-  min-height: min(42rem, 56vw);
+  min-height: min(29rem, 44vw);
   list-style: none;
   background: #101126;
 }
 .gamete-card {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto;
+  align-content: start;
+  gap: 0.8rem;
   min-width: 0;
   padding: 1rem;
   background: linear-gradient(145deg, rgba(40, 36, 72, 0.72), rgba(17, 17, 39, 0.92));
@@ -230,80 +232,8 @@ canvas[hidden],
   white-space: nowrap;
 }
 
-.gamete-orb {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  width: 3.7rem;
-  height: 3.7rem;
-  background: radial-gradient(circle, rgba(104, 83, 160, 0.5), rgba(42, 36, 78, 0.5));
-  border: 2px solid #736a99;
-  border-radius: 50%;
-}
-.gamete-orb i {
-  display: block;
-  width: 0.23rem;
-  height: 1.45rem;
-  background: #29c8e8;
-  border-radius: 99px;
-}
-.gamete-orb i:nth-child(2) {
-  height: 1.25rem;
-  background: #f06ca9;
-}
-.gamete-orb i:nth-child(3) {
-  height: 1.05rem;
-}
-.gamete-orb i:nth-child(4) {
-  height: 0.88rem;
-  background: #f06ca9;
-}
-.gamete-orb i:nth-child(5) {
-  height: 0.68rem;
-}
-.gamete-orb i.recombinant {
-  background: linear-gradient(#29c8e8 0 50%, #f06ca9 50%);
-}
-
-.gamete-chromosomes {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  align-self: center;
-  gap: 0.35rem;
-  margin: 0.8rem 0;
-  padding: 0;
-  list-style: none;
-}
-.gamete-chromosomes li {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 0.2rem;
-  min-width: 0;
-  min-height: 7rem;
-  padding: 0.45rem 0.25rem;
-  background: rgba(10, 11, 29, 0.62);
-  border: 1px solid #3d3859;
-  border-radius: 0.45rem;
-}
-.gamete-chromosomes li.recombinant {
-  border-color: #6ebfa9;
-}
-.gamete-chromosomes li > strong {
-  color: #bcb4d8;
-  font-size: 0.75rem;
-}
-.gamete-chromosomes app-chromosome-svg {
-  width: 100%;
-}
-.gamete-chromosomes li small {
-  overflow: hidden;
-  max-width: 100%;
-  color: #9e98b3;
-  font-size: 0.75rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.gamete-cell-viewport {
+  width: min(10rem, 28vw);
 }
 
 .gamete-card .choose {

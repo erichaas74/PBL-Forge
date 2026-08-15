@@ -184,13 +184,15 @@ describe('head anchors', () => {
    * `{ x, -0.08, 0 }` authored against the bounding box; on a head whose muzzle
    * drops it sat above the skull, and the jaw hung in mid-air.
    */
-  it('puts the jaw hinge under the muzzle surface, not on the bounding box', () => {
+  it('puts the jaw hinge on the muzzle top, not on the bounding box', () => {
     const shape = headShapeFor(SNOUT);
     const mount = dragonHeadJawMount(SNOUT, shape);
     const section = dragonHeadSection(SNOUT, 0.34, shape);
 
-    expect(mount.y).toBeLessThan(section.centerY);
-    expect(mount.y).toBeGreaterThan(section.centerY - section.halfHeight);
+    // Exactly the top of the muzzle at the meeting station: the jaw seats its
+    // own top-back edge here, so the two surfaces finish level. Read from the
+    // profile, so it still sits below the bounding box on a drooping muzzle.
+    expect(mount.y).toBeCloseTo(section.centerY + section.halfHeight, 10);
     expect(Math.abs(mount.y)).toBeLessThanOrEqual(SNOUT.y / 2);
   });
 

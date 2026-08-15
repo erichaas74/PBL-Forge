@@ -17,6 +17,7 @@ import {
   DragonParentProfile,
   DragonTraitId,
 } from '../../simulation/domain/dragon-lab.models';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   ACCOUNT_GENETICS_RECORD_DRAG_TYPE,
   AccountDragonRecord,
@@ -56,7 +57,7 @@ export class DragonHatcheryBreedingLabComponent {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);
   private readonly repository = inject(DragonHatcheryBreedingRepository);
 
-  readonly studentId = input('local-student');
+  readonly studentId = input.required<string>();
   readonly seed = input('dragon-hatchery');
 
   readonly eggParentId = signal<string | null>(null);
@@ -320,7 +321,7 @@ export class DragonHatcheryBreedingLabComponent {
   private persist(): void {
     const snapshot: DragonHatcheryBreedingSnapshot = {
       schemaVersion: 1,
-      studentId: this.studentId().trim() || 'local-student',
+      studentId: normalizeWorkstationStudentId(this.studentId()),
       eggParentId: this.eggParentId(),
       spermParentId: this.spermParentId(),
       targetTraitId: this.targetTraitId(),

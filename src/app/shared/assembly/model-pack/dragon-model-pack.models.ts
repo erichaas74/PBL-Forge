@@ -27,6 +27,10 @@ export const SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS = [
   'dragon-lower-jaw',
   'dragon-leg',
   'dragon-foot',
+  // Grasping forelimbs: the `ll` body plan swaps the front walking chain for
+  // these, so a pack that carries one has to be able to name them.
+  'dragon-grasp-arm',
+  'dragon-grasp-hand',
   'dragon-claw',
   'dragon-wing',
   'dragon-secondary-wing',

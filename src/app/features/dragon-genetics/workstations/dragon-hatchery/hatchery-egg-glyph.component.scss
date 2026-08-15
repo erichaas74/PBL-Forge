@@ -1,0 +1,157 @@
+:host {
+  --dh-allele-label-size: 9px;
+
+  display: block;
+  width: 100%;
+}
+
+/* Height comes from the viewBox aspect ratio, so a shell keeps its shape in any tray cell. */
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.shell {
+  fill: var(--dh-shell, #e6ecf5);
+  stroke: var(--dh-shell-edge, #8fa7bf);
+  stroke-width: 2;
+}
+
+.speckle {
+  fill: var(--dh-speckle, #7d93ac);
+  opacity: 0.5;
+}
+
+.aura {
+  fill: currentColor;
+  opacity: 0.16;
+}
+
+.allele-locus rect {
+  fill: var(--dh-console, #20384f);
+  stroke: var(--dh-staged, #67e8f9);
+  stroke-width: 1;
+}
+
+/*
+ * SVG user units, not CSS pixels: this scales with the viewBox. At the
+ * glyph's 5.5rem cap against a 64-unit box the factor is ~1.375, so 9
+ * units lands at ~12px on screen — the same floor --text-xs sets for
+ * everything laid out in CSS. Allele letters are content, not decoration;
+ * they may not fall below it. Raising this means growing the locus rect
+ * in the template to match.
+ */
+.allele-locus text {
+  fill: #fff;
+  font-family: ui-monospace, monospace;
+  font-size: var(--dh-allele-label-size);
+  font-weight: 800;
+}
+
+.candle {
+  fill: var(--dh-examined, #efc668);
+  opacity: 0.5;
+  animation: candle-warm var(--dh-candle-ms, 900ms) ease-out 1;
+}
+
+.candle-edge {
+  fill: none;
+  stroke: var(--dh-examined, #efc668);
+  stroke-width: 1.6;
+  opacity: 0.8;
+}
+
+.needle,
+.strand,
+.rung,
+.crack {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.needle {
+  stroke: var(--dh-muted, #a4bcd0);
+  stroke-width: 2.2;
+}
+
+.needle-tip {
+  fill: var(--dh-sampled, #b49cf2);
+}
+
+.strand {
+  stroke: var(--dh-sampled, #b49cf2);
+  stroke-width: 2.4;
+}
+
+.strand.second {
+  opacity: 0.62;
+}
+
+.rung {
+  stroke: var(--dh-sampled, #b49cf2);
+  stroke-width: 1.2;
+  opacity: 0.7;
+}
+
+.crack {
+  stroke: var(--dh-hatched, #58cba6);
+  stroke-width: 3;
+  animation: crack-open var(--dh-hatch-ms, 1400ms) ease-out 1;
+}
+
+.crack.minor {
+  stroke-width: 1.8;
+  opacity: 0.7;
+}
+
+.lock rect {
+  fill: var(--dh-locked, #6d8098);
+}
+
+.lock .shackle {
+  fill: none;
+  stroke: var(--dh-locked, #6d8098);
+  stroke-width: 1.6;
+}
+
+.stage-ring {
+  fill: none;
+  stroke: var(--dh-staged, #67e8f9);
+  stroke-width: 2.6;
+  stroke-dasharray: 7 5;
+}
+
+@keyframes candle-warm {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 0.5;
+  }
+}
+
+@keyframes crack-open {
+  from {
+    stroke-dasharray: 0 90;
+  }
+
+  to {
+    stroke-dasharray: 90 0;
+  }
+}
+
+:host(.reduced-motion) .candle,
+:host(.reduced-motion) .crack {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candle,
+  .crack {
+    animation: none;
+  }
+}

@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   BLOOD_TYPE_DEFINITIONS,
   BloodEmergencyRecord,
@@ -17,7 +18,7 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.blood-emergencies.v1';
 @Injectable({ providedIn: 'root' })
 export class BloodCompatibilityRepository {
   load(studentId: string): readonly BloodEmergencyRecord[] {
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     if (typeof localStorage === 'undefined') return [];
     try {
       const value = JSON.parse(
@@ -32,7 +33,7 @@ export class BloodCompatibilityRepository {
   }
 
   save(studentId: string, record: BloodEmergencyRecord): readonly BloodEmergencyRecord[] {
-    const normalizedStudentId = studentId.trim() || 'local-student';
+    const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     const records = [
       record,
       ...this.load(normalizedStudentId).filter((candidate) => candidate.id !== record.id),

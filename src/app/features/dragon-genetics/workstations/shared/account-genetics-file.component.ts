@@ -38,7 +38,7 @@ import { AccountGeneticsLibraryService } from './account-genetics-library.servic
 export class AccountGeneticsFileComponent {
   private readonly library = inject(AccountGeneticsLibraryService);
 
-  readonly studentId = input('local-student');
+  readonly studentId = input.required<string>();
   readonly selectedRecordId = input<string | null>(null);
   readonly dragonsOnly = input(false);
   readonly compact = input(false);

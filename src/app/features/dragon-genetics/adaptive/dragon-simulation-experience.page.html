@@ -29,7 +29,11 @@
           Guide
         </button>
       }
-      <app-genetics-notebook />
+      <app-genetics-notebook
+        [genes]="availableAlleleGenes()"
+        [alleles]="availableAlleles()"
+        [notebook]="geneticsNotebook()"
+      />
       <div class="save-state" [class.error]="store.persistenceState() === 'error'">
         <i></i>
         @switch (store.persistenceState()) {
@@ -49,7 +53,7 @@
       </div>
     </header>
 
-    @if (session.isLocalTeacher() && run(); as previewRun) {
+    @if (isTeacherPreview() && run(); as previewRun) {
       <aside class="preview-toolbar">
         <strong>Teacher preview</strong>
         <label
@@ -132,7 +136,7 @@
         <main class="experience-workspace punnett-workspace">
           <section class="visual-stage punnett-stage">
             <app-punnett-composer
-              [studentId]="session.user()?.uid ?? 'local-student'"
+              [studentId]="studentId()"
               [goal]="simulation.goal"
             />
           </section>
@@ -141,7 +145,7 @@
         <main class="experience-workspace incubator-workspace">
           <section class="visual-stage incubator-stage">
             <app-incubator-sampler
-              [studentId]="session.user()?.uid ?? 'local-student'"
+              [studentId]="studentId()"
               [goal]="simulation.goal"
             />
           </section>
@@ -150,7 +154,7 @@
         <main class="experience-workspace dna-workspace">
           <section class="visual-stage dna-stage">
             <app-dragon-dna-repair-lab
-              [studentId]="session.user()?.uid ?? 'local-student'"
+              [studentId]="studentId()"
               [goal]="simulation.goal"
               [analysisCase]="transferredDnaAnalysisCase()"
               [chromosomeModel]="transferredDnaChromosomeModel()"
@@ -183,7 +187,7 @@
               />
             } @else if (simulation.id === 'dragon-hatchery') {
               <app-dragon-hatchery-breeding-lab
-                [studentId]="session.user()?.uid ?? 'local-student'"
+                [studentId]="studentId()"
                 [seed]="currentRun.seed"
               />
             } @else if (simulation.id === 'dragon-arena') {

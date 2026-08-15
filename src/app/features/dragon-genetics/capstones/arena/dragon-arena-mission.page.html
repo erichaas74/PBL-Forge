@@ -1,9 +1,11 @@
 <main class="arena-mission">
   <header class="mission-header">
-    <a routerLink="/dragon-genetics">← Project</a>
-    <span>Final path · Dragon Arena</span>
-    <h1>Breed. Test. Defend.</h1>
-    <p>Take one Hatchery dragon into a fair arena trial.</p>
+    <a routerLink="/dragon-genetics">&#8592; Return to the project</a>
+    <span>Berk capstone &#183; Dragon Arena</span>
+    <h1>Enter the Dragon Ring</h1>
+    <p>
+      Choose one Hatchery champion and test how its inherited traits perform in a fair arena trial.
+    </p>
   </header>
 
   @if (selectedChampion(); as champion) {
@@ -19,11 +21,20 @@
         (recordSelected)="selectChampion($event)"
       />
       <dl>
-        <div><dt>Trials</dt><dd>{{ selectedTrials().length }}</dd></div>
-        <div><dt>Wins</dt><dd>{{ wins() }}</dd></div>
-        <div><dt>Best score</dt><dd>{{ bestScore() }}</dd></div>
+        <div>
+          <dt>Trials</dt>
+          <dd>{{ selectedTrials().length }}</dd>
+        </div>
+        <div>
+          <dt>Wins</dt>
+          <dd>{{ wins() }}</dd>
+        </div>
+        <div>
+          <dt>Best score</dt>
+          <dd>{{ bestScore() }}</dd>
+        </div>
       </dl>
-      <a routerLink="/dragon-genetics/dragon-hatchery">Breed another</a>
+      <a routerLink="/dragon-genetics/dragon-hatchery">Return to the Hatchery</a>
     </section>
 
     <app-dragon-arena
@@ -49,8 +60,15 @@
             @for (trial of selectedTrials(); track trial.id) {
               <li>
                 <strong>{{ trial.score }}</strong>
-                <span>{{ trial.won ? 'Win' : 'Loss' }} · {{ trial.elapsedSeconds.toFixed(1) }}s · {{ trial.remainingHealthPercent }}% health</span>
-                <small>{{ trial.scoreBreakdown.outcomePoints }} outcome + {{ trial.scoreBreakdown.conditionPoints }} condition + {{ trial.scoreBreakdown.pacePoints }} pace</small>
+                <span
+                  >{{ trial.won ? 'Win' : 'Loss' }} · {{ trial.elapsedSeconds.toFixed(1) }}s ·
+                  {{ trial.remainingHealthPercent }}% health</span
+                >
+                <small
+                  >{{ trial.scoreBreakdown.outcomePoints }} outcome +
+                  {{ trial.scoreBreakdown.conditionPoints }} condition +
+                  {{ trial.scoreBreakdown.pacePoints }} pace</small
+                >
               </li>
             }
           </ol>

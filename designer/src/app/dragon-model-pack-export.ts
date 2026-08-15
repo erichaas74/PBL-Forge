@@ -46,12 +46,28 @@ export function applyDragonStyleToBlueprint(
     const profileId = part.visualProfile?.profileId ?? '';
     if (!part.visualProfile) return part;
 
+    /*
+     * The joint ball is spelled out rather than spread, because the style names
+     * it `joint.ball` while the factory reads a flat `jointBall`. Every part
+     * that draws one gets it: the skull for the neck, the leg segments for hip,
+     * knee and ankle, and each tail link.
+     */
+    const jointBall = { jointBall: style.joint.ball };
+
     let authored: Record<string, number> | null = null;
     if (profileId === 'dragon-body') authored = { ...style.body };
-    else if (profileId.startsWith('dragon-head-')) authored = { ...style.head };
+    else if (profileId.startsWith('dragon-head-')) authored = { ...style.head, ...jointBall };
     else if (profileId === 'dragon-upper-jaw' || profileId === 'dragon-lower-jaw') {
       authored = { ...style.jaw };
     } else if (profileId === 'dragon-foot') authored = { ...style.foot };
+    else if (profileId === 'dragon-grasp-hand') authored = { ...style.grasp, ...jointBall };
+    else if (
+      profileId === 'dragon-leg'
+      || profileId === 'dragon-tail'
+      || profileId === 'dragon-grasp-arm'
+    ) {
+      authored = { ...jointBall };
+    }
     else if (profileId === 'dragon-wing' || profileId === 'dragon-secondary-wing') {
       authored = { ...style.wing };
     } else if (profileId === 'dragon-tail-club') authored = { ...style.tailClub };

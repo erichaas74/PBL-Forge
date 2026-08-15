@@ -15,6 +15,7 @@ describe('IslandDiversityManagerComponent', () => {
       providers: [provideRouter([])],
     }).compileComponents();
     fixture = TestBed.createComponent(IslandDiversityManagerComponent);
+    fixture.componentRef.setInput('studentId', 'island-diversity-component-spec');
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

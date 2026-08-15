@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DRAGON_PARENTS } from '../../simulation/domain/dragon-inheritance';
 import { chromosomeVisual, DRAGON_LOCUS_COLORS } from '../shared/dragon-chromosome.catalog';
+import { meiosisGameteChromosomeSvgModel } from './meiosis-gamete.viewport';
 import { SelectedMeiosisGamete } from './meiosis-gamete.models';
 import { MeiosisGameteSelectorComponent } from './meiosis-gamete-selector.component';
 
@@ -45,7 +46,7 @@ describe('MeiosisGameteSelectorComponent', () => {
     const cards = fixture.nativeElement.querySelectorAll('.gamete-card') as NodeListOf<HTMLElement>;
     expect(cards.length).toBe(4);
     cards.forEach((card) => {
-      expect(card.querySelectorAll('.gamete-chromosomes > li').length).toBe(5);
+      expect(card.querySelectorAll('.chromosome-in-cell').length).toBe(5);
       expect(card.querySelectorAll('app-chromosome-svg').length).toBe(5);
       expect(card.querySelector('.choose')?.textContent).toContain('chamber');
     });
@@ -57,7 +58,7 @@ describe('MeiosisGameteSelectorComponent', () => {
   it('builds gamete chromosomes from the shared workbench band and locus catalog', () => {
     const chromosome = component.run()!.gametes[0].chromosomes[0];
     const visual = chromosomeVisual(chromosome.chromosome);
-    const model = component.gameteChromosomeModel(chromosome);
+    const model = meiosisGameteChromosomeSvgModel(chromosome);
 
     expect(model.length).toBe(visual.length);
     expect(model.centromere).toBe(visual.centromere);
@@ -80,7 +81,7 @@ describe('MeiosisGameteSelectorComponent', () => {
       .find((chromosome) => chromosome.sexChromosome === 'Y');
 
     expect(yChromosome).toBeDefined();
-    const model = component.gameteChromosomeModel(yChromosome!);
+    const model = meiosisGameteChromosomeSvgModel(yChromosome!);
     expect(model.length).toBe(chromosomeVisual('Chr Y').length);
     expect(model.centromere).toBe(chromosomeVisual('Chr Y').centromere);
     expect(model.leftLabel).toBe('Yp');

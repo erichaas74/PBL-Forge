@@ -17,6 +17,10 @@ import {
 import { AccountGeneticsLibraryService } from '../shared/account-genetics-library.service';
 import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
 import {
+  LOCAL_WORKSTATION_STUDENT_ID,
+  normalizeWorkstationStudentId,
+} from '../shared/dragon-workstation-context.models';
+import {
   admitAccountDragon,
   advanceIslandGeneration,
   clearProtectedPair,
@@ -57,13 +61,15 @@ export class IslandDiversityManagerComponent {
   private readonly repository = inject(IslandDiversityRepository);
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);
 
-  readonly studentId = input('local-student');
+  readonly studentId = input.required<string>();
   readonly worldChange = output<StoredIslandDiversityWorld>();
   readonly islandDefinitions = ISLAND_DEFINITIONS;
   readonly loci = Object.values(CONSERVATION_LOCI);
   readonly populationDots = Array.from({ length: 12 }, (_, index) => index);
 
-  readonly world = signal<IslandDiversityWorld>(this.repository.load('local-student'));
+  readonly world = signal<IslandDiversityWorld>(
+    this.repository.load(LOCAL_WORKSTATION_STUDENT_ID),
+  );
   readonly selectedIslandId = signal<IslandId>('stormbreak');
   readonly selectedDragonId = signal<string | null>(null);
   readonly stagedAccountRecord = signal<AccountGeneticsRecord | null>(null);
@@ -126,7 +132,7 @@ export class IslandDiversityManagerComponent {
 
   constructor() {
     effect(() => {
-      const studentId = this.studentId().trim() || 'local-student';
+      const studentId = normalizeWorkstationStudentId(this.studentId());
       if (studentId === this.loadedStudentId) return;
       this.loadedStudentId = studentId;
       const world = this.repository.load(studentId);
@@ -415,7 +421,7 @@ export class IslandDiversityManagerComponent {
     this.world.set(saved);
     this.worldChange.emit({
       schemaVersion: 1,
-      studentId: this.studentId().trim() || 'local-student',
+      studentId: normalizeWorkstationStudentId(this.studentId()),
       world: saved,
     });
   }

@@ -1,0 +1,15 @@
+<div class="island-diversity-page">
+  <header class="page-header">
+    <a
+      class="exit"
+      routerLink="/dragon-genetics"
+      aria-label="Return to Dragon Genetics mission map"
+      >←</a
+    >
+    <div>
+      <span>DRAGON GENETICS · ARCHIPELAGO CONSERVATION STATION</span>
+      <h1>Island Diversity Manager</h1>
+    </div>
+  </header>
+  <app-island-diversity-manager [studentId]="studentId()" (worldChange)="recordWorld($event)" />
+</div>

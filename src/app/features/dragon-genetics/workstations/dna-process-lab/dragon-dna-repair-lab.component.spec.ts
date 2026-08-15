@@ -9,6 +9,7 @@ describe('DragonDnaRepairLabComponent', () => {
     localStorage.clear();
     TestBed.configureTestingModule({ imports: [DragonDnaRepairLabComponent] });
     fixture = TestBed.createComponent(DragonDnaRepairLabComponent);
+    fixture.componentRef.setInput('studentId', 'local-student');
     lab = fixture.componentInstance;
     fixture.detectChanges();
   });

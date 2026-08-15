@@ -2,8 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   alignDnaSequences,
   DnaSequenceAnalysisComponent,
-  TEST_DNA_ANALYSIS_CASE,
 } from './dna-sequence-analysis.component';
+import { TEST_DNA_ANALYSIS_CASE } from './dna-process.models';
 
 describe('DnaSequenceAnalysisComponent', () => {
   let fixture: ComponentFixture<DnaSequenceAnalysisComponent>;

@@ -53,7 +53,15 @@ export const EXPRESSIVE_DRAGON_TRAITS: readonly ExpressiveDragonTraitDefinition[
     inheritance: 'incomplete-dominance',
     heterozygousPhenotype: 'Intermediate five-spike club',
   },
-  trait('legs', 'Leg arrangement', 'L', 'Chr 1', 'Four-legged', 'Two-legged', 'Retains either both leg pairs or only the rear pair.'),
+  /*
+   * The recessive form used to be *no* front limbs at all. An absence makes a
+   * poor phenotype — there is nothing on the recessive animal to read — so `ll`
+   * now grows a grasping forelimb instead: a short arm ending in three hooked
+   * fingers, held clear of the ground, and the dragon rears onto its hind legs
+   * to carry itself. Both forms have something to look at, which is what a
+   * student is being asked to do.
+   */
+  trait('legs', 'Forelimb form', 'L', 'Chr 1', 'Walking forelegs', 'Grasping forearms', 'Decides whether the front limbs are weight-bearing legs or short grasping arms.'),
   trait('fire', 'Fire breathing', 'F', 'Chr 2', 'Breathes fire', 'No fire breath', 'Changes jaw expression and unlocks the existing fire ability.'),
   trait('horns', 'Horns', 'H', 'Chr 2', 'Horned', 'Smooth-headed', 'Selects the horned or smooth real head profile.'),
   trait('claws', 'Claw size', 'C', 'Chr 2', 'Large claws', 'Small claws', 'Changes talon length on each foot.'),

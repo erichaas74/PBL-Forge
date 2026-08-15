@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   DRAGON_TRAITS,
   createEducationalAssembly,
@@ -76,7 +77,7 @@ export class IncubatorSamplerComponent implements OnDestroy {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);
   private readonly repository = inject(IncubatorSamplerRepository);
 
-  readonly studentId = input('local-student');
+  readonly studentId = input.required<string>();
   readonly goal = input(
     'Investigate how visible inherited traits appear and change across offspring and generations.',
   );
@@ -504,7 +505,7 @@ export class IncubatorSamplerComponent implements OnDestroy {
   private persist(): void {
     const snapshot: IncubatorSamplerSnapshot = {
       schemaVersion: 2,
-      studentId: this.studentId().trim() || 'local-student',
+      studentId: normalizeWorkstationStudentId(this.studentId()),
       originalParentIds: this.originalParentIds(),
       activeParentIds: this.activeParentIds(),
       activeBreedingPoolIds: this.activeBreedingPoolIds(),

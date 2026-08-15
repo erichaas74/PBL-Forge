@@ -23,6 +23,15 @@ export interface WingMembraneShape {
 }
 
 export const WING_SHAPES = {
+  /**
+   * Flat panels and straight edges — the shipped wing.
+   *
+   * Every curve is off: no sag between the fingers, no scalloped trailing edge,
+   * and the little camber left is there to catch light across the sheet rather
+   * than to bow it. What shapes the wing instead is where the fingers are, so
+   * the outline is a polygon with corners on them.
+   */
+  angular: { camber: 0.03, fingerSag: 0, dihedral: 0.03, scallop: 0 },
   /** Nearly flat — close to the original sheet, with just enough bow to catch light. */
   taut: { camber: 0.05, fingerSag: 0.03, dihedral: 0.02, scallop: 0.1 },
   /** A single clean airfoil bow. Reads well at thumbnail size. */
@@ -34,7 +43,7 @@ export const WING_SHAPES = {
 } as const satisfies Record<string, WingMembraneShape>;
 
 /** Shipped default. Change this line to adopt a tuned shape permanently. */
-export const DEFAULT_WING_SHAPE: WingMembraneShape = WING_SHAPES.cambered;
+export const DEFAULT_WING_SHAPE: WingMembraneShape = WING_SHAPES.angular;
 
 /**
  * How much deeper the membrane is than the plate it collides with.
@@ -118,11 +127,42 @@ export function foldWingPoint(
 }
 
 /**
- * Leading edge, at span fraction `s` — 0 at the root, 1 at the tip. The edge
- * sweeps back as it goes out, so this is not a constant.
+ * Leading edge, at span fraction `s` — 0 at the root, 1 at the tip.
+ *
+ * A **straight** sweep: the edge rakes back at a constant rate rather than
+ * curving away. It used to run as `s^1.5`, which put nearly all the sweep in
+ * the outer third and bent the front of the wing backwards like a scythe. The
+ * arm bone runs along this line, so the curve was not only in the outline — the
+ * whole leading edge of the wing bowed with it.
  */
 export function wingLeadingEdge(dimensions: Vector3Data, s: number): number {
-  return dimensions.x * 0.5 - wingChord(dimensions) * 0.12 * Math.pow(s, 1.5);
+  return dimensions.x * 0.5 - wingChord(dimensions) * 0.12 * s;
+}
+
+/**
+ * Chord depth at each of the stations the membrane is pinned at — the root, the
+ * two finger tips, and the wingtip — as a fraction of the full chord.
+ *
+ * The planform is built by joining these with straight lines, which is what
+ * makes the wing angular: it is a four-cornered panel whose corners are the
+ * fingers holding it out, rather than a smooth taper that happens to have
+ * fingers under it. Read from here rather than a formula so the mesh and
+ * anything measuring the wing agree about where the corners are.
+ */
+export const WING_STATIONS: readonly number[] = [0, 0.42, 0.74, 1];
+const WING_STATION_CHORDS: readonly number[] = [1, 0.86, 0.63, 0.38];
+
+/** Chord depth at span fraction `s`, linear between the stations. */
+export function wingChordFraction(s: number): number {
+  for (let index = 1; index < WING_STATIONS.length; index += 1) {
+    const from = WING_STATIONS[index - 1];
+    const to = WING_STATIONS[index];
+    if (s > to) continue;
+    const blend = (s - from) / Math.max(to - from, 1e-6);
+    const span = WING_STATION_CHORDS[index] - WING_STATION_CHORDS[index - 1];
+    return WING_STATION_CHORDS[index - 1] + span * Math.max(0, Math.min(1, blend));
+  }
+  return WING_STATION_CHORDS[WING_STATION_CHORDS.length - 1];
 }
 
 /**

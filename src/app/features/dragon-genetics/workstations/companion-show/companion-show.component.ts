@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
+import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import { MiniTrialResult } from './mini-dragon.events';
 import {
   MINI_DRAGON_GENES,
@@ -89,7 +90,7 @@ const MIN_CLAIM_LENGTH = 40;
 export class CompanionShowComponent {
   private readonly repository = inject(CompanionShowRepository);
 
-  readonly studentId = input('local-student');
+  readonly studentId = input.required<string>();
   readonly snapshotChange = output<CompanionShowSnapshot>();
   readonly goal = input(
     'Determine whether a mini dragon you design is reliably inherited across generations.',
@@ -591,7 +592,7 @@ export class CompanionShowComponent {
   private persist(): void {
     const snapshot: CompanionShowSnapshot = {
       schemaVersion: 2,
-      studentId: this.studentId().trim() || 'local-student',
+      studentId: normalizeWorkstationStudentId(this.studentId()),
       breedName: this.breedName(),
       targets: this.targets(),
       kennelFounderIds: this.kennelFounderIds(),

@@ -91,6 +91,13 @@ function limbPart(profileId: 'dragon-leg' | 'dragon-claw', dimensions: AssemblyP
 }
 
 /** First mesh in the group carrying a standard material. */
+/** A named child, or a failure naming what was missing rather than a null deref. */
+function childNamed(object: THREE.Object3D, name: string): THREE.Object3D {
+  const child = object.getObjectByName(name);
+  if (!child) throw new Error(`no child named ${name}`);
+  return child;
+}
+
 function skinOf(object: THREE.Object3D): THREE.MeshStandardMaterial {
   let found: THREE.MeshStandardMaterial | null = null;
   object.traverse(child => {
@@ -542,10 +549,328 @@ describe('dragon limb meshes', () => {
       expect(limb.position.toArray()).toEqual([0, 0, 0]);
     }
 
-    const legBounds = new THREE.Box3().setFromObject(leg);
+    // The limb's own skin, not the group: the joint balls are *supposed* to
+    // overrun the collider, since a ball that stops at the rim cannot reach
+    // into the part it is closing the gap against.
+    const legBounds = new THREE.Box3().setFromObject(childNamed(leg, 'dragon-leg-skin'));
 
     expect(legBounds.min.y).toBeCloseTo(-0.72 / 2, 2);
     expect(legBounds.max.y).toBeCloseTo(0.72 / 2, 2);
+  });
+});
+
+/**
+ * The male frill: a collar that encircles the whole skull.
+ *
+ * The failure it is drawn against is a flat disc behind the head, which has no
+ * thickness from any angle and vanishes to a line side-on. So the two things
+ * worth pinning are that the ring closes, and that it is a cone rather than a
+ * plate.
+ */
+describe('dragon male frill', () => {
+  function maleHead(): AssemblyPart {
+    const base = headPart('dragon-head-horned', 'sphere', { x: 0.42, y: 0.32, z: 0.3 });
+    return {
+      ...base,
+      visualProfile: {
+        profileId: 'dragon-head-horned',
+        meshType: 'procedural',
+        parameters: { sex: 'male' },
+      },
+    };
+  }
+
+  function spines(head: THREE.Object3D): THREE.Object3D[] {
+    const found: THREE.Object3D[] = [];
+    head.traverse(child => {
+      if (child.name.startsWith('dragon-male-crest-spine-')) found.push(child);
+    });
+    return found;
+  }
+
+  it('rings the skull rather than fanning across the back of it', () => {
+    const head = createDragonProceduralObject(maleHead())!;
+    const ring = spines(head);
+
+    expect(ring.length).toBeGreaterThanOrEqual(12);
+
+    // A fan spans one side to the other; a ring has spines above *and* below
+    // the skull's axis, and on both flanks.
+    const centres = ring.map(spine => new THREE.Box3().setFromObject(spine).getCenter(new THREE.Vector3()));
+    expect(centres.some(point => point.y > 0.1)).toBe(true);
+    expect(centres.some(point => point.y < -0.1)).toBe(true);
+    expect(centres.some(point => point.z > 0.1)).toBe(true);
+    expect(centres.some(point => point.z < -0.1)).toBe(true);
+  });
+
+  it('stands well clear of the head it encircles', () => {
+    const head = createDragonProceduralObject(maleHead())!;
+    const dims = { x: 0.84, y: 0.64, z: 0.6 };
+    const web = new THREE.Box3().setFromObject(childNamed(head, 'dragon-male-crest-web'));
+
+    // Taller and wider than the skull's own extent, which is what "way bigger"
+    // has to mean for a display structure.
+    expect(web.max.y - web.min.y).toBeGreaterThan(dims.y * 1.4);
+    expect(web.max.z - web.min.z).toBeGreaterThan(dims.z * 1.4);
+  });
+
+  it('is a cone, not a plate — it has depth along the head', () => {
+    const head = createDragonProceduralObject(maleHead())!;
+    const web = new THREE.Box3().setFromObject(childNamed(head, 'dragon-male-crest-web'));
+
+    // The rake: tips sit behind the roots, so side-on the frill is a V rather
+    // than a line. A flat disc measures zero here.
+    expect(web.max.x - web.min.x).toBeGreaterThan(0.2);
+  });
+
+  it('grows nothing of the kind on a female', () => {
+    const head = createDragonProceduralObject({
+      ...headPart('dragon-head-horned', 'sphere', { x: 0.42, y: 0.32, z: 0.3 }),
+      visualProfile: {
+        profileId: 'dragon-head-horned',
+        meshType: 'procedural',
+        parameters: { sex: 'female' },
+      },
+    })!;
+
+    expect(head.getObjectByName('dragon-male-crest-web')).toBeFalsy();
+    expect(head.getObjectByName('dragon-female-frill-left')).toBeTruthy();
+  });
+});
+
+/**
+ * The grasping forelimb — the `ll` body plan's arm and hand.
+ *
+ * What separates the hand from a foot is proportion: a talon on a foot is a
+ * stub against a broad pad, and a finger here is longer than the palm it grows
+ * from. That is the whole silhouette, so it is what these pin.
+ */
+describe('dragon grasping forelimb', () => {
+  function handPart(overrides: Partial<AssemblyPart> = {}): AssemblyPart {
+    return {
+      id: 'grasp-hand',
+      label: 'Grasping Hand',
+      roles: ['leg'],
+      shape: 'box',
+      mass: 0.07,
+      dimensions: { x: 0.2, y: 0.11, z: 0.17 },
+      position: { x: 0, y: 0, z: 0 },
+      color: '#a855f7',
+      visualProfile: { profileId: 'dragon-grasp-hand', meshType: 'procedural' },
+      ...overrides,
+    };
+  }
+
+  it('builds an arm segment with a joint ball at each end', () => {
+    const arm = createDragonProceduralObject(
+      limbPart('dragon-leg', { x: 0.14, y: 0.33, z: 0.14 }),
+    );
+    const grasp = createDragonProceduralObject({
+      ...limbPart('dragon-leg', { x: 0.14, y: 0.33, z: 0.14 }),
+      visualProfile: { profileId: 'dragon-grasp-arm', meshType: 'procedural' },
+    })!;
+
+    expect(arm).toBeTruthy();
+    expect(childNamed(grasp, 'dragon-grasp-arm-skin')).toBeTruthy();
+    expect(childNamed(grasp, 'dragon-grasp-arm-socket-ball')).toBeTruthy();
+    expect(childNamed(grasp, 'dragon-grasp-arm-heel-ball')).toBeTruthy();
+  });
+
+  it('is slimmer than the walking leg it replaces', () => {
+    const dims = { x: 0.2, y: 0.5, z: 0.2 };
+    const leg = new THREE.Box3().setFromObject(
+      childNamed(createDragonProceduralObject(limbPart('dragon-leg', dims))!, 'dragon-leg-skin'),
+    );
+    const arm = new THREE.Box3().setFromObject(
+      childNamed(
+        createDragonProceduralObject({
+          ...limbPart('dragon-leg', dims),
+          visualProfile: { profileId: 'dragon-grasp-arm', meshType: 'procedural' },
+        })!,
+        'dragon-grasp-arm-skin',
+      ),
+    );
+
+    expect(arm.max.x - arm.min.x).toBeLessThan(leg.max.x - leg.min.x);
+    // Same length, though: it is a limb segment, not a stub.
+    expect(arm.max.y - arm.min.y).toBeCloseTo(leg.max.y - leg.min.y, 4);
+  });
+
+  it('gives the hand three fingers on a palm', () => {
+    const hand = createDragonProceduralObject(handPart())!;
+
+    expect(childNamed(hand, 'dragon-grasp-palm')).toBeTruthy();
+    expect(childNamed(hand, 'dragon-grasp-finger-1')).toBeTruthy();
+    expect(childNamed(hand, 'dragon-grasp-finger-3')).toBeTruthy();
+    expect(hand.getObjectByName('dragon-grasp-finger-4')).toBeFalsy();
+  });
+
+  it('makes each finger longer than the palm, which is what reads as a hand', () => {
+    const hand = createDragonProceduralObject(handPart())!;
+    const palm = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-palm'));
+    const finger = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-finger-2'));
+
+    expect(finger.max.x - finger.min.x).toBeGreaterThan(palm.max.x - palm.min.x);
+  });
+
+  it('grows the fingers with the claw gene, the same one the feet read', () => {
+    const plain = createDragonProceduralObject(handPart())!;
+    const clawed = createDragonProceduralObject(
+      handPart({
+        visualProfile: {
+          profileId: 'dragon-grasp-hand',
+          meshType: 'procedural',
+          parameters: { clawScale: 1.6 },
+        },
+      }),
+    )!;
+
+    const reach = (object: THREE.Object3D): number =>
+      new THREE.Box3().setFromObject(childNamed(object, 'dragon-grasp-finger-2')).max.x;
+
+    expect(reach(clawed)).toBeGreaterThan(reach(plain));
+  });
+
+  it('fans the outer fingers off the centre one', () => {
+    const hand = createDragonProceduralObject(handPart())!;
+    const centre = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-finger-2'));
+    const outer = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-finger-3'));
+
+    expect(Math.abs(outer.getCenter(new THREE.Vector3()).z))
+      .toBeGreaterThan(Math.abs(centre.getCenter(new THREE.Vector3()).z));
+  });
+});
+
+/**
+ * Joint balls.
+ *
+ * A limb is an open tube meeting another open tube at an angle: bend the joint
+ * and the rims part, showing the hollow inside both. These pin the fix — the
+ * ball exists, it is sized off the part rather than in world units, and it sits
+ * on the *pivot* rather than the rim, which is the whole reason it stays put
+ * when the joint turns.
+ */
+describe('dragon joint balls', () => {
+  function ballBounds(object: THREE.Object3D, name: string): THREE.Box3 {
+    return new THREE.Box3().setFromObject(childNamed(object, name));
+  }
+
+  it('caps a leg at the hip socket and at the heel', () => {
+    const dims = { x: 0.22, y: 0.72, z: 0.22 };
+    const leg = createDragonProceduralObject(limbPart('dragon-leg', dims))!;
+
+    const socket = ballBounds(leg, 'dragon-leg-socket-ball');
+    const heel = ballBounds(leg, 'dragon-leg-heel-ball');
+
+    // Centres: the upper joint sits at 0.4 of the segment, the lower at its end.
+    expect(socket.getCenter(new THREE.Vector3()).y).toBeCloseTo(0.4 * dims.y, 4);
+    expect(heel.getCenter(new THREE.Vector3()).y).toBeCloseTo(-0.5 * dims.y, 4);
+
+    // Wider than the limb at that station, so the seam is always covered.
+    expect(socket.max.x - socket.min.x).toBeGreaterThan(dims.x);
+    expect(heel.max.x - heel.min.x).toBeGreaterThan(dims.x);
+  });
+
+  it('scales the balls with the part, not in world units', () => {
+    const small = createDragonProceduralObject(
+      limbPart('dragon-leg', { x: 0.22, y: 0.72, z: 0.22 }),
+    )!;
+    const large = createDragonProceduralObject(
+      limbPart('dragon-leg', { x: 0.44, y: 1.44, z: 0.44 }),
+    )!;
+
+    const smallBall = ballBounds(small, 'dragon-leg-socket-ball');
+    const largeBall = ballBounds(large, 'dragon-leg-socket-ball');
+
+    expect(largeBall.max.x - largeBall.min.x).toBeCloseTo(
+      (smallBall.max.x - smallBall.min.x) * 2,
+      4,
+    );
+  });
+
+  it('takes a per-part override for the ball width', () => {
+    const dims = { x: 0.22, y: 0.72, z: 0.22 };
+    const standard = ballBounds(
+      createDragonProceduralObject(limbPart('dragon-leg', dims))!,
+      'dragon-leg-socket-ball',
+    );
+    const wide = ballBounds(
+      createDragonProceduralObject({
+        ...limbPart('dragon-leg', dims),
+        visualProfile: {
+          profileId: 'dragon-leg',
+          meshType: 'procedural',
+          parameters: { jointBall: 2.12 },
+        },
+      })!,
+      'dragon-leg-socket-ball',
+    );
+
+    expect(wide.max.x - wide.min.x).toBeGreaterThan((standard.max.x - standard.min.x) * 1.8);
+  });
+
+  it('puts a vertebra at both ends of every tail link', () => {
+    const dims = { x: 0.12, y: 0.58, z: 0.12 };
+    const link = createDragonProceduralObject({
+      ...limbPart('dragon-leg', dims),
+      roles: ['tail'],
+      visualProfile: { profileId: 'dragon-tail', meshType: 'procedural' },
+    })!;
+
+    // Tail links hinge at their own ends, so both balls sit at ±0.5.
+    expect(ballBounds(link, 'dragon-tail-root-ball').getCenter(new THREE.Vector3()).y)
+      .toBeCloseTo(0.5 * dims.y, 4);
+    expect(ballBounds(link, 'dragon-tail-tip-ball').getCenter(new THREE.Vector3()).y)
+      .toBeCloseTo(-0.5 * dims.y, 4);
+  });
+
+  /**
+   * The torso is a lathe that stops while it still has width, so both ends are
+   * open pipes — 0.28 of the section at the tail, 0.42 at the neck. Nothing on
+   * the animal is wide enough to cover them from the outside, which is why the
+   * body has to close its own.
+   */
+  it('caps the torso openings the neck and tail hang off', () => {
+    const dims = bodyPart().dimensions;
+    const body = createDragonProceduralObject(bodyPart())!;
+
+    const neck = ballBounds(body, 'dragon-body-neck-socket');
+    const tail = ballBounds(body, 'dragon-body-tail-socket');
+
+    expect(neck.getCenter(new THREE.Vector3()).x).toBeCloseTo(0.5 * dims.x, 4);
+    expect(tail.getCenter(new THREE.Vector3()).x).toBeCloseTo(-0.5 * dims.x, 4);
+
+    // Each cap is wider than the hole it closes, on both axes of the ellipse.
+    expect(neck.max.y - neck.min.y).toBeGreaterThan(0.42 * dims.y);
+    expect(neck.max.z - neck.min.z).toBeGreaterThan(0.42 * dims.z);
+    expect(tail.max.y - tail.min.y).toBeGreaterThan(0.28 * dims.y);
+    expect(tail.max.z - tail.min.z).toBeGreaterThan(0.28 * dims.z);
+  });
+
+  /**
+   * A sphere big enough to close the wide axis of an elliptical opening stands
+   * proud of the narrow one, which on the shipped body is half again as deep as
+   * it is tall — a ball on the end rather than a shoulder.
+   */
+  it('matches the torso caps to the section rather than rounding them off', () => {
+    const body = createDragonProceduralObject(bodyPart())!;
+    const neck = ballBounds(body, 'dragon-body-neck-socket');
+
+    expect(neck.max.z - neck.min.z).not.toBeCloseTo(neck.max.y - neck.min.y, 2);
+  });
+
+  it('closes the throat where the skull hinges on the torso', () => {
+    const head = createDragonProceduralObject(
+      headPart('dragon-head-horned', 'sphere', { x: 0.42, y: 0.32, z: 0.3 }),
+    )!;
+
+    const neck = ballBounds(head, 'dragon-neck-ball');
+    const center = neck.getCenter(new THREE.Vector3());
+
+    // Behind the skull's midpoint, on the pivot the head swings about.
+    expect(center.x).toBeLessThan(0);
+    expect(center.z).toBeCloseTo(0, 4);
+    expect(neck.max.y - neck.min.y).toBeGreaterThan(0);
   });
 });
 
@@ -590,10 +915,16 @@ describe('dragon wing membrane', () => {
     expect(varies).toBe(true);
   });
 
+  /**
+   * Scales the whole part, not the chord alone. On the flat-panelled wing the
+   * remaining relief is mostly the span-wise rake out to the tip, so a wing
+   * given a deeper chord and the same span barely changes height — which is
+   * correct for this shape, and was not what this test used to assume.
+   */
   it('scales its relief with the genome, not a fixed size', () => {
     const small = membraneOf(createDragonProceduralObject(wingPart())!);
     const large = membraneOf(createDragonProceduralObject(wingPart({
-      dimensions: { x: 0.52, y: 0.08, z: 1.35 },
+      dimensions: { x: 0.52, y: 0.16, z: 2.7 },
     }))!);
 
     expect(verticalRelief(large)).toBeGreaterThan(verticalRelief(small) * 1.5);

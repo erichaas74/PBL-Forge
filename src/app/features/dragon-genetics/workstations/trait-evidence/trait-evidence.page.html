@@ -1,0 +1,13 @@
+<div class="trait-page">
+  <header class="page-header">
+    <a class="exit" routerLink="/dragon-genetics" aria-label="Return to Dragon Genetics">←</a>
+    <div>
+      <span>DRAGON GENETICS · OBSERVATION LAB</span>
+      <strong>Trait Evidence</strong>
+    </div>
+  </header>
+  <app-trait-evidence-workstation
+    [studentId]="studentId()"
+    (snapshotChange)="recordSnapshot($event)"
+  />
+</div>

@@ -170,6 +170,8 @@ function cloneStyle(style: DragonStyle): DragonStyle {
     jaw: { ...style.jaw },
     head: { ...style.head },
     foot: { ...style.foot },
+    grasp: { ...style.grasp },
+    joint: { ...style.joint },
     tailClub: { ...style.tailClub },
   };
 }
