@@ -66,7 +66,33 @@ export const EXPRESSIVE_DRAGON_TRAITS: readonly ExpressiveDragonTraitDefinition[
   trait('horns', 'Horns', 'H', 'Chr 2', 'Horned', 'Smooth-headed', 'Selects the horned or smooth real head profile.'),
   trait('claws', 'Claw size', 'C', 'Chr 2', 'Large claws', 'Small claws', 'Changes talon length on each foot.'),
   trait('scales', 'Scale pattern', 'S', 'Chr 3', 'Banded scales', 'Solid scales', 'Applies two-tone banding or one solid body color.'),
-  trait('body-color', 'Body color', 'B', 'Chr 3', 'Bronze body', 'Teal body', 'Repaints the complete procedural dragon.'),
+  /*
+   * The B locus counts colours rather than choosing one.
+   *
+   * It used to pick between a bronze dragon and a teal one, which made it the one
+   * gene in this genome that a student could only read by remembering what the
+   * *other* colour looked like — and it collided with colour's other job here,
+   * which is telling one dragon from another. Counting is a channel nothing else
+   * uses: a three-colour dragon, a two-colour dragon and a one-colour dragon are
+   * told apart at a glance and in any hue.
+   *
+   * Incomplete dominance, and genuinely so: `Bb` is not "looks like `BB`", it is
+   * the intermediate count. That is the same shape as the tail club above, so the
+   * Punnett and pedigree tools already know how to talk about it.
+   */
+  {
+    ...trait(
+      'body-color',
+      'Color count',
+      'B',
+      'Chr 3',
+      'Three colors',
+      'One color',
+      'BB, Bb and bb paint the dragon in three, two or one of its colors.',
+    ),
+    inheritance: 'incomplete-dominance',
+    heterozygousPhenotype: 'Two colors',
+  },
   trait('crest', 'Crest height', 'R', 'Chr 3', 'Tall crest', 'Low crest', 'Changes the height of crown fins on the head.'),
   /*
    * Bioluminescence replaced an ear-shape gene whose two phenotypes — a small

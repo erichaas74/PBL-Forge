@@ -86,8 +86,15 @@ describe('DragonHatcheryBreedingLabComponent', () => {
     expect(root.querySelectorAll('.sperm-cell .chromosome-in-cell').length).toBe(5);
     expect(root.querySelector('.egg-cell .chromosome-svg--placeholder')).toBeNull();
     expect(root.querySelector('.sperm-cell .chromosome-svg--placeholder')).toBeNull();
+    expect(root.querySelectorAll('.gamete-chambers .gamete-slot').length).toBe(0);
+    expect(root.querySelectorAll('.loaded-gamete-cell').length).toBe(2);
+    expect(root.querySelectorAll('.egg-gamete-cell .chromosome-in-cell').length).toBe(5);
+    expect(root.querySelectorAll('.sperm-gamete-cell .chromosome-in-cell').length).toBe(5);
+    expect(root.querySelector('.egg-gamete-cell .parent-gamete-analysis')).not.toBeNull();
+    expect(root.querySelector('.sperm-gamete-cell .parent-gamete-analysis')).not.toBeNull();
 
     expect(component.fertilizationState()).toBe('fusing');
+    expect(root.querySelector('app-meiosis-gamete-selector')).toBeNull();
     expect(root.querySelectorAll('.fusion-result .chromosome-svg--replicated').length).toBe(5);
     expect(root.querySelectorAll('.fusion-result .chromatid--sister').length).toBe(5);
     expect(root.querySelectorAll('.fusion-result .centromere-joint').length).toBe(5);
@@ -108,7 +115,21 @@ describe('DragonHatcheryBreedingLabComponent', () => {
     expect(root.querySelector('.fusion-result .inspection-panel')).not.toBeNull();
     expect(root.querySelector('.fertilized-gene-analysis')?.textContent).toContain('Egg allele');
     expect(root.querySelector('.fertilized-gene-analysis')?.textContent).toContain('Sperm allele');
+    const showBaby = root.querySelector<HTMLButtonElement>('.show-baby-dragon');
+    expect(showBaby).not.toBeNull();
+    expect(root.querySelector('.new-dragon')).toBeNull();
+    showBaby?.click();
+    fixture.detectChanges();
+    expect(root.querySelector('.new-dragon app-specimen-viewport')).not.toBeNull();
+    expect(root.querySelector('.new-dragon')?.textContent).toContain('Hatchling 1');
     expect(root.querySelector('app-dragon-hatchery-station')).toBeNull();
     expect(root.textContent).not.toContain('Candling');
+
+    component.newFamily();
+    component.selectParent('female', female);
+    component.selectParent('male', male);
+    fixture.detectChanges();
+    expect(root.querySelector('app-meiosis-gamete-selector')).not.toBeNull();
+    expect(root.querySelector('.new-dragon')).toBeNull();
   }));
 });

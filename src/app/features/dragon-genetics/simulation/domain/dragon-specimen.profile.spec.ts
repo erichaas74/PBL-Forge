@@ -8,10 +8,12 @@ import { DRAGON_LOCUS_VISUALS, createFounderDragonGenome } from './dragon-phenot
 import { DragonLabGenome } from './dragon-lab.models';
 import {
   DRAGON_SPECIMEN_PROFILE_ID,
+  createExpressiveDragonBenchBuild,
   dragonEngineGenomeSource,
   dragonLabGenomeSource,
   provideDragonSpecimenProfile,
 } from './dragon-specimen.profile';
+import { DEFAULT_EXPRESSIVE_DRAGON, normalizeGenomeForSex } from './dragon-expressive-genome';
 
 const WINGED: DragonLabGenome = {
   wings: ['W', 'w'],
@@ -178,6 +180,56 @@ describe('dragon specimen profile', () => {
 
     expect(reloaded.descriptor.label).toBe('Ember');
     expect(reloaded.descriptor.blueprint).toEqual(live.descriptor.blueprint);
+  });
+});
+
+/**
+ * The B locus counts colours: `BB` three, `Bb` two, `bb` one. It is incomplete
+ * dominance, so unlike every complete-dominance gene in this genome the
+ * heterozygote is *meant* to be tellable by eye — that is the lesson it carries.
+ */
+describe('colour count gene', () => {
+  function benchDragon(pair: [string, string]) {
+    const profile = normalizeGenomeForSex(
+      {
+        sex: 'female',
+        genome: { ...DEFAULT_EXPRESSIVE_DRAGON.genome, 'body-color': pair as never },
+      },
+      'female',
+    );
+    return createExpressiveDragonBenchBuild('bench', profile);
+  }
+
+  /** Every pigment on the animal: ground colours and marking colours alike. */
+  function palette(pair: [string, string]): Set<string> {
+    const build = benchDragon(pair);
+    if (build.source.kind !== 'descriptor') throw new Error('expected a descriptor build');
+    const tones = new Set<string>();
+    for (const part of build.source.descriptor.blueprint.parts) {
+      tones.add(part.color);
+      const marking = part.visualProfile?.parameters?.['patternColor'];
+      if (typeof marking === 'string' && marking) tones.add(marking);
+    }
+    return tones;
+  }
+
+  it('grades three, two and one colour across BB, Bb and bb', () => {
+    expect(palette(['B', 'B']).size).toBe(3);
+    expect(palette(['B', 'b']).size).toBe(2);
+    expect(palette(['b', 'b']).size).toBe(1);
+  });
+
+  it('changes the count without changing the dragon underneath', () => {
+    // Every count is drawn from the same palette, narrowed — so the tones a
+    // one-colour dragon wears are a subset of a three-colour one's. Without this
+    // the gene reads as "repaints the dragon", which is the channel it used to be
+    // and the reason it was hard to read.
+    const three = palette(['B', 'B']);
+    for (const pair of [['B', 'b'], ['b', 'b']] as [string, string][]) {
+      for (const tone of palette(pair)) {
+        expect(three.has(tone)).withContext(`${pair.join('')} ${tone}`).toBeTrue();
+      }
+    }
   });
 });
 

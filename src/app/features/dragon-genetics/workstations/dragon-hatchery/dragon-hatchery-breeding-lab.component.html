@@ -184,79 +184,147 @@
           </article>
         </div>
         <div class="gamete-chambers">
-          <button
-            type="button"
-            class="gamete-slot egg-slot"
+          <article
+            class="loaded-gamete-cell egg-gamete-cell"
             [class.filled]="eggSelection()"
-            [class.active]="activeRole() === 'female'"
-            (click)="activeRole.set('female')"
             (dragover)="allowDrop($event)"
             (drop)="dropGamete('female', $event)"
           >
             <span aria-hidden="true">◯</span>
             <div>
-              <small>SELECTED EGG</small><strong>{{ selectionSummary(eggSelection()) }}</strong>
+              <small>SELECTED EGG GAMETE</small>
+              <strong>{{ eggSelection() ? 'Haploid egg cell' : 'Awaiting selected egg' }}</strong>
             </div>
-          </button>
+            <app-cell-chromosome-viewport
+              [chromosomes]="eggSelection() ? eggGameteChromosomes() : gameteOutlineChromosomes()"
+              [selectedChromosome]="eggSelection() ? inspectedGameteChromosome('female') : null"
+              [selectedLocus]="eggSelection() ? inspectedGameteLocus('female') : null"
+              [selectable]="!!eggSelection()"
+              [locusSelectable]="!!eggSelection()"
+              [showLoci]="!!eggSelection()"
+              [allowReplicatedView]="false"
+              ariaLabel="Analyze the selected egg gamete's single chromosomes"
+              layout="inspect"
+              (chromosomeSelected)="inspectGameteChromosome('female', $event)"
+              (locusSelected)="inspectGameteLocus('female', $event)"
+            />
+            @if (gameteGeneAnalysis('female'); as gene) {
+              <section class="parent-gamete-analysis" aria-live="polite">
+                <span>EGG GENE</span>
+                <strong>{{ gene.traitName }} · {{ gene.geneSymbol }}</strong>
+                <small>
+                  {{ gene.chromosome }} · allele {{ gene.allele }} · {{ gene.dominance }} ·
+                  {{ gene.recombinant ? 'recombined' : 'parental' }} DNA
+                </small>
+              </section>
+            }
+          </article>
           <div class="fusion" aria-hidden="true"><i></i><b>+</b><i></i></div>
-          <button
-            type="button"
-            class="gamete-slot sperm-slot"
+          <article
+            class="loaded-gamete-cell sperm-gamete-cell"
             [class.filled]="spermSelection()"
-            [class.active]="activeRole() === 'male'"
-            (click)="activeRole.set('male')"
             (dragover)="allowDrop($event)"
             (drop)="dropGamete('male', $event)"
           >
             <span aria-hidden="true">⌁</span>
             <div>
-              <small>SELECTED SPERM</small><strong>{{ selectionSummary(spermSelection()) }}</strong>
+              <small>SELECTED SPERM GAMETE</small>
+              <strong>{{ spermSelection() ? 'Haploid sperm cell' : 'Awaiting selected sperm' }}</strong>
             </div>
-          </button>
+            <app-cell-chromosome-viewport
+              [chromosomes]="spermSelection() ? spermGameteChromosomes() : gameteOutlineChromosomes()"
+              [selectedChromosome]="spermSelection() ? inspectedGameteChromosome('male') : null"
+              [selectedLocus]="spermSelection() ? inspectedGameteLocus('male') : null"
+              [selectable]="!!spermSelection()"
+              [locusSelectable]="!!spermSelection()"
+              [showLoci]="!!spermSelection()"
+              [allowReplicatedView]="false"
+              ariaLabel="Analyze the selected sperm gamete's single chromosomes"
+              layout="inspect"
+              (chromosomeSelected)="inspectGameteChromosome('male', $event)"
+              (locusSelected)="inspectGameteLocus('male', $event)"
+            />
+            @if (gameteGeneAnalysis('male'); as gene) {
+              <section class="parent-gamete-analysis" aria-live="polite">
+                <span>SPERM GENE</span>
+                <strong>{{ gene.traitName }} · {{ gene.geneSymbol }}</strong>
+                <small>
+                  {{ gene.chromosome }} · allele {{ gene.allele }} · {{ gene.dominance }} ·
+                  {{ gene.recombinant ? 'recombined' : 'parental' }} DNA
+                </small>
+              </section>
+            }
+          </article>
           <div class="fertilize-status" aria-live="polite">
-            <strong>
+            @if (fertilizationState() === 'egg') {
+              <button
+                type="button"
+                class="show-baby-dragon"
+                [class.revealed]="babyDragonRevealed()"
+                [attr.aria-pressed]="babyDragonRevealed()"
+                (click)="revealBabyDragon()"
+              >
+                <strong>{{ babyDragonRevealed() ? 'Baby dragon revealed' : 'Show baby dragon' }}</strong>
+                <small>{{ babyDragonRevealed() ? 'The new dragon is below' : 'Open the fertilized egg' }}</small>
+              </button>
+            } @else {
+              <strong>
               @if (fertilizationState() === 'fusing') {
                 Forming egg…
-              } @else if (fertilizationState() === 'egg') {
-                Fertilized egg formed
               } @else {
                 Automatic fertilization
               }
-            </strong>
-            <small>
+              </strong>
+              <small>
               {{
                 fertilizationState() === 'fusing'
                   ? 'The two haploid nuclei are combining'
-                  : fertilizationState() === 'egg'
-                    ? 'Select any chromosome or gene marker to inspect the new allele pair'
-                    : 'Fusion begins when both gametes are loaded'
+                  : 'Fusion begins when both gametes are loaded'
               }}
-            </small>
+              </small>
+            }
           </div>
         </div>
+        @if (babyDragonRevealed() && newDragon(); as dragon) {
+          <section class="new-dragon" aria-label="New baby dragon">
+            <header>
+              <small>NEW DRAGON</small>
+              <h3>{{ dragon.name }}</h3>
+              <p>{{ dragon.title }} · created from the selected egg and sperm gametes</p>
+            </header>
+            <app-specimen-viewport
+              [source]="newDragonSource()"
+              [ariaLabel]="dragon.name + ', the new baby dragon formed from the selected gametes'"
+              [controls]="true"
+              [framePadding]="1.15"
+            />
+          </section>
+        }
       </section>
 
-      @if (activeParent(); as parent) {
-        @if (activeRole() === 'female') {
-          <app-meiosis-gamete-selector
-            [parent]="parent"
-            sex="female"
-            roleLabel="Egg parent"
-            [targetTraitId]="targetTraitId()"
-            [baseSeed]="seed() + ':egg:' + clutch().length"
-            (runChanged)="captureRun('female', $event)"
-            (gameteSelected)="selectGamete('female', $event)"
-          />
-        } @else {
-          <app-meiosis-gamete-selector
-            [parent]="parent"
-            sex="male"
-            roleLabel="Sperm parent"
-            [targetTraitId]="targetTraitId()"
-            [baseSeed]="seed() + ':sperm:' + clutch().length"
-            (runChanged)="captureRun('male', $event)"
-            (gameteSelected)="selectGamete('male', $event)"
-          />
+      @if (!clutch().length) {
+        @if (activeParent(); as parent) {
+          @if (activeRole() === 'female') {
+            <app-meiosis-gamete-selector
+              [parent]="parent"
+              sex="female"
+              roleLabel="Egg parent"
+              [targetTraitId]="targetTraitId()"
+              [baseSeed]="seed() + ':egg:' + clutch().length"
+              (runChanged)="captureRun('female', $event)"
+              (gameteSelected)="selectGamete('female', $event)"
+            />
+          } @else {
+            <app-meiosis-gamete-selector
+              [parent]="parent"
+              sex="male"
+              roleLabel="Sperm parent"
+              [targetTraitId]="targetTraitId()"
+              [baseSeed]="seed() + ':sperm:' + clutch().length"
+              (runChanged)="captureRun('male', $event)"
+              (gameteSelected)="selectGamete('male', $event)"
+            />
+          }
         }
       }
     } @else {

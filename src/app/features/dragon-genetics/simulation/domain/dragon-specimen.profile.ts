@@ -221,15 +221,14 @@ export function createExpressiveDragonBenchBuild(
 ): DragonBenchBuild {
   const generation = options.generation ?? 0;
   const coreGenome = toCoreLabGenome(profile);
-  const bodyColor = showsExpressiveDominant(
-    profile,
-    EXPRESSIVE_DRAGON_TRAITS.find((trait) => trait.id === 'body-color')!,
-  );
+  /*
+   * One fixed pair of hues for the bench, because the B locus no longer picks a
+   * hue — it counts how many of the dragon's colours are used. The bench is one
+   * dragon being mutated a gene at a time, so a stable palette is what lets a
+   * student see that the *count* changed and nothing else did.
+   */
   const identity: DragonIdentityPaint =
-    options.identity ??
-    (bodyColor
-      ? { color: '#98552f', accentColor: '#e3a75d' }
-      : { color: '#287b78', accentColor: '#75d0c1' });
+    options.identity ?? { color: '#98552f', accentColor: '#e3a75d' };
   const engineGenome = createVisualGenome(id, coreGenome, generation, identity);
   // Tail length stays fixed here: the K locus changes the club end, not the whole tail.
   engineGenome.loci['tail-length'].maternal.value = 0.62;
@@ -246,6 +245,7 @@ export function createExpressiveDragonBenchBuild(
     eyeColor: dominant(profile, 'eye-color') ? '#ff9f2e' : '#46a9ff',
     sex: profile.sex,
     tailClubForm: tailClubForm(profile),
+    colorCount: colorCountOf(profile),
   });
 
   return {
@@ -360,6 +360,20 @@ function buildExpressiveTraitReadouts(profile: ExpressiveDragonProfile): Specime
 function dominant(profile: ExpressiveDragonProfile, traitId: ExpressiveDragonTraitId): boolean {
   const trait = EXPRESSIVE_DRAGON_TRAITS.find((candidate) => candidate.id === traitId);
   return !!trait && showsExpressiveDominant(profile, trait);
+}
+
+/**
+ * How many of the dragon's colours the B locus lets it wear: `BB` three, `Bb`
+ * two, `bb` one.
+ *
+ * Incomplete dominance read the same way `tailClubForm` reads the K locus —
+ * homozygous at either end, intermediate between.
+ */
+function colorCountOf(profile: ExpressiveDragonProfile): 1 | 2 | 3 {
+  const [first, second] = profile.genome['body-color'];
+  if (first === 'B' && second === 'B') return 3;
+  if (first === 'b' && second === 'b') return 1;
+  return 2;
 }
 
 function tailClubForm(profile: ExpressiveDragonProfile): 'large' | 'intermediate' | 'small' {

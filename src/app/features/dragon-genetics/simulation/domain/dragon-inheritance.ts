@@ -428,6 +428,14 @@ export interface DragonVisualExpression {
   eyeColor?: string;
   sex?: 'female' | 'male';
   tailClubForm?: 'large' | 'intermediate' | 'small';
+  /**
+   * How many of the dragon's three colours it actually wears — the B locus in the
+   * expressive genome, which grades `BB` three, `Bb` two, `bb` one.
+   *
+   * Defaults to all three. The four-gene lab genome has no such locus, so a
+   * hatchery dragon keeps the full palette.
+   */
+  colorCount?: 1 | 2 | 3;
 }
 
 /**
@@ -591,8 +599,13 @@ export function createEducationalAssembly(
    * part, so the legs can be a different two of the three from the body, and the
    * animal reads as one three-colour scheme rearranged rather than as three
    * differently-coloured animals bolted together.
+   *
+   * How many of the three are actually used is the B locus's channel — three, two
+   * or one. At one colour there is no pair to draw, so the markings fall back to
+   * the deep shade of the single pigment: the dragon is honestly one colour, and
+   * the scale gene still has something to show.
    */
-  const tones = dragonTones(blueprint, identity);
+  const tones = dragonTones(blueprint, identity).slice(0, expression.colorCount ?? 3);
 
   /*
    * Scale pattern.
@@ -629,7 +642,9 @@ export function createEducationalAssembly(
             parameters: {
               ...(part.visualProfile.parameters ?? {}),
               scalePattern: pattern,
-              patternColor: marking,
+              // Empty rather than absent, so a one-colour dragon overwrites any
+              // marking colour a previous pass wrote onto the same blueprint.
+              patternColor: marking ?? '',
             },
           }
         : part.visualProfile,
@@ -876,9 +891,15 @@ function dragonTones(
  * Stripping `left`/`right` and any trailing index pairs the limbs up and keeps the
  * links of the tail chain together, while still letting front differ from rear.
  */
-function tonePairFor(partId: string, tones: readonly string[]): [string, string] {
+function tonePairFor(partId: string, tones: readonly string[]): [string, string | null] {
   const key = partId.replace(/left|right/g, '').replace(/\d+/g, '');
   const ground = stableHash(`${key}:ground`) % tones.length;
+  // A one-colour dragon has no second pigment to mark with, and saying so with
+  // null is the honest answer: the renderer then draws the marking in the deep
+  // shade of the ground colour, which is what it does for any blueprint that
+  // never asked for two.
+  if (tones.length < 2) return [tones[ground], null];
+
   // Step 1..n-1 round the ring, so the marking can never land on the ground
   // colour — a part painted in one colour twice has no pattern on it at all.
   const step = 1 + (stableHash(`${key}:marking`) % (tones.length - 1));
