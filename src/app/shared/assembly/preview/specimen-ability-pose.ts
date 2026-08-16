@@ -291,7 +291,7 @@ const ABILITY_DEMOS: Readonly<Record<AssemblyAbilityId, AbilityDemo>> = {
     // Planted on the hind legs for the whole breath: the chest comes up before
     // the cone opens and stays up until the fire is spent.
     rearUpAt: phase => rearCurve(phase, 0.3, 0.85) * FIRE_REAR_RADIANS,
-    fireConeAt: phase => phase >= 0.32 && phase <= 0.92,
+    fireConeAt: phase => phase >= 0.12 && phase <= 0.98,
   },
 };
 

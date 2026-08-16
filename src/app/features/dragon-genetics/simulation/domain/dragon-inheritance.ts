@@ -420,6 +420,8 @@ export interface DragonVisualExpression {
   forelimbs?: 'walking' | 'grasping';
   clawScale?: number;
   crestScale?: number;
+  /** Visual-only enlargement of the skull and jaws for inspection surfaces. */
+  headScale?: number;
   /** Living lanterns down the flanks, throat and tail. */
   glowMarkings?: boolean;
   fangScale?: number;
@@ -580,8 +582,29 @@ export function createEducationalAssembly(
         },
       };
     }
+    const scalesWithHead = profileId.startsWith('dragon-head-')
+      || profileId === 'dragon-upper-jaw'
+      || profileId === 'dragon-lower-jaw';
+    const headScale = scalesWithHead ? expression.headScale : undefined;
+    const existingScale = part.visualProfile?.scale ?? { x: 1, y: 1, z: 1 };
+
     return Object.keys(parameters).length && part.visualProfile
-      ? { ...part, visualProfile: { ...part.visualProfile, parameters } }
+      ? {
+          ...part,
+          visualProfile: {
+            ...part.visualProfile,
+            parameters,
+            ...(headScale === undefined
+              ? {}
+              : {
+                  scale: {
+                    x: existingScale.x * headScale,
+                    y: existingScale.y * headScale,
+                    z: existingScale.z * headScale,
+                  },
+                }),
+          },
+        }
       : part;
   });
 
@@ -670,18 +693,18 @@ export function createEducationalAssembly(
 // ---------------------------------------------------------------------------
 
 /**
- * How much smaller a grasping arm is than the walking leg it replaces.
+ * Scale of a grasping arm relative to the walking leg it replaces.
  *
  * One number for the whole chain, so the arm stays a scaled-down limb rather
  * than a set of three separately guessed parts, and so the genetics pipeline's
  * own per-genome scaling still reads through it.
  *
- * The ceiling is the forelimb spec, not taste: a grasping limb has to stay
- * lighter than a third of the leg it replaced, and mass goes as the cube, so
- * anything at or above 0.67 makes an arm that weighs like a leg.
+ * The arm is 1.5 times its earlier 0.64 proportion. The grasping hand is then
+ * reduced to 60% of its enlarged 0.93 proportion so it stays compact at the end
+ * of the long arm.
  */
-const GRASP_ARM_SCALE = 0.64;
-const GRASP_HAND_SCALE = 0.62;
+const GRASP_ARM_SCALE = 0.96;
+const GRASP_HAND_SCALE = 0.558;
 
 /**
  * Where the arm meets the torso, in radians around the spine from the belly.
@@ -725,9 +748,8 @@ function applyGraspingForelimbs(blueprint: AssemblyBlueprint): void {
         y: part.dimensions.y * factor,
         z: part.dimensions.z * factor,
       },
-      // Volume, not length: a limb at 0.64 scale has a quarter of the mass, and
-      // the arena reads mass for momentum and the combat profile for health.
-      // Leaving it at a leg's weight gives a dragon two heavy dead arms.
+      // Volume, not length: the arena reads mass for momentum and the combat
+      // profile for health, so mass follows the enlarged dimensions cubically.
       mass: part.mass * factor * factor * factor,
       visualProfile: part.visualProfile
         ? {

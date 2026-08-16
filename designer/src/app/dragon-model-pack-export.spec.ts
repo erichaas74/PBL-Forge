@@ -15,7 +15,7 @@ describe('createDragonModelPack', () => {
         visualProfile: {
           profileId: 'dragon-body',
           meshType: 'procedural',
-          parameters: { sex: 'male', backSpikeCount: 8 },
+          parameters: { bodyArchetype: 'classic', backSpikeCount: 8 },
         },
       }],
       joints: [],
@@ -30,7 +30,8 @@ describe('createDragonModelPack', () => {
     });
 
     expect('isSimulating' in pack.models[0].blueprint).toBeFalse();
-    expect(pack.models[0].blueprint.parts[0].visualProfile?.parameters?.['sex']).toBe('male');
+    expect(pack.models[0].blueprint.parts[0].visualProfile?.parameters?.['bodyArchetype'])
+      .toBe('classic');
     expect(pack.models[0].blueprint.parts[0].visualProfile?.parameters?.['spikeCount'])
       .toBe(DEFAULT_DRAGON_STYLE.body.spikeCount);
   });

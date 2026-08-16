@@ -1,51 +1,87 @@
 @if (viewModel(); as view) {
-  <main class="project-hub">
-    <header class="project-header">
-      <a routerLink="/catalog">← Science 7</a>
-      <span>Dragon Genetics Lab</span>
-      <a class="wise-preview-link" routerLink="/dragon-genetics/wise-dragon">Preview Wise Dragon</a>
+  <main class="hall">
+    <header class="lintel">
+      <a class="lintel__back" routerLink="/catalog">← Science 7</a>
+      <span class="lintel__mark">Dragon Genetics Lab</span>
+      <a class="lintel__aside" routerLink="/dragon-genetics/wise-dragon">Preview Wise Dragon</a>
     </header>
 
-    <section class="mission" aria-labelledby="mission-title">
-      <div>
-        <p>{{ view.selectedPathId ? 'Final path selected' : 'Dragon conservation academy' }}</p>
+    <section class="landfall" aria-labelledby="mission-title">
+      <app-harbour-panorama class="landfall__scene" />
+
+      <div class="landfall__copy">
+        <p class="eyebrow">
+          {{ view.selectedPathId ? 'Final path selected' : 'Dragon conservation academy' }}
+        </p>
         <h1 id="mission-title">{{ view.title }}</h1>
-        <p class="mission-copy">{{ view.mission }}</p>
+        <p class="landfall__mission">{{ view.mission }}</p>
       </div>
-      <div class="progress" aria-label="Project completion">
+
+      <!--
+        The progress dial is an instrument, not a chart: brass plate, engraved ticks, one arc.
+        The SVG is decorative and the whole plate carries the progressbar role, so a screen
+        reader gets a single reading instead of a pile of circles.
+      -->
+      <div
+        class="astrolabe"
+        role="progressbar"
+        aria-label="Required project work complete"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-valuenow]="view.progressPercent"
+        [attr.aria-valuetext]="
+          view.completedRequiredCount + ' of ' + view.requiredActivityCount + ' required complete'
+        "
+      >
+        <svg class="astrolabe__face" viewBox="0 0 128 128" aria-hidden="true" focusable="false">
+          <circle class="astrolabe__plate" cx="64" cy="64" r="61" />
+          <circle class="astrolabe__bezel" cx="64" cy="64" r="57" />
+          <g class="astrolabe__ticks">
+            @for (tick of dialTicks; track tick) {
+              <line x1="64" y1="10" x2="64" y2="17" [attr.transform]="'rotate(' + tick + ' 64 64)'" />
+            }
+          </g>
+          <circle class="astrolabe__track" cx="64" cy="64" r="44" />
+          <!-- Omitted rather than zero-length: a round cap on an empty arc still draws a dot. -->
+          @if (view.progressPercent > 0) {
+            <circle
+              class="astrolabe__arc"
+              cx="64"
+              cy="64"
+              r="44"
+              [style.stroke-dasharray]="dialDash(view.progressPercent)"
+            />
+          }
+          <g class="astrolabe__rivets">
+            <circle cx="64" cy="9" r="2.6" />
+            <circle cx="112" cy="88" r="2.6" />
+            <circle cx="16" cy="88" r="2.6" />
+          </g>
+        </svg>
         <strong>{{ view.progressPercent }}%</strong>
-        <span
-          >{{ view.completedRequiredCount }}/{{ view.requiredActivityCount }} required
-          complete</span
+        <span aria-hidden="true"
+          >{{ view.completedRequiredCount }}/{{ view.requiredActivityCount }} required</span
         >
-        <div
-          role="progressbar"
-          aria-label="Required project work complete"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          [attr.aria-valuenow]="view.progressPercent"
-        >
-          <i [style.width.%]="view.progressPercent"></i>
-        </div>
       </div>
     </section>
 
-    <section class="next-action" aria-labelledby="next-action-title">
+    <!-- The next move is a notice nailed to the hall door: parchment, wax, and four iron nails. -->
+    <section class="notice" aria-labelledby="next-action-title">
       @if (view.nextAction; as next) {
         @if (next.kind === 'activity') {
-          <div>
-            <span>Your next move</span>
+          <div class="notice__body">
+            <span class="eyebrow">Your next move</span>
             <h2 id="next-action-title">{{ next.title }}</h2>
             <p>{{ next.objective }}</p>
           </div>
-          <a [routerLink]="next.route">{{ actionLabel(next) }} →</a>
+          <a class="forged-action" [routerLink]="next.route">{{ actionLabel(next) }} →</a>
         } @else {
-          <div>
-            <span>Your next move</span>
+          <div class="notice__body">
+            <span class="eyebrow">Your next move</span>
             <h2 id="next-action-title">{{ next.title }}</h2>
             <p>{{ next.objective }}</p>
           </div>
-          <label>
+          <label class="iron-select">
             <span class="sr-only">Final project path</span>
             <select (change)="selectPath($event)">
               <option value="">Choose a path</option>
@@ -56,28 +92,32 @@
           </label>
         }
       } @else {
-        <div>
-          <span>Mission complete</span>
+        <div class="notice__body">
+          <span class="eyebrow">Mission complete</span>
           <h2 id="next-action-title">Required work secured.</h2>
           <p>Review your evidence or explore another open lab.</p>
         </div>
       }
     </section>
 
-    <section class="disclosures" aria-label="Project details">
-      <details>
+    <div class="ledgers">
+      <details class="panel">
         <summary>
           <span>Course map</span>
           <small>{{ view.completedRequiredCount }}/{{ view.requiredActivityCount }} required</small>
         </summary>
         <div class="course-map">
           @for (stage of view.stages; track stage.id) {
-            <section>
+            <section class="course-map__stage">
               <h3>{{ stage.title }}</h3>
               <ul>
                 @for (activity of stage.activities; track activity.id) {
-                  <li [class.current]="activity.isNextAction">
-                    <i aria-hidden="true">{{ statusSymbol(activity) }}</i>
+                  <li
+                    [class.current]="activity.isNextAction"
+                    [attr.data-status]="activity.status"
+                    [attr.data-availability]="activity.availability"
+                  >
+                    <i class="token" aria-hidden="true">{{ statusSymbol(activity) }}</i>
                     @if (activity.availability === 'available') {
                       <a [routerLink]="activity.route">{{ activity.title }}</a>
                     } @else {
@@ -92,14 +132,14 @@
         </div>
       </details>
 
-      <details>
+      <details class="panel">
         <summary>
           <span>Final paths</span>
           <small>{{ view.selectedPathId ? 'Selected' : 'Not selected' }}</small>
         </summary>
         @if (view.nextAction?.kind !== 'choose-path') {
-          <label class="path-select">
-            Final path
+          <label class="iron-select path-select">
+            <span>Final path</span>
             <select [value]="view.selectedPathId ?? ''" (change)="selectPath($event)">
               <option value="">Choose later</option>
               @for (path of view.paths; track path.id) {
@@ -119,7 +159,7 @@
         </ul>
       </details>
 
-      <details>
+      <details class="panel">
         <summary>
           <span>Evidence</span>
           <small>{{ evidenceCount(view) }} saved</small>
@@ -140,6 +180,6 @@
           <p class="empty-note">Evidence appears here after an investigation is saved.</p>
         }
       </details>
-    </section>
+    </div>
   </main>
 }

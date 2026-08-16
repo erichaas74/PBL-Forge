@@ -19,6 +19,23 @@
   min-width: 0;
 }
 
+/**
+ * The viewport tokens have to be re-stated on the viewport elements themselves.
+ *
+ * `specimen-viewport` declares its own defaults in its `:host` block, and a component's own
+ * `:host` rule beats a value merely *inherited* from an ancestor — so the dark-forge values
+ * declared above never reached the stage, and every chamber rendered as a bright parchment
+ * rectangle in the middle of an unlit hall. Targeting the element from out here outranks the
+ * child's `:host` default and makes the declarations above actually do something.
+ */
+.sampler app-specimen-viewport {
+  --viewport-edge: rgb(235 190 112 / 28%);
+  --viewport-surface: #0a0908;
+  --viewport-ink: #f5eadb;
+  --viewport-muted: #b7a58e;
+  --viewport-accent: var(--forge-orange);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -332,6 +349,18 @@ summary:focus-visible {
 }
 
 .parent-model.empty app-specimen-viewport {
+  visibility: hidden;
+}
+
+/**
+ * The same treatment the empty parent chambers get, for the same reason.
+ *
+ * With no hatchling to show, the viewport still mounts a three.js canvas, and that canvas
+ * clears to its own light colour — CSS cannot reach it, so the port rendered as a blank white
+ * panel in the middle of an unlit forge. Hiding the viewport leaves the port's dark housing
+ * and its "Awaiting hatchling" caption, which is the state actually worth showing.
+ */
+.inspection-port:not(.active) app-specimen-viewport {
   visibility: hidden;
 }
 
@@ -1377,5 +1406,1193 @@ td small {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+
+/* ========================================================================== */
+/* VIKING ACADEMY — DETAILED VISUAL REBUILD                                   */
+/* ========================================================================== */
+
+.viking-academy-sampler {
+  --academy-gold: #c99145;
+  --academy-brass: #a56a2e;
+  --academy-brass-light: #e0b165;
+  --academy-stone: #5f625f;
+  --academy-stone-dark: #303433;
+  --academy-blue: #314f64;
+  --academy-red: #7b3428;
+  --academy-moss: #596848;
+  --academy-parchment: #d8c18f;
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(1rem, 1.8vw, 1.55rem);
+  border: 6px solid #26180f;
+  border-radius: 1.35rem;
+  background:
+    linear-gradient(rgb(7 10 10 / 38%), rgb(6 8 8 / 82%)),
+    radial-gradient(circle at 50% 12%, rgb(218 153 69 / 12%), transparent 30rem),
+    linear-gradient(145deg, #34271d, #101213 58%, #080909);
+  box-shadow:
+    0 30px 80px rgb(0 0 0 / 46%),
+    inset 0 0 0 2px #7d5a35,
+    inset 0 0 60px rgb(0 0 0 / 60%);
+}
+
+.viking-academy-sampler::before,
+.viking-academy-sampler::after {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  content: '';
+}
+
+.viking-academy-sampler::before {
+  inset: 0;
+  opacity: 0.16;
+  background:
+    repeating-linear-gradient(
+      7deg,
+      transparent 0 28px,
+      rgb(255 226 174 / 11%) 29px 30px,
+      transparent 31px 55px
+    );
+  mix-blend-mode: overlay;
+}
+
+.viking-academy-sampler::after {
+  inset: 0.6rem;
+  border: 1px solid rgb(202 148 79 / 20%);
+  border-radius: 0.9rem;
+  box-shadow: inset 0 0 0 1px rgb(21 15 11 / 72%);
+}
+
+.viking-academy-sampler > :not(.academy-backdrop) {
+  position: relative;
+  z-index: 2;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Academy hall background                                                     */
+/* -------------------------------------------------------------------------- */
+
+.academy-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.academy-stone-wall {
+  position: absolute;
+  inset: 5.2rem 0 0;
+  opacity: 0.34;
+  background:
+    linear-gradient(rgb(9 13 13 / 38%), rgb(6 8 8 / 74%)),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 34px,
+      rgb(17 19 19 / 80%) 35px 38px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      #545955 0 72px,
+      #646964 72px 136px,
+      #404541 136px 141px
+    );
+}
+
+.academy-stone-wall::after {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 44px,
+      rgb(19 21 20 / 45%) 45px 48px,
+      transparent 49px 92px
+    );
+  content: '';
+  transform: skewX(-5deg);
+}
+
+.academy-roof-beams {
+  position: absolute;
+  top: -2rem;
+  left: -5%;
+  width: 110%;
+  height: 11rem;
+  opacity: 0.64;
+  background:
+    linear-gradient(25deg, transparent 0 45%, #2e1d12 46% 51%, transparent 52%),
+    linear-gradient(-25deg, transparent 0 45%, #2e1d12 46% 51%, transparent 52%),
+    repeating-linear-gradient(90deg, transparent 0 8rem, #3f2818 8rem 9.35rem);
+  filter: drop-shadow(0 8px 5px rgb(0 0 0 / 42%));
+}
+
+.academy-observatory {
+  position: absolute;
+  top: 4.8rem;
+  right: 2.5%;
+  width: 9rem;
+  height: 11rem;
+  opacity: 0.22;
+  transform: scale(1.1);
+}
+
+.academy-observatory::before {
+  position: absolute;
+  right: 1rem;
+  bottom: 0;
+  width: 6rem;
+  height: 7.2rem;
+  border: 2px solid #25211d;
+  border-radius: 0.5rem;
+  background:
+    repeating-linear-gradient(90deg, #686966 0 18px, #555956 18px 35px, #424643 35px 38px);
+  content: '';
+}
+
+.observatory-dome {
+  position: absolute;
+  top: 0;
+  right: 0.4rem;
+  width: 7rem;
+  height: 4.2rem;
+  border: 3px solid #292725;
+  border-bottom: 0;
+  border-radius: 100% 100% 0 0;
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 8%), transparent 20% 80%, rgb(0 0 0 / 25%)),
+    #536f70;
+  box-shadow: inset 0 0 0 2px rgb(190 145 75 / 25%);
+}
+
+.observatory-scope {
+  position: absolute;
+  top: 1.1rem;
+  right: -1.5rem;
+  width: 5rem;
+  height: 0.8rem;
+  border: 2px solid #28211b;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7c5b36, #c09150 50%, #5b432c);
+  transform: rotate(-22deg);
+}
+
+.observatory-window {
+  position: absolute;
+  right: 3.2rem;
+  bottom: 1.4rem;
+  width: 1.25rem;
+  height: 2rem;
+  border: 2px solid #241a13;
+  border-radius: 50% 50% 0 0;
+  background: #bc702e;
+  box-shadow: 0 0 14px rgb(240 128 43 / 28%);
+}
+
+.academy-banner {
+  position: absolute;
+  top: 8rem;
+  width: 3rem;
+  height: 8rem;
+  border: 3px solid #281a11;
+  clip-path: polygon(0 0, 100% 0, 100% 79%, 50% 100%, 0 79%);
+  opacity: 0.5;
+  box-shadow: 0 7px 10px rgb(0 0 0 / 30%);
+}
+
+.academy-banner span {
+  display: grid;
+  height: 75%;
+  place-items: center;
+  color: #d9b474;
+  font-size: 1.7rem;
+  text-shadow: 0 2px #28190f;
+}
+
+.academy-banner-left {
+  left: 1.2%;
+  background: linear-gradient(90deg, #253f50, #3f6479 52%, #263e4d);
+}
+
+.academy-banner-right {
+  right: 1.2%;
+  background: linear-gradient(90deg, #59261f, #85372b 52%, #57231e);
+}
+
+.academy-shield-rack {
+  position: absolute;
+  left: 2.2%;
+  bottom: 7rem;
+  display: flex;
+  gap: 0.7rem;
+  opacity: 0.28;
+  transform: rotate(-5deg);
+}
+
+.academy-shield-rack i {
+  width: 2.7rem;
+  height: 3rem;
+  border: 4px solid #282019;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px rgb(210 174 103 / 28%);
+}
+
+.academy-shield-rack i:nth-child(1) {
+  background: radial-gradient(circle, #a98950 0 13%, #6d2f27 14% 47%, #c4a160 48% 53%, #6d2f27 54%);
+}
+
+.academy-shield-rack i:nth-child(2) {
+  background: radial-gradient(circle, #a98950 0 13%, #304d61 14% 47%, #c4a160 48% 53%, #304d61 54%);
+}
+
+.academy-shield-rack i:nth-child(3) {
+  background: radial-gradient(circle, #a98950 0 13%, #65502e 14% 47%, #c4a160 48% 53%, #65502e 54%);
+}
+
+.academy-chain {
+  position: absolute;
+  top: 1rem;
+  width: 0.65rem;
+  height: 14rem;
+  opacity: 0.2;
+  background:
+    radial-gradient(ellipse, transparent 0 27%, #74756f 30% 43%, transparent 46%) 50% 0 / 0.65rem 1rem repeat-y;
+}
+
+.chain-left { left: 11%; }
+.chain-right { right: 11%; }
+
+/* -------------------------------------------------------------------------- */
+/* Header / controls                                                           */
+/* -------------------------------------------------------------------------- */
+
+.sampler-head {
+  padding: 0.75rem 1rem 0.95rem;
+  border: 3px solid #2b1b12;
+  border-radius: 0.8rem;
+  background:
+    linear-gradient(rgb(255 255 255 / 4%), transparent),
+    repeating-linear-gradient(7deg, #3c281a 0 22px, #4c301d 22px 42px, #322116 42px 46px);
+  box-shadow:
+    0 9px 18px rgb(0 0 0 / 38%),
+    inset 0 0 0 2px rgb(171 119 58 / 24%);
+}
+
+.goal-block > span,
+.history-card header span {
+  color: #dfaa5a;
+}
+
+.goal-block h2 {
+  color: #f4e1b8;
+  text-shadow: 0 2px #29190f;
+}
+
+.goal-block p {
+  color: #c6b99e;
+}
+
+.generation-line span {
+  border: 2px solid #3c2b1e;
+  background:
+    linear-gradient(rgb(255 255 255 / 4%), transparent),
+    #241a14;
+  color: #bca98f;
+  box-shadow: inset 0 0 0 1px rgb(169 117 63 / 18%);
+}
+
+.generation-line span.current {
+  border-color: #bd7a34;
+  background:
+    linear-gradient(rgb(255 255 255 / 5%), transparent),
+    #55301a;
+  color: #ffd991;
+  box-shadow: 0 0 10px rgb(236 126 39 / 22%);
+}
+
+.forge-controls {
+  border: 7px solid #2b2c2b;
+  border-radius: 0.85rem;
+  background:
+    linear-gradient(rgb(0 0 0 / 20%), rgb(0 0 0 / 45%)),
+    repeating-linear-gradient(7deg, #51331f 0 18px, #694329 18px 34px, #3e281a 34px 38px);
+  box-shadow:
+    0 12px 24px rgb(0 0 0 / 48%),
+    inset 0 0 0 2px #8d704c,
+    inset 0 0 24px rgb(0 0 0 / 46%);
+}
+
+.forge-controls::before {
+  position: absolute;
+  inset: 0.42rem 1.6rem auto;
+  height: 3px;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(45deg, #5d4328 0 6px, #9b7342 6px 12px);
+  opacity: 0.72;
+  content: '';
+}
+
+.forge-controls label > span {
+  color: #ddc394;
+}
+
+.forge-controls select {
+  border: 3px solid #444542;
+  background:
+    linear-gradient(rgb(255 255 255 / 4%), transparent),
+    #2c2118;
+  color: #f0deb8;
+  box-shadow:
+    inset 0 0 0 1px #8a693e,
+    inset 0 0 11px #000;
+}
+
+.run-forge {
+  border-color: #4f341f !important;
+  background:
+    linear-gradient(rgb(255 255 255 / 16%), transparent),
+    linear-gradient(#a75c28, #5e2d17) !important;
+}
+
+.clear-forge {
+  border-color: #3e3d38 !important;
+  background:
+    linear-gradient(rgb(255 255 255 / 6%), transparent),
+    linear-gradient(#5c5245, #2e2923) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Parent dragon stations                                                      */
+/* -------------------------------------------------------------------------- */
+
+.parent-station {
+  border: 4px solid #2a1d15;
+  border-radius: 0.95rem;
+  background:
+    linear-gradient(rgb(255 255 255 / 2%), rgb(0 0 0 / 18%)),
+    linear-gradient(150deg, #32261d, #151617 72%);
+  box-shadow:
+    0 16px 32px rgb(0 0 0 / 35%),
+    inset 0 0 0 1px #6f5235;
+}
+
+.parent-station::before {
+  position: absolute;
+  inset: 0.45rem;
+  border: 1px solid rgb(198 147 78 / 13%);
+  border-radius: 0.55rem;
+  pointer-events: none;
+  content: '';
+}
+
+.parent-station > header {
+  position: relative;
+  border-bottom: 4px solid #28221d;
+  background:
+    linear-gradient(rgb(255 255 255 / 4%), transparent),
+    repeating-linear-gradient(6deg, #54351f 0 18px, #6b4326 18px 31px, #3e291b 31px 35px);
+}
+
+.parent-station > header::before {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.65rem;
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border: 2px solid #2c2118;
+  border-radius: 50%;
+  background: radial-gradient(circle, #b37b3c, #4b3829 70%);
+  color: #e0b56d;
+  font-weight: 900;
+  content: 'ᛉ';
+}
+
+.parent-station.female > header::before {
+  content: 'ᚠ';
+}
+
+.parent-station.male > header::before {
+  content: 'ᛏ';
+}
+
+.parent-station > header span {
+  color: #e0ad60;
+}
+
+.parent-model {
+  background:
+    radial-gradient(circle at 50% 65%, rgb(112 81 48 / 38%), transparent 50%),
+    linear-gradient(#161616, #090a0a 72%);
+  box-shadow: inset 0 0 22px rgb(0 0 0 / 68%);
+}
+
+.parent-model::before,
+.parent-model::after {
+  position: absolute;
+  z-index: 2;
+  top: 0.45rem;
+  width: 0.75rem;
+  height: 1.5rem;
+  border: 2px solid #2b2119;
+  background: linear-gradient(#b27b3e, #5f4127);
+  content: '';
+}
+
+.parent-model::before { left: 0.55rem; }
+.parent-model::after { right: 0.55rem; }
+
+.visible-traits {
+  background:
+    linear-gradient(rgb(255 255 255 / 2%), transparent),
+    #1c1713;
+}
+
+.visible-traits div.focus {
+  border: 1px solid #7f552f;
+  background: rgb(189 112 48 / 15%);
+  box-shadow: inset 3px 0 #d08438;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Central Viking incubator machine                                            */
+/* -------------------------------------------------------------------------- */
+
+.forge-scene {
+  height: 39rem;
+  border: 0.7rem solid #2b1c12;
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 50% 22%, rgb(226 132 42 / 10%), transparent 18rem),
+    linear-gradient(rgb(8 9 9 / 15%), rgb(6 7 7 / 56%)),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 52px,
+      rgb(28 31 30 / 70%) 53px 57px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      #474b47 0 82px,
+      #595d57 82px 154px,
+      #373b38 154px 159px
+    );
+  box-shadow:
+    inset 0 0 0 3px #11100e,
+    inset 0 0 65px rgb(0 0 0 / 78%),
+    0 16px 36px rgb(0 0 0 / 48%);
+}
+
+.forge-scene::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  opacity: 0.25;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 70px,
+      rgb(22 25 23 / 50%) 71px 74px,
+      transparent 75px 142px
+    );
+  content: '';
+}
+
+.back-wall {
+  z-index: 2;
+  top: 5.1rem;
+  width: 21rem;
+  height: 7.6rem;
+  border: 7px solid #2a2d2b;
+  border-radius: 1rem 1rem 0.45rem 0.45rem;
+  background:
+    linear-gradient(rgb(255 255 255 / 5%), transparent),
+    repeating-linear-gradient(90deg, #5a5d58 0 38px, #454844 38px 72px, #343734 72px 76px);
+  box-shadow:
+    0 10px 18px rgb(0 0 0 / 55%),
+    inset 0 0 0 2px #817052;
+}
+
+.viking-machine-frame {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
+}
+
+.stone-pillar {
+  position: absolute;
+  top: 3.6rem;
+  width: 4rem;
+  height: 26rem;
+  border: 4px solid #292b29;
+  border-radius: 0.4rem;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      #595d58 0 28px,
+      #6a6d68 28px 54px,
+      #3e423f 54px 59px
+    );
+  box-shadow:
+    inset 0 0 12px rgb(0 0 0 / 42%),
+    0 7px 12px rgb(0 0 0 / 36%);
+}
+
+.stone-pillar::before {
+  position: absolute;
+  top: -0.85rem;
+  left: -0.55rem;
+  width: calc(100% + 1.1rem);
+  height: 1.15rem;
+  border: 3px solid #292b29;
+  background: #696b66;
+  content: '';
+}
+
+.stone-pillar::after {
+  position: absolute;
+  right: -0.55rem;
+  bottom: -0.65rem;
+  left: -0.55rem;
+  height: 1rem;
+  border: 3px solid #292b29;
+  background: #4e514d;
+  content: '';
+}
+
+.stone-pillar-left { left: 3.2%; }
+.stone-pillar-right { right: 3.2%; }
+
+.timber-crossbeam {
+  position: absolute;
+  top: 3.7rem;
+  left: 5.7%;
+  right: 5.7%;
+  height: 2.1rem;
+  border: 4px solid #26180f;
+  background:
+    linear-gradient(rgb(255 255 255 / 5%), transparent),
+    repeating-linear-gradient(7deg, #4d301d 0 16px, #684127 16px 29px, #392317 29px 33px);
+  box-shadow:
+    0 7px 10px rgb(0 0 0 / 42%),
+    inset 0 0 0 2px rgb(166 111 56 / 22%);
+}
+
+.machine-rune {
+  position: absolute;
+  top: 6.6rem;
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  border: 3px solid #2c2117;
+  border-radius: 50%;
+  background: radial-gradient(circle, #966334, #3a2b20 68%);
+  color: #dfb369;
+  font-size: 1rem;
+  font-weight: 900;
+  box-shadow: inset 0 0 0 2px #6f5335;
+}
+
+.rune-left { left: 5%; }
+.rune-right { right: 5%; }
+
+.academy-machine-crest {
+  position: absolute;
+  top: 0.85rem;
+  left: 50%;
+  display: grid;
+  width: 8.4rem;
+  height: 4.5rem;
+  place-items: center;
+  border: 4px solid #2b1d14;
+  border-radius: 50% 50% 35% 35%;
+  background:
+    radial-gradient(circle at 50% 40%, #77502b, #30241b 70%);
+  color: #e0b36a;
+  transform: translateX(-50%);
+  box-shadow:
+    0 7px 13px rgb(0 0 0 / 42%),
+    inset 0 0 0 2px #9e7341;
+}
+
+.academy-machine-crest span {
+  margin-top: 0.2rem;
+  font-size: 1.55rem;
+}
+
+.academy-machine-crest small {
+  margin-top: -1rem;
+  color: #d3bd95;
+  font-size: var(--text-xs);
+  font-weight: 950;
+  letter-spacing: 0.12em;
+}
+
+.brass-pipe {
+  position: absolute;
+  top: 11.5rem;
+  width: 2rem;
+  height: 10.5rem;
+  border: 5px solid #5d3d20;
+  border-top: 0;
+  border-radius: 0 0 1.2rem 1.2rem;
+  background: linear-gradient(90deg, #694521, #ca8d43 45%, #805225 66%, #4e321a);
+  box-shadow: inset 0 0 0 2px rgb(255 218 142 / 16%);
+}
+
+.pipe-left { left: 10%; }
+.pipe-right { right: 10%; }
+
+.brass-pipe::before,
+.brass-pipe::after {
+  position: absolute;
+  left: -0.55rem;
+  width: calc(100% + 1.1rem);
+  height: 0.65rem;
+  border: 2px solid #4d321b;
+  border-radius: 0.2rem;
+  background: #9a652d;
+  content: '';
+}
+
+.brass-pipe::before { top: 2.1rem; }
+.brass-pipe::after { bottom: 2.1rem; }
+
+.gear-bank {
+  position: absolute;
+  top: 14.2rem;
+  width: 7rem;
+  height: 7rem;
+  opacity: 0.75;
+}
+
+.gear-bank-left { left: 4.6%; }
+.gear-bank-right { right: 4.6%; }
+
+.gear {
+  position: absolute;
+  display: block;
+  border: 0.65rem dotted #2b2420;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #252522 0 20%, #ad7a3b 21% 27%, #5e442a 28% 62%, #2e2a24 63%);
+  box-shadow:
+    0 4px 8px rgb(0 0 0 / 42%),
+    inset 0 0 0 2px rgb(224 177 94 / 15%);
+}
+
+.gear::after {
+  position: absolute;
+  inset: 31%;
+  border: 2px solid #2c221a;
+  border-radius: 50%;
+  background: #8b6233;
+  content: '';
+}
+
+.gear-lg { inset: 0 auto auto 0; width: 4.9rem; height: 4.9rem; }
+.gear-md { inset: 0 0 auto auto; width: 4.3rem; height: 4.3rem; }
+.gear-sm { right: 0; bottom: 0; width: 3.2rem; height: 3.2rem; }
+
+.running .gear-lg,
+.running .gear-md {
+  animation: academy-gear-spin 4s linear infinite;
+}
+
+.running .gear-sm {
+  animation: academy-gear-spin-reverse 3s linear infinite;
+}
+
+.pressure-gauge {
+  position: absolute;
+  top: 8.4rem;
+  width: 4.25rem;
+  height: 4.25rem;
+  border: 0.5rem solid #4b351f;
+  border-radius: 50%;
+  background:
+    conic-gradient(from -115deg, #6c8a65 0 23%, #d0a14f 24% 45%, #a94f31 46% 62%, #30271f 63% 100%);
+  box-shadow:
+    0 5px 8px rgb(0 0 0 / 46%),
+    inset 0 0 0 0.22rem #d5c293;
+}
+
+.pressure-gauge::before {
+  position: absolute;
+  inset: 0.68rem;
+  border-radius: 50%;
+  background: #d6cba7;
+  content: '';
+}
+
+.pressure-gauge i {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: 1.4rem;
+  height: 0.18rem;
+  border-radius: 999px;
+  background: #442417;
+  transform: translateY(-50%) rotate(-35deg);
+  transform-origin: 0 50%;
+}
+
+.pressure-gauge b {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #3d2b1d;
+  transform: translate(-50%, -50%);
+}
+
+.gauge-left { left: 11%; }
+.gauge-right { right: 11%; }
+
+.running .pressure-gauge i {
+  animation: gauge-needle 1.2s ease-in-out infinite alternate;
+}
+
+.furnace-stack {
+  position: absolute;
+  top: 7.2rem;
+  width: 2.35rem;
+  height: 6.4rem;
+  border: 4px solid #262726;
+  border-radius: 0.25rem 0.25rem 0 0;
+  background:
+    repeating-linear-gradient(0deg, #5e615c 0 13px, #454844 13px 25px, #303330 25px 29px);
+}
+
+.furnace-stack::before {
+  position: absolute;
+  top: -0.65rem;
+  left: -0.4rem;
+  width: calc(100% + 0.8rem);
+  height: 0.8rem;
+  border: 3px solid #262726;
+  background: #777970;
+  content: '';
+}
+
+.furnace-stack i {
+  position: absolute;
+  top: -3rem;
+  left: 50%;
+  width: 3.2rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(211 215 208 / 38%), transparent 70%);
+  filter: blur(5px);
+  transform: translateX(-50%);
+}
+
+.stack-left { left: 22%; }
+.stack-right { right: 22%; }
+
+.running .furnace-stack i {
+  animation: academy-smoke 2.8s ease-out infinite;
+}
+
+.torch-sconce {
+  position: absolute;
+  top: 23.5rem;
+  width: 1.1rem;
+  height: 5rem;
+  border: 3px solid #261b13;
+  border-radius: 0.3rem;
+  background: linear-gradient(90deg, #342114, #684128 50%, #2c1c12);
+}
+
+.torch-left { left: 5.2%; }
+.torch-right { right: 5.2%; }
+
+.torch-sconce i {
+  position: absolute;
+  top: -2.4rem;
+  left: 50%;
+  width: 2.15rem;
+  height: 2.8rem;
+  border-radius: 70% 30% 60% 40%;
+  background:
+    radial-gradient(circle at 50% 72%, #fff2a1 0 14%, #ffc14a 15% 35%, #ef7125 36% 70%, #8b2617 71%);
+  filter: drop-shadow(0 0 8px #f2852b);
+  transform: translateX(-50%);
+  box-shadow: 0 0 24px rgb(240 114 35 / 42%);
+  animation: academy-torch 0.48s ease-in-out infinite alternate;
+}
+
+.forge-mouth {
+  top: 7.5rem;
+  width: 9.8rem;
+  height: 5.2rem;
+  border: 0.5rem solid #272827;
+  box-shadow:
+    0 0 28px rgb(255 105 20 / 46%),
+    inset 0 0 0 2px #6f573b;
+}
+
+.main-belt {
+  top: 11.2rem;
+}
+
+.inspection-port {
+  /* Room under the "optical trait scope" plate, which is hung off the top edge. */
+  padding-top: 0.7rem;
+  top: 1.15rem;
+  right: 1.1rem;
+  width: 11rem;
+  border: 4px solid #4d3925;
+  border-radius: 0.7rem;
+  background:
+    linear-gradient(rgb(255 255 255 / 3%), transparent),
+    rgb(11 11 10 / 94%);
+  box-shadow:
+    0 8px 18px #000,
+    inset 0 0 0 2px #7b663f;
+}
+
+.inspection-port::before {
+  position: absolute;
+  top: -0.6rem;
+  left: 50%;
+  padding: 0.15rem 0.5rem;
+  border: 2px solid #4d3823;
+  border-radius: 999px;
+  background: #302318;
+  color: #d9ad65;
+  font-size: var(--text-xs);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  content: 'OPTICAL TRAIT SCOPE';
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.inspection-brass-corner {
+  position: absolute;
+  z-index: 5;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-color: #c28a42;
+  border-style: solid;
+}
+
+.corner-tl { top: 0.2rem; left: 0.2rem; border-width: 2px 0 0 2px; }
+.corner-tr { top: 0.2rem; right: 0.2rem; border-width: 2px 2px 0 0; }
+.corner-bl { bottom: 0.2rem; left: 0.2rem; border-width: 0 0 2px 2px; }
+.corner-br { right: 0.2rem; bottom: 0.2rem; border-width: 0 2px 2px 0; }
+
+.splitter {
+  border-width: 0.55rem;
+  border-color: #2b2c2a;
+  background:
+    radial-gradient(circle, #c3904c 0 12%, #5b4834 13% 31%, #343a39 32% 57%, #171918 58%);
+  box-shadow:
+    0 9px 15px rgb(0 0 0 / 60%),
+    inset 0 0 0 2px #7f6b4d;
+}
+
+.splitter span {
+  background: #f39a31;
+  box-shadow:
+    0 0 0 0.35rem rgb(255 138 32 / 12%),
+    0 0 1.2rem #f17722;
+}
+
+.chute {
+  border-color: #333633;
+  background:
+    linear-gradient(90deg, #1b1e1c, #737772 48%, #343735 68%, #191b1a);
+  box-shadow: inset 0 0 0 2px #8a704a;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sorting yard / receiving pens                                               */
+/* -------------------------------------------------------------------------- */
+
+.sorting-yard-sign {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0.75rem 0 1rem;
+  color: #c8a56d;
+  font-size: var(--text-xs);
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-align: center;
+}
+
+.sorting-yard-sign i {
+  height: 4px;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(45deg, #4c3321 0 5px, #93663a 5px 10px);
+}
+
+.status-bar {
+  border: 4px solid #2a1c13;
+  background:
+    linear-gradient(rgb(255 255 255 / 3%), transparent),
+    repeating-linear-gradient(6deg, #3d2819 0 20px, #4a301e 20px 36px, #302017 36px 40px);
+  color: #dfc69c;
+  box-shadow: inset 0 0 0 2px #705237;
+}
+
+.bucket-bank {
+  gap: 1rem;
+}
+
+.phenotype-bucket {
+  padding: 0.9rem;
+  border: 5px solid #2c2d2b;
+  border-top-width: 0.8rem;
+  border-radius: 0.6rem 0.6rem 1.1rem 1.1rem;
+  background:
+    linear-gradient(rgb(0 0 0 / 5%), rgb(0 0 0 / 28%)),
+    repeating-linear-gradient(7deg, #4c301d 0 18px, #633f25 18px 34px, #3b2618 34px 38px);
+  box-shadow:
+    inset 0 0 20px rgb(0 0 0 / 50%),
+    inset 0 0 0 2px rgb(182 128 66 / 18%),
+    0 10px 19px rgb(0 0 0 / 34%);
+}
+
+.phenotype-bucket::before {
+  position: absolute;
+  right: 0.65rem;
+  bottom: 0.55rem;
+  color: rgb(211 168 100 / 28%);
+  font-size: 1.6rem;
+  content: 'ᛉ';
+}
+
+.bucket-rim {
+  top: -0.9rem;
+  height: 1rem;
+  border: 3px solid #242522;
+  background:
+    linear-gradient(#8a8d86, #4f544f 50%, #282b29);
+  box-shadow:
+    0 0.3rem 0.4rem rgb(0 0 0 / 52%),
+    inset 0 0 0 2px rgb(205 170 103 / 18%);
+}
+
+.hatchling-pool {
+  border: 2px solid #544a39;
+  background:
+    radial-gradient(circle at 50% 105%, rgb(137 103 54 / 18%), transparent 55%),
+    linear-gradient(155deg, rgb(8 10 10 / 82%), rgb(30 34 32 / 72%));
+}
+
+.pour-button {
+  border: 3px solid #4d311d;
+  background:
+    linear-gradient(rgb(255 255 255 / 8%), transparent),
+    linear-gradient(#8e5127, #492612);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Ledger / records                                                            */
+/* -------------------------------------------------------------------------- */
+
+.history-card {
+  border: 5px solid #2b1d14;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(rgb(255 255 255 / 2%), transparent),
+    repeating-linear-gradient(7deg, #3f2b1f 0 22px, #4b3222 22px 42px, #302119 42px 46px);
+  box-shadow:
+    0 13px 26px rgb(0 0 0 / 38%),
+    inset 0 0 0 2px rgb(157 109 58 / 22%);
+}
+
+.history-card > header {
+  border-bottom: 4px solid #30231a;
+  background:
+    linear-gradient(rgb(255 255 255 / 3%), transparent),
+    #33241b;
+}
+
+.table-scroll {
+  margin: 0.4rem;
+  border: 3px solid #7b603d;
+  border-radius: 0.45rem;
+  background:
+    repeating-linear-gradient(0deg, rgb(91 62 31 / 5%) 0 1px, transparent 1px 5px),
+    linear-gradient(100deg, #cdb586, #e7d2a4 48%, #c4aa77);
+  box-shadow: inset 0 0 22px rgb(93 61 27 / 18%);
+}
+
+table {
+  background: transparent;
+}
+
+th,
+td {
+  border-bottom-color: rgb(99 72 44 / 22%);
+  color: #3e3021;
+}
+
+thead th {
+  background: rgb(85 58 32 / 12%);
+  color: #6c4b2e;
+}
+
+tbody th {
+  color: #4a2e1b;
+}
+
+td strong {
+  color: #7d421f;
+}
+
+td small {
+  color: #756246;
+}
+
+.parent-row td,
+.parent-row th {
+  background: rgb(155 91 36 / 7%);
+}
+
+.observation-prompts {
+  border: 4px solid #2b1d14;
+  background:
+    linear-gradient(rgb(255 255 255 / 2%), transparent),
+    repeating-linear-gradient(7deg, #3e2a1d 0 22px, #493122 22px 41px, #302118 41px 45px);
+}
+
+.observation-prompts summary {
+  color: #e0c69b;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Viking academy animation                                                    */
+/* -------------------------------------------------------------------------- */
+
+@keyframes academy-gear-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes academy-gear-spin-reverse {
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes gauge-needle {
+  from { transform: translateY(-50%) rotate(-55deg); }
+  to { transform: translateY(-50%) rotate(32deg); }
+}
+
+@keyframes academy-smoke {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.65);
+  }
+  25% { opacity: 0.45; }
+  100% {
+    opacity: 0;
+    transform: translate(-30%, -2.2rem) scale(1.35);
+  }
+}
+
+@keyframes academy-torch {
+  from { transform: translateX(-50%) rotate(-4deg) scale(0.9, 1.05); }
+  to { transform: translateX(-50%) rotate(5deg) scale(1.05, 0.94); }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Responsive Viking scenery                                                   */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .academy-observatory,
+  .academy-shield-rack {
+    opacity: 0.16;
+  }
+
+  .forge-scene {
+    height: 38rem;
+  }
+
+  .stone-pillar {
+    opacity: 0.75;
+  }
+}
+
+@media (max-width: 760px) {
+  .academy-observatory,
+  .academy-banner,
+  .academy-chain,
+  .gear-bank,
+  .pressure-gauge,
+  .furnace-stack,
+  .machine-rune {
+    display: none;
+  }
+
+  .forge-scene {
+    height: 33rem;
+  }
+
+  .stone-pillar {
+    width: 2.5rem;
+    opacity: 0.55;
+  }
+
+  .stone-pillar-left { left: 1.5%; }
+  .stone-pillar-right { right: 1.5%; }
+
+  .timber-crossbeam {
+    left: 2%;
+    right: 2%;
+  }
+
+  .academy-machine-crest {
+    transform: translateX(-50%) scale(0.8);
+    transform-origin: top center;
+  }
+}
+
+@media (max-width: 480px) {
+  .viking-academy-sampler {
+    padding: 0.65rem;
+    border-width: 4px;
+  }
+
+  .academy-backdrop {
+    opacity: 0.55;
+  }
+
+  .stone-pillar,
+  .brass-pipe,
+  .torch-sconce {
+    display: none;
+  }
+
+  .forge-scene {
+    height: 30rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .running .gear,
+  .running .pressure-gauge i,
+  .running .furnace-stack i,
+  .torch-sconce i {
+    animation: none !important;
   }
 }

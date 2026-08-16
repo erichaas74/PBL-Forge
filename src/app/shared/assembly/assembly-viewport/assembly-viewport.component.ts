@@ -47,15 +47,25 @@ export class AssemblyViewportComponent implements AfterViewInit, OnDestroy {
   private elapsedSeconds = 0;
   private peakVelocityMs = 0;
   private hasMounted = false;
+  private physicsDirty = true;
+  private blueprintSignature = '';
   private readonly physics = inject(AssemblyPhysicsService);
   private readonly renderer = inject(AssemblyRendererService);
 
   private readonly stateSync = effect(() => {
     const state = this.state();
-    this.physics.rebuild(state);
+    const signature = physicsSignature(state);
+    if (signature !== this.blueprintSignature) {
+      this.blueprintSignature = signature;
+      this.physicsDirty = true;
+    }
 
     if (this.hasMounted) {
       this.renderer.syncAssembly(state);
+      if (this.running()) {
+        this.ensurePhysicsReady();
+        this.startLoop();
+      }
     }
   });
 
@@ -64,6 +74,11 @@ export class AssemblyViewportComponent implements AfterViewInit, OnDestroy {
     if (!running) {
       this.elapsedSeconds = 0;
       this.peakVelocityMs = 0;
+      this.stopLoop();
+      this.renderer.render();
+    } else if (this.hasMounted) {
+      this.ensurePhysicsReady();
+      this.startLoop();
     }
   });
 
@@ -71,14 +86,14 @@ export class AssemblyViewportComponent implements AfterViewInit, OnDestroy {
     this.hasMounted = true;
     this.renderer.mount(this.viewportRef.nativeElement);
     this.renderer.syncAssembly(this.state());
-    this.physics.rebuild(this.state());
-    this.frameId = requestAnimationFrame(this.tick);
+    if (this.running()) {
+      this.ensurePhysicsReady();
+      this.startLoop();
+    }
   }
 
   ngOnDestroy(): void {
-    if (this.frameId !== null) {
-      cancelAnimationFrame(this.frameId);
-    }
+    this.stopLoop();
 
     this.stateSync.destroy();
     this.runningSync.destroy();
@@ -87,6 +102,7 @@ export class AssemblyViewportComponent implements AfterViewInit, OnDestroy {
   }
 
   private readonly tick = (time: number): void => {
+    this.frameId = null;
     const deltaSeconds = this.lastFrameTime === 0
       ? 0
       : Math.min((time - this.lastFrameTime) / 1000, 0.05);
@@ -114,10 +130,30 @@ export class AssemblyViewportComponent implements AfterViewInit, OnDestroy {
         deltaSeconds,
         peakVelocityMs: this.peakVelocityMs,
       });
-    } else {
-      this.renderer.render();
+      this.startLoop();
     }
-
-    this.frameId = requestAnimationFrame(this.tick);
   };
+
+  private ensurePhysicsReady(): void {
+    if (!this.physicsDirty) return;
+    this.physics.rebuild(this.state());
+    this.physicsDirty = false;
+    this.lastFrameTime = 0;
+  }
+
+  private startLoop(): void {
+    if (this.frameId === null && this.running()) {
+      this.frameId = requestAnimationFrame(this.tick);
+    }
+  }
+
+  private stopLoop(): void {
+    if (this.frameId !== null) cancelAnimationFrame(this.frameId);
+    this.frameId = null;
+    this.lastFrameTime = 0;
+  }
+}
+
+function physicsSignature(state: AssemblyBlueprint): string {
+  return JSON.stringify({ parts: state.parts, joints: state.joints });
 }

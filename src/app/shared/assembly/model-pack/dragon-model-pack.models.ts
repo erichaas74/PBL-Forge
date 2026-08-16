@@ -40,3 +40,5 @@ export const SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS = [
   'dragon-tail-stinger',
 ] as const;
 
+export type DragonProceduralProfileId =
+  typeof SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS[number];

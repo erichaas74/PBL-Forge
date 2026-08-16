@@ -1,0 +1,302 @@
+<svg
+  class="scene"
+  viewBox="0 0 1600 560"
+  preserveAspectRatio="xMidYMax slice"
+  role="presentation"
+  focusable="false"
+>
+  <defs>
+    <!--
+      Every layer gradient runs pale at the bottom. That is haze pooling at the foot of a
+      ridge, and it is the single cue that separates "far away" from "small".
+    -->
+    <linearGradient id="dgh-far" x1="0" y1="0.1" x2="0" y2="1">
+      <stop class="far-top" offset="0" />
+      <stop class="far-haze" offset="1" />
+    </linearGradient>
+    <linearGradient id="dgh-mid" x1="0" y1="0" x2="0" y2="1">
+      <stop class="mid-top" offset="0" />
+      <stop class="mid-haze" offset="1" />
+    </linearGradient>
+    <linearGradient id="dgh-near" x1="0" y1="0" x2="0" y2="1">
+      <stop class="near-top" offset="0" />
+      <stop class="near-base" offset="1" />
+    </linearGradient>
+    <linearGradient id="dgh-water" x1="0" y1="0" x2="0" y2="1">
+      <stop class="water-far" offset="0" />
+      <stop class="water-mid" offset="0.45" />
+      <stop class="water-near" offset="1" />
+    </linearGradient>
+    <linearGradient id="dgh-mist-fade" x1="0" y1="0" x2="0" y2="1">
+      <stop class="mist-edge" offset="0" />
+      <stop class="mist-core" offset="0.5" />
+      <stop class="mist-edge" offset="1" />
+    </linearGradient>
+
+    <!-- Low sun sitting just off the headland's shoulder: the frame's only light source. -->
+    <radialGradient id="dgh-sun" cx="0.5" cy="0.5" r="0.5">
+      <stop class="sun-core" offset="0" />
+      <stop class="sun-mid" offset="0.34" />
+      <stop class="sun-edge" offset="1" />
+    </radialGradient>
+    <radialGradient id="dgh-torch" cx="0.5" cy="0.5" r="0.5">
+      <stop class="torch-core" offset="0" />
+      <stop class="torch-edge" offset="1" />
+    </radialGradient>
+    <radialGradient id="dgh-door" cx="0.5" cy="0.5" r="0.5">
+      <stop class="door-core" offset="0" />
+      <stop class="door-edge" offset="1" />
+    </radialGradient>
+
+    <!--
+      Mist as displaced noise rather than a soft ellipse. A blurred ellipse always reads as an
+      airbrush; pushing a band through fractal turbulence gives it torn edges and wisps that
+      catch on the rock.
+    -->
+    <filter id="dgh-mist" x="-20%" y="-160%" width="140%" height="420%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.011 0.038" numOctaves="2" seed="7" />
+      <feDisplacementMap in="SourceGraphic" scale="42" xChannelSelector="R" yChannelSelector="G" />
+      <feGaussianBlur stdDeviation="6" />
+    </filter>
+    <filter id="dgh-smoke" x="-80%" y="-40%" width="260%" height="200%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.03" numOctaves="2" seed="19" />
+      <feDisplacementMap in="SourceGraphic" scale="26" xChannelSelector="R" yChannelSelector="G" />
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+    <!-- Depth of field on the closest rock. Real distance blurs; drawn distance does not. -->
+    <filter id="dgh-close" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="2.4" />
+    </filter>
+    <filter id="dgh-glow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="5" />
+    </filter>
+
+    <!--
+      One longhouse, reused at four sizes. The bowed ridge and eaves that run almost to the
+      ground are what make it Norse rather than a generic gabled hut.
+    -->
+    <g id="dgh-longhouse">
+      <!-- Firelight spilling out of the doorway, drawn under the hall so it reads as escaping. -->
+      <ellipse class="door-glow" cx="0" cy="-10" rx="44" ry="30" fill="url(#dgh-door)" />
+      <path class="roof" d="M-108 0 C-97 -32 -62 -58 0 -63 C62 -58 97 -32 108 0 Z" />
+      <path class="roof-ridge" d="M-96 -8 C-84 -34 -54 -54 0 -58 C54 -54 84 -34 96 -8" />
+      <path class="doorway" d="M-16 0 L-16 -27 Q0 -36 16 -27 L16 0 Z" />
+      <path class="gable-beam" d="M-19 -55 L7 -78 M19 -55 L-7 -78" />
+    </g>
+
+    <!-- Fish-drying rack: two A-frames and a crossbar, the settlement's working furniture. -->
+    <g id="dgh-rack">
+      <path class="timber-line" d="M-22 0 L-8 -26 M-2 0 L-14 -26 M22 0 L8 -26 M2 0 L14 -26" />
+      <path class="timber-line" d="M-16 -24 L16 -24 M-18 -14 L18 -14" />
+    </g>
+
+    <g id="dgh-dragon">
+      <path class="wing" d="M0 0 C-15 -11 -31 -15 -47 -10 C-34 -3 -18 2 -4 4 Z" />
+      <path class="wing" d="M0 0 C15 -11 31 -15 47 -10 C34 -3 18 2 4 4 Z" />
+      <ellipse class="body" cx="0" cy="2" rx="7" ry="3.2" />
+      <path class="body" d="M5 1 C11 -1 15 -4 19 -3 L23 -4 L19 0 C16 2 10 4 6 4 Z" />
+      <path class="body" d="M-6 2 C-15 5 -23 8 -31 8 C-23 4 -14 1 -7 0 Z" />
+    </g>
+  </defs>
+
+  <!--
+    First stars. Drawn before the sun so its bloom washes them out near the horizon, which is
+    what atmospheric extinction does and what makes a starfield sit *behind* the sky rather than
+    on top of it. They thin out toward the bottom for the same reason.
+  -->
+  <g class="stars">
+    <circle cx="132" cy="54" r="1.5" opacity="0.7" />
+    <circle cx="238" cy="102" r="1.1" opacity="0.5" />
+    <circle cx="316" cy="38" r="1.8" opacity="0.85" />
+    <circle cx="404" cy="128" r="1" opacity="0.4" />
+    <circle cx="486" cy="66" r="1.3" opacity="0.62" />
+    <circle cx="590" cy="30" r="1.6" opacity="0.78" />
+    <circle cx="648" cy="112" r="1" opacity="0.38" />
+    <circle cx="742" cy="72" r="1.4" opacity="0.66" />
+    <circle cx="820" cy="44" r="1.1" opacity="0.55" />
+    <circle cx="898" cy="126" r="1" opacity="0.34" />
+    <circle cx="962" cy="60" r="1.7" opacity="0.8" />
+    <circle cx="1048" cy="104" r="1.2" opacity="0.48" />
+    <circle cx="1126" cy="36" r="1.4" opacity="0.72" />
+    <circle cx="1208" cy="88" r="1" opacity="0.42" />
+    <circle cx="1284" cy="52" r="1.6" opacity="0.75" />
+    <circle cx="1362" cy="118" r="1.1" opacity="0.36" />
+    <circle cx="1448" cy="70" r="1.3" opacity="0.6" />
+    <circle cx="1526" cy="34" r="1.5" opacity="0.7" />
+    <circle cx="1572" cy="132" r="1" opacity="0.32" />
+    <circle cx="196" cy="168" r="1" opacity="0.26" />
+    <circle cx="530" cy="186" r="1" opacity="0.22" />
+    <circle cx="1004" cy="176" r="1" opacity="0.24" />
+    <circle cx="1396" cy="192" r="1" opacity="0.2" />
+  </g>
+
+  <!--
+    The sun bloom sits behind the far ridge, so the ridge occludes it the way a hill does. Its
+    centre is well above the horizon on purpose: with the water covering everything below y=386
+    and the ridge covering down to ~y=327, a bloom centred on the waterline is a bloom nobody
+    ever sees. The wash underneath it spreads that warmth along the whole skyline.
+  -->
+  <ellipse class="sun-wash" cx="560" cy="380" rx="820" ry="130" fill="url(#dgh-sun)" />
+  <ellipse class="sun" cx="470" cy="330" rx="360" ry="185" fill="url(#dgh-sun)" />
+
+  <g class="plane plane--far">
+    <path
+      fill="url(#dgh-far)"
+      d="M0 366 L48 352 L96 359 L150 331 L196 307 L242 289 L292 313 L338 331 L390 318 L442 341
+         L494 327 L546 301 L592 275 L648 303 L700 329 L754 317 L806 343 L858 330 L912 353
+         L968 338 L1020 357 L1072 335 L1126 311 L1178 287 L1232 315 L1286 337 L1340 323
+         L1392 349 L1446 335 L1500 355 L1552 343 L1600 361 L1600 392 L0 392 Z"
+    />
+  </g>
+
+  <g class="mist" filter="url(#dgh-mist)">
+    <rect x="-80" y="344" width="1760" height="40" fill="url(#dgh-mist-fade)" />
+  </g>
+
+  <g class="plane plane--mid">
+    <!-- Sea stacks: the north Atlantic's vertical punctuation, and a scale reference. -->
+    <path fill="url(#dgh-mid)" d="M648 388 L655 345 L664 329 L673 315 L681 322 L687 343 L695 357 L702 373 L708 388 Z" />
+    <path fill="url(#dgh-mid)" d="M714 388 L718 359 L724 348 L730 357 L734 373 L738 388 Z" />
+    <path
+      fill="url(#dgh-mid)"
+      d="M806 390 L846 371 L882 358 L918 349 L956 336 L998 327 L1040 319 L1078 313 L1112 309
+         L1150 316 L1186 327 L1222 337 L1258 331 L1292 345 L1330 338 L1368 352 L1408 344
+         L1448 357 L1492 350 L1534 364 L1572 377 L1600 385 L1600 390 Z"
+    />
+    <!--
+      The settlement lives on this island rather than on the near headland, because the near
+      headland is where the page's title goes and a village drawn underneath a 6rem headline is
+      a village nobody sees. Sitting it mid-frame also earns the atmosphere: these are lit
+      buildings at distance, so haze thins their contrast and the torches do the reading.
+    -->
+    <g class="settlement settlement--mid">
+      <use href="#dgh-longhouse" transform="translate(1012 322) scale(0.5)" />
+      <use href="#dgh-longhouse" transform="translate(1198 331) scale(0.4)" />
+      <use href="#dgh-longhouse" transform="translate(928 341) scale(0.32)" />
+      <use href="#dgh-rack" transform="translate(1072 317) scale(0.42)" />
+      <use href="#dgh-rack" transform="translate(1148 322) scale(0.34)" />
+
+      <g class="torch" transform="translate(962 339)">
+        <circle class="torch-halo" cx="0" cy="-16" r="30" fill="url(#dgh-torch)" />
+        <path class="torch-post" d="M0 0 L0 -13" />
+        <path class="torch-flame" d="M0 -22 C4 -19 4 -15 0 -13 C-4 -15 -4 -19 0 -22 Z" />
+      </g>
+      <g class="torch" transform="translate(1256 341)">
+        <circle class="torch-halo" cx="0" cy="-14" r="26" fill="url(#dgh-torch)" />
+        <path class="torch-post" d="M0 0 L0 -11" />
+        <path class="torch-flame" d="M0 -19 C3.4 -16 3.4 -13 0 -11 C-3.4 -13 -3.4 -16 0 -19 Z" />
+      </g>
+    </g>
+
+    <!--
+      The astronomy note: an open observatory frame with an armillary sphere, the one thing on
+      the skyline that says this settlement measures things.
+    -->
+    <g class="observatory" transform="translate(1112 309)">
+      <path class="mid-stone" d="M-17 0 L-13 -68 L13 -68 L17 0 Z" />
+      <path class="mid-stone" d="M-22 -68 L22 -68 L20 -76 L-20 -76 Z" />
+      <g class="armillary">
+        <circle cx="0" cy="-90" r="13" />
+        <ellipse cx="0" cy="-90" rx="13" ry="4.6" />
+        <ellipse cx="0" cy="-90" rx="5" ry="13" />
+        <path d="M0 -105 L0 -76" />
+      </g>
+    </g>
+  </g>
+
+  <g class="mist mist--low" filter="url(#dgh-mist)">
+    <rect x="-80" y="374" width="1760" height="30" fill="url(#dgh-mist-fade)" />
+  </g>
+
+  <rect class="water" x="0" y="386" width="1600" height="174" fill="url(#dgh-water)" />
+
+  <!-- Glitter path: the sun's column on the water, widening and breaking up as it nears us. -->
+  <g class="glitter">
+    <ellipse cx="470" cy="396" rx="52" ry="1.5" />
+    <ellipse cx="462" cy="406" rx="70" ry="1.8" />
+    <ellipse cx="478" cy="417" rx="46" ry="1.6" />
+    <ellipse cx="452" cy="429" rx="88" ry="2.1" />
+    <ellipse cx="486" cy="443" rx="58" ry="2" />
+    <ellipse cx="444" cy="458" rx="104" ry="2.4" />
+    <ellipse cx="498" cy="476" rx="72" ry="2.2" />
+    <ellipse cx="438" cy="496" rx="120" ry="2.8" />
+    <ellipse cx="506" cy="519" rx="86" ry="2.5" />
+    <ellipse cx="452" cy="543" rx="134" ry="3" />
+  </g>
+
+  <!-- Jetty reaching off the headland's toe, with a moored longship at its head. -->
+  <g class="jetty">
+    <path class="deck" d="M446 447 L706 442 L706 451 L446 456 Z" />
+    <path class="post" d="M470 452 L470 486 M528 450 L528 480 M592 448 L592 476 M660 445 L660 472 M700 444 L700 470" />
+    <path class="rope" d="M470 444 Q499 456 528 442 Q560 454 592 440 Q626 452 660 438" />
+  </g>
+
+  <g class="longship" transform="translate(760 438)">
+    <path class="hull" d="M-72 0 C-52 12 52 12 72 0 C56 -7 -56 -7 -72 0 Z" />
+    <path class="prow" d="M-72 0 C-86 -9 -89 -24 -80 -34 C-84 -22 -80 -10 -66 -4" />
+    <path class="prow" d="M72 0 C84 -8 86 -20 79 -29 C82 -19 79 -9 67 -4" />
+    <path class="mast" d="M0 -6 L0 -58" />
+    <path class="rope" d="M0 -56 L-58 -4 M0 -56 L58 -4" />
+    <g class="shields">
+      <circle cx="-44" cy="-4" r="5" />
+      <circle cx="-30" cy="-4.6" r="5" />
+      <circle cx="-16" cy="-5" r="5" />
+      <circle cx="-2" cy="-5.2" r="5" />
+      <circle cx="12" cy="-5" r="5" />
+      <circle cx="26" cy="-4.6" r="5" />
+      <circle cx="40" cy="-4" r="5" />
+    </g>
+  </g>
+
+  <!-- Hearth smoke off the village roofs, leaning downwind. -->
+  <g class="smoke" filter="url(#dgh-smoke)">
+    <path d="M1006 300 C1022 276 1002 258 1024 232 C1042 212 1026 196 1050 176" />
+    <path d="M1194 316 C1208 296 1192 282 1210 262" />
+  </g>
+
+  <g class="plane plane--near">
+    <path
+      fill="url(#dgh-near)"
+      d="M0 560 L0 372 L26 358 L58 344 L92 336 L128 330 L168 326 L214 324 L262 327 L306 331
+         L344 339 L378 351 L404 367 L424 385 L440 405 L452 429 L462 457 L470 491 L474 525
+         L476 560 Z"
+    />
+    <!-- Rim light on the sunward edge. Backlighting is what stops a silhouette reading as a hole. -->
+    <path
+      class="rim"
+      filter="url(#dgh-glow)"
+      d="M262 327 L306 331 L344 339 L378 351 L404 367 L424 385 L440 405 L452 429 L462 457 L470 491"
+    />
+
+    <!--
+      The headland is kept deliberately bare: a dark mass for the title to sit against. Its only
+      furniture is the mooring torch at the jetty head and a rack on the skyline, which is
+      enough to say the rock is inhabited without competing with the type.
+    -->
+    <g class="settlement">
+      <use href="#dgh-rack" transform="translate(300 337) scale(0.8)" />
+
+      <g class="torch" transform="translate(438 424)">
+        <circle class="torch-halo" cx="0" cy="-20" r="34" fill="url(#dgh-torch)" />
+        <path class="torch-post" d="M0 0 L0 -17" />
+        <path class="torch-flame" d="M0 -29 C4 -25 4 -20 0 -17 C-4 -20 -4 -25 0 -29 Z" />
+      </g>
+    </g>
+  </g>
+
+  <g class="dragons">
+    <use href="#dgh-dragon" transform="translate(986 244) scale(0.34) rotate(-6)" opacity="0.34" />
+    <use href="#dgh-dragon" transform="translate(1044 226) scale(0.28) rotate(4)" opacity="0.3" />
+    <use href="#dgh-dragon" transform="translate(690 196) scale(0.5) rotate(-3)" opacity="0.5" />
+    <use href="#dgh-dragon" transform="translate(1318 158) scale(0.86) rotate(-8)" opacity="0.72" />
+  </g>
+
+  <!-- Closest rock, blurred and nearly black: the frame's near edge. -->
+  <g class="plane plane--close" filter="url(#dgh-close)">
+    <path
+      d="M1600 560 L1600 468 L1558 477 L1514 492 L1468 485 L1422 500 L1378 517 L1340 508
+         L1298 525 L1262 541 L1228 553 L1204 560 Z"
+    />
+    <path d="M0 560 L0 540 L34 546 L72 556 L92 560 Z" />
+  </g>
+</svg>

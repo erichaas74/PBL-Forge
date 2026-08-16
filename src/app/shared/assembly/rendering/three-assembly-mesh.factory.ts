@@ -2,7 +2,11 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { AssemblyPart } from '../domain/assembly.models';
 import { positiveNumber } from '../domain/vector-data';
-import { instantiateAssemblyAsset, loadAssemblyAssetTemplate } from './assembly-asset-loader';
+import {
+  instantiateAssemblyAsset,
+  isSharedAssemblyAssetTexture,
+  loadAssemblyAssetTemplate,
+} from './assembly-asset-loader';
 import { createDragonProceduralObject } from './dragon-procedural-mesh.factory';
 import { isSharedDragonTexture } from './dragon-textures';
 import { createMiniDragonProceduralObject } from './mini-dragon-procedural-mesh.factory';
@@ -31,6 +35,8 @@ export interface AssemblyObjectOptions {
    * at that size.
    */
   proceduralOnly?: boolean;
+  /** Called after an authored asset replaces its immediate fallback. */
+  onAsyncReady?: () => void;
 }
 
 export function createAssemblyObject(
@@ -55,6 +61,7 @@ export function createAssemblyObject(
       root.add(authored);
       prepareAssemblyAppearance(root);
       reapplyStoredAppearance(root);
+      options.onAsyncReady?.();
     });
   }
 
@@ -315,8 +322,14 @@ export function disposeAssemblyObject(root: THREE.Object3D): void {
     object.geometry.dispose();
     const materials = Array.isArray(object.material) ? object.material : [object.material];
     for (const material of materials) {
-      if (material instanceof THREE.MeshStandardMaterial && !isSharedDragonTexture(material.map)) {
-        material.map?.dispose();
+      const textures = new Set<THREE.Texture>();
+      for (const value of Object.values(material)) {
+        if (value instanceof THREE.Texture) textures.add(value);
+      }
+      for (const texture of textures) {
+        if (!isSharedDragonTexture(texture) && !isSharedAssemblyAssetTexture(texture)) {
+          texture.dispose();
+        }
       }
       material.dispose();
     }
@@ -388,19 +401,30 @@ export function createAssemblyMaterial(
 
 export function getAssemblyRenderSignature(part: AssemblyPart): string {
   const profile = part.visualProfile;
-  return [
-    part.shape,
-    part.dimensions.x,
-    part.dimensions.y,
-    part.dimensions.z,
-    part.color,
-    profile?.meshType ?? 'primitive',
-    profile?.profileId ?? '',
-    profile?.assetId ?? '',
-    profile?.materialId ?? '',
-    profile?.scale ? `${profile.scale.x},${profile.scale.y},${profile.scale.z}` : '',
-    profile?.offset ? `${profile.offset.x},${profile.offset.y},${profile.offset.z}` : '',
-  ].join(':');
+  const parameters = profile?.parameters
+    ? Object.fromEntries(Object.entries(profile.parameters).sort(([left], [right]) => left.localeCompare(right)))
+    : null;
+
+  // This signature is the renderer's rebuild contract. Keep every field that
+  // can change geometry, material, or the profile-local transform here. JSON
+  // avoids delimiter collisions in free-form profile strings, while sorting
+  // sets and maps prevents equivalent state from rebuilding unnecessarily.
+  return JSON.stringify({
+    shape: part.shape,
+    dimensions: part.dimensions,
+    color: part.color,
+    roles: [...(part.roles ?? [])].sort(),
+    profile: profile ? {
+      meshType: profile.meshType,
+      profileId: profile.profileId,
+      assetId: profile.assetId ?? null,
+      materialId: profile.materialId ?? null,
+      parameters,
+      scale: profile.scale ?? null,
+      offset: profile.offset ?? null,
+      rotation: profile.rotation ?? null,
+    } : null,
+  });
 }
 
 function isWheel(part: AssemblyPart): boolean {

@@ -13,6 +13,8 @@ export interface ChromosomeLocus {
   label: string;
   symbol?: string;
   color: string;
+  /** Optional scientific change encoded by the split barcode. */
+  barcodeVariant?: 'reference' | 'substitution' | 'deletion' | 'insertion';
 }
 
 export interface ChromosomeSvgModel {
@@ -30,9 +32,21 @@ interface RenderBand extends ChromosomeBand {
   width: number;
 }
 
-interface RenderLocus extends ChromosomeLocus {
+interface RenderLocus extends Omit<ChromosomeLocus, 'barcodeVariant'> {
   x: number;
   active: boolean;
+  hasAllele: boolean;
+  barcodeVariant: ChromosomeBarcodeVariant;
+  barcode: readonly RenderBarcodeStripe[];
+}
+
+type ChromosomeBarcodeVariant = NonNullable<ChromosomeLocus['barcodeVariant']> | 'unloaded';
+
+interface RenderBarcodeStripe {
+  offset: number;
+  topFill: string;
+  bottomFill: string;
+  opacity: number;
 }
 
 interface RenderChromatid {
@@ -41,6 +55,8 @@ interface RenderChromatid {
   primary: boolean;
   shapePath: string;
   centromereX: number;
+  left: number;
+  width: number;
   bands: readonly RenderBand[];
   loci: readonly RenderLocus[];
 }
@@ -74,6 +90,9 @@ export class ChromosomeSvgComponent {
   readonly stripeAId = `${this.instanceId}-stripe-a`;
   readonly stripeBId = `${this.instanceId}-stripe-b`;
   readonly glowId = `${this.instanceId}-glow`;
+  readonly chromatinId = `${this.instanceId}-chromatin`;
+  readonly lightingId = `${this.instanceId}-lighting`;
+  readonly telomereId = `${this.instanceId}-telomere`;
 
   private readonly left = 8;
   private readonly availableWidth = 84;
@@ -194,6 +213,8 @@ export class ChromosomeSvgComponent {
       primary,
       shapePath,
       centromereX,
+      left: this.left,
+      width,
       bands: model.bands.map((band) => {
         const start = clamp01(band.start);
         const end = Math.max(start, clamp01(band.end));
@@ -203,12 +224,91 @@ export class ChromosomeSvgComponent {
           width: (end - start) * width,
         };
       }),
-      loci: model.loci.map((locus) => ({
-        ...locus,
-        x: this.modelX(model, locus.position),
-        active: primary && locus.label === this.selectedLocus(),
-      })),
+      loci: model.loci.map((locus) => {
+        const bandColor =
+          model.bands.find(
+            (band) => band.start <= locus.position && band.end >= locus.position,
+          )?.color ?? '#888888';
+        const barcodeVariant = this.barcodeVariant(locus);
+        return {
+          ...locus,
+          x: this.modelX(model, locus.position),
+          active: primary && locus.label === this.selectedLocus(),
+          hasAllele: Boolean(locus.symbol),
+          barcodeVariant,
+          barcode: this.generateBarcode(locus.label, bandColor, barcodeVariant),
+        };
+      }),
     };
+  }
+
+  private barcodeVariant(locus: ChromosomeLocus): ChromosomeBarcodeVariant {
+    if (!locus.symbol) return 'unloaded';
+    if (locus.barcodeVariant) return locus.barcodeVariant;
+
+    // Preserve the prototype's explicit examples while giving the app's neutral
+    // `CH#-G#a/b` sample codes and ordinary upper/lower-case allele pairs a
+    // stable, visibly different barcode without duplicating allele truth here.
+    if (locus.symbol === 'b') return 'deletion';
+    if (locus.symbol === 'F') return 'insertion';
+    if (/^CH.+a$/i.test(locus.symbol)) return 'reference';
+    if (/^CH.+b$/i.test(locus.symbol)) return 'substitution';
+    if (locus.symbol.length === 1 && locus.symbol === locus.symbol.toLowerCase()) {
+      return 'substitution';
+    }
+    return 'reference';
+  }
+
+  private generateBarcode(
+    locusLabel: string,
+    bandColor: string,
+    variant: ChromosomeBarcodeVariant,
+  ): readonly RenderBarcodeStripe[] {
+    const stripeCount = 6;
+    if (variant === 'unloaded') {
+      return Array.from({ length: stripeCount }, (_, index) => ({
+        offset: (index - (stripeCount - 1) / 2) * 1.25,
+        topFill: `color-mix(in srgb, ${bandColor} 15%, #000000)`,
+        bottomFill: `color-mix(in srgb, ${bandColor} 15%, #000000)`,
+        opacity: 0.2,
+      }));
+    }
+
+    const seed = (locusLabel.charCodeAt(locusLabel.length - 1) || 1) * 7;
+    const barcode = Array.from({ length: stripeCount }, (_, index) => {
+      const pairType = (seed * (index + 3)) % 4;
+      const pairs = [
+        { topMix: '#ffffff', topPct: 65, bottomMix: '#000000', bottomPct: 55 },
+        { topMix: '#000000', topPct: 55, bottomMix: '#ffffff', bottomPct: 65 },
+        { topMix: '#ffffff', topPct: 85, bottomMix: '#000000', bottomPct: 85 },
+        { topMix: '#000000', topPct: 85, bottomMix: '#ffffff', bottomPct: 85 },
+      ] as const;
+      const pair = pairs[pairType];
+      return {
+        offset: 0,
+        topFill: `color-mix(in srgb, ${bandColor} ${pair.topPct}%, ${pair.topMix})`,
+        bottomFill: `color-mix(in srgb, ${bandColor} ${pair.bottomPct}%, ${pair.bottomMix})`,
+        opacity: 1,
+      };
+    });
+
+    if (variant === 'substitution') {
+      const changed = barcode[2];
+      barcode[2] = {
+        ...changed,
+        topFill: changed.bottomFill,
+        bottomFill: changed.topFill,
+      };
+    } else if (variant === 'deletion') {
+      barcode.splice(3, 1);
+    } else if (variant === 'insertion') {
+      barcode.splice(2, 0, { ...barcode[2] });
+    }
+
+    return barcode.map((stripe, index) => ({
+      ...stripe,
+      offset: (index - (barcode.length - 1) / 2) * 1.25,
+    }));
   }
 
   selectLocus(label: string): void {

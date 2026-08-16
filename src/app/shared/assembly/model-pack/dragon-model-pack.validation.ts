@@ -15,9 +15,11 @@ import {
 import {
   DRAGON_MODEL_PACK_SCHEMA_VERSION,
   DRAGON_RENDERER_CONTRACT_VERSION,
+  DragonProceduralProfileId,
   DragonModelPackV1,
   SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS,
 } from './dragon-model-pack.models';
+import { validateDragonVisualParameters } from './dragon-visual-parameters';
 
 const shapeTypes = new Set<string>(SHAPE_TYPES);
 const jointTypes = new Set<string>(JOINT_TYPES);
@@ -101,6 +103,7 @@ function parseBlueprint(input: unknown, label: string): AssemblyBlueprint {
   });
 
   for (const part of parts) validateAttachment(part, parts, label);
+  validateAssemblyTree(parts, joints, label);
   return { parts, joints };
 }
 
@@ -114,11 +117,11 @@ function parsePart(input: unknown, label: string): AssemblyPart {
     label: optionalString(part['label'], `${label}.label`),
     roles: optionalStringArray(part['roles'], `${label}.roles`) as AssemblyPartRole[] | undefined,
     shape: shape as AssemblyPart['shape'],
-    mass: finiteNumber(part['mass'], `${label}.mass`),
-    dimensions: vector(part['dimensions'], `${label}.dimensions`),
+    mass: positiveNumber(part['mass'], `${label}.mass`),
+    dimensions: positiveVector(part['dimensions'], `${label}.dimensions`),
     position: vector(part['position'], `${label}.position`),
     rotation: optionalQuaternion(part['rotation'], `${label}.rotation`),
-    color: nonEmptyString(part['color'], `${label}.color`),
+    color: colorString(part['color'], `${label}.color`),
     visualProfile: optionalVisualProfile(part['visualProfile'], `${label}.visualProfile`),
     snapPoints: optionalSnapPoints(part['snapPoints'], `${label}.snapPoints`),
     attachment: optionalAttachment(part['attachment'], `${label}.attachment`),
@@ -136,7 +139,7 @@ function parseJoint(input: unknown, label: string): AssemblyJoint {
     childPartId: nonEmptyString(joint['childPartId'], `${label}.childPartId`),
     pivotOnParent: vector(joint['pivotOnParent'], `${label}.pivotOnParent`),
     pivotOnChild: vector(joint['pivotOnChild'], `${label}.pivotOnChild`),
-    axis: vector(joint['axis'], `${label}.axis`),
+    axis: direction(joint['axis'], `${label}.axis`),
     behavior: optionalBehavior(joint['behavior'], `${label}.behavior`),
   };
 }
@@ -152,13 +155,21 @@ function optionalVisualProfile(value: unknown, label: string): AssemblyVisualPro
   if (meshType === 'procedural' && !supportedProfiles.has(profileId)) {
     throw new Error(`${label} references unsupported procedural profile "${profileId}".`);
   }
+  const parameters = optionalParameters(profile['parameters'], `${label}.parameters`);
+  if (supportedProfiles.has(profileId)) {
+    validateDragonVisualParameters(
+      profileId as DragonProceduralProfileId,
+      parameters,
+      `${label}.parameters`,
+    );
+  }
   return {
     profileId,
     meshType,
     materialId: optionalString(profile['materialId'], `${label}.materialId`),
     assetId: optionalString(profile['assetId'], `${label}.assetId`),
-    parameters: optionalParameters(profile['parameters'], `${label}.parameters`),
-    scale: optionalVector(profile['scale'], `${label}.scale`),
+    parameters,
+    scale: optionalPositiveVector(profile['scale'], `${label}.scale`),
     offset: optionalVector(profile['offset'], `${label}.offset`),
     rotation: optionalQuaternion(profile['rotation'], `${label}.rotation`),
   };
@@ -214,7 +225,7 @@ function optionalAttachment(value: unknown, label: string): AssemblyAttachmentRu
     parentSnapId: nonEmptyString(attachment['parentSnapId'], `${label}.parentSnapId`),
     childSnapId: nonEmptyString(attachment['childSnapId'], `${label}.childSnapId`),
     jointType: jointType as AssemblyAttachmentRule['jointType'],
-    axis: vector(attachment['axis'], `${label}.axis`),
+    axis: direction(attachment['axis'], `${label}.axis`),
     childRotation: optionalQuaternion(attachment['childRotation'], `${label}.childRotation`),
     behavior: optionalBehavior(attachment['behavior'], `${label}.behavior`),
     jointId: optionalString(attachment['jointId'], `${label}.jointId`),
@@ -231,16 +242,16 @@ function optionalBehavior(value: unknown, label: string): AssemblyJointBehavior 
   return {
     profile: profile as AssemblyJointBehavior['profile'],
     motorSpeed: optionalNumber(behavior['motorSpeed'], `${label}.motorSpeed`),
-    motorForce: optionalNumber(behavior['motorForce'], `${label}.motorForce`),
-    oscillationSpeed: optionalNumber(behavior['oscillationSpeed'], `${label}.oscillationSpeed`),
-    oscillationAmplitude: optionalNumber(
+    motorForce: optionalPositiveNumber(behavior['motorForce'], `${label}.motorForce`),
+    oscillationSpeed: optionalNonNegativeNumber(behavior['oscillationSpeed'], `${label}.oscillationSpeed`),
+    oscillationAmplitude: optionalNonNegativeNumber(
       behavior['oscillationAmplitude'],
       `${label}.oscillationAmplitude`,
     ),
-    springStiffness: optionalNumber(behavior['springStiffness'], `${label}.springStiffness`),
-    springDamping: optionalNumber(behavior['springDamping'], `${label}.springDamping`),
-    breakForce: optionalNumber(behavior['breakForce'], `${label}.breakForce`),
-    breakDamage: optionalNumber(behavior['breakDamage'], `${label}.breakDamage`),
+    springStiffness: optionalPositiveNumber(behavior['springStiffness'], `${label}.springStiffness`),
+    springDamping: optionalNonNegativeNumber(behavior['springDamping'], `${label}.springDamping`),
+    breakForce: optionalPositiveNumber(behavior['breakForce'], `${label}.breakForce`),
+    breakDamage: optionalNonNegativeNumber(behavior['breakDamage'], `${label}.breakDamage`),
   };
 }
 
@@ -250,14 +261,55 @@ function validateAttachment(part: AssemblyPart, parts: AssemblyPart[], label: st
   if (attachment.parentPartId && !parts.some(item => item.id === attachment.parentPartId)) {
     throw new Error(`${label}: attachment on "${part.id}" references a missing parent part.`);
   }
-  if (part.snapPoints?.length
-    && !part.snapPoints.some(snap => snap.id === attachment.childSnapId)) {
+  if (!part.snapPoints?.some(snap => snap.id === attachment.childSnapId)) {
     throw new Error(`${label}: attachment on "${part.id}" references a missing child snap.`);
   }
   const parent = parts.find(item => item.id === attachment.parentPartId);
-  if (parent?.snapPoints?.length
-    && !parent.snapPoints.some(snap => snap.id === attachment.parentSnapId)) {
+  if (attachment.parentPartId
+    && !parent?.snapPoints?.some(snap => snap.id === attachment.parentSnapId)) {
     throw new Error(`${label}: attachment on "${part.id}" references a missing parent snap.`);
+  }
+}
+
+/**
+ * Published dragon assemblies are rooted trees. The pose and genetics pipelines
+ * walk parent-to-child and cannot give deterministic placement to cycles,
+ * disconnected islands, or a part owned by two parents.
+ */
+function validateAssemblyTree(parts: AssemblyPart[], joints: AssemblyJoint[], label: string): void {
+  if (joints.length !== parts.length - 1) {
+    throw new Error(`${label} must contain exactly one joint per non-root part.`);
+  }
+
+  const incoming = new Map(parts.map(part => [part.id, 0]));
+  const children = new Map(parts.map(part => [part.id, [] as string[]]));
+  for (const joint of joints) {
+    const nextCount = (incoming.get(joint.childPartId) ?? 0) + 1;
+    if (nextCount > 1) {
+      throw new Error(`${label}: part "${joint.childPartId}" has more than one parent.`);
+    }
+    incoming.set(joint.childPartId, nextCount);
+    children.get(joint.parentPartId)?.push(joint.childPartId);
+  }
+
+  const roots = parts.filter(part => incoming.get(part.id) === 0);
+  if (roots.length !== 1) {
+    throw new Error(`${label} must contain exactly one root part.`);
+  }
+
+  const visited = new Set<string>();
+  const pending = [roots[0].id];
+  while (pending.length) {
+    const partId = pending.pop()!;
+    if (visited.has(partId)) {
+      throw new Error(`${label} contains a joint cycle.`);
+    }
+    visited.add(partId);
+    pending.push(...(children.get(partId) ?? []));
+  }
+
+  if (visited.size !== parts.length) {
+    throw new Error(`${label} contains disconnected parts or a joint cycle.`);
   }
 }
 
@@ -284,6 +336,14 @@ function nonEmptyString(value: unknown, label: string): string {
   return result;
 }
 
+function colorString(value: unknown, label: string): string {
+  const result = nonEmptyString(value, label);
+  if (!/^#[0-9a-f]{6}$/i.test(result)) {
+    throw new Error(`${label} must be a six-digit hexadecimal color.`);
+  }
+  return result;
+}
+
 function optionalString(value: unknown, label: string): string | undefined {
   return value === undefined ? undefined : nonEmptyString(value, label);
 }
@@ -305,6 +365,23 @@ function optionalNumber(value: unknown, label: string): number | undefined {
   return value === undefined ? undefined : finiteNumber(value, label);
 }
 
+function positiveNumber(value: unknown, label: string): number {
+  const result = finiteNumber(value, label);
+  if (result <= 0) throw new Error(`${label} must be greater than zero.`);
+  return result;
+}
+
+function optionalPositiveNumber(value: unknown, label: string): number | undefined {
+  return value === undefined ? undefined : positiveNumber(value, label);
+}
+
+function optionalNonNegativeNumber(value: unknown, label: string): number | undefined {
+  if (value === undefined) return undefined;
+  const result = finiteNumber(value, label);
+  if (result < 0) throw new Error(`${label} cannot be negative.`);
+  return result;
+}
+
 function vector(value: unknown, label: string): Vector3Data {
   const source = record(value, label);
   return {
@@ -318,15 +395,39 @@ function optionalVector(value: unknown, label: string): Vector3Data | undefined 
   return value === undefined ? undefined : vector(value, label);
 }
 
+function positiveVector(value: unknown, label: string): Vector3Data {
+  const result = vector(value, label);
+  for (const [axis, component] of Object.entries(result)) {
+    if (component <= 0) throw new Error(`${label}.${axis} must be greater than zero.`);
+  }
+  return result;
+}
+
+function optionalPositiveVector(value: unknown, label: string): Vector3Data | undefined {
+  return value === undefined ? undefined : positiveVector(value, label);
+}
+
+function direction(value: unknown, label: string): Vector3Data {
+  const result = vector(value, label);
+  const lengthSquared = result.x ** 2 + result.y ** 2 + result.z ** 2;
+  if (lengthSquared < 1e-12) throw new Error(`${label} must be a non-zero direction.`);
+  return result;
+}
+
 function optionalQuaternion(value: unknown, label: string): QuaternionData | undefined {
   if (value === undefined) return undefined;
   const source = record(value, label);
-  return {
+  const result = {
     x: finiteNumber(source['x'], `${label}.x`),
     y: finiteNumber(source['y'], `${label}.y`),
     z: finiteNumber(source['z'], `${label}.z`),
     w: finiteNumber(source['w'], `${label}.w`),
   };
+  const length = Math.hypot(result.x, result.y, result.z, result.w);
+  if (Math.abs(length - 1) > 1e-3) {
+    throw new Error(`${label} must be a unit quaternion.`);
+  }
+  return result;
 }
 
 function optionalBoolean(value: unknown, label: string): boolean | undefined {
@@ -334,4 +435,3 @@ function optionalBoolean(value: unknown, label: string): boolean | undefined {
   if (typeof value !== 'boolean') throw new Error(`${label} must be a boolean.`);
   return value;
 }
-

@@ -337,9 +337,32 @@ describe('dragon body mesh', () => {
     expect(belly?.geometry).toBeInstanceOf(THREE.SphereGeometry);
     expect(belly?.scale.x).toBeCloseTo(bodyPart().dimensions.x * 0.38);
   });
+
+  it('gives alternate body plans distinct anatomical silhouettes', () => {
+    const bodyFor = (bodyArchetype: string) => createDragonProceduralObject(bodyPart({
+      visualProfile: {
+        profileId: 'dragon-body',
+        meshType: 'procedural',
+        parameters: { bodyArchetype },
+      },
+    }))!;
+
+    expect(bodyFor('wyvern').getObjectByName('dragon-body-wyvern-keel')).toBeTruthy();
+    expect(bodyFor('drake').getObjectByName('dragon-body-drake-mantle')).toBeTruthy();
+    expect(bodyFor('four-wing').children.filter(child => child.name.startsWith('dragon-body-four-wing-scapula')).length)
+      .toBe(4);
+    expect(bodyFor('classic').children.some(child => child.name.includes('wyvern-keel'))).toBeFalse();
+  });
 });
 
 describe('dragon upper jaw mesh', () => {
+  it('uses an elliptical tapered snout instead of a hard-edged box', () => {
+    const upperJaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
+    const snout = upperJaw.children[0] as THREE.Mesh;
+
+    expect(snout.geometry.userData['kind']).toBe('dragon-jaw');
+  });
+
   it('builds both nostrils directly into the upper jaw', () => {
     const upperJaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
 
@@ -489,6 +512,16 @@ describe('dragon jaw tooth row', () => {
       }
     });
   }
+
+  it('reduces the upper rear teeth to 65% length and 75% thickness', () => {
+    const upper = rowTeeth(createDragonProceduralObject(jawPart('dragon-upper-jaw'))!)[0]
+      .geometry as THREE.ConeGeometry;
+    const lower = rowTeeth(createDragonProceduralObject(jawPart('dragon-lower-jaw'))!)[0]
+      .geometry as THREE.ConeGeometry;
+
+    expect(upper.parameters.height).toBeCloseTo(lower.parameters.height * 0.65);
+    expect(upper.parameters.radius).toBeCloseTo(lower.parameters.radius * 0.75);
+  });
 });
 
 describe('dragon upper jaw fangs', () => {
@@ -506,14 +539,30 @@ describe('dragon upper jaw fangs', () => {
     return (tooth.geometry as THREE.ConeGeometry).parameters.height;
   }
 
-  it('runs the fangs one and a half times the length of the teeth', () => {
+  it('keeps the front fangs full-sized beside the reduced rear teeth', () => {
     const jaw = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
     const teeth = toothHeightOf(jaw);
 
     expect(fangs(jaw).length).toBe(2);
     for (const fang of fangs(jaw)) {
-      expect((fang.geometry as THREE.ConeGeometry).parameters.height).toBeCloseTo(teeth * 1.5);
+      expect((fang.geometry as THREE.ConeGeometry).parameters.height).toBeCloseTo(teeth * (1.5 / 0.65));
     }
+  });
+
+  it('scales the two fangs without turning every tooth into a fang', () => {
+    const regular = createDragonProceduralObject(jawPart('dragon-upper-jaw'))!;
+    const longFanged = createDragonProceduralObject({
+      ...jawPart('dragon-upper-jaw'),
+      visualProfile: {
+        profileId: 'dragon-upper-jaw',
+        meshType: 'procedural',
+        parameters: { fangScale: 1.5 },
+      },
+    })!;
+
+    expect(toothHeightOf(longFanged)).toBeCloseTo(toothHeightOf(regular), 5);
+    expect((fangs(longFanged)[0].geometry as THREE.ConeGeometry).parameters.height)
+      .toBeGreaterThan((fangs(regular)[0].geometry as THREE.ConeGeometry).parameters.height * 1.4);
   });
 
   it('hangs each fang under a nostril, rooted on the midline', () => {
@@ -639,6 +688,18 @@ describe('dragon limb meshes', () => {
 
     expect(legBounds.min.y).toBeCloseTo(-0.72 / 2, 2);
     expect(legBounds.max.y).toBeCloseTo(0.72 / 2, 2);
+  });
+
+  it('builds feet from an organic pad, heel, toes, and curved talons', () => {
+    const foot = createDragonProceduralObject({
+      ...limbPart('dragon-leg', { x: 0.34, y: 0.14, z: 0.28 }),
+      visualProfile: { profileId: 'dragon-foot', meshType: 'procedural' },
+    })!;
+
+    expect(childNamed(foot, 'dragon-foot-pad')).toBeTruthy();
+    expect(childNamed(foot, 'dragon-foot-heel')).toBeTruthy();
+    expect(foot.children.filter(child => child.name.startsWith('dragon-foot-toe-')).length).toBe(3);
+    expect(foot.children.filter(child => child.name.startsWith('dragon-foot-talon-')).length).toBe(3);
   });
 });
 
@@ -774,6 +835,7 @@ describe('dragon male frill', () => {
 
     expect(head.getObjectByName('dragon-male-crest-web')).toBeFalsy();
     expect(head.getObjectByName('dragon-female-frill-left')).toBeTruthy();
+    expect(head.getObjectByName('dragon-female-frill-spine-left')).toBeTruthy();
   });
 });
 
@@ -835,12 +897,14 @@ describe('dragon grasping forelimb', () => {
     expect(arm.max.y - arm.min.y).toBeCloseTo(leg.max.y - leg.min.y, 4);
   });
 
-  it('gives the hand three fingers on a palm', () => {
+  it('gives the padless hand two fingers and an opposing thumb', () => {
     const hand = createDragonProceduralObject(handPart())!;
 
-    expect(childNamed(hand, 'dragon-grasp-palm')).toBeTruthy();
+    expect(hand.getObjectByName('dragon-grasp-palm')).toBeFalsy();
+    expect(childNamed(hand, 'dragon-grasp-wrist-ball')).toBeTruthy();
     expect(childNamed(hand, 'dragon-grasp-finger-1')).toBeTruthy();
-    expect(childNamed(hand, 'dragon-grasp-finger-3')).toBeTruthy();
+    expect(childNamed(hand, 'dragon-grasp-finger-2')).toBeTruthy();
+    expect(childNamed(hand, 'dragon-grasp-thumb')).toBeTruthy();
     expect(hand.getObjectByName('dragon-grasp-finger-4')).toBeFalsy();
   });
 
@@ -875,12 +939,48 @@ describe('dragon grasping forelimb', () => {
     expect(claw.max.x).toBeGreaterThan(knuckle.max.x);
   });
 
-  it('makes each finger longer than the palm, which is what reads as a hand', () => {
+  it('uses an opposing thumb curve and flips every hook 180 degrees', () => {
     const hand = createDragonProceduralObject(handPart())!;
-    const palm = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-palm'));
+
+    for (const index of [1, 2]) {
+      const pivot = childNamed(hand, `dragon-grasp-claw-pivot-${index}`);
+      expect(pivot.rotation.z).toBeCloseTo(0.36);
+    }
+    expect(childNamed(hand, 'dragon-grasp-claw-pivot-3').rotation.z).toBeCloseTo(-0.36);
+    for (const index of [1, 2, 3]) {
+      expect(childNamed(hand, `dragon-grasp-claw-${index}`).rotation.y).toBeCloseTo(Math.PI);
+    }
+  });
+
+  it('bends each digit toward the direction of its claw curl', () => {
+    const hand = createDragonProceduralObject(handPart())!;
+
+    expect(childNamed(hand, 'dragon-grasp-finger-1-bend').rotation.z).toBeCloseTo(-0.26);
+    expect(childNamed(hand, 'dragon-grasp-finger-2-bend').rotation.z).toBeCloseTo(-0.26);
+    expect(childNamed(hand, 'dragon-grasp-finger-3-bend').rotation.z).toBeCloseTo(0.26);
+  });
+
+  it('projects its long fingers well beyond the wrist', () => {
+    const hand = createDragonProceduralObject(handPart())!;
+    const wrist = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-wrist-ball'));
     const finger = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-finger-2'));
 
-    expect(finger.max.x - finger.min.x).toBeGreaterThan(palm.max.x - palm.min.x);
+    expect(finger.max.x).toBeGreaterThan(wrist.max.x + handPart().dimensions.x);
+  });
+
+  it('seats the finger roots around the back of the wrist instead of on top', () => {
+    const hand = createDragonProceduralObject(handPart())!;
+    hand.updateMatrixWorld(true);
+    const wrist = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-wrist-ball'));
+    const wristCenter = wrist.getCenter(new THREE.Vector3());
+
+    for (const index of [1, 2, 3]) {
+      const base = new THREE.Box3().setFromObject(childNamed(hand, `dragon-grasp-finger-${index}-base`));
+      const baseCenter = base.getCenter(new THREE.Vector3());
+      expect(Math.abs(baseCenter.y - wristCenter.y))
+        .toBeLessThan(wrist.getSize(new THREE.Vector3()).y * 0.35);
+      expect(base.intersectsBox(wrist)).toBe(true);
+    }
   });
 
   it('grows the fingers with the claw gene, the same one the feet read', () => {
@@ -901,13 +1001,20 @@ describe('dragon grasping forelimb', () => {
     expect(reach(clawed)).toBeGreaterThan(reach(plain));
   });
 
-  it('fans the outer fingers off the centre one', () => {
+  it('places two fingers above one opposing thumb', () => {
     const hand = createDragonProceduralObject(handPart())!;
-    const centre = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-finger-2'));
-    const outer = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-finger-3'));
+    const first = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-finger-1'));
+    const second = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-finger-2'));
+    const thumb = new THREE.Box3().setFromObject(childNamed(hand, 'dragon-grasp-thumb'));
+    const firstCenter = first.getCenter(new THREE.Vector3());
+    const secondCenter = second.getCenter(new THREE.Vector3());
+    const thumbCenter = thumb.getCenter(new THREE.Vector3());
 
-    expect(Math.abs(outer.getCenter(new THREE.Vector3()).z))
-      .toBeGreaterThan(Math.abs(centre.getCenter(new THREE.Vector3()).z));
+    // The reared pose rolls this local axis: lower local Y becomes the visible
+    // upper side, so these roots render above the thumb on the dragon.
+    expect(firstCenter.y).toBeLessThan(thumbCenter.y);
+    expect(secondCenter.y).toBeLessThan(thumbCenter.y);
+    expect(firstCenter.z * secondCenter.z).toBeLessThan(0);
   });
 });
 
@@ -939,6 +1046,7 @@ describe('dragon joint balls', () => {
     // Wider than the limb at that station, so the seam is always covered.
     expect(socket.max.x - socket.min.x).toBeGreaterThan(dims.x);
     expect(heel.max.x - heel.min.x).toBeGreaterThan(dims.x);
+    expect(socket.max.y - socket.min.y).toBeLessThan(socket.max.x - socket.min.x);
   });
 
   it('scales the balls with the part, not in world units', () => {
@@ -979,7 +1087,7 @@ describe('dragon joint balls', () => {
     expect(wide.max.x - wide.min.x).toBeGreaterThan((standard.max.x - standard.min.x) * 1.8);
   });
 
-  it('puts a vertebra at both ends of every tail link', () => {
+  it('puts one shared vertebra at the root of every tail link', () => {
     const dims = { x: 0.12, y: 0.58, z: 0.12 };
     const link = createDragonProceduralObject({
       ...limbPart('dragon-leg', dims),
@@ -987,11 +1095,10 @@ describe('dragon joint balls', () => {
       visualProfile: { profileId: 'dragon-tail', meshType: 'procedural' },
     })!;
 
-    // Tail links hinge at their own ends, so both balls sit at ±0.5.
+    // The child link supplies the ball shared by the hinge at its root.
     expect(ballBounds(link, 'dragon-tail-root-ball').getCenter(new THREE.Vector3()).y)
       .toBeCloseTo(0.5 * dims.y, 4);
-    expect(ballBounds(link, 'dragon-tail-tip-ball').getCenter(new THREE.Vector3()).y)
-      .toBeCloseTo(-0.5 * dims.y, 4);
+    expect(link.getObjectByName('dragon-tail-tip-ball')).toBeFalsy();
   });
 
   /**

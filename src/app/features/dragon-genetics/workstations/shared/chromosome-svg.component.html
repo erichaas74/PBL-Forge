@@ -36,6 +36,32 @@
       <rect x="3" width="1" height="4" fill="var(--stripe-gold)" />
       <rect x="4" width="1" height="4" fill="var(--stripe-green)" />
     </pattern>
+    <pattern
+      [attr.id]="chromatinId"
+      width="8"
+      height="5"
+      patternUnits="userSpaceOnUse"
+      patternTransform="rotate(-8)"
+    >
+      <path class="dna-helix-path" d="M-1 1.1 C1 1.1 1 3.9 3 3.9 S5 1.1 7 1.1 S9 3.9 11 3.9" />
+      <path class="dna-helix-path" d="M-1 3.9 C1 3.9 1 1.1 3 1.1 S5 3.9 7 3.9 S9 1.1 11 1.1" />
+    </pattern>
+    <pattern
+      [attr.id]="telomereId"
+      width="2"
+      height="2"
+      patternUnits="userSpaceOnUse"
+      patternTransform="rotate(45)"
+    >
+      <rect width="1" height="2" fill="#ffffff" opacity="0.14" />
+      <rect x="1" width="1" height="2" fill="#000000" opacity="0.12" />
+    </pattern>
+    <linearGradient [attr.id]="lightingId" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6" />
+      <stop offset="30%" stop-color="#ffffff" stop-opacity="0.1" />
+      <stop offset="65%" stop-color="#000000" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.6" />
+    </linearGradient>
     <filter [attr.id]="glowId" x="-100%" y="-100%" width="300%" height="300%">
       <feGaussianBlur stdDeviation="1.2" result="blur" />
       <feMerge>
@@ -79,6 +105,38 @@
             />
           }
         }
+        <rect
+          class="telomere-cap"
+          [attr.x]="chromatid.left"
+          y="5"
+          [attr.width]="chromatid.width * 0.02"
+          height="22"
+          [attr.fill]="'url(#' + telomereId + ')'"
+        />
+        <rect
+          class="telomere-cap"
+          [attr.x]="chromatid.left + chromatid.width * 0.98"
+          y="5"
+          [attr.width]="chromatid.width * 0.02"
+          height="22"
+          [attr.fill]="'url(#' + telomereId + ')'"
+        />
+        <rect
+          class="chromatin-texture"
+          [attr.x]="chromatid.left"
+          y="5"
+          [attr.width]="chromatid.width"
+          height="22"
+          [attr.fill]="'url(#' + chromatinId + ')'"
+        />
+        <rect
+          class="volumetric-lighting"
+          [attr.x]="chromatid.left"
+          y="8"
+          [attr.width]="chromatid.width"
+          height="16"
+          [attr.fill]="'url(#' + lightingId + ')'"
+        />
       </g>
 
       <path class="chromosome-outline" [attr.d]="chromatid.shapePath" />
@@ -89,6 +147,8 @@
         [attr.x2]="chromatid.centromereX"
         y2="18"
       />
+      <circle class="kinetochore-base" [attr.cx]="chromatid.centromereX" cy="16" r="3" />
+      <circle class="kinetochore-inner" [attr.cx]="chromatid.centromereX" cy="16" r="1.5" />
 
       @if (!placeholder()) {
         @for (locus of chromatid.loci; track locus.label) {
@@ -104,7 +164,7 @@
               <rect class="locus-hit-target" [attr.x]="locus.x - 4.5" y="4" width="9" height="32" />
             }
             <line
-              class="gene-marker"
+              class="gene-marker gene-marker-subtle"
               [attr.x1]="locus.x"
               y1="6"
               [attr.x2]="locus.x"
@@ -112,13 +172,27 @@
               [attr.stroke]="locus.color"
               [attr.filter]="locus.active ? 'url(#' + glowId + ')' : null"
             />
+            <g
+              class="allele-barcode-group"
+              [attr.transform]="'translate(' + locus.x + ',10)'"
+              [attr.data-barcode-variant]="locus.barcodeVariant"
+            >
+              @if (locus.hasAllele) {
+                <rect class="barcode-highlight" x="-5" y="-1.5" width="10" height="15" rx="1.5" />
+              }
+              @for (stripe of locus.barcode; track $index) {
+                <g
+                  class="allele-barcode-stripe"
+                  [attr.transform]="'translate(' + stripe.offset + ',0)'"
+                  [attr.opacity]="stripe.opacity"
+                >
+                  <rect x="0" y="0" width="0.8" height="6" [attr.fill]="stripe.topFill" />
+                  <rect x="0" y="6" width="0.8" height="6" [attr.fill]="stripe.bottomFill" />
+                  <rect class="allele-barcode-outline" x="0" y="0" width="0.8" height="12" />
+                </g>
+              }
+            </g>
             @if (locus.active || interactive() || showAllLoci()) {
-              <circle
-                [attr.cx]="locus.x"
-                cy="16"
-                [attr.r]="locus.active ? 2.1 : 1.35"
-                [attr.fill]="locus.color"
-              />
               @if (chromatid.primary) {
                 @if (locus.symbol) {
                   <text class="allele-symbol" [attr.x]="locus.x" y="5.1" [attr.fill]="locus.color">

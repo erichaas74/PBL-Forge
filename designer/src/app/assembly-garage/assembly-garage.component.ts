@@ -48,7 +48,7 @@ export class AssemblyGarageComponent implements OnInit {
   readonly exportModelId = signal('classic-dragon');
   readonly exportModelName = signal('Classic Dragon');
   readonly exportModelDescription = signal('Published from the Dragon Assembly Garage.');
-  readonly exportPackVersion = signal('1.0.0');
+  readonly exportPackVersion = signal('1.1.0');
 
   ngOnInit(): void {
     const presetId = this.initialPresetId();

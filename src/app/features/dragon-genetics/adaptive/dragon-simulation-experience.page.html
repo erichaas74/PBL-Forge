@@ -88,6 +88,7 @@
         simulation.id !== 'allele-workbench' &&
         simulation.id !== 'dna-process-lab' &&
         simulation.id !== 'dragon-hatchery' &&
+        simulation.id !== 'genome-microscope' &&
         simulation.id !== 'punnett-composer' &&
         simulation.id !== 'incubator-sampler'
       ) {
@@ -150,6 +151,17 @@
             />
           </section>
         </main>
+      } @else if (simulation.id === 'genome-microscope') {
+        <main class="experience-workspace genome-workspace">
+          <section class="visual-stage genome-stage">
+            <app-genome-microscope
+              [dragons]="availableDragons()"
+              [genes]="availableAlleleGenes()"
+              [alleles]="availableAlleles()"
+              (modelSelected)="selectNode($event)"
+            />
+          </section>
+        </main>
       } @else if (simulation.id === 'dna-process-lab') {
         <main class="experience-workspace dna-workspace">
           <section class="visual-stage dna-stage">
@@ -171,21 +183,13 @@
         <main
           class="experience-workspace"
           [class.hatchery-workspace]="simulation.id === 'dragon-hatchery'"
-          [class.genome-workspace]="simulation.id === 'genome-microscope'"
         >
           <section
             class="visual-stage"
             [class.arena-stage]="simulation.id === 'dragon-arena'"
             [class.hatchery-stage]="simulation.id === 'dragon-hatchery'"
-            [class.genome-stage]="simulation.id === 'genome-microscope'"
           >
-            @if (simulation.id === 'genome-microscope') {
-              <app-genome-microscope
-                [genes]="availableAlleleGenes()"
-                [alleles]="availableAlleles()"
-                (modelSelected)="selectNode($event)"
-              />
-            } @else if (simulation.id === 'dragon-hatchery') {
+            @if (simulation.id === 'dragon-hatchery') {
               <app-dragon-hatchery-breeding-lab
                 [studentId]="studentId()"
                 [seed]="currentRun.seed"

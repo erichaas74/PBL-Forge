@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { AssemblyPart } from '../domain/assembly.models';
+import { AssemblyPart, Vector3Data } from '../domain/assembly.models';
 import {
   DRAGON_BODY_PROFILE,
   dragonBodySurfacePoint,
@@ -26,7 +26,6 @@ import {
 } from './dragon-wing-profile';
 import { detailSegments, resolveRenderQuality } from './render-quality';
 import {
-  DragonTextureSet,
   HORN_TILE,
   KERATIN_TILE,
   SCALE_TILE,
@@ -194,7 +193,7 @@ function createDragonPalette(
   baseColor: string,
   seed: number,
   pattern: ScalePattern = 'plain',
-  patternColor: string = '',
+  patternColor = '',
 ): DragonPalette {
   const scale = new THREE.Color(baseColor);
   return {
@@ -202,7 +201,7 @@ function createDragonPalette(
     patternColor: patternColor ? new THREE.Color(patternColor) : null,
     scale,
     scaleDeep: shiftHsl(scale, -18, 1.25, 0.5),
-    horn: scale.clone().lerp(new THREE.Color('#e9dcc0'), 0.72),
+    horn: scale.clone().lerp(new THREE.Color('#d9c59e'), 0.56),
     claw: scale.clone().lerp(new THREE.Color('#d8c9a3'), 0.6).multiplyScalar(0.88),
     tooth: new THREE.Color('#f2ead6'),
     // Backlit skin is the most saturated surface on a real wing. Lerping toward
@@ -210,7 +209,7 @@ function createDragonPalette(
     // saturation goes up rather than down. The lightness lift is small — this is
     // drawn against a white bench, and a pale translucent membrane on a white
     // background is invisible however pretty the material is.
-    membrane: shiftHsl(scale, 6, 1.2, 1.08),
+    membrane: shiftHsl(scale, 6, 1.24, 0.8),
     seed,
   };
 }
@@ -284,7 +283,16 @@ function scaleMaterial(palette: DragonPalette, relief = 0.9): THREE.MeshStandard
     metalness: 0.12,
   });
 
-  if (mask) applyTwoTonePattern(material, mask, palette.scale, palette.patternColor ?? palette.scaleDeep);
+  if (mask) {
+    applyTwoTonePattern(
+      material,
+      mask,
+      palette.scale,
+      palette.patternColor ?? palette.scaleDeep,
+      palette.pattern === 'zigzag' ? 0.52 : 0.7,
+      palette.pattern === 'zigzag' ? 0.5 : 0.55,
+    );
+  }
   return material;
 }
 
@@ -312,18 +320,24 @@ function applyTwoTonePattern(
   mask: THREE.Texture,
   base: THREE.Color,
   marking: THREE.Color,
+  strength: number,
+  scale: number,
 ): void {
   material.onBeforeCompile = shader => {
     shader.uniforms['dragonPatternMask'] = { value: mask };
     shader.uniforms['dragonBaseColor'] = { value: base };
     shader.uniforms['dragonPatternColor'] = { value: marking };
+    shader.uniforms['dragonPatternStrength'] = { value: strength };
+    shader.uniforms['dragonPatternScale'] = { value: scale };
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
         uniform sampler2D dragonPatternMask;
         uniform vec3 dragonBaseColor;
-        uniform vec3 dragonPatternColor;`,
+        uniform vec3 dragonPatternColor;
+        uniform float dragonPatternStrength;
+        uniform float dragonPatternScale;`,
       )
       .replace(
         '#include <map_fragment>',
@@ -331,7 +345,8 @@ function applyTwoTonePattern(
         // Capped short of 1: a marking that reaches the second pigment exactly
         // reads as printed on, and leaving a little of the ground colour showing
         // through is what makes two pigments read as one skin.
-        float dragonPattern = texture2D( dragonPatternMask, vMapUv ).r * 0.88;
+        float dragonPattern = texture2D( dragonPatternMask, vMapUv * dragonPatternScale ).r
+          * dragonPatternStrength;
         diffuseColor.rgb *= mix( dragonBaseColor, dragonPatternColor, dragonPattern );`,
       );
   };
@@ -402,7 +417,7 @@ function membraneMaterial(palette: DragonPalette): THREE.MeshStandardMaterial {
     metalness: 0,
     transparent: true,
     // The alpha map now carries the thinness; opacity only trims it overall.
-    opacity: skin.alphaMap ? 0.94 : 0.78,
+    opacity: skin.alphaMap ? 0.97 : 0.84,
     side: THREE.DoubleSide,
   };
 
@@ -412,11 +427,11 @@ function membraneMaterial(palette: DragonPalette): THREE.MeshStandardMaterial {
 
   return new THREE.MeshPhysicalMaterial({
     ...shared,
-    // Halved from 0.35. Transmission shows what is *behind* the membrane, and
+    // Held very low. Transmission shows what is *behind* the membrane, and
     // behind it on the specimen bench is a white background — so the more it
     // transmitted, the closer the wing came to the backdrop. It earns its keep
     // against the arena's sky and its braziers; here it is mostly a bleach.
-    transmission: 0.18,
+    transmission: 0.07,
     // Thin-walled: a wing membrane is skin, not glass.
     thickness: 0.02,
     ior: 1.35,
@@ -606,6 +621,8 @@ function buildBody(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   revolvedUv(lathe, ((dims.y + dims.z) / 4) * 0.72, length, SCALE_TILE, palette);
   group.add(mesh(lathe, scaleMaterial(palette)));
 
+  addBodyArchetypeDetails(group, part, palette);
+
   const bellyRadii = { x: length * 0.38, y: dims.y * 0.3, z: dims.z * 0.34 };
   // Plain skin and the deep tone, patterned dragon or not: an underside is where
   // a marked animal's markings run out, and a belly is the one surface a student
@@ -658,6 +675,54 @@ function buildBody(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   }
 
   return group;
+}
+
+function addBodyArchetypeDetails(
+  group: THREE.Group,
+  part: AssemblyPart,
+  palette: DragonPalette,
+): void {
+  const archetype = visualString(part, 'bodyArchetype', 'classic');
+  const dims = part.dimensions;
+  const skin = scaleMaterial(palette, 0.72);
+
+  const bulge = (name: string, radii: Vector3Data, position: Vector3Data): void => {
+    const geometry = sphereUv(
+      new THREE.SphereGeometry(1, detail(12), detail(8)),
+      radii,
+      SCALE_TILE,
+      palette,
+    );
+    const feature = mesh(geometry, skin);
+    feature.name = name;
+    feature.scale.set(radii.x, radii.y, radii.z);
+    feature.position.set(position.x, position.y, position.z);
+    group.add(feature);
+  };
+
+  if (archetype === 'wyvern') {
+    bulge(
+      'dragon-body-wyvern-keel',
+      { x: dims.x * 0.2, y: dims.y * 0.34, z: dims.z * 0.28 },
+      { x: dims.x * 0.14, y: -dims.y * 0.28, z: 0 },
+    );
+  } else if (archetype === 'drake') {
+    bulge(
+      'dragon-body-drake-mantle',
+      { x: dims.x * 0.27, y: dims.y * 0.42, z: dims.z * 0.58 },
+      { x: dims.x * 0.08, y: -dims.y * 0.08, z: 0 },
+    );
+  } else if (archetype === 'four-wing') {
+    for (const axial of [-0.08, 0.2]) {
+      for (const side of [-1, 1]) {
+        bulge(
+          `dragon-body-four-wing-scapula-${axial}-${side}`,
+          { x: dims.x * 0.13, y: dims.y * 0.18, z: dims.z * 0.2 },
+          { x: dims.x * axial, y: dims.y * 0.25, z: side * dims.z * 0.34 },
+        );
+      }
+    }
+  }
 }
 
 /**
@@ -1135,15 +1200,22 @@ function addExpressiveHeadFeatures(
     buildMaleCrest(group, dims, palette, shape);
   } else if (sex === 'female') {
     const material = membraneMaterial(palette);
+    const spineMaterial = hornMaterial(palette);
     for (const side of [-1, 1] as const) {
       const frill = mesh(
-        new THREE.ConeGeometry(dims.z * 0.12, dims.y * 0.3, detail(7)),
+        new THREE.ConeGeometry(dims.y * 0.22, dims.z * 0.58, detail(9)),
         material,
       );
       frill.name = `dragon-female-frill-${side < 0 ? 'left' : 'right'}`;
-      frill.position.set(-dims.x * 0.3, dims.y * 0.04, side * dims.z * 0.44);
-      frill.rotation.set(Math.PI / 2, 0, side * 0.35);
+      frill.position.set(-dims.x * 0.24, dims.y * 0.08, side * dims.z * 0.52);
+      frill.rotation.set(side * Math.PI / 2, 0, side * 0.2);
       group.add(frill);
+
+      const spine = buildHorn(dims.z * 0.46, dims.z * 0.035, spineMaterial, palette, -0.08);
+      spine.name = `dragon-female-frill-spine-${side < 0 ? 'left' : 'right'}`;
+      spine.position.set(-dims.x * 0.24, dims.y * 0.08, side * dims.z * 0.48);
+      spine.rotation.set(side * Math.PI / 2, 0, -0.16);
+      group.add(spine);
     }
   }
 }
@@ -1167,11 +1239,11 @@ const FRILL_RAKE = 0.62;
  * length.
  *
  * Only a little larger than the rake, so the two together bend each spine into a
- * curve that leaves the skull sweeping back and finishes *just* forward of the
+ * curve that leaves the skull sweeping back and recovers only slightly toward the
  * ring — a slight hook, not a cage. At 1.05 the tips swept round past the eyes
  * and the collar closed over the animal's own face.
  */
-const FRILL_CURL = 0.78;
+const FRILL_CURL = 0.68;
 /** How much the ring pulls in under the throat, where the jaw is. */
 const FRILL_THROAT_TUCK = 0.46;
 /**
@@ -1495,7 +1567,13 @@ function buildJaw(
 
   group.add(mesh(
     boxUv(
-      createTaperedBoxGeometry(dims.x, dims.y, dims.z, JAW_FRONT_SCALE_Y, JAW_FRONT_SCALE_Z),
+      createTaperedJawGeometry(
+        dims.x,
+        dims.y,
+        dims.z,
+        JAW_FRONT_SCALE_Y,
+        JAW_FRONT_SCALE_Z,
+      ),
       SCALE_TILE,
       palette,
     ),
@@ -1580,9 +1658,15 @@ function buildJaw(
 
   const fangScale = visualNumber(part, 'fangScale', 1);
   const enamel = toothMaterial(palette);
-  const toothHeight = dims.y * style.toothHeight * fangScale;
-  // Teeth march back from the snout tip; the range matches the jaw's taper.
+  const toothHeight = dims.y * style.toothHeight;
   const toothRadius = dims.z * style.toothRadius;
+  // The upper row sits behind the two display fangs and should read as the
+  // smaller cutting teeth, not as another bank of fangs. The lower row retains
+  // the authored size so the bite still has a visible lower edge.
+  const rowToothLengthScale = variant === 'upper' ? 0.65 : 1;
+  const rowToothThicknessScale = variant === 'upper' ? 0.75 : 1;
+  const rowToothHeight = toothHeight * rowToothLengthScale;
+  const rowToothRadius = toothRadius * rowToothThicknessScale;
   /**
    * Every tooth is rooted on the jaw's mid-height and grows out from there —
    * fixed, not tunable. Hanging them off the bottom face made a long tooth read
@@ -1598,9 +1682,9 @@ function buildJaw(
     for (const side of [-1, 1]) {
       const tooth = mesh(
         revolvedUv(
-          new THREE.ConeGeometry(toothRadius, toothHeight, detail(5)),
-          toothRadius,
-          toothHeight,
+          new THREE.ConeGeometry(rowToothRadius, rowToothHeight, detail(5)),
+          rowToothRadius,
+          rowToothHeight,
           KERATIN_TILE,
           palette,
         ),
@@ -1608,7 +1692,7 @@ function buildJaw(
       );
       tooth.position.set(
         along * dims.x,
-        rootedAtMidline(toothHeight),
+        rootedAtMidline(rowToothHeight),
         side * dims.z * 0.32 * (1 - Math.max(0, along) * 0.4),
       );
       if (pointDown) tooth.rotation.x = Math.PI;
@@ -1620,7 +1704,7 @@ function buildJaw(
     // Fangs hang under the nostrils. They are pulled further in than the tooth
     // row so they stay inside the snout, which is tapered to 0.5 depth at the
     // tip: a fang on the tooth line would break the surface here.
-    const fangHeight = toothHeight * FANG_LENGTH_RATIO;
+    const fangHeight = toothHeight * FANG_LENGTH_RATIO * fangScale;
     for (const side of [-1, 1]) {
       const fang = mesh(
         revolvedUv(
@@ -1681,7 +1765,10 @@ function buildJointBall(
   palette: DragonPalette,
   name: string,
 ): THREE.Mesh {
-  const size = typeof radii === 'number' ? { x: radii, y: radii, z: radii } : radii;
+  // Limb and tail joints need their full radial width to seal the socket, but
+  // not a full diameter along the bone. A compressed collar avoids the repeated
+  // toy-like dumbbell silhouette while keeping the hinge watertight.
+  const size = typeof radii === 'number' ? { x: radii, y: radii * 0.72, z: radii } : radii;
   const ball = mesh(
     sphereUv(new THREE.SphereGeometry(1, detail(10), detail(7)), size, SCALE_TILE, palette),
     scaleMaterial(palette),
@@ -1815,8 +1902,8 @@ function buildGraspArm(part: AssemblyPart, palette: DragonPalette): THREE.Group 
 }
 
 /**
- * The hand: a short palm and three long hooked fingers, splayed and held clear
- * of the ground.
+ * The hand: a wrist with two long upper fingers and an opposing lower thumb,
+ * held clear of the ground.
  *
  * Each finger is a digit rather than a spike — two scaled phalanges bending at
  * a knuckle, ending in the same {@link buildTalon} keratin the feet wear. The
@@ -1826,8 +1913,9 @@ function buildGraspArm(part: AssemblyPart, palette: DragonPalette): THREE.Group 
  * from a talon *for a toe*, and the two bends are what make the curl legible
  * from any distance.
  *
- * Proportion carries the rest: a talon on a foot is a stub against a broad pad,
- * and here each finger is longer than the palm it grows from.
+ * There is deliberately no palm pad. The three digits leave the rear/outer face
+ * of the wrist itself, which keeps their roots attached while letting their
+ * shafts project cleanly away from the arm.
  *
  * They point forward along +x and hook down, so the hand is a curl waiting to
  * close rather than a rake pointing at the floor.
@@ -1844,33 +1932,69 @@ function buildGraspHand(part: AssemblyPart, palette: DragonPalette): THREE.Group
     fingerSplay: visualNumber(part, 'fingerSplay', defaults.fingerSplay),
   };
 
-  // Tapered hard toward the fingers: a palm drawn as a slab reads as a brick
-  // with claws stuck in it, and the wedge is what makes the hand look like it
-  // narrows into the grip.
-  const palm = mesh(
-    boxUv(
-      createTaperedBoxGeometry(dims.x * style.palmLength, dims.y, dims.z * 0.82, 0.56, 0.5),
-      SCALE_TILE,
-      palette,
-    ),
-    scaleMaterial(palette),
-  );
-  palm.name = 'dragon-grasp-palm';
-  palm.position.x = -dims.x * 0.06;
-  group.add(palm);
-
   // The claw gene reaches the hand for the same reason it reaches the foot:
   // these are the same claws, and a dragon with big talons has big fingers.
   const clawScale = visualNumber(part, 'clawScale', 1);
   const fingerLength = dims.x * style.fingerLength * clawScale;
   const fingerRadius = dims.y * style.fingerRadius;
+  const scale = jointBallScale(part);
+  const wristRadius = dims.y * 0.5 * scale;
+  // `palmLength` remains part of the published visual-parameter contract. With
+  // the pad gone it controls the small fore-aft wrist offset instead.
+  const wristX = -dims.x * style.palmLength * 0.16;
+  // Matches the normalized mount inherited from the walking foot, so the wrist
+  // closes around the arm joint instead of hovering below it.
+  const wristY = dims.y * 0.357;
 
-  for (const [index, side] of spreadPositions(style.fingerCount, 2).entries()) {
-    const finger = buildGraspFinger(fingerRadius, fingerLength, palette, index + 1);
+  const wrist = buildJointBall(wristRadius, palette, 'dragon-grasp-wrist-ball');
+  wrist.position.set(wristX, wristY, 0);
+  group.add(wrist);
+
+  const digitCount = Math.max(1, Math.round(style.fingerCount));
+  const digitSlots = digitCount === 3
+    ? [
+        {
+          role: 'finger' as const,
+          // The assembled reared hand rolls this local axis, so negative local
+          // Y is the upper side students see.
+          rootY: -0.3,
+          rootZ: -(0.34 + style.fingerSplay * 0.24),
+          yaw: style.fingerSplay * 0.45,
+          pitch: -Math.PI / 2 + 0.18,
+        },
+        {
+          role: 'finger' as const,
+          rootY: -0.3,
+          rootZ: 0.34 + style.fingerSplay * 0.24,
+          yaw: -style.fingerSplay * 0.45,
+          pitch: -Math.PI / 2 + 0.18,
+        },
+        {
+          role: 'thumb' as const,
+          rootY: 0.46,
+          rootZ: 0,
+          yaw: 0,
+          // The lower digit rises toward the two upper fingers, forming the
+          // opposing side of the grip instead of a third parallel tine.
+          pitch: -Math.PI / 2 - 0.5,
+        },
+      ]
+    : spreadPositions(digitCount, 2).map(side => ({
+        role: 'finger' as const,
+        rootY: -0.08,
+        rootZ: side * 0.72,
+        yaw: -side * style.fingerSplay,
+        pitch: -Math.PI / 2 - 0.2,
+      }));
+
+  for (const [index, slot] of digitSlots.entries()) {
+    const finger = buildGraspFinger(fingerRadius, fingerLength, palette, index + 1, slot.role);
+    // All three roots stay embedded in the wrist: two above, with the thumb
+    // below and angled back toward them.
     finger.position.set(
-      dims.x * style.palmLength * 0.42,
-      dims.y * 0.04,
-      side * dims.z * style.fingerSplay,
+      wristX - wristRadius * 0.35,
+      wristY + wristRadius * slot.rootY,
+      wristRadius * slot.rootZ,
     );
     /*
      * -90° about z lays the finger's own +y axis along +x. The extra fifth of a
@@ -1881,14 +2005,9 @@ function buildGraspHand(part: AssemblyPart, palette: DragonPalette): THREE.Group
      * the three enclose a volume instead of lying in one plane — which is the
      * difference between a hand and a fork.
      */
-    finger.rotation.set(0, -side * style.fingerSplay, -Math.PI / 2 - 0.2);
+    finger.rotation.set(0, slot.yaw, slot.pitch);
     group.add(finger);
   }
-
-  const scale = jointBallScale(part);
-  const wrist = buildJointBall(dims.y * 0.5 * scale, palette, 'dragon-grasp-wrist-ball');
-  wrist.position.set(-dims.x * style.palmLength * 0.5, dims.y * 0.1, 0);
-  group.add(wrist);
 
   return group;
 }
@@ -1916,9 +2035,10 @@ function buildGraspFinger(
   length: number,
   palette: DragonPalette,
   index: number,
+  role: 'finger' | 'thumb' = 'finger',
 ): THREE.Group {
   const group = new THREE.Group();
-  group.name = `dragon-grasp-finger-${index}`;
+  group.name = role === 'thumb' ? 'dragon-grasp-thumb' : `dragon-grasp-finger-${index}`;
   const skin = scaleMaterial(palette);
 
   const proximalLength = length * 0.46;
@@ -1932,19 +2052,22 @@ function buildGraspFinger(
     ),
     skin,
   );
-  proximal.position.y = -length * 0.5 + proximalLength * 0.5;
+  proximal.position.y = proximalLength * 0.5;
   group.add(proximal);
 
-  // The base knuckle, on the palm rim. Mostly swallowed by the palm, like every
-  // other joint ball on the animal — it is there so the finger reads as seated
-  // in the hand rather than glued to the front of it.
+  // The base knuckle overlaps the wrist, so the finger reads as growing out of
+  // the back of the hand instead of balancing on its top surface.
   const base = buildJointBall(radius * 1.04, palette, `dragon-grasp-finger-${index}-base`);
-  base.position.y = -length * 0.5 + radius * 0.2;
   group.add(base);
 
+  const digitBend = role === 'thumb' ? 0.26 : -0.26;
   const knuckle = new THREE.Group();
-  knuckle.position.y = -length * 0.5 + proximalLength;
-  knuckle.rotation.z = 0.34;
+  knuckle.name = `dragon-grasp-finger-${index}-bend`;
+  knuckle.position.y = proximalLength;
+  // The claw meshes are rolled 180 degrees around their digit axes, so their
+  // visible hook is opposite the claw-pivot sign. Bend the phalanges with that
+  // visible hook. About fifteen degrees keeps the grasp present but relaxed.
+  knuckle.rotation.z = digitBend;
   group.add(knuckle);
 
   const knuckleBall = buildJointBall(
@@ -1969,8 +2092,13 @@ function buildGraspFinger(
   knuckle.add(middle);
 
   const clawPivot = new THREE.Group();
+  clawPivot.name = `dragon-grasp-claw-pivot-${index}`;
   clawPivot.position.y = middleLength;
-  clawPivot.rotation.z = 0.62;
+  // This is only the hook at the end of a finger. The whole-hand downward angle
+  // belongs to the reared stance, where fingers and claws rotate together.
+  // Continue the phalange bend through the claw joint so the whole digit forms
+  // one curve instead of changing direction abruptly at the keratin.
+  clawPivot.rotation.z = (role === 'thumb' ? -0.62 : 0.62) + digitBend;
   knuckle.add(clawPivot);
 
   /*
@@ -1979,9 +2107,21 @@ function buildGraspFinger(
    * a sausage; the step down from skin to keratin is what says the tip is a
    * different material doing a different job.
    */
-  const clawLength = length * 0.52;
-  const claw = buildTalon(radius * 0.62, clawLength, palette);
+  // The hand was enlarged 1.5x, but the keratin should retain its former size.
+  // Compensate only the talon; the wrist, fingers, and joints keep the new scale.
+  const clawSizeCompensation = 1 / 1.5;
+  const clawLength = length * 0.52 * clawSizeCompensation;
+  const claw = buildTalon(
+    radius * 0.62 * clawSizeCompensation,
+    clawLength,
+    palette,
+    role === 'thumb' ? -1 : 1,
+  );
   claw.name = `dragon-grasp-claw-${index}`;
+  // Reverse the hook around the digit's own axis. This is a true 180-degree
+  // curl flip: it leaves the claw pointing along the finger while moving its
+  // curved tip to the opposite side.
+  claw.rotation.y = Math.PI;
   // Its own blunt end reaches back behind its origin; seating it that far
   // forward buries the root in the segment it grows out of instead of leaving
   // a step between keratin and skin.
@@ -1995,12 +2135,25 @@ function buildFoot(part: AssemblyPart, palette: DragonPalette): THREE.Group {
   const group = new THREE.Group();
   const dims = part.dimensions;
 
+  const padRadii = { x: dims.x * 0.44, y: dims.y * 0.48, z: dims.z * 0.43 };
   const pad = mesh(
-    boxUv(createTaperedBoxGeometry(dims.x * 0.9, dims.y, dims.z, 0.72, 0.78), SCALE_TILE, palette),
+    sphereUv(new THREE.SphereGeometry(1, detail(14), detail(9)), padRadii, SCALE_TILE, palette),
     scaleMaterial(palette),
   );
-  pad.position.x = -dims.x * 0.05;
+  pad.name = 'dragon-foot-pad';
+  pad.scale.set(padRadii.x, padRadii.y, padRadii.z);
+  pad.position.x = -dims.x * 0.04;
   group.add(pad);
+
+  const heelRadii = { x: dims.x * 0.22, y: dims.y * 0.4, z: dims.z * 0.34 };
+  const heel = mesh(
+    sphereUv(new THREE.SphereGeometry(1, detail(12), detail(8)), heelRadii, SCALE_TILE, palette),
+    scaleMaterial(palette, 0.72),
+  );
+  heel.name = 'dragon-foot-heel';
+  heel.scale.set(heelRadii.x, heelRadii.y, heelRadii.z);
+  heel.position.x = -dims.x * 0.34;
+  group.add(heel);
 
   const defaults = getActiveDragonStyle().foot;
   const style: DragonFootStyle = {
@@ -2009,22 +2162,30 @@ function buildFoot(part: AssemblyPart, palette: DragonPalette): THREE.Group {
     talonRadius: visualNumber(part, 'talonRadius', defaults.talonRadius),
   };
   const clawScale = visualNumber(part, 'clawScale', 1);
-  const keratin = clawMaterial(palette);
-  const talonRadius = dims.y * style.talonRadius;
+  const talonRadius = dims.y * style.talonRadius * 0.72;
   const talonLength = dims.x * style.talonLength * clawScale;
+  const toeLength = dims.x * 0.22;
+  let talonIndex = 0;
   for (const side of spreadPositions(style.talonCount, 2)) {
-    const talon = mesh(
+    const toe = mesh(
       revolvedUv(
-        new THREE.ConeGeometry(talonRadius, talonLength, detail(6)),
+        new THREE.CapsuleGeometry(talonRadius * 0.82, toeLength, detail(4), detail(8)),
         talonRadius,
-        talonLength,
-        KERATIN_TILE,
+        toeLength,
+        SCALE_TILE,
         palette,
       ),
-      keratin,
+      scaleMaterial(palette, 0.75),
     );
-    talon.position.set(dims.x * 0.46, -dims.y * 0.12, side * dims.z * 0.3);
-    talon.rotation.z = -Math.PI / 2 - 0.22;
+    toe.name = `dragon-foot-toe-${++talonIndex}`;
+    toe.position.set(dims.x * 0.24, -dims.y * 0.08, side * dims.z * 0.28);
+    toe.rotation.z = -Math.PI / 2;
+    group.add(toe);
+
+    const talon = buildTalon(talonRadius, talonLength, palette);
+    talon.name = `dragon-foot-talon-${talonIndex}`;
+    talon.position.set(dims.x * 0.39, -dims.y * 0.1, side * dims.z * 0.28);
+    talon.rotation.z = -Math.PI / 2 - 0.12;
     group.add(talon);
   }
 
@@ -2039,7 +2200,12 @@ function buildFoot(part: AssemblyPart, palette: DragonPalette): THREE.Group {
  */
 const TALON_BLUNT_END = 0.495;
 
-function buildTalon(radius: number, length: number, palette: DragonPalette): THREE.Group {
+function buildTalon(
+  radius: number,
+  length: number,
+  palette: DragonPalette,
+  curlDirection: -1 | 1 = 1,
+): THREE.Group {
   const group = new THREE.Group();
   const keratin = clawMaterial(palette);
 
@@ -2058,7 +2224,7 @@ function buildTalon(radius: number, length: number, palette: DragonPalette): THR
 
   const tipPivot = new THREE.Group();
   tipPivot.position.y = length * 0.05;
-  tipPivot.rotation.z = 0.5;
+  tipPivot.rotation.z = 0.5 * curlDirection;
   const tip = mesh(
     revolvedUv(
       new THREE.CylinderGeometry(radius * 0.02, radius * 0.5, length * 0.5, detail(8)),
@@ -2177,9 +2343,9 @@ export interface DragonGraspStyle {
   fingerLength: number;
   /** Finger base radius, as a fraction of hand height. */
   fingerRadius: number;
-  /** Palm length, as a fraction of hand length. */
+  /** Legacy palm-length control, retained as the wrist's fore-aft offset. */
   palmLength: number;
-  /** How far the outer fingers fan out, as a fraction of hand depth. */
+  /** How far the upper fingers separate, as a fraction of hand depth. */
   fingerSplay: number;
 }
 
@@ -2246,13 +2412,11 @@ export const DEFAULT_DRAGON_STYLE: DragonStyle = {
   // points.
   head: { ...DEFAULT_HEAD_SHAPE, hornLength: 1.8, hornRadius: 0.13, browLength: 0.45 },
   foot: { talonCount: 3, talonLength: 0.6, talonRadius: 0.42 },
-  // Three fingers, each longer than the palm: the proportion is the trait. They
-  // are thicker and longer than the cones they replaced because a digit that
-  // bends twice has to be readable at each segment — a thin one just reads as a
-  // bent wire once the knuckle is in it.
-  grasp: { fingerCount: 3, fingerLength: 1.3, fingerRadius: 0.36, palmLength: 0.55, fingerSplay: 0.38 },
+  // Three long fingers leaving the wrist directly. Their roots stay close
+  // enough to join the wrist, while the stronger yaw produces the open fan.
+  grasp: { fingerCount: 3, fingerLength: 1.65, fingerRadius: 0.36, palmLength: 0.55, fingerSplay: 0.58 },
   tailClub: { spikeCount: 5, spikeLength: 0.85, spikeRadius: 0.18 },
-  joint: { ball: 1.06 },
+  joint: { ball: 1.02 },
 };
 
 /**
@@ -2539,9 +2703,9 @@ function wingRootSign(part: AssemblyPart): number {
 // ---------------------------------------------------------------------------
 
 const TAIL_PROFILE: readonly [number, number][] = [
-  [-0.5, 0.5],
-  [-0.2, 0.68],
-  [0.1, 0.85],
+  [-0.5, 0.78],
+  [-0.2, 0.84],
+  [0.1, 0.92],
   [0.5, 1.0],
 ];
 
@@ -2570,7 +2734,10 @@ function buildTailSegment(part: AssemblyPart, palette: DragonPalette): THREE.Gro
    * a side effect, and a welcome one.
    */
   const scale = jointBallScale(part);
-  for (const end of [-0.5, 0.5] as const) {
+  // Each hinge is shared by two links. Drawing a ball at both ends of every
+  // link placed two complete spheres on each pivot and turned the tail into a
+  // string of beads; the child link's root ball alone closes the same socket.
+  for (const end of [0.5] as const) {
     const ball = buildJointBall(
       tailProfileRadius(end) * dims.x * scale,
       palette,
@@ -2725,6 +2892,67 @@ function createTaperedBoxGeometry(
   }
 
   positions.needsUpdate = true;
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/** Elliptical loft used for fleshy snouts; preserves the authored front taper. */
+function createTaperedJawGeometry(
+  width: number,
+  height: number,
+  depth: number,
+  frontScaleY: number,
+  frontScaleZ: number,
+): THREE.BufferGeometry {
+  const axial = [-0.5, -0.32, -0.08, 0.14, 0.32, 0.5];
+  const radialSegments = detail(16);
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  const columns = radialSegments + 1;
+
+  for (const along of axial) {
+    const blend = Math.max(0, along * 2);
+    const yScale = 1 - blend * (1 - frontScaleY);
+    const zScale = 1 - blend * (1 - frontScaleZ);
+    for (let radial = 0; radial <= radialSegments; radial += 1) {
+      const angle = (radial / radialSegments) * Math.PI * 2;
+      positions.push(
+        along * width,
+        Math.cos(angle) * height * 0.5 * yScale,
+        Math.sin(angle) * depth * 0.5 * zScale,
+      );
+      uvs.push(along + 0.5, radial / radialSegments);
+    }
+  }
+
+  for (let row = 0; row < axial.length - 1; row += 1) {
+    for (let radial = 0; radial < radialSegments; radial += 1) {
+      const a = row * columns + radial;
+      const b = a + 1;
+      const c = a + columns;
+      const d = c + 1;
+      indices.push(a, b, c, b, d, c);
+    }
+  }
+
+  const rearCenter = positions.length / 3;
+  positions.push(-width / 2, 0, 0);
+  uvs.push(0, 0.5);
+  const frontCenter = positions.length / 3;
+  positions.push(width / 2, 0, 0);
+  uvs.push(1, 0.5);
+  const frontRing = (axial.length - 1) * columns;
+  for (let radial = 0; radial < radialSegments; radial += 1) {
+    indices.push(rearCenter, radial + 1, radial);
+    indices.push(frontCenter, frontRing + radial, frontRing + radial + 1);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.userData['kind'] = 'dragon-jaw';
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
   geometry.computeVertexNormals();
   return geometry;
 }

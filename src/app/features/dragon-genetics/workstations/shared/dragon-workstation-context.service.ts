@@ -5,6 +5,7 @@ import {
   ALLELE_VAULT_ALLELES,
   ALLELE_VAULT_GENES,
 } from '../allele-workbench/allele-vault.models';
+import { AccountGeneticsLibraryService } from './account-genetics-library.service';
 import { LOCAL_WORKSTATION_STUDENT_ID } from './dragon-workstation-context.models';
 
 /**
@@ -18,6 +19,7 @@ import { LOCAL_WORKSTATION_STUDENT_ID } from './dragon-workstation-context.model
 export class DragonWorkstationContextService {
   private readonly session = inject(SessionService);
   private readonly adaptiveStore = inject(DragonAdaptiveStore);
+  private readonly accountLibrary = inject(AccountGeneticsLibraryService);
 
   readonly studentId = computed(
     () => this.session.user()?.uid?.trim() || LOCAL_WORKSTATION_STUDENT_ID,
@@ -36,4 +38,8 @@ export class DragonWorkstationContextService {
     const released = new Set(this.availableGenes().map((gene) => gene.id));
     return ALLELE_VAULT_ALLELES.filter((allele) => released.has(allele.geneId));
   });
+
+  readonly availableDragons = computed(
+    () => this.accountLibrary.recordsFor(this.studentId()).dragons,
+  );
 }

@@ -75,12 +75,12 @@ describe('dragon forelimb body plans', () => {
     expect(profileIds(limbs).filter(id => id === 'dragon-grasp-hand').length).toBe(2);
   });
 
-  it('shrinks the whole chain, and its mass with it', () => {
+  it('sizes the enlarged grasping chain and its mass consistently', () => {
     for (const arm of frontLimbs(grasping)) {
       const leg = frontLimbs(walking).find(part => part.id === arm.id)!;
-      expect(arm.dimensions.y).withContext(arm.id).toBeLessThan(leg.dimensions.y);
-      // Volume, not length: a limb at half scale is an eighth of the weight.
-      expect(arm.mass).withContext(arm.id).toBeLessThan(leg.mass * 0.3);
+      const factor = arm.id.includes('foot') ? 0.558 : 0.96;
+      expect(arm.dimensions.y).withContext(arm.id).toBeCloseTo(leg.dimensions.y * factor);
+      expect(arm.mass).withContext(arm.id).toBeCloseTo(leg.mass * factor ** 3);
     }
   });
 

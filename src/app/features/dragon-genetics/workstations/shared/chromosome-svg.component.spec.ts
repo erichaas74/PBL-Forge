@@ -28,10 +28,16 @@ describe('ChromosomeSvgComponent', () => {
   it('renders bands, hatching, and the selected allele entirely from input data', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelectorAll('[data-band-start]').length).toBe(3);
-    expect(element.querySelectorAll('pattern').length).toBe(3);
+    expect(element.querySelectorAll('pattern').length).toBe(5);
     expect(element.querySelector('[data-pattern="hatch"]')).not.toBeNull();
     expect(element.querySelector('[data-pattern="hatch"]')?.getAttribute('height')).toBe('16');
     expect(element.querySelector('.gene-locus--active')).not.toBeNull();
+    expect(element.querySelector('[data-barcode-variant="reference"]')).not.toBeNull();
+    expect(element.querySelectorAll('.allele-barcode-stripe').length).toBe(6);
+    expect(element.querySelector('.kinetochore-base')).not.toBeNull();
+    expect(element.querySelector('.kinetochore-inner')).not.toBeNull();
+    expect(element.querySelector('.chromatin-texture')).not.toBeNull();
+    expect(element.querySelectorAll('.telomere-cap').length).toBe(2);
     expect(element.querySelector('.allele-symbol')?.textContent?.trim()).toBe('CH1-G1a');
     expect(element.textContent).toContain('1p');
     expect(element.textContent).toContain('1q');
@@ -64,7 +70,40 @@ describe('ChromosomeSvgComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelectorAll('[data-band-start]').length).toBe(1);
     expect(element.querySelector('.locus-label')?.textContent).toBe('ALT-2');
-    expect(element.querySelector('.allele-symbol')?.textContent).toBe('a');
+    expect(element.querySelector('.allele-symbol')?.textContent?.trim()).toBe('a');
+    expect(element.querySelector('[data-barcode-variant="substitution"]')).not.toBeNull();
+  });
+
+  it('draws deletion and insertion barcodes with five and seven split stripes', () => {
+    fixture.componentRef.setInput('chromosome', {
+      ...chromosome,
+      loci: [
+        {
+          position: 0.3,
+          label: 'DEL-1',
+          symbol: 'd',
+          color: '#ff6d68',
+          barcodeVariant: 'deletion',
+        },
+        {
+          position: 0.7,
+          label: 'INS-1',
+          symbol: 'i',
+          color: '#49a8ff',
+          barcodeVariant: 'insertion',
+        },
+      ],
+    } satisfies ChromosomeSvgModel);
+    fixture.componentRef.setInput('showAllLoci', true);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const deletion = element.querySelector('[data-barcode-variant="deletion"]');
+    const insertion = element.querySelector('[data-barcode-variant="insertion"]');
+    expect(deletion?.querySelectorAll('.allele-barcode-stripe').length).toBe(5);
+    expect(insertion?.querySelectorAll('.allele-barcode-stripe').length).toBe(7);
+    expect(deletion?.querySelectorAll('.allele-barcode-outline').length).toBe(5);
+    expect(insertion?.querySelectorAll('.allele-barcode-outline').length).toBe(7);
   });
 
   it('renders a neutral chromosome without loci until a sample is loaded', () => {
@@ -75,6 +114,7 @@ describe('ChromosomeSvgComponent', () => {
     expect(element.querySelector('.chromosome-svg--placeholder')).not.toBeNull();
     expect(element.querySelectorAll('.chromosome-band--placeholder').length).toBe(3);
     expect(element.querySelector('.gene-locus')).toBeNull();
+    expect(element.querySelector('.allele-barcode-group')).toBeNull();
     expect(element.querySelector('.allele-symbol')).toBeNull();
     expect(element.querySelector('[fill="#b9dbc7"]')).toBeNull();
   });

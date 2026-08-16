@@ -63,7 +63,7 @@
   padding: 0.4rem 0.65rem;
   border: 1px solid var(--viewport-edge);
   border-radius: 0.5rem;
-  background: transparent;
+  background: color-mix(in srgb, var(--viewport-surface) 68%, transparent);
   color: var(--viewport-ink);
   font: inherit;
   font-size: 0.8rem;

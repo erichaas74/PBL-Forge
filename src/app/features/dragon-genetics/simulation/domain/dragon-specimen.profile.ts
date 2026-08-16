@@ -228,7 +228,7 @@ export function createExpressiveDragonBenchBuild(
    * student see that the *count* changed and nothing else did.
    */
   const identity: DragonIdentityPaint =
-    options.identity ?? { color: '#98552f', accentColor: '#e3a75d' };
+    options.identity ?? { color: '#98552f', accentColor: '#c47b42' };
   const engineGenome = createVisualGenome(id, coreGenome, generation, identity);
   // Tail length stays fixed here: the K locus changes the club end, not the whole tail.
   engineGenome.loci['tail-length'].maternal.value = 0.62;
@@ -237,9 +237,10 @@ export function createExpressiveDragonBenchBuild(
   const build = createEducationalAssembly(coreGenome, engineGenome, identity, {
     forelimbs: dominant(profile, 'legs') ? 'walking' : 'grasping',
     clawScale: dominant(profile, 'claws') ? 1.5 : 0.62,
-    crestScale: dominant(profile, 'crest') ? 1.35 : 0.42,
+    crestScale: dominant(profile, 'crest') ? 1.1 : 0.32,
+    headScale: 1.09,
     glowMarkings: dominant(profile, 'glow'),
-    fangScale: dominant(profile, 'fangs') ? 1.5 : 0.58,
+    fangScale: dominant(profile, 'fangs') ? 1.28 : 0.58,
     backSpikeCount: dominant(profile, 'spikes') ? 10 : 3,
     backSpikeScale: dominant(profile, 'spikes') ? 1.15 : 0.52,
     eyeColor: dominant(profile, 'eye-color') ? '#ff9f2e' : '#46a9ff',

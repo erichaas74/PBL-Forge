@@ -44,6 +44,7 @@ import { DesignerDragonDraftStore } from '../designer-dragon-draft.store';
 interface PartTile {
   definition: AssemblyPartDefinition;
   image: string | null;
+  pending: boolean;
 }
 
 interface AngleView {
@@ -126,7 +127,7 @@ const STYLE_CONTROLS: Readonly<Record<string, readonly Omit<StyleControl, 'value
     { section: 'grasp', key: 'fingerCount', label: 'Finger count', min: 2, max: 5, step: 1 },
     { section: 'grasp', key: 'fingerLength', label: 'Finger length', min: 0.4, max: 2.2, step: 0.05 },
     { section: 'grasp', key: 'fingerRadius', label: 'Finger thickness', min: 0.1, max: 0.7, step: 0.02 },
-    { section: 'grasp', key: 'palmLength', label: 'Palm length', min: 0.2, max: 0.9, step: 0.02 },
+    { section: 'grasp', key: 'palmLength', label: 'Wrist offset', min: 0.2, max: 0.9, step: 0.02 },
     { section: 'grasp', key: 'fingerSplay', label: 'Finger splay', min: 0, max: 0.7, step: 0.02 },
     jointBallControl(),
   ],
@@ -257,7 +258,9 @@ export class PartsLabPage implements OnDestroy {
    * evaluation.
    */
   readonly tiles = signal<PartTile[]>([]);
-  readonly angleStrip = signal<{ view: AngleView; image: string | null }[]>([]);
+  readonly angleStrip = signal<{ view: AngleView; image: string | null; pending: boolean }[]>([]);
+  private contactBakeGeneration = 0;
+  private angleBakeGeneration = 0;
 
   readonly scaledDimensions = computed(() => {
     const definition = this.selected();
@@ -341,17 +344,9 @@ export class PartsLabPage implements OnDestroy {
       const definitions = this.definitions();
       this.commitVersion();
 
-      this.tiles.set(definitions.map(definition => ({
-        definition,
-        image: this.thumbnails.bake(
-          describeSpecimen(
-            this.cacheKeyFor(definition, useDefinition ? 'own' : color),
-            this.blueprintFor(definition, { x: 1, y: 1, z: 1 }, useDefinition ? null : color),
-            { label: definition.label },
-          ),
-          { size, transparent: true, pose: { droopRadians: 0 } },
-        ),
-      })));
+      const generation = ++this.contactBakeGeneration;
+      this.tiles.set(definitions.map(definition => ({ definition, image: null, pending: true })));
+      void this.bakeContactSheet(definitions, size, color, useDefinition, generation);
     });
 
     // Angle strip for the selected part.
@@ -368,25 +363,67 @@ export class PartsLabPage implements OnDestroy {
       const color = this.useDefinitionColor() ? null : this.color();
       const blueprint = this.blueprintFor(definition, scale, color);
 
-      this.angleStrip.set(ANGLE_VIEWS.map(view => ({
-        view,
-        image: this.thumbnails.bake(
-          describeSpecimen(
-            `${this.cacheKeyFor(definition, color ?? 'own')}:${scaleKey(scale)}`,
-            blueprint,
-            { label: definition.label },
-          ),
-          { size: 190, transparent: true, viewDirection: view.direction, pose: { droopRadians: 0 } },
-        ),
-      })));
+      const generation = ++this.angleBakeGeneration;
+      this.angleStrip.set(ANGLE_VIEWS.map(view => ({ view, image: null, pending: true })));
+      void this.bakeAngleStrip(definition, blueprint, scale, color, generation);
     });
   }
 
   ngOnDestroy(): void {
+    this.contactBakeGeneration += 1;
+    this.angleBakeGeneration += 1;
     if (this.commitTimer) clearTimeout(this.commitTimer);
     // Leave the shipped defaults behind for the rest of the app.
     setDragonStyleOverride(null);
     this.renderer.dispose();
+  }
+
+  private async bakeContactSheet(
+    definitions: readonly AssemblyPartDefinition[],
+    size: number,
+    color: string,
+    useDefinition: boolean,
+    generation: number,
+  ): Promise<void> {
+    for (let index = 0; index < definitions.length; index += 1) {
+      await nextAnimationFrame();
+      if (generation !== this.contactBakeGeneration) return;
+      const definition = definitions[index];
+      const image = this.thumbnails.bake(
+        describeSpecimen(
+          this.cacheKeyFor(definition, useDefinition ? 'own' : color),
+          this.blueprintFor(definition, { x: 1, y: 1, z: 1 }, useDefinition ? null : color),
+          { label: definition.label },
+        ),
+        { size, transparent: true, pose: { droopRadians: 0 } },
+      );
+      this.tiles.update(tiles => tiles.map((tile, tileIndex) =>
+        tileIndex === index ? { ...tile, image, pending: false } : tile));
+    }
+  }
+
+  private async bakeAngleStrip(
+    definition: AssemblyPartDefinition,
+    blueprint: AssemblyBlueprint,
+    scale: Vector3Data,
+    color: string | null,
+    generation: number,
+  ): Promise<void> {
+    for (let index = 0; index < ANGLE_VIEWS.length; index += 1) {
+      await nextAnimationFrame();
+      if (generation !== this.angleBakeGeneration) return;
+      const view = ANGLE_VIEWS[index];
+      const image = this.thumbnails.bake(
+        describeSpecimen(
+          `${this.cacheKeyFor(definition, color ?? 'own')}:${scaleKey(scale)}`,
+          blueprint,
+          { label: definition.label },
+        ),
+        { size: 190, transparent: true, viewDirection: view.direction, pose: { droopRadians: 0 } },
+      );
+      this.angleStrip.update(entries => entries.map((entry, entryIndex) =>
+        entryIndex === index ? { ...entry, image, pending: false } : entry));
+    }
   }
 
   select(definition: AssemblyPartDefinition): void {
@@ -576,4 +613,8 @@ function scaleKey(scale: Vector3Data): string {
 
 function round(value: number): number {
   return Math.round(value * 1000) / 1000;
+}
+
+function nextAnimationFrame(): Promise<void> {
+  return new Promise(resolve => requestAnimationFrame(() => resolve()));
 }

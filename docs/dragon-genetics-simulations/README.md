@@ -39,7 +39,7 @@ All active feature-specific workstation files live under
   breed standard, kennel, litter, bloodline, and registry model.
 - `dna-process-lab/` contains DNA comparison, mutation, and repair tools.
 - `dragon-hatchery/` contains the complete Hatchery feature slice.
-- `genome-microscope/` contains the staged cell-to-allele SVG investigation.
+- `genome-microscope/` contains the reusable dragon-to-cell-to-protein scale investigation.
 - `simulation-visual/` renders registry-driven stations without a dedicated instrument.
 - `shared/` contains the chromosome catalog, DNA catalog, and persistent genetics notebook reused
   by multiple Dragon Genetics workstations.

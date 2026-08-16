@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, inject } from '@angular/core';
 import { AssemblyGarageComponent } from './assembly-garage/assembly-garage.component';
 import { AssemblyPreset } from '@pbl/assembly/domain/assembly.models';
-import { createClassicDragonTestPreset } from './assembly-garage/data/presets/classic-dragon-test';
+import {
+  CLASSIC_DRAGON_TEST_PRESET,
+  createClassicDragonTestPreset,
+} from './assembly-garage/data/presets/classic-dragon-test';
 import { DesignerDragonDraftStore } from './designer-dragon-draft.store';
 import { applyDesignerDraft } from './designer-part-overrides';
 import { setDragonStyleOverride } from '@pbl/assembly/rendering/dragon-procedural-mesh.factory';
@@ -15,7 +18,7 @@ import { setDragonStyleOverride } from '@pbl/assembly/rendering/dragon-procedura
       title="Dragon Assembly Garage"
       [presets]="presets()"
       partFamily="dragon"
-      initialPresetId="classic-dragon"
+      [initialPresetId]="initialPresetId"
       [dragonPackExport]="true"
     />
   `,
@@ -23,6 +26,7 @@ import { setDragonStyleOverride } from '@pbl/assembly/rendering/dragon-procedura
 })
 export class DragonGaragePage implements OnDestroy {
   private readonly draft = inject(DesignerDragonDraftStore);
+  readonly initialPresetId = CLASSIC_DRAGON_TEST_PRESET.id;
 
   // `applyDesignerDraft` runs inside this computed, so a size or socket saved in
   // the Parts Lab or Snap Workshop rebuilds the preset behind it.

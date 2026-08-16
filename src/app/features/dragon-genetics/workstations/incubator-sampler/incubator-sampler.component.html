@@ -1,7 +1,27 @@
-<section class="sampler" aria-labelledby="sampler-title">
+<section class="sampler viking-academy-sampler" aria-labelledby="sampler-title">
+  <!--
+    The academy hall the instrument stands in. Pure scenery: it is `aria-hidden`, carries no
+    information, and the station reads identically with it removed. It sits before everything
+    else because `.viking-academy-sampler > :not(.academy-backdrop)` lifts every other child
+    above it — the backdrop is the only child left on the base layer.
+  -->
+  <div class="academy-backdrop" aria-hidden="true">
+    <div class="academy-roof-beams"></div>
+    <div class="academy-stone-wall"></div>
+    <div class="academy-observatory">
+      <i class="observatory-dome"></i><i class="observatory-scope"></i>
+      <i class="observatory-window"></i>
+    </div>
+    <div class="academy-chain chain-left"></div>
+    <div class="academy-chain chain-right"></div>
+    <div class="academy-banner academy-banner-left"><span>ᛉ</span></div>
+    <div class="academy-banner academy-banner-right"><span>ᚱ</span></div>
+    <div class="academy-shield-rack"><i></i><i></i><i></i></div>
+  </div>
+
   <header class="sampler-head">
     <div class="goal-block">
-      <span>SCIENTIFIC GOAL</span>
+      <span>DRAGON ACADEMY · SCIENTIFIC GOAL</span>
       <h2 id="sampler-title">Phenotype Incubator Sampler</h2>
       <p>{{ goal() }}</p>
     </div>
@@ -88,6 +108,7 @@
           [ariaLabel]="parentA() ? parentA()!.name + ', egg parent' : 'Egg-parent chamber empty'"
           [controls]="false"
           [framePadding]="1.3"
+          [transparent]="true"
         />
         @if (!parentA()) {
           <div class="empty-parent"><i aria-hidden="true"></i><span>DROP OR SELECT</span></div>
@@ -125,6 +146,35 @@
       >
         <div class="scene-glow" aria-hidden="true"></div>
         <div class="back-wall" aria-hidden="true"></div>
+
+        <!--
+          The hall the machine is bolted into: pillars, crossbeam, gearing, gauges and torches.
+          Decorative only, and drawn before the working parts so the belts, splitter and
+          travelling eggs stay on top of it.
+        -->
+        <div class="viking-machine-frame" aria-hidden="true">
+          <span class="stone-pillar stone-pillar-left"></span>
+          <span class="stone-pillar stone-pillar-right"></span>
+          <span class="timber-crossbeam"></span>
+          <span class="machine-rune rune-left">ᚠ</span>
+          <span class="machine-rune rune-right">ᛞ</span>
+          <div class="gear-bank gear-bank-left">
+            <i class="gear gear-lg"></i><i class="gear gear-sm"></i>
+          </div>
+          <div class="gear-bank gear-bank-right">
+            <i class="gear gear-md"></i><i class="gear gear-sm"></i>
+          </div>
+          <div class="brass-pipe pipe-left"></div>
+          <div class="brass-pipe pipe-right"></div>
+          <div class="pressure-gauge gauge-left"><i></i><b></b></div>
+          <div class="pressure-gauge gauge-right"><i></i><b></b></div>
+          <div class="furnace-stack stack-left"><i></i></div>
+          <div class="furnace-stack stack-right"><i></i></div>
+          <div class="torch-sconce torch-left"><i></i></div>
+          <div class="torch-sconce torch-right"><i></i></div>
+          <div class="academy-machine-crest"><span>ᛉ</span><small>INCUBATION HALL</small></div>
+        </div>
+
         <div class="forge-mouth" aria-hidden="true"><i></i></div>
         <div class="conveyor main-belt" aria-hidden="true"><i></i><b></b></div>
         <div class="branch-belt left-belt" aria-hidden="true"><i></i></div>
@@ -136,8 +186,14 @@
         <div class="chute right-chute" aria-hidden="true"></div>
 
         <div class="inspection-port" [class.active]="inspectionSource()">
+          <!--
+            The port used to caption itself "VISIBLE-TRAIT SCAN" beside the trait name, and the
+            new stylesheet adds an "OPTICAL TRAIT SCOPE" plate above the frame that says the same
+            thing. Two labels in a 12rem-wide port meant both were ellipsised down to nothing, so
+            the plate keeps the instrument's name and the header keeps the trait it is reading.
+          -->
           <header>
-            <span>VISIBLE-TRAIT SCAN</span><b>{{ selectedTrait().name }}</b>
+            <b>{{ selectedTrait().name }}</b>
           </header>
           <app-specimen-viewport
             [source]="inspectionSource()"
@@ -145,6 +201,7 @@
             [controls]="false"
             [showGroundShadow]="false"
             [framePadding]="1.35"
+            [transparent]="true"
           />
           <p>
             {{ inspectionDragon() ? visiblePhenotype(inspectionDragon()!) : 'Awaiting hatchling' }}
@@ -172,7 +229,9 @@
         </div>
       </section>
 
-      <p class="status-bar" aria-live="polite">{{ statusMessage() }}</p>
+      <div class="sorting-yard-sign" aria-hidden="true">
+        <i></i><span>VISIBLE TRAIT RECEIVING YARD</span><i></i>
+      </div>
 
       @if (offspringPoolActive()) {
         <section class="breeding-pool-readout" aria-label="Current balanced breeding pool">
@@ -246,6 +305,8 @@
           }
         }
       </section>
+
+      <p class="status-bar" aria-live="polite">{{ statusMessage() }}</p>
     </main>
 
     <aside
@@ -269,6 +330,7 @@
           [ariaLabel]="parentB() ? parentB()!.name + ', sperm parent' : 'Sperm-parent chamber empty'"
           [controls]="false"
           [framePadding]="1.3"
+          [transparent]="true"
         />
         @if (!parentB()) {
           <div class="empty-parent"><i aria-hidden="true"></i><span>DROP OR SELECT</span></div>
@@ -301,7 +363,7 @@
   <section class="history-card" aria-labelledby="generation-history-title">
     <header>
       <div>
-        <span>OBSERVATION RECORD</span>
+        <span>ACADEMY FIELD LEDGER · OBSERVATION RECORD</span>
         <h3 id="generation-history-title">Generation comparison</h3>
       </div>
       <p>Only visible outcomes from the chosen trait are recorded here.</p>

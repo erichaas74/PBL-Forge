@@ -92,6 +92,134 @@ const IDLE_FRAME_INTERVAL_MS = 60;
 const MIN_ZOOM_LEVEL = 0.65;
 const MAX_ZOOM_LEVEL = 2;
 
+/** Screen-space half extents of an axis-aligned specimen frame for one view. */
+export function projectSpecimenFrame(
+  frame: SpecimenFrame,
+  viewDirection: Vector3Data,
+): { halfWidth: number; halfHeight: number } {
+  const view = new THREE.Vector3(
+    viewDirection.x,
+    viewDirection.y,
+    viewDirection.z,
+  ).normalize();
+  const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), view);
+  if (right.lengthSq() < 1e-8) right.set(1, 0, 0);
+  else right.normalize();
+  const up = new THREE.Vector3().crossVectors(view, right).normalize();
+  const half = frame.halfExtents;
+
+  if (frame.points?.length) {
+    let halfWidth = 0;
+    let halfHeight = 0;
+    for (const point of frame.points) {
+      const offset = new THREE.Vector3(
+        point.x - frame.center.x,
+        point.y - frame.center.y,
+        point.z - frame.center.z,
+      );
+      halfWidth = Math.max(halfWidth, Math.abs(offset.dot(right)));
+      halfHeight = Math.max(halfHeight, Math.abs(offset.dot(up)));
+    }
+    return { halfWidth, halfHeight };
+  }
+
+  return {
+    halfWidth: Math.abs(right.x) * half.x
+      + Math.abs(right.y) * half.y
+      + Math.abs(right.z) * half.z,
+    halfHeight: Math.abs(up.x) * half.x
+      + Math.abs(up.y) * half.y
+      + Math.abs(up.z) * half.z,
+  };
+}
+
+/**
+ * Layered, closed flame plumes. Each lobe swells and then narrows to a point,
+ * so the breath communicates its real range without the flat circular end of a
+ * debug cone.
+ */
+export function createFireBreathEffect(range: number, radius: number): THREE.Group {
+  const effect = new THREE.Group();
+  effect.name = 'dragon-fire-breath';
+
+  const layers = [
+    { length: 1, width: 1, color: 0xe84512, opacity: 0.28, phase: 0.2 },
+    { length: 0.78, width: 0.58, color: 0xff8a18, opacity: 0.5, phase: 1.7 },
+    { length: 0.5, width: 0.3, color: 0xffe27a, opacity: 0.72, phase: 3.1 },
+  ] as const;
+
+  for (const [index, layer] of layers.entries()) {
+    const flame = new THREE.Mesh(
+      createFlamePlumeGeometry(range * layer.length, radius * layer.width, layer.phase),
+      new THREE.MeshBasicMaterial({
+        color: layer.color,
+        transparent: true,
+        opacity: layer.opacity,
+        blending: THREE.NormalBlending,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+      }),
+    );
+    flame.name = `dragon-fire-layer-${index + 1}`;
+    flame.renderOrder = 20 + index;
+    effect.add(flame);
+  }
+
+  const glow = new THREE.PointLight(0xff6a1a, 1.2, Math.max(range * 0.55, 0.1), 2);
+  glow.name = 'dragon-fire-glow';
+  glow.position.y = range * 0.12;
+  effect.add(glow);
+  return effect;
+}
+
+/** Local +Y plume with tapered ends and a gentle deterministic lick. */
+function createFlamePlumeGeometry(length: number, radius: number, phase: number): THREE.BufferGeometry {
+  const ringCount = 11;
+  const radialSegments = 12;
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  for (let ring = 0; ring <= ringCount; ring += 1) {
+    const t = ring / ringCount;
+    const envelope = Math.pow(Math.sin(Math.PI * t), 0.72) * (1 - t * 0.16);
+    const centreX = Math.sin(t * Math.PI * 2.4 + phase) * radius * 0.13 * t;
+    const centreZ = Math.cos(t * Math.PI * 1.8 + phase) * radius * 0.1 * t;
+    const ringRadius = radius * envelope;
+
+    for (let segment = 0; segment < radialSegments; segment += 1) {
+      const angle = (segment / radialSegments) * Math.PI * 2;
+      const lick = 1 + 0.09 * Math.sin(angle * 3 + phase + t * Math.PI * 5);
+      positions.push(
+        centreX + Math.cos(angle) * ringRadius * lick,
+        length * t,
+        centreZ + Math.sin(angle) * ringRadius * lick,
+      );
+      uvs.push(segment / radialSegments, t);
+    }
+  }
+
+  for (let ring = 0; ring < ringCount; ring += 1) {
+    for (let segment = 0; segment < radialSegments; segment += 1) {
+      const next = (segment + 1) % radialSegments;
+      const a = ring * radialSegments + segment;
+      const b = ring * radialSegments + next;
+      const c = (ring + 1) * radialSegments + segment;
+      const d = (ring + 1) * radialSegments + next;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 @Injectable()
 export class SpecimenRendererService {
   private host: HTMLElement | null = null;
@@ -118,7 +246,7 @@ export class SpecimenRendererService {
   private idleFrameId: number | null = null;
   private idleMotion: SpecimenIdleMotion | null = null;
   private pointerStart: { x: number; y: number; pointerId: number } | null = null;
-  private fireCone: THREE.Mesh | null = null;
+  private fireEffect: THREE.Group | null = null;
   private viewDirection = DEFAULT_VIEW_DIRECTION.clone();
   /** 1 fits the whole specimen; larger values move the camera closer. */
   private zoomLevel = 1;
@@ -194,6 +322,15 @@ export class SpecimenRendererService {
       controls.addEventListener('change', () => {
         const orbitDirection = camera.position.clone().sub(controls.target);
         if (orbitDirection.lengthSq() >= 1e-8) this.viewDirection.copy(orbitDirection.normalize());
+        this.requestRender();
+      });
+      // Refitting on every pointer move fights OrbitControls. Refitting once the
+      // orbit ends preserves the chosen angle while using that angle's projected
+      // silhouette instead of the dragon's full nose-to-tail radius.
+      controls.addEventListener('end', () => {
+        const orbitDirection = camera.position.clone().sub(controls.target);
+        if (orbitDirection.lengthSq() >= 1e-8) this.viewDirection.copy(orbitDirection.normalize());
+        this.applyFrame();
         this.requestRender();
       });
       this.controls = controls;
@@ -381,8 +518,16 @@ export class SpecimenRendererService {
           y: aim.origin.y + aim.direction.y * range * 0.5,
           z: aim.origin.z + aim.direction.z * range * 0.5,
         },
-        radius: Math.max(range * 0.5, coneRadius),
-        halfHeight: coneRadius,
+        halfExtents: {
+          x: Math.abs(aim.direction.x) * range * 0.5 + coneRadius,
+          y: Math.abs(aim.direction.y) * range * 0.5 + coneRadius,
+          z: Math.abs(aim.direction.z) * range * 0.5 + coneRadius,
+        },
+        radius: Math.hypot(
+          Math.abs(aim.direction.x) * range * 0.5 + coneRadius,
+          Math.abs(aim.direction.z) * range * 0.5 + coneRadius,
+        ),
+        halfHeight: Math.abs(aim.direction.y) * range * 0.5 + coneRadius,
       },
     ]);
     this.applyFrame();
@@ -410,7 +555,7 @@ export class SpecimenRendererService {
     );
 
     this.applyPose(pose);
-    this.syncFireCone(demo.fireConeAt?.(phase) ? pose : null);
+    this.syncFireEffect(demo.fireConeAt?.(phase) ? pose : null);
     this.renderNow();
   }
 
@@ -418,7 +563,7 @@ export class SpecimenRendererService {
     const descriptor = this.descriptor;
     if (!descriptor) return;
     this.applyPose(motion.poseAt(descriptor.blueprint, phase, this.activePose?.droopRadians ?? 0));
-    this.syncFireCone(null);
+    this.syncFireEffect(null);
     this.renderNow();
   }
 
@@ -481,7 +626,7 @@ export class SpecimenRendererService {
     const descriptor = this.descriptor;
     if (!descriptor) return;
     this.applyPose(buildSpecimenPose(descriptor.blueprint, this.activePose));
-    this.syncFireCone(null);
+    this.syncFireEffect(null);
 
     if (this.baseFrame && this.activeFrame !== this.baseFrame) {
       this.activeFrame = this.baseFrame;
@@ -502,40 +647,28 @@ export class SpecimenRendererService {
   }
 
   /**
-   * The fire cone, drawn from the mouth with the arena's real range and angle —
+   * Fire breath, drawn from the mouth with the arena's real range and angle —
    * so a student can see how far the breath actually reaches, which is the part
    * that is invisible in a battle.
    */
-  private syncFireCone(pose: SpecimenPose | null): void {
+  private syncFireEffect(pose: SpecimenPose | null): void {
     const descriptor = this.descriptor;
     const content = this.specimenGroup?.children[0];
 
     if (!pose || !descriptor || !content) {
-      if (this.fireCone) this.fireCone.visible = false;
+      if (this.fireEffect) this.fireEffect.visible = false;
       return;
     }
 
     const aim = resolveFireOrigin(descriptor.blueprint, pose);
     if (!aim) return;
 
-    if (!this.fireCone) {
+    if (!this.fireEffect) {
       const radius = FIRE_BREATH_TUNING.range * FIRE_BREATH_VISUAL_RADIUS_RATIO;
-      const mesh = new THREE.Mesh(
-        new THREE.ConeGeometry(radius, FIRE_BREATH_TUNING.range, 16, 1, true),
-        new THREE.MeshBasicMaterial({
-          color: 0xff6a1a,
-          transparent: true,
-          opacity: 0.55,
-          // Normal blending, unlike the arena's additive cone: this stage is
-          // near-white, and additive orange on white saturates to invisible.
-          blending: THREE.NormalBlending,
-          depthWrite: false,
-          side: THREE.DoubleSide,
-        }),
-      );
+      const effect = createFireBreathEffect(FIRE_BREATH_TUNING.range, radius);
       // Sits with the specimen so it follows the turntable.
-      content.add(mesh);
-      this.fireCone = mesh;
+      content.add(effect);
+      this.fireEffect = effect;
     }
 
     const direction = new THREE.Vector3(
@@ -543,19 +676,14 @@ export class SpecimenRendererService {
       aim.direction.y,
       aim.direction.z,
     ).normalize();
-    // Cone tip (+y in local space) points back at the mouth; the base flares away.
-    this.fireCone.quaternion.setFromUnitVectors(
+    this.fireEffect.quaternion.setFromUnitVectors(
       new THREE.Vector3(0, 1, 0),
-      direction.clone().negate(),
+      direction,
     );
-    this.fireCone.position.set(
-      aim.origin.x + direction.x * FIRE_BREATH_TUNING.range * 0.5,
-      aim.origin.y + direction.y * FIRE_BREATH_TUNING.range * 0.5,
-      aim.origin.z + direction.z * FIRE_BREATH_TUNING.range * 0.5,
-    );
+    this.fireEffect.position.set(aim.origin.x, aim.origin.y, aim.origin.z);
     const flicker = 0.9 + Math.random() * 0.2;
-    this.fireCone.scale.set(flicker, 1, flicker);
-    this.fireCone.visible = true;
+    this.fireEffect.scale.set(flicker, 1, flicker);
+    this.fireEffect.visible = true;
   }
 
   /**
@@ -857,10 +985,10 @@ export class SpecimenRendererService {
     }
     if (this.specimenGroup) {
       this.scene?.remove(this.specimenGroup);
-      // The fire cone is parented to the specimen, so it is disposed with it.
+      // Fire breath is parented to the specimen, so it is disposed with it.
       disposeAssemblyObject(this.specimenGroup);
       this.specimenGroup = null;
-      this.fireCone = null;
+      this.fireEffect = null;
     }
     this.partObjects.clear();
     this.partRoles.clear();
@@ -880,20 +1008,18 @@ export class SpecimenRendererService {
     const tanY = Math.tan(halfFovY);
     const tanX = tanY * Math.max(camera.aspect, 0.0001);
 
-    // Viewing from above tips part of the specimen's depth into its on-screen
-    // height, so the vertical requirement mixes both extents by the elevation.
-    const elevationSin = this.viewDirection.y;
-    const elevationCos = Math.sqrt(Math.max(1 - elevationSin * elevationSin, 0));
-    const projectedHalfHeight = frame.halfHeight * elevationCos + frame.radius * elevationSin;
+    const projected = this.turntableFrameId === null
+      ? projectSpecimenFrame(frame, this.viewDirection)
+      : { halfWidth: frame.radius, halfHeight: frame.halfHeight + frame.radius * Math.abs(this.viewDirection.y) };
 
     const fittedDistance =
-      Math.max(projectedHalfHeight / tanY, frame.radius / tanX) *
+      Math.max(projected.halfHeight / tanY, projected.halfWidth / tanX) *
       (this.options.framePadding ?? DEFAULT_FRAME_PADDING);
     const distance = fittedDistance / this.zoomLevel;
 
     const target = new THREE.Vector3(frame.center.x, frame.center.y, frame.center.z);
     camera.position.copy(target).addScaledVector(this.viewDirection, distance);
-    const extent = Math.max(frame.radius, frame.halfHeight);
+    const extent = Math.max(frame.halfExtents.x, frame.halfExtents.y, frame.halfExtents.z);
     camera.near = Math.max(distance - extent * 3, 0.05);
     camera.far = distance + extent * 6;
     camera.updateProjectionMatrix();
@@ -911,7 +1037,7 @@ export class SpecimenRendererService {
     if (!this.groundShadow) {
       const mesh = new THREE.Mesh(
         new THREE.CircleGeometry(1, 32),
-        new THREE.ShadowMaterial({ color: 0x1f2937, opacity: 0.2 }),
+        new THREE.ShadowMaterial({ color: 0x1f2937, opacity: 0.32 }),
       );
       mesh.rotation.x = -Math.PI / 2;
       mesh.receiveShadow = true;
@@ -921,8 +1047,8 @@ export class SpecimenRendererService {
 
     this.groundShadow.visible = true;
 
-    const radius = this.activeFrame?.radius ?? 1;
-    this.groundShadow.scale.setScalar(radius * 1.4);
+    const half = this.activeFrame?.halfExtents ?? { x: 1, y: 1, z: 1 };
+    this.groundShadow.scale.set(half.x * 1.12, half.z * 1.12, 1);
     this.groundShadow.position.set(
       this.activeFrame?.center.x ?? 0,
       floorY - 0.01,

@@ -38,6 +38,8 @@ export class GarageViewportComponent implements AfterViewInit, OnDestroy {
   private frameId: number | null = null;
   private lastFrameTime = 0;
   private hasMounted = false;
+  private physicsDirty = true;
+  private blueprintSignature = '';
   private readonly renderer = inject(AssemblyRendererService);
   private readonly physics = inject(AssemblyPhysicsService);
   private dragState: {
@@ -50,11 +52,21 @@ export class GarageViewportComponent implements AfterViewInit, OnDestroy {
   } | null = null;
   private readonly stateSync = effect(() => {
     const state = this.state();
-    this.physics.rebuild(state);
+    const signature = physicsSignature(state);
+    if (signature !== this.blueprintSignature) {
+      this.blueprintSignature = signature;
+      this.physicsDirty = true;
+    }
 
     if (this.hasMounted) {
       this.renderer.syncAssembly(state, true);
       this.renderer.syncSelection(this.selectedPartId());
+      if (state.isSimulating) {
+        this.ensurePhysicsReady();
+        this.startLoop();
+      } else {
+        this.stopLoop();
+      }
     }
   });
   private readonly selectionSync = effect(() => {
@@ -70,14 +82,14 @@ export class GarageViewportComponent implements AfterViewInit, OnDestroy {
     this.renderer.mount(this.viewportRef.nativeElement);
     this.renderer.syncAssembly(this.state());
     this.renderer.syncSelection(this.selectedPartId());
-    this.physics.rebuild(this.state());
-    this.frameId = requestAnimationFrame(this.tick);
+    if (this.state().isSimulating) {
+      this.ensurePhysicsReady();
+      this.startLoop();
+    }
   }
 
   ngOnDestroy(): void {
-    if (this.frameId !== null) {
-      cancelAnimationFrame(this.frameId);
-    }
+    this.stopLoop();
 
     this.stateSync.destroy();
     this.selectionSync.destroy();
@@ -163,6 +175,7 @@ export class GarageViewportComponent implements AfterViewInit, OnDestroy {
   }
 
   private readonly tick = (time: number): void => {
+    this.frameId = null;
     const deltaSeconds = this.lastFrameTime === 0
       ? 0
       : Math.min((time - this.lastFrameTime) / 1000, 0.05);
@@ -171,10 +184,30 @@ export class GarageViewportComponent implements AfterViewInit, OnDestroy {
 
     if (this.state().isSimulating) {
       this.renderer.applySnapshot(this.physics.step(deltaSeconds));
-    } else {
-      this.renderer.render();
+      this.startLoop();
     }
-
-    this.frameId = requestAnimationFrame(this.tick);
   };
+
+  private ensurePhysicsReady(): void {
+    if (!this.physicsDirty) return;
+    this.physics.rebuild(this.state());
+    this.physicsDirty = false;
+    this.lastFrameTime = 0;
+  }
+
+  private startLoop(): void {
+    if (this.frameId === null && this.state().isSimulating) {
+      this.frameId = requestAnimationFrame(this.tick);
+    }
+  }
+
+  private stopLoop(): void {
+    if (this.frameId !== null) cancelAnimationFrame(this.frameId);
+    this.frameId = null;
+    this.lastFrameTime = 0;
+  }
+}
+
+function physicsSignature(state: AssemblyState): string {
+  return JSON.stringify({ parts: state.parts, joints: state.joints });
 }

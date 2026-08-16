@@ -20,6 +20,28 @@
   overflow: visible;
 }
 
+.chromatid {
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 60%));
+}
+
+.chromosome-band {
+  stroke: rgb(0 0 0 / 15%);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.dna-helix-path {
+  fill: none;
+  stroke: rgb(0 0 0 / 35%);
+  stroke-width: 0.42;
+}
+
+.telomere-cap,
+.chromatin-texture,
+.volumetric-lighting {
+  pointer-events: none;
+}
+
 .chromosome-band--placeholder {
   fill: #d7d7d7;
   stroke: #575757;
@@ -47,8 +69,22 @@
 }
 
 .centromere-line {
-  stroke: #564b40;
-  stroke-width: 0.7;
+  stroke: #3a3229;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.kinetochore-base {
+  fill: #c9bca6;
+  stroke: #3a3229;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.kinetochore-inner {
+  fill: #eee1cc;
+  stroke: rgb(0 0 0 / 40%);
+  stroke-width: 0.4;
   vector-effect: non-scaling-stroke;
 }
 
@@ -64,6 +100,12 @@
 }
 
 .chromosome-svg--placeholder .centromere-joint {
+  fill: #d7d7d7;
+  stroke: #3b3b3b;
+}
+
+.chromosome-svg--placeholder .kinetochore-base,
+.chromosome-svg--placeholder .kinetochore-inner {
   fill: #d7d7d7;
   stroke: #3b3b3b;
 }
@@ -89,15 +131,15 @@
 }
 
 .gene-marker {
-  opacity: 0.28;
-  stroke-width: 0.45;
+  opacity: 0.1;
+  stroke-width: 0.5;
   vector-effect: non-scaling-stroke;
 }
 
 .gene-locus--active .gene-marker,
 .gene-locus--visible .gene-marker {
-  opacity: 1;
-  stroke-width: 1.15;
+  opacity: 0.18;
+  stroke-width: 0.65;
 }
 
 .gene-locus--interactive {
@@ -110,8 +152,33 @@
 }
 
 .gene-locus--interactive:hover .gene-marker {
-  opacity: 1;
-  stroke-width: 1.15;
+  opacity: 0.24;
+  stroke-width: 0.75;
+}
+
+.allele-barcode-group,
+.allele-barcode-stripe,
+.barcode-highlight {
+  transition: opacity 0.3s ease, transform 0.3s ease, filter 0.3s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.barcode-highlight {
+  fill: #ffffff;
+  opacity: 0.1;
+}
+
+.allele-barcode-outline {
+  fill: none;
+  stroke: rgb(0 0 0 / 40%);
+  stroke-width: 0.3;
+  vector-effect: non-scaling-stroke;
+}
+
+.gene-locus--active .allele-barcode-group,
+.gene-locus--interactive:hover .allele-barcode-group {
+  filter: drop-shadow(0 0 1px currentColor);
 }
 
 .allele-symbol {
@@ -124,4 +191,12 @@
 .locus-label {
   fill: #ded4c3;
   text-anchor: middle;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .allele-barcode-group,
+  .allele-barcode-stripe,
+  .barcode-highlight {
+    transition: none;
+  }
 }

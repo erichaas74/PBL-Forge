@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { build } from 'esbuild';
 
 const workspace = path.resolve(import.meta.dirname, '..');
@@ -7,6 +8,8 @@ const result = await build({
     contents: `
       import { createExpressiveDragonBenchBuild } from './src/app/features/dragon-genetics/simulation/domain/dragon-specimen.profile.ts';
       import { DEFAULT_EXPRESSIVE_DRAGON } from './src/app/features/dragon-genetics/simulation/domain/dragon-expressive-genome.ts';
+      import { SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS } from './src/app/shared/assembly/model-pack/dragon-model-pack.models.ts';
+      import { DRAGON_VISUAL_PARAMETER_CONTRACT } from './src/app/shared/assembly/model-pack/dragon-visual-parameters.ts';
 
       function build(sex, tail) {
         const profile = {
@@ -45,7 +48,11 @@ const result = await build({
         throw new Error('kk tail club expression must remain smooth.');
       }
 
-      export default descriptor(male).blueprint.parts.length;
+      export default {
+        expressedPartCount: descriptor(male).blueprint.parts.length,
+        supportedProfiles: SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS,
+        parameterContract: DRAGON_VISUAL_PARAMETER_CONTRACT,
+      };
     `,
     resolveDir: workspace,
     sourcefile: 'check-dragon-model-compatibility.entry.ts',
@@ -61,5 +68,39 @@ const result = await build({
 
 const source = result.outputFiles[0].text;
 const module = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
-console.log(`Dragon model compatibility valid across ${module.default} expressed parts.`);
+const factorySource = await readFile(
+  path.join(workspace, 'src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.ts'),
+  'utf8',
+);
 
+const implementedProfiles = new Set(
+  [...factorySource.matchAll(/case '([^']+)':/g)]
+    .map(match => match[1])
+    .filter(profileId => profileId.startsWith('dragon-')),
+);
+const supportedProfiles = new Set(module.default.supportedProfiles);
+assertSameSet('renderer profiles', implementedProfiles, supportedProfiles);
+
+const readParameters = new Set(
+  [...factorySource.matchAll(/visual(?:Number|String|Flag)\(part, '([^']+)'/g)]
+    .map(match => match[1]),
+);
+const contractedParameters = new Set(
+  Object.values(module.default.parameterContract).flatMap(contract => Object.keys(contract)),
+);
+assertSameSet('visual parameter keys', readParameters, contractedParameters);
+
+console.log(
+  `Dragon model compatibility valid across ${module.default.expressedPartCount} expressed parts, ` +
+  `${supportedProfiles.size} renderer profiles, and ${contractedParameters.size} visual parameters.`,
+);
+
+function assertSameSet(label, actual, expected) {
+  const missing = [...expected].filter(value => !actual.has(value));
+  const undocumented = [...actual].filter(value => !expected.has(value));
+  if (!missing.length && !undocumented.length) return;
+  throw new Error(
+    `${label} drifted. Missing implementation: ${missing.join(', ') || 'none'}. ` +
+    `Missing contract: ${undocumented.join(', ') || 'none'}.`,
+  );
+}

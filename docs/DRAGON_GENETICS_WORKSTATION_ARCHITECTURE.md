@@ -64,7 +64,7 @@ It now uses `DnaComparisonRepository`, and its public data contracts live in
 | Companion Show      | required student ID, optional goal; emits snapshots                              | mini-dragon domain + show repository                            | Separated; component is large but domain/persistence are outside it |
 | DNA Process Lab     | required student ID, optional goal/case/chromosome/catalog; emits tool selection | released catalog + DNA comparison repository                    | Separated in this audit                                             |
 | Dragon Hatchery     | required student ID, optional deterministic seed                                 | account library + breeding repository + meiosis/hatchery domain | Structurally separated; product-contract issue remains below        |
-| Genome Microscope   | released genes, released alleles, chromosome labels; emits model selection       | assignment catalog + chromosome catalog                         | Separated and presentational                                        |
+| Genome Microscope   | account dragons, released genes/alleles, chromosome labels; emits evidence state | account library + assignment/chromosome/DNA catalogs             | Separated reusable open workstation                                 |
 | Incubator Sampler   | required student ID, optional goal                                               | account library + sampler repository/domain                     | Separated                                                           |
 | Island Diversity    | required student ID; emits stored worlds                                         | account library + island repository/domain                      | Separated                                                           |
 | Pedigree Lab        | required student ID, optional goal/investigation ID                              | pedigree repository/domain/population/layout                    | Separated                                                           |
@@ -141,15 +141,11 @@ These are product/cleanup findings, not hidden architecture dependencies:
    guidance forbidden by the authoritative workstation rules. Its science and file boundaries are
    now isolated, but the interaction must be redesigned as an open-order instrument before it can
    pass the product rejection checklist.
-2. **Genome Microscope still runs inside the registry question shell.** The component itself is a
-   portable visual instrument, but the current route adds a phase rail and question dock. Treat
-   that route as temporary assessment scaffolding, not the reference architecture for a dedicated
-   workstation.
-3. **Loose prototype files remain in the active folder.** The standalone HTML prototypes and old
+2. **Loose prototype files remain in the active folder.** The standalone HTML prototypes and old
    Markdown plans at the root of `workstations/` are not imported by the Angular app. Move them to
    `migration-archive/` or `docs/` in a dedicated cleanup change so the active source tree describes
    runtime code only.
-4. **Several UI orchestrators remain large.** Pedigree, meiosis, and companion-show components have
+3. **Several UI orchestrators remain large.** Pedigree, meiosis, and companion-show components have
    pure domain and repository layers already, but their view-state files are still long. Split them
    by actual instrument subpanels only when those subpanels need independent tests or reuse; do not
    create a shared visual mega-component or move station-specific CSS into global styles.

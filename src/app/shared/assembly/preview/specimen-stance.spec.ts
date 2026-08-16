@@ -1,6 +1,6 @@
 import { PUBLISHED_CLASSIC_DRAGON_PRESET } from '../../../data/published-dragon-models';
 import { AssemblyBlueprint } from '../domain/assembly.models';
-import { DRAGON_IDLE_BREATH, DRAGON_RESTING_POSE } from './specimen-stance';
+import { DRAGON_IDLE_BREATH, DRAGON_REARED_POSE, DRAGON_RESTING_POSE } from './specimen-stance';
 import { buildSpecimenPose } from './specimen-pose';
 
 /**
@@ -19,7 +19,7 @@ function posed() {
   return new Map(pose.parts.map(part => [part.partId, part.position]));
 }
 
-type Position = { x: number; y: number; z: number };
+interface Position { x: number; y: number; z: number }
 
 function positionOf(positions: Map<string, Position>, idPart: string): Position {
   for (const [id, position] of positions) {
@@ -91,6 +91,25 @@ describe('dragon resting stance', () => {
     expect(wing).toBeGreaterThan(body + 0.3);
     // But not folded up over the spine like a closing umbrella.
     expect(wing).toBeLessThan(body + 1.4);
+  });
+});
+
+describe('dragon reared stance', () => {
+  it('pivots around the hind feet instead of lifting them with the torso', () => {
+    const withoutTilt = buildSpecimenPose(blueprint, {
+      ...DRAGON_REARED_POSE,
+      rootTilt: undefined,
+    });
+    const reared = buildSpecimenPose(blueprint, DRAGON_REARED_POSE);
+    const before = new Map(withoutTilt.parts.map(part => [part.partId, part.position]));
+    const after = new Map(reared.parts.map(part => [part.partId, part.position]));
+
+    const bodyId = [...before.keys()].find(id => id.includes('body'))!;
+    const rearFootId = [...before.keys()].find(id => id.includes('rear') && id.includes('foot'))!;
+    const bodyLift = Math.abs(after.get(bodyId)!.y - before.get(bodyId)!.y);
+    const footLift = Math.abs(after.get(rearFootId)!.y - before.get(rearFootId)!.y);
+
+    expect(bodyLift).toBeGreaterThan(footLift * 3);
   });
 });
 

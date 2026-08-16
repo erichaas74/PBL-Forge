@@ -152,6 +152,7 @@ describe('estimateSpecimenFrame', () => {
   it('falls back to a unit frame for an empty blueprint', () => {
     expect(estimateSpecimenFrame({ parts: [], joints: [] })).toEqual({
       center: { x: 0, y: 0, z: 0 },
+      halfExtents: { x: 1, y: 1, z: 1 },
       radius: 1,
       halfHeight: 1,
     });
@@ -169,6 +170,7 @@ describe('estimateSpecimenFrame', () => {
     });
 
     expect(flat.halfHeight).toBeCloseTo(0.5, 5);
+    expect(flat.halfExtents).toEqual({ x: 3, y: 0.5, z: 2 });
     expect(flat.radius).toBeCloseTo(0.5 * Math.hypot(6, 4), 5);
     // The sphere radius would have been ~3.6; height must not inherit that.
     expect(flat.halfHeight).toBeLessThan(flat.radius / 3);
@@ -187,8 +189,8 @@ describe('estimateSpecimenFrame', () => {
 describe('mergeSpecimenFrames', () => {
   it('produces one frame containing all of them', () => {
     const merged = mergeSpecimenFrames([
-      { center: { x: 0, y: 0, z: 0 }, radius: 1, halfHeight: 1 },
-      { center: { x: 4, y: 0, z: 0 }, radius: 1, halfHeight: 1 },
+      { center: { x: 0, y: 0, z: 0 }, halfExtents: { x: 1, y: 1, z: 1 }, radius: 1, halfHeight: 1 },
+      { center: { x: 4, y: 0, z: 0 }, halfExtents: { x: 1, y: 1, z: 1 }, radius: 1, halfHeight: 1 },
     ]);
 
     expect(merged.center.x).toBeCloseTo(2, 5);
@@ -196,10 +198,15 @@ describe('mergeSpecimenFrames', () => {
   });
 
   it('is at least as large as its largest member, so nothing is cropped', () => {
-    const large = { center: { x: 0, y: 0, z: 0 }, radius: 5, halfHeight: 2 };
+    const large = {
+      center: { x: 0, y: 0, z: 0 },
+      halfExtents: { x: 4, y: 2, z: 3 },
+      radius: 5,
+      halfHeight: 2,
+    };
     const merged = mergeSpecimenFrames([
       large,
-      { center: { x: 0, y: 0, z: 0 }, radius: 1, halfHeight: 1 },
+      { center: { x: 0, y: 0, z: 0 }, halfExtents: { x: 1, y: 1, z: 1 }, radius: 1, halfHeight: 1 },
     ]);
 
     expect(merged.radius).toBeGreaterThanOrEqual(large.radius);
@@ -208,11 +215,11 @@ describe('mergeSpecimenFrames', () => {
 
   it('merges height independently of width', () => {
     const merged = mergeSpecimenFrames([
-      { center: { x: 0, y: 0, z: 0 }, radius: 4, halfHeight: 0.5 },
-      { center: { x: 0, y: 0, z: 0 }, radius: 0.5, halfHeight: 3 },
+      { center: { x: 0, y: 0, z: 0 }, halfExtents: { x: 4, y: 0.5, z: 0.1 }, radius: 4, halfHeight: 0.5 },
+      { center: { x: 0, y: 0, z: 0 }, halfExtents: { x: 0.5, y: 3, z: 0.1 }, radius: 0.5, halfHeight: 3 },
     ]);
 
-    expect(merged.radius).toBeCloseTo(4, 5);
+    expect(merged.radius).toBeCloseTo(Math.hypot(4, 0.1), 5);
     expect(merged.halfHeight).toBeCloseTo(3, 5);
   });
 });

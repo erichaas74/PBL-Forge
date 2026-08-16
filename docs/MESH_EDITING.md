@@ -67,31 +67,32 @@ parameter keys are all `mini`-prefixed so the two species' `parameters` contract
 | Rename a `parameters` key | four files — see the warning below |
 | Part dimensions, colour, mass, sockets | the catalog, not the factory |
 
-### The parameters keys are a silent contract
+### Parameter keys are a validated contract
 
 `visualProfile.parameters` keys are read by the factory, **written** by the
 genetics code, materialised by the pack exporter, and asserted by the
-compatibility script. Renaming one throws no error: `visualNumber` falls back to
-its default, and the part quietly stops responding to its genes. The current
-keys:
+compatibility script. The profile-specific schema in
+`dragon-visual-parameters.ts` rejects unknown or mistyped keys at the model-pack
+boundary, and the compatibility check compares that schema with every key read
+by the factory. The current keys:
 
 ```text
-backSpikeCount backSpikeScale browLength browRidge camber cheek clawScale cranium
+backSpikeCount backSpikeScale bodyArchetype browLength browRidge camber cheek clawScale cranium
 crestScale dihedral eyeAxial eyeColor fangScale fingerCount fingerLength
 fingerRadius fingerSag fingerSplay glowMarkings hornLength hornRadius jointBall
-muzzleDepth muzzleDrop muzzleWidth palmLength scalePattern scallop sex spikeCount
+muzzleDepth muzzleDrop muzzleWidth noseHornLength palmLength patternColor scalePattern scallop sex spikeCount
 spikeHeight spikeLean spikeLength spikeRadius spikeSpread tailClubSpikeCount
 tailClubSpikeScale talonCount talonLength talonRadius toothCount toothHeight
-toothRadius toothStart wingFold
+toothRadius toothStart
 ```
 
-`wingFold` is display-only: 0 is the flight pose and the default, and the
-specimen profile stamps 1 on its way to a viewer so a dragon on a bench has its
-wings folded while the same blueprint fights in the arena with them spread. It
-also suppresses the hand claw, which on a folded wing is tucked inside the fold.
+Wing folding is stance-driven rather than serialized as a visual parameter, so
+the same blueprint can be posed for a bench or arena without mutating its model
+contract.
 
-`fingerCount`, `fingerLength`, `fingerRadius`, `palmLength` and `fingerSplay`
-shape the grasping hand (`dragon-grasp-hand`), which with `dragon-grasp-arm` is
+`fingerCount`, `fingerLength`, `fingerRadius`, `palmLength` (the legacy key now
+used for wrist offset) and `fingerSplay` shape the padless grasping hand
+(`dragon-grasp-hand`), which with `dragon-grasp-arm` is
 the **second forelimb body plan**. A dragon carrying `ll` at the leg locus has
 its front walking chain swapped for these at expression time — see
 `applyGraspingForelimbs` in `dragon-inheritance.ts` — and is then shown reared

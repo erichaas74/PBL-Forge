@@ -19,7 +19,10 @@ export function loadAssemblyAssetTemplate(assetId: string): Promise<THREE.Group 
 
   const pending = new GLTFLoader()
     .loadAsync(`models/${encodeURIComponent(assetId)}.glb`)
-    .then(gltf => gltf.scene)
+    .then(gltf => {
+      markTemplateResourcesShared(gltf.scene);
+      return gltf.scene;
+    })
     .catch((error: unknown) => {
       if (!warnedAssetIds.has(assetId)) {
         warnedAssetIds.add(assetId);
@@ -39,6 +42,7 @@ export function instantiateAssemblyAsset(template: THREE.Group): THREE.Group {
     if (!(object instanceof THREE.Mesh)) return;
     object.castShadow = true;
     object.receiveShadow = true;
+    object.geometry = object.geometry.clone();
     object.material = Array.isArray(object.material)
       ? object.material.map(material => material.clone())
       : object.material.clone();
@@ -47,8 +51,47 @@ export function instantiateAssemblyAsset(template: THREE.Group): THREE.Group {
   return instance;
 }
 
-/** Test hook: clears the template cache. */
+export function isSharedAssemblyAssetTexture(
+  texture: THREE.Texture | null | undefined,
+): boolean {
+  return Boolean(texture?.userData['sharedAssemblyAssetTexture']);
+}
+
+/** Clears cached templates and releases their owned geometry, materials, and textures. */
 export function resetAssemblyAssetCache(): void {
+  for (const pending of templateCache.values()) {
+    void pending.then(template => {
+      if (template) disposeTemplate(template);
+    });
+  }
   templateCache.clear();
   warnedAssetIds.clear();
+}
+
+function markTemplateResourcesShared(template: THREE.Group): void {
+  template.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    for (const material of materials) {
+      for (const value of Object.values(material)) {
+        if (value instanceof THREE.Texture) value.userData['sharedAssemblyAssetTexture'] = true;
+      }
+    }
+  });
+}
+
+function disposeTemplate(template: THREE.Group): void {
+  const textures = new Set<THREE.Texture>();
+  template.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    object.geometry.dispose();
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    for (const material of materials) {
+      for (const value of Object.values(material)) {
+        if (value instanceof THREE.Texture) textures.add(value);
+      }
+      material.dispose();
+    }
+  });
+  for (const texture of textures) texture.dispose();
 }

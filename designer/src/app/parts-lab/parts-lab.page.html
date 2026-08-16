@@ -52,6 +52,8 @@
           >
             @if (tile.image) {
               <img class="lab__tile-image" [src]="tile.image" [alt]="tile.definition.label" />
+            } @else if (tile.pending) {
+              <span class="lab__tile-empty">rendering…</span>
             } @else {
               <span class="lab__tile-empty">no WebGL</span>
             }
@@ -180,6 +182,8 @@
                 <li>
                   @if (entry.image) {
                     <img class="lab__angle-image" [src]="entry.image" [alt]="entry.view.label" />
+                  } @else if (entry.pending) {
+                    <span class="lab__tile-empty">rendering…</span>
                   }
                   <span class="lab__angle-label">{{ entry.view.label }}</span>
                 </li>

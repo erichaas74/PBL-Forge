@@ -118,18 +118,18 @@ export const STUDIO_STAGE_THEME: StageTheme = {
  * roughly two-thirds of that, hues untouched.
  */
 export const SPECIMEN_STAGE_THEME: StageTheme = {
-  skyTop: '#f2f0ea',
-  skyBottom: '#ffffff',
-  fogColor: '#f2f0ea',
-  hemisphereSky: '#f0eee9',
-  hemisphereGround: '#c2b8a6',
-  keyColor: '#fffbf5',
-  keyIntensity: 1.5,
-  fillColor: '#e2e4e4',
-  fillIntensity: 0.55,
-  rimColor: '#eceef0',
-  rimIntensity: 0.85,
-  environmentIntensity: 0.26,
+  skyTop: '#dce6e8',
+  skyBottom: '#f1f4f2',
+  fogColor: '#e7edef',
+  hemisphereSky: '#edf1ef',
+  hemisphereGround: '#9ca9a6',
+  keyColor: '#fffaf1',
+  keyIntensity: 1.16,
+  fillColor: '#cbd5d7',
+  fillIntensity: 0.36,
+  rimColor: '#d7e8ef',
+  rimIntensity: 0.78,
+  environmentIntensity: 0.22,
 };
 
 export function configureStageRenderer(renderer: THREE.WebGLRenderer, quality: RenderQuality): void {
@@ -137,7 +137,7 @@ export function configureStageRenderer(renderer: THREE.WebGLRenderer, quality: R
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.12;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
 }
 
 /**

@@ -795,6 +795,13 @@ function dragonBody(
   color: string,
   buildSnapPoints: (dimensions: Vector3Data) => AssemblySnapDefinition[],
 ): AssemblyPartDefinition {
+  const archetype = id.includes('wyvern')
+    ? 'wyvern'
+    : id.includes('drake')
+      ? 'drake'
+      : id.includes('four-wing')
+        ? 'four-wing'
+        : 'classic';
   return {
     id,
     label,
@@ -803,7 +810,12 @@ function dragonBody(
     dimensions,
     mass,
     color,
-    visualProfile: visualProfile('dragon-body', defaultMaterialForFamily('dragon')),
+    visualProfile: visualProfile(
+      'dragon-body',
+      defaultMaterialForFamily('dragon'),
+      'procedural',
+      { bodyArchetype: archetype },
+    ),
     snapPoints: buildSnapPoints(dimensions),
   };
 }
@@ -1061,11 +1073,13 @@ function visualProfile(
   profileId: AssemblyVisualProfile['profileId'],
   materialId = 'default',
   meshType: AssemblyVisualProfile['meshType'] = 'procedural',
+  parameters?: Record<string, string | number | boolean>,
 ): AssemblyVisualProfile {
   return {
     profileId,
     meshType,
     materialId,
+    parameters,
   };
 }
 

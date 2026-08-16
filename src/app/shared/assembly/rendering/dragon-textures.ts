@@ -392,8 +392,8 @@ export const dragonSplotchMask = memo(() => patternMaskTexture(splotchMask));
  * became a second *hue*: contrast that high needs half as many edges.
  */
 const ZIGZAG_BANDS = 1;
-const ZIGZAG_TEETH = 2;
-const ZIGZAG_AMPLITUDE = 0.3;
+const ZIGZAG_TEETH = 1;
+const ZIGZAG_AMPLITUDE = 0.18;
 
 /** Triangle wave on 0..1, peaking at 0.5. */
 function triangleWave(t: number): number {
@@ -405,10 +405,12 @@ function zigzagMask(u: number, v: number): number {
   const displaced = v + (triangleWave(u * ZIGZAG_TEETH) - 0.5) * ZIGZAG_AMPLITUDE * 2;
   // Distance from the nearest band centre, in band widths.
   const across = Math.abs(fract(displaced * ZIGZAG_BANDS) - 0.5) * 2;
-  // Half the band is stripe, and the edge is softened over a fifth of it — plus
-  // a little noise, so the run of chevrons is not stencil-perfect.
-  const edge = 0.55 + 0.12 * (fbm(u, v, 18) - 0.5);
-  return 1 - smoothstep(clamp01((across - edge + 0.2) / 0.2));
+  // Keep pigment on a minority of the skin and vary it across nearby scales;
+  // wide, regular bands read as woven herringbone rather than anatomy.
+  const grain = fbm(u + 0.31, v + 0.67, 12);
+  const edge = 0.22 + 0.08 * (grain - 0.5);
+  const stripe = 1 - smoothstep(clamp01((across - edge + 0.14) / 0.14));
+  return stripe * (0.7 + grain * 0.3);
 }
 
 export const dragonZigzagMask = memo(() => patternMaskTexture(zigzagMask));

@@ -44,6 +44,7 @@ export class AssemblyRendererService {
   private readonly snapPointMeshes = new Map<string, THREE.Mesh>();
   private highlightedSnapKey: string | null = null;
   private currentJoints: AssemblyJoint[] = [];
+  private contextLost = false;
 
   mount(host: HTMLElement): void {
     this.dispose();
@@ -64,12 +65,18 @@ export class AssemblyRendererService {
     configureStageRenderer(renderer, this.quality);
     host.appendChild(renderer.domElement);
     this.renderer = renderer;
+    renderer.domElement.addEventListener('webglcontextlost', this.handleContextLost);
+    renderer.domElement.addEventListener('webglcontextrestored', this.handleContextRestored);
 
     this.disposeEnvironmentMap = installStageEnvironment(scene, renderer, STUDIO_STAGE_THEME);
 
     this.controls = new OrbitControls(camera, renderer.domElement);
-    this.controls.enableDamping = true;
+    // Change-driven controls let authoring viewports sleep when nobody is
+    // interacting. Damping requires a permanent animation loop and was keeping
+    // every Parts Lab/Garage canvas on the GPU continuously.
+    this.controls.enableDamping = false;
     this.controls.target.set(0, 1, 0);
+    this.controls.addEventListener('change', this.renderScene);
 
     this.addSceneHelpers(scene);
     this.resize();
@@ -262,14 +269,15 @@ export class AssemblyRendererService {
   }
 
   render(): void {
-    if (!this.scene || !this.camera || !this.renderer) {
-      return;
-    }
-
     this.controls?.update();
+    this.renderScene();
+  }
+
+  private readonly renderScene = (): void => {
+    if (!this.scene || !this.camera || !this.renderer || this.contextLost) return;
     this.selectionBox?.update();
     this.renderer.render(this.scene, this.camera);
-  }
+  };
 
   dispose(): void {
     this.resizeObserver?.disconnect();
@@ -301,10 +309,13 @@ export class AssemblyRendererService {
     this.disposeEnvironmentMap = null;
     this.skyTexture?.dispose();
     this.skyTexture = null;
+    this.controls?.removeEventListener('change', this.renderScene);
     this.controls?.dispose();
     this.controls = null;
 
     if (this.renderer) {
+      this.renderer.domElement.removeEventListener('webglcontextlost', this.handleContextLost);
+      this.renderer.domElement.removeEventListener('webglcontextrestored', this.handleContextRestored);
       this.renderer.domElement.remove();
       this.renderer.dispose();
       this.renderer = null;
@@ -314,7 +325,19 @@ export class AssemblyRendererService {
     this.camera = null;
     this.host = null;
     this.currentJoints = [];
+    this.contextLost = false;
   }
+
+  private readonly handleContextLost = (event: Event): void => {
+    event.preventDefault();
+    this.contextLost = true;
+  };
+
+  private readonly handleContextRestored = (): void => {
+    this.contextLost = false;
+    this.resize();
+    this.render();
+  };
 
   private syncPart(part: AssemblyPart): void {
     if (!this.scene) {
@@ -332,7 +355,7 @@ export class AssemblyRendererService {
         disposeAssemblyObject(object);
       }
 
-      object = createAssemblyObject(part);
+      object = createAssemblyObject(part, { onAsyncReady: this.renderScene });
       object.userData['signature'] = signature;
       this.partObjects.set(part.id, object);
       this.scene.add(object);

@@ -27,7 +27,7 @@ workstation are documented in
 - `dna-process-lab/` owns DNA sequence comparison, mutation, and repair tools.
 - `dragon-hatchery/` owns account-parent loading, five-pair meiosis and gamete selection, selected
   fertilization records, parent canvases, the egg bench, Hatchery renderer, and scene adapter.
-- `genome-microscope/` owns the staged cell-to-allele SVG investigation.
+- `genome-microscope/` owns the reusable dragon-to-cell-to-protein scale investigation.
 - `incubator-sampler/` owns phenotype-only batch breeding, animated sorting, balanced bucket pools,
   visible-outcome history, and user-scoped sampler persistence.
 - `island-diversity/` owns the seven-island population model, field genotype scans, individual

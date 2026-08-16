@@ -92,6 +92,8 @@ export interface SpecimenRootTilt {
    * the closest thing to a hind contact it has.
    */
   pivotRole?: string;
+  /** Extra predicate for selecting the actual contact part within that role. */
+  pivotMatchPartId?: (partId: string) => boolean;
 }
 
 export interface SpecimenPoseOptions {
@@ -165,7 +167,9 @@ function applyRootTilt(
   tilt: SpecimenRootTilt,
 ): void {
   const role = tilt.pivotRole ?? DEFAULT_PIVOT_ROLE;
-  const anchors = blueprint.parts.filter(part => hasRole(part, role));
+  const anchors = blueprint.parts.filter(part =>
+    hasRole(part, role) && (tilt.pivotMatchPartId?.(part.id) ?? true),
+  );
   const candidates = anchors.length ? anchors : blueprint.parts;
   if (!candidates.length) return;
 
@@ -175,9 +179,11 @@ function applyRootTilt(
   }
 
   let pivotY = Infinity;
-  for (const part of blueprint.parts) {
+  for (const part of candidates) {
     const pose = parts.get(part.id);
-    if (pose) pivotY = Math.min(pivotY, pose.position.y - halfExtent(part).y);
+    if (!pose) continue;
+    const half = rotatedHalfExtent(halfExtent(part), pose.rotation);
+    pivotY = Math.min(pivotY, pose.position.y - half.y);
   }
 
   if (!Number.isFinite(pivotX) || !Number.isFinite(pivotY)) return;
@@ -305,6 +311,10 @@ function bendMatches(
  */
 export interface SpecimenFrame {
   center: Vector3Data;
+  /** Axis-aligned half extents of the posed specimen. */
+  halfExtents: Vector3Data;
+  /** Actual oriented part-box corners, used for a tighter view-dependent fit. */
+  points?: readonly Vector3Data[];
   /** Half the XZ diagonal — the widest the specimen can appear when spun. */
   radius: number;
   /** Half the vertical extent. */
@@ -339,32 +349,54 @@ export function estimateSpecimenFrame(
   blueprint: AssemblyBlueprint,
   pose?: SpecimenPose,
 ): SpecimenFrame {
-  const positions = new Map(
-    (pose?.parts ?? []).map(part => [part.partId, part.position]),
-  );
+  const posedParts = new Map((pose?.parts ?? []).map(part => [part.partId, part]));
 
   let minX = Infinity, minY = Infinity, minZ = Infinity;
   let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  const points: Vector3Data[] = [];
 
   for (const part of blueprint.parts) {
-    const center = positions.get(part.id) ?? part.position;
+    const posed = posedParts.get(part.id);
+    const center = posed?.position ?? part.position;
     const half = halfExtent(part);
-    minX = Math.min(minX, center.x - half.x);
-    minY = Math.min(minY, center.y - half.y);
-    minZ = Math.min(minZ, center.z - half.z);
-    maxX = Math.max(maxX, center.x + half.x);
-    maxY = Math.max(maxY, center.y + half.y);
-    maxZ = Math.max(maxZ, center.z + half.z);
+    const rotation = posed?.rotation ?? part.rotation ?? identityQuaternion();
+    for (const x of [-half.x, half.x]) {
+      for (const y of [-half.y, half.y]) {
+        for (const z of [-half.z, half.z]) {
+          const corner = addVectors(center, rotateVectorByQuaternion({ x, y, z }, rotation));
+          points.push(corner);
+          minX = Math.min(minX, corner.x);
+          minY = Math.min(minY, corner.y);
+          minZ = Math.min(minZ, corner.z);
+          maxX = Math.max(maxX, corner.x);
+          maxY = Math.max(maxY, corner.y);
+          maxZ = Math.max(maxZ, corner.z);
+        }
+      }
+    }
   }
 
   if (!Number.isFinite(minX)) {
-    return { center: { x: 0, y: 0, z: 0 }, radius: 1, halfHeight: 1 };
+    return {
+      center: { x: 0, y: 0, z: 0 },
+      halfExtents: { x: 1, y: 1, z: 1 },
+      radius: 1,
+      halfHeight: 1,
+    };
   }
+
+  const halfExtents = {
+    x: Math.max(0.5 * (maxX - minX), 0.001),
+    y: Math.max(0.5 * (maxY - minY), 0.001),
+    z: Math.max(0.5 * (maxZ - minZ), 0.001),
+  };
 
   return {
     center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 },
-    radius: Math.max(0.5 * Math.hypot(maxX - minX, maxZ - minZ), 0.001),
-    halfHeight: Math.max(0.5 * (maxY - minY), 0.001),
+    halfExtents,
+    points,
+    radius: Math.max(Math.hypot(halfExtents.x, halfExtents.z), 0.001),
+    halfHeight: halfExtents.y,
   };
 }
 
@@ -376,54 +408,100 @@ export function estimateSpecimenFrame(
  * difference a student is being asked to observe.
  */
 export function mergeSpecimenFrames(frames: readonly SpecimenFrame[]): SpecimenFrame {
-  if (frames.length === 0) return { center: { x: 0, y: 0, z: 0 }, radius: 1, halfHeight: 1 };
+  if (frames.length === 0) {
+    return {
+      center: { x: 0, y: 0, z: 0 },
+      halfExtents: { x: 1, y: 1, z: 1 },
+      radius: 1,
+      halfHeight: 1,
+    };
+  }
 
   let minX = Infinity, minY = Infinity, minZ = Infinity;
   let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  const points: Vector3Data[] = [];
 
   for (const frame of frames) {
-    minX = Math.min(minX, frame.center.x - frame.radius);
-    minZ = Math.min(minZ, frame.center.z - frame.radius);
-    maxX = Math.max(maxX, frame.center.x + frame.radius);
-    maxZ = Math.max(maxZ, frame.center.z + frame.radius);
-    minY = Math.min(minY, frame.center.y - frame.halfHeight);
-    maxY = Math.max(maxY, frame.center.y + frame.halfHeight);
+    minX = Math.min(minX, frame.center.x - frame.halfExtents.x);
+    minZ = Math.min(minZ, frame.center.z - frame.halfExtents.z);
+    maxX = Math.max(maxX, frame.center.x + frame.halfExtents.x);
+    maxZ = Math.max(maxZ, frame.center.z + frame.halfExtents.z);
+    minY = Math.min(minY, frame.center.y - frame.halfExtents.y);
+    maxY = Math.max(maxY, frame.center.y + frame.halfExtents.y);
+    points.push(...(frame.points ?? frameCorners(frame)));
   }
 
   const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 };
 
-  // Grow each member's own radius by how far its centre sits from the shared
-  // one. Re-deriving a diagonal from the merged box instead would inflate a
-  // single disc of radius 4 to 5.66 and push every compared specimen 41%
-  // further away than it needs to be.
-  let radius = 0;
-  let halfHeight = 0;
-  for (const frame of frames) {
-    radius = Math.max(
-      radius,
-      Math.hypot(frame.center.x - center.x, frame.center.z - center.z) + frame.radius,
-    );
-    halfHeight = Math.max(halfHeight, Math.abs(frame.center.y - center.y) + frame.halfHeight);
-  }
+  const halfExtents = {
+    x: Math.max((maxX - minX) / 2, 0.001),
+    y: Math.max((maxY - minY) / 2, 0.001),
+    z: Math.max((maxZ - minZ) / 2, 0.001),
+  };
 
   return {
     center,
-    radius: Math.max(radius, 0.001),
-    halfHeight: Math.max(halfHeight, 0.001),
+    halfExtents,
+    points,
+    radius: Math.max(Math.hypot(halfExtents.x, halfExtents.z), 0.001),
+    halfHeight: halfExtents.y,
   };
+}
+
+function frameCorners(frame: SpecimenFrame): Vector3Data[] {
+  const corners: Vector3Data[] = [];
+  for (const x of [-frame.halfExtents.x, frame.halfExtents.x]) {
+    for (const y of [-frame.halfExtents.y, frame.halfExtents.y]) {
+      for (const z of [-frame.halfExtents.z, frame.halfExtents.z]) {
+        corners.push({ x: frame.center.x + x, y: frame.center.y + y, z: frame.center.z + z });
+      }
+    }
+  }
+  return corners;
 }
 
 /** Lowest point of the specimen, so a ground plane can sit under it. */
 export function estimateSpecimenFloor(blueprint: AssemblyBlueprint, pose?: SpecimenPose): number {
-  const positions = new Map((pose?.parts ?? []).map(part => [part.partId, part.position]));
+  const posedParts = new Map((pose?.parts ?? []).map(part => [part.partId, part]));
   let floor = Infinity;
 
   for (const part of blueprint.parts) {
-    const center = positions.get(part.id) ?? part.position;
-    floor = Math.min(floor, center.y - halfExtent(part).y);
+    const posed = posedParts.get(part.id);
+    const center = posed?.position ?? part.position;
+    const half = rotatedHalfExtent(
+      halfExtent(part),
+      posed?.rotation ?? part.rotation ?? identityQuaternion(),
+    );
+    floor = Math.min(floor, center.y - half.y);
   }
 
   return Number.isFinite(floor) ? floor : 0;
+}
+
+/** Axis-aligned half extents of an oriented box. */
+function rotatedHalfExtent(half: Vector3Data, rotation: QuaternionData): Vector3Data {
+  const { x, y, z, w } = rotation;
+  const xx = x * x;
+  const yy = y * y;
+  const zz = z * z;
+  const xy = x * y;
+  const xz = x * z;
+  const yz = y * z;
+  const wx = w * x;
+  const wy = w * y;
+  const wz = w * z;
+
+  return {
+    x: Math.abs(1 - 2 * (yy + zz)) * half.x
+      + Math.abs(2 * (xy - wz)) * half.y
+      + Math.abs(2 * (xz + wy)) * half.z,
+    y: Math.abs(2 * (xy + wz)) * half.x
+      + Math.abs(1 - 2 * (xx + zz)) * half.y
+      + Math.abs(2 * (yz - wx)) * half.z,
+    z: Math.abs(2 * (xz - wy)) * half.x
+      + Math.abs(2 * (yz + wx)) * half.y
+      + Math.abs(1 - 2 * (xx + yy)) * half.z,
+  };
 }
 
 function halfExtent(part: AssemblyPart): Vector3Data {

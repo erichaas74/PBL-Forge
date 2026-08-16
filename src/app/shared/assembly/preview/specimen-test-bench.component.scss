@@ -9,6 +9,13 @@
   --bench-surface: var(--surface-raised);
   --bench-accent: var(--sea);
   --bench-warn: var(--timber-dark);
+  // The viewport's controls live outside its light WebGL stage. Forward the
+  // bench theme explicitly so dark-mode zoom labels do not become dark glyphs
+  // on dark transparent buttons.
+  --viewport-ink: var(--bench-ink);
+  --viewport-muted: var(--bench-muted);
+  --viewport-edge: var(--bench-edge);
+  --viewport-accent: var(--bench-accent);
 }
 
 .bench {

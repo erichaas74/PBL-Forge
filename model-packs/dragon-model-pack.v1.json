@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "packId": "pbl-forge-dragons",
-  "packVersion": "1.0.0",
+  "packVersion": "1.1.0",
   "rendererContractVersion": 1,
   "defaultModelId": "classic-dragon",
   "models": [
@@ -45,7 +45,8 @@
                 "spikeSpread": 0.73,
                 "spikeHeight": 0.2,
                 "spikeRadius": 0.051,
-                "spikeLean": 0.56
+                "spikeLean": 0.56,
+                "bodyArchetype": "classic"
               }
             },
             "snapPoints": [
@@ -197,7 +198,7 @@
                 "hornLength": 1.8,
                 "hornRadius": 0.13,
                 "browLength": 0.45,
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -447,7 +448,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-green",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -533,7 +534,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-green",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -619,7 +620,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-green",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -705,7 +706,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-green",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -791,7 +792,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-green",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -877,7 +878,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-green",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -963,7 +964,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-green",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -1049,7 +1050,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-green",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -1748,7 +1749,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-brown",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -1833,7 +1834,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-brown",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [
@@ -1918,7 +1919,7 @@
               "meshType": "procedural",
               "materialId": "dragon-scale-brown",
               "parameters": {
-                "jointBall": 1.06
+                "jointBall": 1.02
               }
             },
             "snapPoints": [

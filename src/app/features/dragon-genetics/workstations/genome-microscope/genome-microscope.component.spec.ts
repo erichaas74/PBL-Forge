@@ -1,6 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { DRAGON_PARENTS } from '../../simulation/domain/dragon-inheritance';
+import { AccountDragonRecord } from '../shared/account-genetics-library.models';
 import { chromosomeVisual } from '../shared/dragon-chromosome.catalog';
 import { GenomeMicroscopeComponent } from './genome-microscope.component';
+
+const TEST_DRAGONS: readonly AccountDragonRecord[] = DRAGON_PARENTS.slice(0, 2).map(
+  (dragon, index) => ({
+    ...dragon,
+    kind: 'dragon' as const,
+    sex: index === 0 ? ('female' as const) : ('male' as const),
+    source: 'foundation' as const,
+    storedAtIso: '2026-01-01T00:00:00.000Z',
+    generation: 0,
+  }),
+);
 
 describe('GenomeMicroscopeComponent', () => {
   let fixture: ComponentFixture<GenomeMicroscopeComponent>;
@@ -9,40 +22,54 @@ describe('GenomeMicroscopeComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({ imports: [GenomeMicroscopeComponent] });
     fixture = TestBed.createComponent(GenomeMicroscopeComponent);
+    fixture.componentRef.setInput('dragons', TEST_DRAGONS);
     microscope = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('starts with a dragon cell containing four autosome pairs and one sex pair', () => {
-    expect(microscope.level()).toBe('cell');
+  it('loads a dragon before connecting it to the chromosome model', () => {
+    expect(microscope.level()).toBe('dragon');
+    expect(microscope.loadedDragon()?.id).toBe(TEST_DRAGONS[0].id);
     expect(microscope.chromosomePairs().length).toBe(5);
     expect(microscope.chromosomePairs().filter((pair) => pair.kind === 'autosome').length).toBe(4);
     expect(microscope.chromosomePairs().find((pair) => pair.kind === 'sex')?.label).toContain('XX');
 
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelectorAll('.nuclear-chromosome-pair').length).toBe(5);
-    expect(element.querySelector('.genome-microscope')?.getAttribute('data-level')).toBe('cell');
+    expect(element.querySelector('app-specimen-viewport')).not.toBeNull();
+    expect(element.querySelector('.genome-microscope')?.getAttribute('data-level')).toBe('dragon');
   });
 
-  it('zooms through the scientific hierarchy one level at a time', () => {
+  it('zooms through the connected scientific hierarchy one level at a time', () => {
+    microscope.zoomIn();
+    expect(microscope.level()).toBe('cell');
     microscope.zoomIn();
     expect(microscope.level()).toBe('nucleus');
     microscope.zoomIn();
     expect(microscope.level()).toBe('chromosome-set');
-    microscope.zoomIn();
-    expect(microscope.level()).toBe('chromosome');
     microscope.zoomOut();
-    expect(microscope.level()).toBe('chromosome-set');
+    expect(microscope.level()).toBe('nucleus');
   });
 
-  it('uses the Allele Workbench chromosome band source without duplicating colors', () => {
+  it('reuses the Allele Workbench cell and chromosome presentation components', () => {
+    microscope.selectLevel('cell');
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('app-cell-chromosome-viewport'))
+      .not.toBeNull();
+
+    microscope.selectChromosome('Chr 1');
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('app-cell-chromosome-viewport'))
+      .not.toBeNull();
+  });
+
+  it('uses the shared chromosome band source without duplicating colors', () => {
     const pair = microscope.chromosomePairs()[0];
     expect(pair.maternal.bands).toBe(chromosomeVisual('Chr 1').bands);
     expect(pair.paternal.bands).toBe(chromosomeVisual('Chr 1').bands);
   });
 
-  it('switches the modeled sex chromosomes from XX to XY', () => {
-    microscope.selectSex('male');
+  it('derives XX or XY from the loaded dragon record', () => {
+    microscope.loadDragon(TEST_DRAGONS[1].id);
     fixture.detectChanges();
 
     const sexPair = microscope.chromosomePairs().find((pair) => pair.kind === 'sex');
@@ -51,7 +78,7 @@ describe('GenomeMicroscopeComponent', () => {
     expect(sexPair?.paternal.length).toBe(chromosomeVisual('Chr Y').length);
   });
 
-  it('opens a selected chromosome and gene from the code-driven catalog', () => {
+  it('opens a selected chromosome, gene, DNA, allele, and protein from shared records', () => {
     microscope.selectChromosome('Chr 2');
     expect(microscope.level()).toBe('chromosome');
     expect(microscope.genesForSelectedChromosome().length).toBe(3);
@@ -61,5 +88,27 @@ describe('GenomeMicroscopeComponent', () => {
     expect(microscope.level()).toBe('gene');
     expect(microscope.activeGene()?.sampleCode).toBe(gene.sampleCode);
     expect(microscope.activeAlleles().length).toBe(2);
+
+    microscope.selectLevel('dna');
+    expect(microscope.activeDnaSequence().length).toBeGreaterThan(0);
+    microscope.selectAlleleCopy(1);
+    expect(microscope.level()).toBe('allele');
+    microscope.selectLevel('protein');
+    expect(microscope.proteinCodons().length).toBeGreaterThan(0);
+  });
+
+  it('emits a reusable evidence selection for an external explanation or question host', () => {
+    const evidence: unknown[] = [];
+    fixture.componentRef.instance.evidenceChanged.subscribe((event) => evidence.push(event));
+
+    microscope.selectGene('wings');
+    expect(evidence).toContain(
+      jasmine.objectContaining({
+        level: 'gene',
+        dragonId: TEST_DRAGONS[0].id,
+        chromosome: 'Chr 1',
+        geneId: 'wings',
+      }),
+    );
   });
 });

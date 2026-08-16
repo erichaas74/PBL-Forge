@@ -183,14 +183,21 @@ const REARED_HIND_LIMB: readonly SpecimenBend[] = [
  *
  * The chain alternates, exactly like a leg: the upper arm swings back and down
  * against the ribs, the forearm comes forward and up off it, and the hand turns
- * the fingers forward so the animal reads as holding something it could close
- * on. Three bends because one role bend would curl the whole arm into a hoop —
+ * the fingers forward with a slight downward pitch. Three bends because one
+ * role bend would curl the whole arm into a hoop —
  * the same reason the walking limbs need three.
  */
 const TUCKED_ARMS: readonly SpecimenBend[] = [
   { role: 'leg', matchPartId: id => isFront(id) && isUpperLeg(id), radians: -0.62, axis: SAGITTAL },
   { role: 'leg', matchPartId: id => isFront(id) && isLowerLeg(id), radians: 1.45, axis: SAGITTAL },
-  { role: 'leg', matchPartId: id => isFront(id) && isFoot(id), radians: 0.35, axis: SAGITTAL },
+  // Rotate the whole hand, not each talon: fingers and claws should aim toward
+  // the ground as one grasping unit.
+  {
+    role: 'leg',
+    matchPartId: id => isFront(id) && isFoot(id),
+    radians: 0.35 - Math.PI / 2,
+    axis: SAGITTAL,
+  },
 ];
 
 /**
@@ -209,7 +216,10 @@ const REARED_TAIL_DROOP_RADIANS = 0.22;
 export const DRAGON_REARED_POSE: SpecimenPoseOptions = {
   droopRadians: REARED_TAIL_DROOP_RADIANS,
   bends: [...REARED_HIND_LIMB, ...TUCKED_ARMS, ...SPREAD_WINGS, ...RAISED_HEAD],
-  rootTilt: { radians: REARED_PITCH_RADIANS },
+  rootTilt: {
+    radians: REARED_PITCH_RADIANS,
+    pivotMatchPartId: id => isRear(id) && isFoot(id),
+  },
 };
 
 /**

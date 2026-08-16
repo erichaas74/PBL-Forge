@@ -114,6 +114,7 @@ export class DragonSimulationExperiencePage {
   readonly isTeacherPreview = this.workstationContext.isTeacherPreview;
   readonly availableAlleleGenes = this.workstationContext.availableGenes;
   readonly availableAlleles = this.workstationContext.availableAlleles;
+  readonly availableDragons = this.workstationContext.availableDragons;
   readonly geneticsNotebook = this.workstationContext.geneticsNotebook;
   readonly transferredDnaAnalysisCase = computed<DnaAnalysisCase | null>(() => {
     if (this.definition()?.id !== 'dna-process-lab') return null;
