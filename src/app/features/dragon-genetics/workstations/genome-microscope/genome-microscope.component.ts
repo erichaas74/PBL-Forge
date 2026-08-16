@@ -38,9 +38,9 @@ import {
 import {
   chromosomeVisual,
   DRAGON_AUTOSOME_LABELS,
-  DRAGON_LOCUS_COLORS,
 } from '../shared/dragon-chromosome.catalog';
 import { ChromosomeSvgComponent, ChromosomeSvgModel } from '../shared/chromosome-svg.component';
+import { geneAlleleMarking, geneDnaRecord } from '../shared/dragon-gene-dna.catalog';
 import {
   GENOME_MICROSCOPE_LEVEL_DEFINITIONS,
   GENOME_MICROSCOPE_LEVELS,
@@ -362,12 +362,23 @@ export class GenomeMicroscopeComponent {
       rightLabel: `${number}q`,
       centromere: visual.centromere,
       bands: visual.bands,
-      loci: chromosomeGenes.map((gene, index) => ({
-        position: visual.locusPositions[index] ?? 0.5,
-        label: gene.sampleCode,
-        color: DRAGON_LOCUS_COLORS[index % DRAGON_LOCUS_COLORS.length],
-        symbol: this.alleleSymbol(gene, copy),
-      })),
+      loci: chromosomeGenes.map((gene, index) => {
+        const symbol = this.alleleSymbol(gene, copy);
+        const allele = this.alleles().find(
+          (candidate) => candidate.geneId === gene.id && candidate.symbol === symbol,
+        );
+        const alleleIndex = allele ? gene.alleleIds.indexOf(allele.id) : -1;
+        return {
+          position: visual.locusPositions[index] ?? 0.5,
+          label: gene.sampleCode,
+          color: geneDnaRecord(gene.id).locusColor,
+          symbol,
+          marking:
+            alleleIndex === 0 || alleleIndex === 1
+              ? geneAlleleMarking(gene.id, alleleIndex)
+              : undefined,
+        };
+      }),
     };
   }
 

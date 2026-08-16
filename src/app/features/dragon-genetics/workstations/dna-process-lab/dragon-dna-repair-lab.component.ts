@@ -15,8 +15,13 @@ import {
   AlleleVaultAllele,
   AlleleVaultGene,
 } from '../allele-workbench/allele-vault.models';
-import { chromosomeVisual, DRAGON_LOCUS_COLORS } from '../shared/dragon-chromosome.catalog';
+import { chromosomeVisual } from '../shared/dragon-chromosome.catalog';
 import { ChromosomeSvgComponent, ChromosomeSvgModel } from '../shared/chromosome-svg.component';
+import {
+  DRAGON_DNA_BASE_COLORS,
+  geneAlleleMarking,
+  geneDnaRecord,
+} from '../shared/dragon-gene-dna.catalog';
 import { DnaComparisonRepository } from './dna-comparison.repository';
 import {
   DnaAnalysisCase,
@@ -36,6 +41,7 @@ interface DnaSpecimen {
   geneId?: string;
   locusLabel?: string;
   sampleCode?: string;
+  alleleIndex?: 0 | 1;
   transferred?: boolean;
 }
 
@@ -48,6 +54,7 @@ interface DnaSpecimen {
 })
 export class DragonDnaRepairLabComponent {
   private readonly repository = inject(DnaComparisonRepository);
+  readonly baseColors = DRAGON_DNA_BASE_COLORS;
 
   readonly studentId = input.required<string>();
   readonly goal = input(
@@ -73,6 +80,7 @@ export class DragonDnaRepairLabComponent {
     return this.alleles().flatMap((allele): DnaSpecimen[] => {
       const gene = genes.get(allele.geneId);
       if (!gene) return [];
+      const alleleIndex = gene.alleleIds.indexOf(allele.id);
       return [
         {
           id: `gene:${allele.id}`,
@@ -83,6 +91,7 @@ export class DragonDnaRepairLabComponent {
           geneId: gene.id,
           locusLabel: gene.sampleCode,
           sampleCode: allele.sampleCode,
+          alleleIndex: alleleIndex === 1 ? 1 : 0,
         },
       ];
     });
@@ -105,6 +114,7 @@ export class DragonDnaRepairLabComponent {
           detail: `${chromosomeGenes.length} released genes · ${sequence.length} modeled bases`,
           sequence,
           chromosome,
+          alleleIndex: homologIndex,
         } satisfies DnaSpecimen;
       });
     });
@@ -273,12 +283,24 @@ export class DragonDnaRepairLabComponent {
       rightLabel: `${chromosomeNumber}q`,
       centromere: visual.centromere,
       bands: visual.bands,
-      loci: chromosomeGenes.map((gene, index) => ({
-        position: visual.locusPositions[index] ?? 0.5,
-        label: gene.sampleCode,
-        symbol: gene.id === specimen.geneId ? gene.sampleCode : undefined,
-        color: DRAGON_LOCUS_COLORS[index % DRAGON_LOCUS_COLORS.length],
-      })),
+      loci: chromosomeGenes.map((gene, index) => {
+        const alleleIndex =
+          specimen.geneId === gene.id || specimen.geneId === undefined
+            ? specimen.alleleIndex
+            : undefined;
+        const allele =
+          alleleIndex === undefined
+            ? undefined
+            : this.alleles().find((candidate) => candidate.id === gene.alleleIds[alleleIndex]);
+        return {
+          position: visual.locusPositions[index] ?? 0.5,
+          label: gene.sampleCode,
+          symbol: allele?.sampleCode,
+          color: geneDnaRecord(gene.id).locusColor,
+          marking:
+            alleleIndex === undefined ? undefined : geneAlleleMarking(gene.id, alleleIndex),
+        };
+      }),
     };
   }
 

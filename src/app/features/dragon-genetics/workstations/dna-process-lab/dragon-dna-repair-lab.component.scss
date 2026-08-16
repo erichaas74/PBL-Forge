@@ -85,16 +85,16 @@
 }
 
 .base-legend [data-base='A'] i {
-  background: #48a43b;
+  background: var(--dna-base-a);
 }
 .base-legend [data-base='T'] i {
-  background: #e34c45;
+  background: var(--dna-base-t);
 }
 .base-legend [data-base='C'] i {
-  background: #2877e8;
+  background: var(--dna-base-c);
 }
 .base-legend [data-base='G'] i {
-  background: #e2a11a;
+  background: var(--dna-base-g);
 }
 
 .sample-loader,

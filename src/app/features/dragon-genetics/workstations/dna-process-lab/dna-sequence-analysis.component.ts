@@ -22,6 +22,7 @@ import {
   DnaRepairAction,
   DnaSequenceChanged,
 } from './dna-process.models';
+import { DRAGON_DNA_BASE_COLORS } from '../shared/dragon-gene-dna.catalog';
 
 interface DifferenceCounts {
   substitutions: number;
@@ -50,6 +51,7 @@ interface DnaAnimationSnapshot {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DnaSequenceAnalysisComponent {
+  readonly baseColors = DRAGON_DNA_BASE_COLORS;
   readonly analysisCase = input<DnaAnalysisCase>(DEFAULT_DNA_ANALYSIS_CASE);
   readonly evidenceCompleted = output<DnaEvidenceResult>();
   readonly sequenceChanged = output<DnaSequenceChanged>();

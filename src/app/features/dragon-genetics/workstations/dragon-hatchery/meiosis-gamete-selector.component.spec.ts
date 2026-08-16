@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DRAGON_PARENTS } from '../../simulation/domain/dragon-inheritance';
-import { chromosomeVisual, DRAGON_LOCUS_COLORS } from '../shared/dragon-chromosome.catalog';
+import { chromosomeVisual } from '../shared/dragon-chromosome.catalog';
+import { geneDnaRecord } from '../shared/dragon-gene-dna.catalog';
 import { meiosisGameteChromosomeSvgModel } from './meiosis-gamete.viewport';
 import { SelectedMeiosisGamete } from './meiosis-gamete.models';
 import { MeiosisGameteSelectorComponent } from './meiosis-gamete-selector.component';
@@ -163,14 +164,20 @@ describe('MeiosisGameteSelectorComponent', () => {
 
     expect(model.length).toBe(visual.length);
     expect(model.centromere).toBe(visual.centromere);
-    expect(model.bands.slice(0, visual.bands.length)).toEqual(visual.bands);
+    expect(model.bands).toEqual(visual.bands);
     expect(model.loci.map((locus) => locus.color)).toEqual(
-      model.loci.map((_, index) => DRAGON_LOCUS_COLORS[index % DRAGON_LOCUS_COLORS.length]),
+      chromosome.loci.map((locus) => geneDnaRecord(locus.traitId).locusColor),
     );
     expect(model.loci.map((locus) => locus.symbol)).toEqual(
       chromosome.loci.map((locus) => locus.allele),
     );
-    expect(model.bands.slice(visual.bands.length).every((band) => !!band.pattern)).toBeTrue();
+    expect(model.loci.map((locus) => locus.marking?.mutationType)).toEqual(
+      chromosome.loci.map((locus) =>
+        locus.dominance === 'dominant'
+          ? 'reference'
+          : geneDnaRecord(locus.traitId).mutation.type,
+      ),
+    );
   });
 
   it('uses the shorter shared Y-chromosome visual for male gametes', () => {

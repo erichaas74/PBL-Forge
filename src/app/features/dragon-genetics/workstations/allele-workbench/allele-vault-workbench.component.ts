@@ -13,11 +13,7 @@ import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/s
 import { createExpressiveDragonBenchBuild } from '../../simulation/domain/dragon-specimen.profile';
 import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
 import { allelePairToExpressiveProfile } from './allele-phenotype-profile';
-import {
-  ChromosomeBand,
-  ChromosomeSvgComponent,
-  ChromosomeSvgModel,
-} from '../shared/chromosome-svg.component';
+import { ChromosomeSvgComponent, ChromosomeSvgModel } from '../shared/chromosome-svg.component';
 import {
   CellChromosomeLocusSelection,
   CellChromosomeViewportComponent,
@@ -39,11 +35,8 @@ import {
   createEmptyGeneticsNotebook,
   requiredExperimentKeys,
 } from '../shared/genetics-notebook.models';
-import {
-  chromosomeVisual,
-  DRAGON_LOCUS_COLORS,
-  DragonChromosomeVisualData,
-} from '../shared/dragon-chromosome.catalog';
+import { chromosomeVisual } from '../shared/dragon-chromosome.catalog';
+import { geneAlleleMarking, geneDnaRecord } from '../shared/dragon-gene-dna.catalog';
 
 type ComparisonSide = 'left' | 'right';
 type ExpressionState = 'idle' | 'running' | 'revealed';
@@ -209,22 +202,30 @@ export class AlleleVaultWorkbenchComponent {
     const chromosome = gene?.chromosome ?? this.activeChromosome();
     const visual = chromosomeVisual(chromosome);
     const chromosomeGenes = this.genes().filter((candidate) => candidate.chromosome === chromosome);
-    const highlightBand = this.alleleHighlightBand(allele, visual, chromosomeGenes);
+    const geneIndex = chromosomeGenes.findIndex((candidate) => candidate.id === allele.geneId);
 
     return {
       length: visual.length,
       leftLabel: '',
       rightLabel: '',
       centromere: visual.centromere,
-      bands: [
-        ...visual.bands.map((band, index) => ({
-          ...band,
-          color: index % 2 === 0 ? '#454545' : '#707070',
-          pattern: undefined,
-        })),
-        ...(highlightBand ? [highlightBand] : []),
-      ],
-      loci: [],
+      bands: visual.bands.map((band, index) => ({
+        ...band,
+        color: index % 2 === 0 ? '#454545' : '#707070',
+        pattern: undefined,
+      })),
+      loci:
+        gene && geneIndex >= 0
+          ? [
+              {
+                position: visual.locusPositions[geneIndex] ?? 0.5,
+                label: gene.sampleCode,
+                symbol: allele.sampleCode,
+                color: geneDnaRecord(gene.id).locusColor,
+                marking: geneAlleleMarking(gene.id, allele.id === gene.alleleIds[0] ? 0 : 1),
+              },
+            ]
+          : [],
     };
   }
 
@@ -478,40 +479,22 @@ export class AlleleVaultWorkbenchComponent {
             ? this.rightAllele()
             : null;
     const activeGenes = this.genes().filter((gene) => gene.chromosome === chromosome);
-    const highlightBand = loadedAllele
-      ? this.alleleHighlightBand(loadedAllele, visual, activeGenes)
-      : null;
     return {
       length: visual.length,
       leftLabel: `${this.chromosomeNumber(chromosome)}p`,
       rightLabel: `${this.chromosomeNumber(chromosome)}q`,
       centromere: visual.centromere,
-      bands: [...visual.bands, ...(highlightBand ? [highlightBand] : [])],
+      bands: visual.bands,
       loci: activeGenes.map((gene, index) => ({
         position: visual.locusPositions[index] ?? 0.5,
         label: gene.sampleCode,
         symbol: gene.id === this.activeGeneId() ? loadedAllele?.sampleCode : undefined,
-        color: DRAGON_LOCUS_COLORS[index % DRAGON_LOCUS_COLORS.length],
+        color: geneDnaRecord(gene.id).locusColor,
+        marking:
+          gene.id === this.activeGeneId() && loadedAllele
+            ? geneAlleleMarking(gene.id, loadedAllele.id === gene.alleleIds[0] ? 0 : 1)
+            : undefined,
       })),
-    };
-  }
-
-  private alleleHighlightBand(
-    allele: AlleleVaultAllele,
-    visual: DragonChromosomeVisualData,
-    chromosomeGenes: readonly AlleleVaultGene[],
-  ): ChromosomeBand | null {
-    const geneIndex = chromosomeGenes.findIndex((gene) => gene.id === allele.geneId);
-    if (geneIndex < 0) return null;
-    const gene = chromosomeGenes[geneIndex];
-    const alleleIndex = gene.alleleIds.indexOf(allele.id);
-    const position = visual.locusPositions[geneIndex] ?? 0.5;
-    return {
-      start: Math.max(0, position - 0.055),
-      end: Math.min(1, position + 0.055),
-      color: DRAGON_LOCUS_COLORS[geneIndex % DRAGON_LOCUS_COLORS.length],
-      pattern: alleleIndex === 0 ? 'stripe-a' : 'stripe-b',
-      patternPlacement: 'center',
     };
   }
 }

@@ -30,6 +30,45 @@ describe('IncubatorSamplerComponent', () => {
     fixture.destroy();
   });
 
+  it('replaces a station inventory with the loaded dragon until the student asks to change it', () => {
+    const fixture = TestBed.createComponent(IncubatorSamplerComponent);
+    fixture.componentRef.setInput('studentId', studentId);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    const female = component.account().dragons.find((dragon) => dragon.sex === 'female')!;
+
+    component.selectAccountRecord('female', female);
+    fixture.detectChanges();
+
+    const remaining = fixture.debugElement.queryAll(By.directive(AccountGeneticsFileComponent));
+    expect(remaining.length).toBe(1);
+    expect(remaining[0].componentInstance.sexFilter()).toBe('male');
+    expect(fixture.nativeElement.querySelector('.parent-a .parent-model')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.parent-a .visible-traits')).not.toBeNull();
+
+    const change = fixture.nativeElement.querySelector(
+      '[data-testid="change-female-parent"]',
+    ) as HTMLButtonElement;
+    change.click();
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.queryAll(By.directive(AccountGeneticsFileComponent)).length).toBe(
+      2,
+    );
+    expect(fixture.nativeElement.querySelector('.parent-a .parent-model')).toBeNull();
+    fixture.destroy();
+  });
+
+  it('mounts the incubator controls inside the forge scene', () => {
+    const fixture = TestBed.createComponent(IncubatorSamplerComponent);
+    fixture.componentRef.setInput('studentId', studentId);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.forge-scene .forge-controls')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.workbench > .forge-controls')).toBeNull();
+    fixture.destroy();
+  });
+
   it('loads dragons only into the matching sex-specific parent role', () => {
     const fixture = TestBed.createComponent(IncubatorSamplerComponent);
     fixture.componentRef.setInput('studentId', studentId);

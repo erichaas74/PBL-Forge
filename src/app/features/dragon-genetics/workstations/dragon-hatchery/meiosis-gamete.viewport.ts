@@ -1,6 +1,7 @@
 import { CellChromosomeViewportItem } from '../shared/cell-chromosome-viewport.component';
-import { ChromosomeBand, ChromosomeSvgModel } from '../shared/chromosome-svg.component';
-import { chromosomeVisual, DRAGON_LOCUS_COLORS } from '../shared/dragon-chromosome.catalog';
+import { ChromosomeSvgModel } from '../shared/chromosome-svg.component';
+import { chromosomeVisual } from '../shared/dragon-chromosome.catalog';
+import { geneAlleleMarking, geneDnaRecord } from '../shared/dragon-gene-dna.catalog';
 import {
   MeiosisChromatid,
   MeiosisGameteChromosome,
@@ -38,32 +39,19 @@ function meiosisChromosomeSvgModel(
 ): ChromosomeSvgModel {
   const visual = chromosomeVisual(label);
   const arm = label.replace('Chr ', '');
-  const highlightBands: ChromosomeBand[] = loci.map((locus, index) => ({
-    start: Math.max(0, locus.position - 0.055),
-    end: Math.min(1, locus.position + 0.055),
-    color: locusColor(label, locus.position, index),
-    pattern: locus.dominance === 'dominant' ? 'stripe-a' : 'stripe-b',
-    patternPlacement: 'center',
-  }));
 
   return {
     length: visual.length,
     leftLabel: `${arm}p`,
     rightLabel: `${arm}q`,
     centromere: visual.centromere,
-    bands: [...visual.bands, ...highlightBands],
-    loci: loci.map((locus, index) => ({
+    bands: visual.bands,
+    loci: loci.map((locus) => ({
       position: locus.position,
       label: locus.geneSymbol,
       symbol: locus.allele,
-      color: locusColor(label, locus.position, index),
+      color: geneDnaRecord(locus.traitId).locusColor,
+      marking: geneAlleleMarking(locus.traitId, locus.dominance === 'dominant' ? 0 : 1),
     })),
   };
-}
-
-function locusColor(chromosome: string, position: number, fallbackIndex: number): string {
-  const positions = chromosomeVisual(chromosome).locusPositions;
-  const matchedIndex = positions.findIndex((candidate) => Math.abs(candidate - position) < 0.001);
-  const index = matchedIndex >= 0 ? matchedIndex : fallbackIndex;
-  return DRAGON_LOCUS_COLORS[index % DRAGON_LOCUS_COLORS.length];
 }

@@ -35,86 +35,65 @@
     </div>
   </header>
 
-  <section class="forge-controls" aria-label="Incubator controls">
-    <span class="rivet left" aria-hidden="true"></span>
-    <label>
-      <span>VISIBLE TRAIT</span>
-      <select
-        data-testid="trait-select"
-        [value]="selectedTraitId()"
-        [disabled]="selectionLocked()"
-        (change)="setTrait($event)"
-      >
-        @for (trait of traits; track trait.id) {
-          <option [value]="trait.id" [selected]="trait.id === selectedTraitId()">
-            {{ trait.name }}
-          </option>
-        }
-      </select>
-    </label>
-    <label>
-      <span>CLUTCH SIZE</span>
-      <select
-        data-testid="sample-size"
-        [value]="sampleSize()"
-        [disabled]="interactionLocked()"
-        (change)="setSampleSize($event)"
-      >
-        @for (size of sampleSizes; track size) {
-          <option [value]="size" [selected]="size === sampleSize()">{{ size }} eggs</option>
-        }
-      </select>
-    </label>
-    <button
-      type="button"
-      class="run-forge"
-      data-testid="run-batch"
-      [disabled]="!parentsReady() || interactionLocked()"
-      (click)="startBatch()"
-    >
-      <span aria-hidden="true">◆</span>
-      {{ running() ? 'Hatching…' : batches().length ? 'Run another batch' : 'Stoke the incubator' }}
-    </button>
-    <button
-      type="button"
-      class="clear-forge"
-      [disabled]="!batches().length || interactionLocked()"
-      (click)="newObservation()"
-    >
-      New observation
-    </button>
-    <span class="rivet right" aria-hidden="true"></span>
-  </section>
-
   <div class="workbench">
+    <!--
+      One selection surface at a time. The station used to show its own dragon chamber *and* the
+      account inventory at once, which meant two places to pick a parent and an inventory panel
+      squeezed into a 17rem column until it was clipped. The inventory is the shared component and
+      already carries the model, traits and stats needed to choose, so it owns picking; once a
+      dragon is loaded the station shows that dragon and its visible traits, and the inventory
+      only comes back when the student asks to change parents.
+    -->
     <aside
       class="parent-station parent-a female"
       [class.loaded]="parentA()"
+      [class.picking]="pickerOpen('female')"
       (dragover)="allowParentDrop($event)"
       (drop)="dropParent('female', $event)"
     >
       <header>
-        <span>{{ offspringPoolActive() ? 'POOL SAMPLE A' : 'FEMALE DRAGONS · EGG PARENT' }}</span>
-        <strong>{{ parentA()?.name ?? 'Choose a dragon' }}</strong>
-        @if (parentA(); as parent) {
-          <small>{{ parent.title }}</small>
-        } @else {
-          <small>Select a female dragon below or drop its record here.</small>
+        <div class="station-copy">
+          <span>{{ offspringPoolActive() ? 'POOL SAMPLE A' : 'FEMALE DRAGONS · EGG PARENT' }}</span>
+          <strong>{{ parentA()?.name ?? 'Choose a dragon' }}</strong>
+          @if (parentA(); as parent) {
+            <small>{{ parent.title }}</small>
+          } @else {
+            <small>Select a female dragon below or drop its record here.</small>
+          }
+        </div>
+        @if (parentA() && !offspringPoolActive()) {
+          <button
+            type="button"
+            class="change-parent"
+            data-testid="change-female-parent"
+            [disabled]="selectionLocked()"
+            (click)="togglePicker('female')"
+          >
+            {{ pickerOpen('female') ? 'Close' : 'Change' }}
+          </button>
         }
       </header>
-      <div class="parent-model" [class.empty]="!parentASource()">
-        <app-specimen-viewport
-          [source]="parentASource()"
-          [ariaLabel]="parentA() ? parentA()!.name + ', egg parent' : 'Egg-parent chamber empty'"
-          [controls]="false"
-          [framePadding]="1.3"
-          [transparent]="true"
+      @if (pickerOpen('female')) {
+        <app-account-genetics-file
+          [studentId]="studentId()"
+          [dragonsOnly]="true"
+          [compact]="true"
+          sexFilter="female"
+          [selectedRecordId]="originalParentIds()[0]"
+          [disabled]="selectionLocked()"
+          label="Egg-parent inventory"
+          (recordSelected)="selectAccountRecord('female', $event)"
         />
-        @if (!parentA()) {
-          <div class="empty-parent"><i aria-hidden="true"></i><span>DROP OR SELECT</span></div>
-        }
-      </div>
-      @if (parentA(); as parent) {
+      } @else if (parentA(); as parent) {
+        <div class="parent-model">
+          <app-specimen-viewport
+            [source]="parentASource()"
+            [ariaLabel]="parent.name + ', egg parent'"
+            [controls]="false"
+            [framePadding]="1.3"
+            [transparent]="true"
+          />
+        </div>
         <dl class="visible-traits">
           @for (trait of visibleTraits(parent); track trait.label) {
             <div [class.focus]="trait.label === selectedTrait().name">
@@ -123,17 +102,6 @@
             </div>
           }
         </dl>
-      }
-      @if (!offspringPoolActive()) {
-        <app-account-genetics-file
-          [studentId]="studentId()"
-          [dragonsOnly]="true"
-          sexFilter="female"
-          [selectedRecordId]="originalParentIds()[0]"
-          [disabled]="selectionLocked()"
-          label="Egg-parent inventory"
-          (recordSelected)="selectAccountRecord('female', $event)"
-        />
       }
     </aside>
 
@@ -227,6 +195,66 @@
             </div>
           }
         </div>
+
+        <!--
+          The console is bolted to the machine rather than sitting in its own band above the
+          workbench. Keeping it inside the scene means the machine column travels as one piece,
+          so a narrow window can stack both parents above the incubator and the incubator below
+          without the controls being stranded at the top of the page. The scene reserves the
+          machinery's height as `padding-top`, so this is the only child in normal flow.
+        -->
+        <section class="forge-controls" aria-label="Incubator controls">
+          <span class="rivet left" aria-hidden="true"></span>
+          <label>
+            <span>VISIBLE TRAIT</span>
+            <select
+              data-testid="trait-select"
+              [value]="selectedTraitId()"
+              [disabled]="selectionLocked()"
+              (change)="setTrait($event)"
+            >
+              @for (trait of traits; track trait.id) {
+                <option [value]="trait.id" [selected]="trait.id === selectedTraitId()">
+                  {{ trait.name }}
+                </option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>CLUTCH SIZE</span>
+            <select
+              data-testid="sample-size"
+              [value]="sampleSize()"
+              [disabled]="interactionLocked()"
+              (change)="setSampleSize($event)"
+            >
+              @for (size of sampleSizes; track size) {
+                <option [value]="size" [selected]="size === sampleSize()">{{ size }} eggs</option>
+              }
+            </select>
+          </label>
+          <button
+            type="button"
+            class="run-forge"
+            data-testid="run-batch"
+            [disabled]="!parentsReady() || interactionLocked()"
+            (click)="startBatch()"
+          >
+            <span aria-hidden="true">◆</span>
+            {{
+              running() ? 'Hatching…' : batches().length ? 'Run another batch' : 'Stoke the incubator'
+            }}
+          </button>
+          <button
+            type="button"
+            class="clear-forge"
+            [disabled]="!batches().length || interactionLocked()"
+            (click)="newObservation()"
+          >
+            New observation
+          </button>
+          <span class="rivet right" aria-hidden="true"></span>
+        </section>
       </section>
 
       <div class="sorting-yard-sign" aria-hidden="true">
@@ -312,31 +340,53 @@
     <aside
       class="parent-station parent-b male"
       [class.loaded]="parentB()"
+      [class.picking]="pickerOpen('male')"
       (dragover)="allowParentDrop($event)"
       (drop)="dropParent('male', $event)"
     >
       <header>
-        <span>{{ offspringPoolActive() ? 'POOL SAMPLE B' : 'MALE DRAGONS · SPERM PARENT' }}</span>
-        <strong>{{ parentB()?.name ?? 'Choose a dragon' }}</strong>
-        @if (parentB(); as parent) {
-          <small>{{ parent.title }}</small>
-        } @else {
-          <small>Select a male dragon below or drop its record here.</small>
+        <div class="station-copy">
+          <span>{{ offspringPoolActive() ? 'POOL SAMPLE B' : 'MALE DRAGONS · SPERM PARENT' }}</span>
+          <strong>{{ parentB()?.name ?? 'Choose a dragon' }}</strong>
+          @if (parentB(); as parent) {
+            <small>{{ parent.title }}</small>
+          } @else {
+            <small>Select a male dragon below or drop its record here.</small>
+          }
+        </div>
+        @if (parentB() && !offspringPoolActive()) {
+          <button
+            type="button"
+            class="change-parent"
+            data-testid="change-male-parent"
+            [disabled]="selectionLocked()"
+            (click)="togglePicker('male')"
+          >
+            {{ pickerOpen('male') ? 'Close' : 'Change' }}
+          </button>
         }
       </header>
-      <div class="parent-model" [class.empty]="!parentBSource()">
-        <app-specimen-viewport
-          [source]="parentBSource()"
-          [ariaLabel]="parentB() ? parentB()!.name + ', sperm parent' : 'Sperm-parent chamber empty'"
-          [controls]="false"
-          [framePadding]="1.3"
-          [transparent]="true"
+      @if (pickerOpen('male')) {
+        <app-account-genetics-file
+          [studentId]="studentId()"
+          [dragonsOnly]="true"
+          [compact]="true"
+          sexFilter="male"
+          [selectedRecordId]="originalParentIds()[1]"
+          [disabled]="selectionLocked()"
+          label="Sperm-parent inventory"
+          (recordSelected)="selectAccountRecord('male', $event)"
         />
-        @if (!parentB()) {
-          <div class="empty-parent"><i aria-hidden="true"></i><span>DROP OR SELECT</span></div>
-        }
-      </div>
-      @if (parentB(); as parent) {
+      } @else if (parentB(); as parent) {
+        <div class="parent-model">
+          <app-specimen-viewport
+            [source]="parentBSource()"
+            [ariaLabel]="parent.name + ', sperm parent'"
+            [controls]="false"
+            [framePadding]="1.3"
+            [transparent]="true"
+          />
+        </div>
         <dl class="visible-traits">
           @for (trait of visibleTraits(parent); track trait.label) {
             <div [class.focus]="trait.label === selectedTrait().name">
@@ -345,17 +395,6 @@
             </div>
           }
         </dl>
-      }
-      @if (!offspringPoolActive()) {
-        <app-account-genetics-file
-          [studentId]="studentId()"
-          [dragonsOnly]="true"
-          sexFilter="male"
-          [selectedRecordId]="originalParentIds()[1]"
-          [disabled]="selectionLocked()"
-          label="Sperm-parent inventory"
-          (recordSelected)="selectAccountRecord('male', $event)"
-        />
       }
     </aside>
   </div>

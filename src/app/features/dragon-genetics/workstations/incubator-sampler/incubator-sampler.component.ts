@@ -97,6 +97,11 @@ export class IncubatorSamplerComponent implements OnDestroy {
   readonly pouringPhenotypeId = signal<string | null>(null);
   readonly pendingBatch = signal<MaterializedIncubatorBatch | null>(null);
   readonly previewIndex = signal(0);
+  /**
+   * Which stations are showing the account inventory. An empty station always shows it — there is
+   * nothing else to show — so this only records the roles a student reopened to swap a parent out.
+   */
+  readonly picking = signal<Record<ParentRole, boolean>>({ female: false, male: false });
   readonly statusMessage = signal('Choose two parent dragons to wake the incubator.');
 
   private readonly lineage = signal<ReadonlyMap<string, DragonParentProfile>>(new Map());
@@ -210,6 +215,20 @@ export class IncubatorSamplerComponent implements OnDestroy {
   selectAccountRecord(role: ParentRole, record: AccountGeneticsRecord): void {
     if (record.kind !== 'dragon') return;
     this.selectParent(role, record);
+  }
+
+  pickerOpen(role: ParentRole): boolean {
+    if (this.offspringPoolActive()) return false;
+    const loaded = role === 'female' ? this.parentA() : this.parentB();
+    return !loaded || this.picking()[role];
+  }
+
+  togglePicker(role: ParentRole): void {
+    if (this.selectionLocked()) {
+      this.statusMessage.set('Clear the current observation before changing the original parents.');
+      return;
+    }
+    this.picking.update((state) => ({ ...state, [role]: !state[role] }));
   }
 
   allowParentDrop(event: DragEvent): void {
@@ -363,6 +382,7 @@ export class IncubatorSamplerComponent implements OnDestroy {
     this.batches.set([]);
     this.nextRunNumber.set(1);
     this.previewIndex.set(0);
+    this.picking.set({ female: false, male: false });
     this.statusMessage.set(
       'Observation cleared. Change either parent or trait, or repeat this pair.',
     );
@@ -445,6 +465,7 @@ export class IncubatorSamplerComponent implements OnDestroy {
     this.originalParentIds.set(current);
     this.activeParentIds.set(current);
     this.activeBreedingPoolIds.set(current.filter((id): id is string => Boolean(id)));
+    this.picking.update((state) => ({ ...state, [role]: false }));
     this.statusMessage.set(
       this.parentsReady()
         ? `${dragon.name} loaded. Choose a visible trait and sample size when ready.`
@@ -485,6 +506,7 @@ export class IncubatorSamplerComponent implements OnDestroy {
     this.animationStarted.set(false);
     this.pendingBatch.set(null);
     this.pouringPhenotypeId.set(null);
+    this.picking.set({ female: false, male: false });
     this.statusMessage.set(
       snapshot.batches.length
         ? `Restored ${snapshot.batches.length} saved batch${snapshot.batches.length === 1 ? '' : 'es'}.`

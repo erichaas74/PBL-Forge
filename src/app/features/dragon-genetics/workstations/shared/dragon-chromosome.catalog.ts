@@ -93,8 +93,6 @@ export const DRAGON_CHROMOSOME_VISUALS: Readonly<Record<string, DragonChromosome
   },
 };
 
-export const DRAGON_LOCUS_COLORS = ['#ff6d68', '#49a8ff', '#67d790'] as const;
-
 export function chromosomeVisual(chromosome: string): DragonChromosomeVisualData {
   return DRAGON_CHROMOSOME_VISUALS[chromosome] ?? DRAGON_CHROMOSOME_VISUALS['Chr 1'];
 }

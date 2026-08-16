@@ -1,4 +1,6 @@
-export type DnaBase = 'A' | 'T' | 'C' | 'G';
+import { DragonDnaBase, geneDnaRecord } from '../shared/dragon-gene-dna.catalog';
+
+export type DnaBase = DragonDnaBase;
 export type DnaDifferenceKind = 'match' | 'substitution' | 'insertion' | 'deletion';
 export type DnaLabTool = 'compare' | 'mutation' | 'repair';
 export type DnaMutationAction = 'substitution' | 'insertion' | 'deletion';
@@ -51,14 +53,17 @@ export interface PersistedDnaLabState {
   evidence?: MolecularEvidenceRecord[];
 }
 
+const SCALE_DNA = geneDnaRecord('scales');
+const WING_DNA = geneDnaRecord('wings');
+
 export const DEFAULT_DNA_ANALYSIS_CASE: DnaAnalysisCase = {
   id: 'scale-pigment-01',
   sampleLabel: 'Dragon scale-cell sample',
   referenceSampleLabel: 'CH3-G1a',
   comparisonSampleLabel: 'CH3-G1b',
-  reference: 'ATGCCTGAATTT',
-  sample: 'ATGCATGAATTT',
-  mutationType: 'substitution',
+  reference: SCALE_DNA.alleleASequence,
+  sample: SCALE_DNA.alleleBSequence,
+  mutationType: SCALE_DNA.mutation.type,
 };
 
 export const TEST_DNA_ANALYSIS_CASE: DnaAnalysisCase = {
@@ -66,7 +71,7 @@ export const TEST_DNA_ANALYSIS_CASE: DnaAnalysisCase = {
   sampleLabel: 'Test case · Wing-pigment cell sample',
   referenceSampleLabel: 'CH1-G1a',
   comparisonSampleLabel: 'CH1-G1b',
-  reference: 'ATGCCGTAACGA',
-  sample: 'ATGCTGTAACGA',
-  mutationType: 'substitution',
+  reference: WING_DNA.alleleASequence,
+  sample: WING_DNA.alleleBSequence,
+  mutationType: WING_DNA.mutation.type,
 };

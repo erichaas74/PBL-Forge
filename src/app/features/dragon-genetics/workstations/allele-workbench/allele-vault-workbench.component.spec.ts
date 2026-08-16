@@ -37,29 +37,16 @@ describe('AlleleVaultWorkbenchComponent', () => {
     ).toBeGreaterThan(0);
     expect(element.querySelectorAll('.inspection-panel .gene-locus').length).toBe(3);
     expect(element.querySelectorAll('.allele-token-chromosome').length).toBe(2);
-    expect(element.querySelectorAll('.allele-token-chromosome [data-pattern]').length).toBe(2);
     expect(
-      [...element.querySelectorAll('.allele-token-chromosome [data-pattern]')].map((band) =>
-        band.getAttribute('data-pattern'),
+      [...element.querySelectorAll('.allele-token-chromosome [data-barcode-variant]')].map(
+        (barcode) => barcode.getAttribute('data-barcode-variant'),
       ),
-    ).toEqual(['stripe-a', 'stripe-b']);
-    expect(
-      [...element.querySelectorAll('.allele-token-chromosome [data-pattern-placement]')].map(
-        (band) => band.getAttribute('data-pattern-placement'),
-      ),
-    ).toEqual(['center', 'center']);
-    expect(
-      [...element.querySelectorAll('.allele-token-chromosome [data-pattern]')].map((band) => [
-        band.getAttribute('y'),
-        band.getAttribute('height'),
-      ]),
-    ).toEqual([
-      ['12', '8'],
-      ['12', '8'],
-    ]);
+    ).toEqual(['reference', 'substitution']);
     const tokenChromosomes = element.querySelectorAll('.allele-token-chromosome');
-    expect(tokenChromosomes[0].querySelectorAll('pattern[id$="-stripe-a"] rect').length).toBe(5);
-    expect(tokenChromosomes[1].querySelectorAll('pattern[id$="-stripe-b"] rect').length).toBe(5);
+    expect(tokenChromosomes[0].querySelectorAll('.allele-barcode-stripe').length).toBe(6);
+    expect(tokenChromosomes[1].querySelectorAll('.allele-barcode-stripe').length).toBe(6);
+    expect(tokenChromosomes[0].querySelectorAll('.allele-barcode-outline').length).toBe(6);
+    expect(tokenChromosomes[1].querySelectorAll('.allele-barcode-outline').length).toBe(6);
     expect(element.querySelectorAll('.phenotype-preview').length).toBe(0);
     expect(element.querySelectorAll('app-specimen-viewport').length).toBe(1);
     expect(element.querySelector('.phenotype-stage.empty')).not.toBeNull();
@@ -94,7 +81,7 @@ describe('AlleleVaultWorkbenchComponent', () => {
     expect(element.querySelectorAll('.vault-cell-viewport .centromere-joint').length).toBe(5);
   });
 
-  it('keeps each allele stripe identity when it is dropped into either comparison sample', () => {
+  it('keeps each allele barcode identity when it is dropped into either comparison sample', () => {
     const [sampleA, sampleB] = component.allelesForGene(component.activeGeneId());
     component.loadComparison('left', sampleB.id);
     component.loadComparison('right', sampleA.id);
@@ -102,11 +89,15 @@ describe('AlleleVaultWorkbenchComponent', () => {
 
     const element = fixture.nativeElement as HTMLElement;
     expect(
-      element.querySelector('.reference-pane [data-pattern]')?.getAttribute('data-pattern'),
-    ).toBe('stripe-b');
+      element
+        .querySelector('.reference-pane [data-barcode-variant]')
+        ?.getAttribute('data-barcode-variant'),
+    ).toBe('substitution');
     expect(
-      element.querySelector('.variant-pane [data-pattern]')?.getAttribute('data-pattern'),
-    ).toBe('stripe-a');
+      element
+        .querySelector('.variant-pane [data-barcode-variant]')
+        ?.getAttribute('data-barcode-variant'),
+    ).toBe('reference');
   });
 
   it('populates the gene and allele controls from the selected chromosome', () => {

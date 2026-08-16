@@ -17,11 +17,13 @@ import { findParent, runDragonBatch } from '../dragon-genetics.domain';
 import { DragonBattleResult, StudentDragonRecord } from '../dragon-genetics.models';
 import { DRAGON_TRAITS, genotypeLabel } from '../simulation/domain/dragon-inheritance';
 import { AlleleVaultWorkbenchComponent } from '../workstations/allele-workbench/allele-vault-workbench.component';
-import {
-  chromosomeVisual,
-  DRAGON_LOCUS_COLORS,
-} from '../workstations/shared/dragon-chromosome.catalog';
+import { chromosomeVisual } from '../workstations/shared/dragon-chromosome.catalog';
 import { ChromosomeSvgModel } from '../workstations/shared/chromosome-svg.component';
+import {
+  geneAlleleMarking,
+  geneDnaRecord,
+  geneMutationTypeForComparison,
+} from '../workstations/shared/dragon-gene-dna.catalog';
 import {
   AlleleClaimFeedback,
   AlleleWorkbenchInteraction,
@@ -131,6 +133,8 @@ export class DragonSimulationExperiencePage {
     if (!gene || sampleA?.geneId !== gene.id || sampleB?.geneId !== gene.id) return null;
     const reference = sampleA.modelSequence.join('');
     const sample = sampleB.modelSequence.join('');
+    const referenceAlleleIndex = sampleA.id === gene.alleleIds[0] ? 0 : 1;
+    const comparisonAlleleIndex = sampleB.id === gene.alleleIds[0] ? 0 : 1;
     return {
       id: `${gene.id}:${sampleA.id}:${sampleB.id}`,
       sampleLabel: `${gene.chromosome} · ${gene.sampleCode}`,
@@ -141,12 +145,11 @@ export class DragonSimulationExperiencePage {
       comparisonSampleLabel: sampleB.sampleCode,
       reference,
       sample,
-      mutationType:
-        reference.length < sample.length
-          ? 'insertion'
-          : reference.length > sample.length
-            ? 'deletion'
-            : 'substitution',
+      mutationType: geneMutationTypeForComparison(
+        gene.id,
+        referenceAlleleIndex,
+        comparisonAlleleIndex,
+      ),
     };
   });
   readonly transferredDnaChromosomeModel = computed<ChromosomeSvgModel | null>(() => {
@@ -156,6 +159,10 @@ export class DragonSimulationExperiencePage {
       (candidate) => candidate.id === params.get('gene'),
     );
     if (!activeGene) return null;
+    const referenceAllele = this.availableAlleles().find(
+      (candidate) => candidate.id === params.get('sampleA'),
+    );
+    const referenceAlleleIndex = referenceAllele?.id === activeGene.alleleIds[1] ? 1 : 0;
     const chromosomeGenes = this.availableAlleleGenes().filter(
       (candidate) => candidate.chromosome === activeGene.chromosome,
     );
@@ -170,8 +177,12 @@ export class DragonSimulationExperiencePage {
       loci: chromosomeGenes.map((gene, index) => ({
         position: visual.locusPositions[index] ?? 0.5,
         label: gene.sampleCode,
-        symbol: gene.id === activeGene.id ? gene.sampleCode : undefined,
-        color: DRAGON_LOCUS_COLORS[index % DRAGON_LOCUS_COLORS.length],
+        symbol: gene.id === activeGene.id ? referenceAllele?.sampleCode : undefined,
+        color: geneDnaRecord(gene.id).locusColor,
+        marking:
+          gene.id === activeGene.id
+            ? geneAlleleMarking(gene.id, referenceAlleleIndex)
+            : undefined,
       })),
     };
   });

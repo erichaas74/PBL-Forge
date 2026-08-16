@@ -245,16 +245,16 @@ button.base {
 }
 
 [data-base='A'] {
-  --base-color: #48a43b;
+  --base-color: var(--dna-base-a);
 }
 [data-base='T'] {
-  --base-color: #e34c45;
+  --base-color: var(--dna-base-t);
 }
 [data-base='C'] {
-  --base-color: #2877e8;
+  --base-color: var(--dna-base-c);
 }
 [data-base='G'] {
-  --base-color: #e2a11a;
+  --base-color: var(--dna-base-g);
 }
 
 .base:not(.gap),
