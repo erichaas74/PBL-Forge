@@ -59,6 +59,20 @@
 
 .lab__control-group { display: flex; gap: 0.3rem; }
 
+.lab__species {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  padding-left: 0.6rem;
+  border-left: 1px solid var(--lab-edge);
+
+  > span {
+    margin-right: 0.15rem;
+    color: var(--lab-muted);
+    font-size: 0.82rem;
+  }
+}
+
 .lab__chip {
   padding: 0.3rem 0.7rem;
   border: 1px solid var(--lab-edge);

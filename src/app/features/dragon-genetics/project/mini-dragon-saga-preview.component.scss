@@ -1,0 +1,130 @@
+:host {
+  position: absolute;
+  inset: 0;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+}
+
+.show-preview {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 68%, rgb(255 219 133 / 38%), transparent 31%),
+    linear-gradient(180deg, #244450 0 56%, #5d3923 57% 100%);
+}
+
+.show-preview::before {
+  position: absolute;
+  right: 5%;
+  bottom: -18%;
+  left: 5%;
+  height: 45%;
+  border: 0.38rem solid #28170e;
+  border-top-color: #dbad57;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #496f68, #203b3c 67%);
+  box-shadow: 0 -0.6rem 1.8rem rgb(255 198 99 / 30%);
+  content: '';
+}
+
+.show-preview__canopy {
+  position: absolute;
+  top: 0;
+  right: -3%;
+  left: -3%;
+  height: 28%;
+  background: repeating-conic-gradient(
+    from 74deg at 50% 0%,
+    #974838 0 6deg,
+    #d2b25e 6deg 12deg,
+    #32766f 12deg 18deg
+  );
+  filter: drop-shadow(0 0.45rem 0.35rem rgb(0 0 0 / 35%));
+  clip-path: polygon(0 0, 100% 0, 94% 70%, 86% 92%, 77% 68%, 68% 94%, 59% 70%, 50% 96%, 41% 70%, 32% 94%, 23% 68%, 14% 92%, 6% 70%);
+}
+
+app-specimen-viewport {
+  position: absolute;
+  inset: 1.4rem 0.3rem 1.9rem;
+  z-index: 1;
+  --viewport-edge: transparent;
+  --viewport-stage-background: transparent;
+  --viewport-min-height: 13rem;
+  --viewport-aspect-ratio: 4 / 3;
+}
+
+.show-preview__ribbon {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.9rem;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 0.18rem solid #f8dda1;
+  border-radius: 50%;
+  color: #fff2b3;
+  background: radial-gradient(circle, #d25a37, #7b231b);
+  box-shadow: 0 0.35rem 0.8rem rgb(0 0 0 / 35%);
+}
+
+.show-preview__ribbon span {
+  font-size: 1rem;
+}
+
+.show-preview__ribbon i,
+.show-preview__ribbon b {
+  position: absolute;
+  top: 2.2rem;
+  width: 0.7rem;
+  height: 1.8rem;
+  background: #9e3022;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
+}
+
+.show-preview__ribbon i { left: 0.45rem; transform: rotate(8deg); }
+.show-preview__ribbon b { right: 0.45rem; transform: rotate(-8deg); }
+
+.show-preview__plaque {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.7rem;
+  left: 0.8rem;
+  z-index: 3;
+  display: grid;
+  gap: 0.08rem;
+  padding: 0.48rem 0.65rem;
+  border: 1px solid #bf9148;
+  border-radius: 0.3rem;
+  color: #fff2ce;
+  background: linear-gradient(90deg, rgb(29 23 17 / 94%), rgb(38 48 47 / 88%));
+  box-shadow: 0 0.5rem 1.2rem rgb(0 0 0 / 45%);
+}
+
+.show-preview__plaque span,
+.show-preview__plaque small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.show-preview__plaque span {
+  color: #dfb769;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.show-preview__plaque strong {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 1rem;
+}
+
+.show-preview__plaque small {
+  color: #b9cfca;
+  font-size: 0.75rem;
+}

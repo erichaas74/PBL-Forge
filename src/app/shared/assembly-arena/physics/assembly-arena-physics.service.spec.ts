@@ -5,9 +5,15 @@ import {
   createFounderDragonGenome,
   generateDragonAssembly,
 } from '../../../features/dragon-genetics/simulation/domain/dragon-phenotype-builder';
-import { getArenaSetup } from '../data/arena-setups';
+import { arenaPitRadius, getArenaSetup } from '../data/arena-setups';
 import { BattleArenaState } from '../models/arena.models';
-import { createCombatant, createPartStatuses } from '../utils/battle-assembly';
+import { buildDragonArenaPose } from '../rendering/dragon-arena-pose';
+import {
+  coreHalfExtents,
+  createCombatant,
+  createPartStatuses,
+  dragonBodyFrame,
+} from '../utils/battle-assembly';
 import { AssemblyArenaPhysicsService } from './assembly-arena-physics.service';
 
 describe('AssemblyArenaPhysicsService', () => {
@@ -208,7 +214,9 @@ describe('AssemblyArenaPhysicsService', () => {
     const asset = createScaledDragonAsset();
     const setup = getArenaSetup('duel-arena');
     const core = asset.assembly.parts.find(part => part.id === 'classic-dragon-body')!;
-    const standing = core.position.y;
+    // The height the torso rides at with its feet down, which is above the
+    // authored torso height: blueprints hang the feet a little under y = 0.
+    const standing = dragonBodyFrame(asset.assembly, 'classic-dragon-body')!.standingHeight;
     // Stacked: the same spawn point, one torso height apart. This is the pin —
     // before the mount separation the pair simply stayed like this, because
     // dragon-attack mode assigns horizontal velocity outright each frame and
@@ -516,7 +524,95 @@ describe('AssemblyArenaPhysicsService', () => {
     expect(biteTargets).toEqual([`${target.id}:${target.corePartId}`]);
     expect(strongestTargetReaction).toBeGreaterThan(0.1);
   });
+
+  /*
+   * A dragon's limbs are posed, not simulated: the solver only ever sees the
+   * torso box in the middle of the chest, so nothing in it knows the animal has
+   * feet a metre and a half lower down. Both of these check the *drawn* dragon
+   * against the arena, because that is the only version of it a student sees.
+   */
+  it('stands a dragon on the sand rather than through it', () => {
+    const asset = createScaledDragonAsset();
+    const setup = getArenaSetup('dragon-duel-ring');
+    const dragon = createCombatant(
+      'red-1', asset, 'red', { x: 0, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const state = createTestState(setup, [dragon], 21);
+    const service = new AssemblyArenaPhysicsService();
+    service.rebuild(state);
+
+    for (let frame = 0; frame < 60 * 3; frame += 1) {
+      state.elapsedSeconds = frame / 60;
+      service.step(state, 1 / 60, {
+        'red-1': { throttle: 1, steer: 0, strafe: 0, boost: false },
+      });
+    }
+
+    const soles = lowestDrawnPoint(asset.assembly, dragon, coreSnapshot(service, dragon));
+    expect(soles).withContext(`soles at ${soles.toFixed(3)}`).toBeGreaterThan(-0.05);
+    // And not hovering either: a dragon lifted clear of its own shadow would be
+    // just as wrong as one buried in the sand.
+    expect(soles).withContext(`soles at ${soles.toFixed(3)}`).toBeLessThan(0.25);
+  });
+
+  it('keeps a dragon running at the palisade inside the ring', () => {
+    const asset = createScaledDragonAsset();
+    const setup = getArenaSetup('dragon-duel-ring');
+    const pitRadius = arenaPitRadius(setup);
+    // Aimed straight at the fence from the middle of the pit, at a full run.
+    const dragon = createCombatant(
+      'red-1', asset, 'red', { x: 0, y: 0, z: 0 }, 'player', 'dragon-attack', { x: 0, y: 0, z: 0 },
+    );
+    const state = createTestState(setup, [dragon], 22);
+    const service = new AssemblyArenaPhysicsService();
+    service.rebuild(state);
+    let furthest = 0;
+
+    for (let frame = 0; frame < 60 * 12; frame += 1) {
+      state.elapsedSeconds = frame / 60;
+      service.step(state, 1 / 60, {
+        'red-1': { throttle: 1, steer: 0, strafe: 0, boost: true },
+      });
+      furthest = Math.max(
+        furthest,
+        furthestDrawnPart(asset.assembly, dragon, coreSnapshot(service, dragon)),
+      );
+    }
+
+    expect(furthest)
+      .withContext(`reached ${furthest.toFixed(2)} of a ${pitRadius} ring`)
+      .toBeLessThanOrEqual(pitRadius);
+    // It did press against the fence, so the bound above is a real limit rather
+    // than a dragon that never got near one.
+    expect(furthest).toBeGreaterThan(pitRadius - 1.5);
+  });
 });
+
+/** Lowest point of the dragon as the arena renders it. */
+function lowestDrawnPoint(
+  blueprint: Parameters<typeof buildDragonArenaPose>[1],
+  combatant: ReturnType<typeof createCombatant>,
+  core: ReturnType<typeof coreSnapshot>,
+): number {
+  const parts = new Map(blueprint.parts.map(part => [part.id, part]));
+  return Math.min(...buildDragonArenaPose(
+    combatant.id, blueprint, combatant.corePartId, core, undefined,
+  ).map(posed => {
+    const part = parts.get(posed.sourcePartId);
+    return part ? posed.position.y - coreHalfExtents(part).height : Infinity;
+  }));
+}
+
+/** How far the outermost drawn part is from the middle of the pit. */
+function furthestDrawnPart(
+  blueprint: Parameters<typeof buildDragonArenaPose>[1],
+  combatant: ReturnType<typeof createCombatant>,
+  core: ReturnType<typeof coreSnapshot>,
+): number {
+  return Math.max(...buildDragonArenaPose(
+    combatant.id, blueprint, combatant.corePartId, core, undefined,
+  ).map(posed => Math.hypot(posed.position.x, posed.position.z)));
+}
 
 function createTestState(
   setup: ReturnType<typeof getArenaSetup>,

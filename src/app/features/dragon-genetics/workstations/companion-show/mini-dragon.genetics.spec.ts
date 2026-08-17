@@ -22,14 +22,20 @@ function genomeWith(overrides: Partial<MiniGenome>): MiniGenome {
     pattern: ['A', 'A'],
     ember: ['Eb', 'ep'],
     size: ['T', 't'],
+    ears: ['E', 'e'],
+    muzzle: ['M', 'm'],
+    legs: ['L', 'l'],
+    tail: ['Tf', 'Tf'],
+    crest: ['K', 'R'],
+    frame: ['B', 'b'],
     ...overrides,
   };
 }
 
 describe('mini dragon inheritance patterns', () => {
-  it('covers five different relationships across six genes', () => {
+  it('covers four different relationships across twelve genes', () => {
     const patterns = new Set(MINI_DRAGON_GENES.map((gene) => gene.pattern));
-    expect(MINI_DRAGON_GENES.length).toBe(6);
+    expect(MINI_DRAGON_GENES.length).toBe(12);
     expect(patterns).toEqual(
       new Set([
         'complete-dominance',
@@ -136,7 +142,7 @@ describe('the founding population', () => {
     }
   });
 
-  it('hides the fluffy coat and the teacup size behind carriers', () => {
+  it('hides the baby-bumpy scale rows and teacup size behind carriers', () => {
     const carriesHidden = (geneId: 'coat' | 'size', hidden: string): boolean =>
       MINI_FOUNDERS.some(
         (founder) =>
@@ -277,12 +283,20 @@ describe('choosing a mini dragon by its visible form', () => {
       pattern: 'pattern:ash-gold',
       ember: 'ember:blue',
       size: 'size:teacup',
+      ears: 'ears:sail',
+      muzzle: 'muzzle:pug',
+      legs: 'legs:stilt',
+      tail: 'tail:fork',
+      crest: 'crest:crown-frill',
+      frame: 'frame:round',
     });
 
     expect(isMiniGenome(genome)).toBe(true);
     expect(expressMiniGene('wings', genome).id).toBe('wings:small');
     expect(expressMiniGene('pattern', genome).id).toBe('pattern:ash-gold');
     expect(expressMiniGene('size', genome).id).toBe('size:teacup');
+    expect(expressMiniGene('tail', genome).id).toBe('tail:fork');
+    expect(expressMiniGene('frame', genome).id).toBe('frame:round');
   });
 
   it('rejects a form that does not belong to the gene', () => {

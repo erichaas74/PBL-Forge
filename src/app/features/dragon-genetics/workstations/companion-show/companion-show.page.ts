@@ -27,7 +27,18 @@ export class CompanionShowPage {
       const snapshot = this.latestSnapshot();
       if (!snapshot || snapshot.studentId === LOCAL_WORKSTATION_STUDENT_ID) return;
       const assignment = this.context.assignment();
-      const signature = `${snapshot.studentId}:${assignment.id}:${snapshot.updatedAtIso}:${snapshot.registry.length}:${snapshot.litters.length}`;
+      const signature = [
+        snapshot.studentId,
+        assignment.id,
+        snapshot.updatedAtIso,
+        snapshot.registry.length,
+        snapshot.litters.length,
+        snapshot.trainingSessions.length,
+        snapshot.showRuns.length,
+        snapshot.showDivisionId ?? '',
+        snapshot.rareTraitGeneId ?? '',
+        snapshot.rareCandidateIds.length,
+      ].join(':');
       if (signature === this.syncSignature) return;
       this.syncSignature = signature;
       void this.capstoneProgressRepository

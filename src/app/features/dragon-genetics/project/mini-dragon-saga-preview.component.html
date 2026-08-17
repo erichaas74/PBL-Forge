@@ -1,0 +1,27 @@
+<div class="show-preview">
+  <div class="show-preview__canopy" aria-hidden="true"></div>
+  <app-specimen-viewport
+    [source]="source()"
+    [ariaLabel]="(preview()?.dragon?.name ?? 'Mini dragon') + ' in the Companion Show champion ring'"
+    [controls]="false"
+    [showGroundShadow]="true"
+    [framePadding]="1.28"
+    [transparent]="true"
+  />
+
+  @if (preview(); as champion) {
+    <div class="show-preview__ribbon" aria-hidden="true">
+      <span>&#9733;</span>
+      <i></i>
+      <b></b>
+    </div>
+    <div class="show-preview__plaque">
+      <span>
+        {{ champion.badge }} &middot; {{ champion.ribbons }}
+        ribbon{{ champion.ribbons === 1 ? '' : 's' }}
+      </span>
+      <strong>{{ champion.dragon.name }}</strong>
+      <small>{{ champion.breed }}</small>
+    </div>
+  }
+</div>

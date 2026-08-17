@@ -49,6 +49,19 @@ export function getArenaSetup(id: ArenaSetupStyleId): ArenaSetupConfig {
   return ARENA_SETUPS.find(setup => setup.id === id) ?? ARENA_SETUPS[0];
 }
 
+/**
+ * Radius of the round fighting ring drawn inside a rectangular floor.
+ *
+ * Inscribed in the floor, so no stretch of sand is left without a palisade
+ * behind it. Shared by the renderer that draws the ring and the physics that
+ * holds the dragons inside it — split in two, the scenery and the boundary
+ * would drift apart and a dragon would walk through a fence that was no longer
+ * where the solver thought it was.
+ */
+export function arenaPitRadius(setup: ArenaSetupConfig): number {
+  return Math.min(setup.floorSize.x, setup.floorSize.z) / 2;
+}
+
 export function toArenaSetup(scenario: CreationTestScenarioDefinition): ArenaSetupConfig {
   const red = getParticipant(scenario, 'red');
   const blue = getParticipant(scenario, 'blue');
@@ -59,6 +72,7 @@ export function toArenaSetup(scenario: CreationTestScenarioDefinition): ArenaSet
     description: scenario.description,
     floorSize: scenario.environment.floorSize,
     wallHeight: scenario.environment.wallHeight,
+    ringBoundary: scenario.environment.ringBoundary,
     defaultRedPresetId: red.defaultAssemblyAssetId,
     defaultBluePresetId: blue.defaultAssemblyAssetId,
     redSpawn: red.spawnPosition,

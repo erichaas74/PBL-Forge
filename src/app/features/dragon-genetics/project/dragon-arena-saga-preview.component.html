@@ -1,0 +1,31 @@
+<div class="arena-preview">
+  <app-arena-viewport
+    appearance="dragon-pit"
+    [ariaLabel]="championName() + ' battling The Arena Warden in the live Dragon Arena'"
+    [controlFrameFactory]="controlFrameFactory"
+  />
+
+  <div class="arena-preview__status" aria-live="polite">
+    @if (winnerName(); as winner) {
+      <span>Ring victor</span>
+      <strong>{{ winner }}</strong>
+    } @else {
+      <span>{{ isStudentChampion() ? 'Your latest champion' : 'Academy exhibition bout' }}</span>
+      <strong>{{ championName() }} vs. The Warden</strong>
+    }
+  </div>
+
+  <div class="arena-preview__health" aria-label="Live arena health">
+    @if (red(); as fighter) {
+      <span class="arena-preview__bar arena-preview__bar--red">
+        <i [style.width.%]="healthPercent(fighter.totalHealth, fighter.maxTotalHealth)"></i>
+      </span>
+    }
+    <b aria-hidden="true">VS</b>
+    @if (blue(); as fighter) {
+      <span class="arena-preview__bar arena-preview__bar--blue">
+        <i [style.width.%]="healthPercent(fighter.totalHealth, fighter.maxTotalHealth)"></i>
+      </span>
+    }
+  </div>
+</div>

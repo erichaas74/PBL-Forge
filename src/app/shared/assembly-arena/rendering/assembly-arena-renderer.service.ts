@@ -25,8 +25,8 @@ import {
   BERK_STAGE_THEME,
   StagePostPipeline,
   configureStageRenderer,
-  createGradientSkyTexture,
   createGroundTexture,
+  createOvercastSkyTexture,
   createStageLighting,
   createStagePostPipeline,
   installStageEnvironment,
@@ -41,7 +41,10 @@ import {
   FireConeSnapshot,
 } from '../models/arena.models';
 import { getAbilityDemo } from '../../assembly/preview/specimen-ability-pose';
-import { getBodyKey } from '../utils/battle-assembly';
+import { arenaPitRadius } from '../data/arena-setups';
+import { dragonBodyFrame, getBodyKey } from '../utils/battle-assembly';
+import { createBerkGrandstand } from './berk-grandstand';
+import { SeaStackIsland, createSeaStackIsland } from './berk-sea-stack';
 import { ArenaHudLayer, HudCombatant } from './arena-hud-layer';
 import { ArenaImpactEffects } from './arena-impact-effects';
 import { buildDragonArenaPose } from './dragon-arena-pose';
@@ -66,7 +69,6 @@ const BERK_MATERIALS = {
   bone: 0xc0aa7c,
   emberCore: 0xff7a2b,
   emberGlow: 0xffb347,
-  seaStack: 0x6d726d,
 } as const;
 
 /**
@@ -98,6 +100,18 @@ const CAMERA_FRAMING = {
   targetLift: 1.2,
   /** Per-frame follow rate. Low enough that a knockback does not whip the view. */
   smoothing: 0.06,
+  /**
+   * Where the view starts, before the follow has anything to follow.
+   *
+   * Set per arena rather than once at mount, because "far enough back" is a
+   * different number in a nine-metre robot box and in a twenty-one-metre dragon
+   * ring — mounted at a fixed distance the camera opened *inside* the palisade,
+   * and the follow only walked it out over the first second of the fight.
+   * Elevated enough to look down into the pit and over the stand behind it.
+   */
+  openingElevation: 0.6,
+  openingAzimuth: 0.2,
+  openingDistance: 2.15,
 } as const;
 
 /** Brazier flicker, in Hz per light, so no two pulse together. */
@@ -165,6 +179,8 @@ export class AssemblyArenaRendererService {
   private readonly fireEffects = new Map<string, FireEffect>();
   private readonly dragonRigs = new Map<string, DragonRenderRig>();
   private readonly braziers: Brazier[] = [];
+  /** The sea stack under a dragon pit, while one is built. */
+  private island: SeaStackIsland | null = null;
   private readonly contactShadows = new Map<string, THREE.Mesh>();
   private contactShadowTexture: THREE.CanvasTexture | null = null;
   /** Core reference per combatant, for camera framing and contact shadows. */
@@ -182,7 +198,7 @@ export class AssemblyArenaRendererService {
     this.quality = resolveRenderQuality();
 
     const scene = new THREE.Scene();
-    this.skyTexture = createGradientSkyTexture(BERK_STAGE_THEME);
+    this.skyTexture = createOvercastSkyTexture(BERK_STAGE_THEME);
     scene.background = this.skyTexture ?? new THREE.Color(BERK_STAGE_THEME.skyBottom);
     this.scene = scene;
 
@@ -248,7 +264,13 @@ export class AssemblyArenaRendererService {
         name: combatant.name,
         team: combatant.team,
         bodyKeys: combatant.assembly.parts.map((part) => getBodyKey(combatant.id, part.id)),
-        standingHeight: corePart?.position.y ?? 0,
+        // The height the torso rides at with its feet down, which is what the
+        // physics holds it to — not the authored torso height, which sits a
+        // little lower because blueprints hang the feet under the floor.
+        standingHeight:
+          dragonBodyFrame(combatant.assembly, combatant.corePartId)?.standingHeight
+          ?? corePart?.position.y
+          ?? 0,
       });
       if (combatant.controlMode === 'dragon-attack') {
         this.dragonRigs.set(combatant.id, {
@@ -371,6 +393,7 @@ export class AssemblyArenaRendererService {
     this.lastRenderMs = now;
 
     this.updateBraziers();
+    this.island?.update(now / 1000);
     this.controls?.update();
     this.impacts?.update(delta);
     this.hud?.update(delta);
@@ -809,6 +832,38 @@ export class AssemblyArenaRendererService {
     this.environmentGroup = new THREE.Group();
     this.scene.add(this.environmentGroup);
     this.addArena(this.environmentGroup, setup, dragonPit);
+    this.openOnArena(arenaPitRadius(setup), dragonPit);
+  }
+
+  /**
+   * Puts the camera where the arena is worth looking at from.
+   *
+   * Only on a fresh environment, which means a fresh setup: resetting a match
+   * in the arena a student has already dragged the view around leaves their
+   * view alone.
+   */
+  private openOnArena(pitRadius: number, dragonPit: boolean): void {
+    if (!this.camera || !this.controls) return;
+
+    const distance = THREE.MathUtils.clamp(
+      pitRadius * CAMERA_FRAMING.openingDistance,
+      CAMERA_FRAMING.minDistance,
+      CAMERA_FRAMING.maxDistance,
+    );
+    // Over the seaward side of the ring: the overhang and the drop are then the
+    // near foreground, and the stand on the landward side closes the shot
+    // behind the dragons. Only slightly off the axis between them, because a
+    // dead-on symmetrical view of a round arena reads as an elevation drawing.
+    const azimuth = dragonPit ? CAMERA_FRAMING.openingAzimuth : Math.PI * 0.25;
+    const ground = Math.cos(CAMERA_FRAMING.openingElevation) * distance;
+
+    this.controls.target.set(0, CAMERA_FRAMING.targetLift, 0);
+    this.camera.position.set(
+      Math.cos(azimuth) * ground,
+      Math.sin(CAMERA_FRAMING.openingElevation) * distance + CAMERA_FRAMING.targetLift,
+      Math.sin(azimuth) * ground,
+    );
+    this.camera.lookAt(this.controls.target);
   }
 
   private removeEnvironment(): void {
@@ -820,16 +875,19 @@ export class AssemblyArenaRendererService {
     disposeAssemblyObject(this.environmentGroup);
     this.environmentGroup = null;
     this.currentEnvironmentKey = null;
-    // The braziers live inside the environment group, so their handles go with it.
+    // The braziers and the island live inside the environment group, so their
+    // handles go with it.
     this.braziers.length = 0;
+    this.island = null;
   }
 
   private addArena(group: THREE.Group, setup: ArenaSetupConfig, dragonPit: boolean): void {
     const radius = Math.max(setup.floorSize.x, setup.floorSize.z);
     // The pit is drawn round while physics keeps its rectangular walls. The
     // ring is inscribed in the floor so a dragon can never reach a stretch of
-    // sand that has no palisade drawn behind it.
-    const pitRadius = Math.min(setup.floorSize.x, setup.floorSize.z) / 2;
+    // sand that has no palisade drawn behind it, and the physics holds the
+    // dragons inside this same circle rather than inside the rectangle.
+    const pitRadius = arenaPitRadius(setup);
 
     group.add(
       createStageLighting(
@@ -840,9 +898,53 @@ export class AssemblyArenaRendererService {
     );
 
     if (this.scene) {
-      this.scene.fog = new THREE.Fog(BERK_STAGE_THEME.fogColor, radius * 1.8, radius * 6);
+      this.scene.fog = new THREE.Fog(
+        BERK_STAGE_THEME.fogColor,
+        // The island wants a much longer throw: its horizon is a hundred units
+        // out and the sea runs past that, so the arena's close haze would erase
+        // everything the drop exists to show.
+        dragonPit ? radius * 3.4 : radius * 1.8,
+        dragonPit ? radius * 12 : radius * 6,
+      );
     }
 
+    if (dragonPit) {
+      this.addSeaStackIsland(group, pitRadius, setup.wallHeight);
+      this.addFightingRing(group, pitRadius);
+      this.addPalisade(group, pitRadius, setup.wallHeight);
+      this.addKillRingGallery(group, pitRadius, setup.wallHeight);
+      this.addGatehouses(group, pitRadius, setup.wallHeight);
+      this.addPalisadeShields(group, pitRadius, setup.wallHeight);
+      this.addClanBanners(group, pitRadius, setup.wallHeight);
+      this.addChainDome(group, pitRadius, setup.wallHeight);
+      this.addBraziers(group, pitRadius, setup.wallHeight);
+      // The seating, on the landward side. Added after the palisade it stands
+      // behind, so the depth order in the file matches the depth in the scene.
+      group.add(createBerkGrandstand({ pitRadius, quality: this.quality }));
+    } else {
+      this.addFlatGround(group, setup, radius);
+      this.addBoundaryWalls(group, setup);
+    }
+
+    for (const obstacle of setup.obstacles) {
+      this.addObstacleMesh(
+        group,
+        obstacle.position,
+        obstacle.size,
+        Number.parseInt(obstacle.color.replace('#', ''), 16),
+        obstacle.rotation,
+      );
+    }
+  }
+
+  /**
+   * The ordinary arena floor: a slab of ground with turf around it.
+   *
+   * Every scenario that is not the dragon pit — a car crash test, a robot
+   * righting drill — is a workbench rather than a place, and a workbench wants
+   * flat ground and a wall it cannot be pushed past.
+   */
+  private addFlatGround(group: THREE.Group, setup: ArenaSetupConfig, radius: number): void {
     const groundTexture = createGroundTexture(BERK_MATERIALS.sandBase, BERK_MATERIALS.sandSpeckle);
     const floor = new THREE.Mesh(
       new THREE.BoxGeometry(setup.floorSize.x, setup.floorSize.y, setup.floorSize.z),
@@ -870,19 +972,17 @@ export class AssemblyArenaRendererService {
     apron.position.y = -setup.floorSize.y - 0.01;
     apron.receiveShadow = true;
     group.add(apron);
+  }
 
-    if (dragonPit) {
-      this.addFightingRing(group, pitRadius);
-      this.addPalisade(group, pitRadius, setup.wallHeight);
-      this.addKillRingGallery(group, pitRadius, setup.wallHeight);
-      this.addGatehouses(group, pitRadius, setup.wallHeight);
-      this.addPalisadeShields(group, pitRadius, setup.wallHeight);
-      this.addClanBanners(group, pitRadius, setup.wallHeight);
-      this.addChainDome(group, pitRadius, setup.wallHeight);
-      this.addBraziers(group, pitRadius, setup.wallHeight);
-      this.addSeaStacks(group, radius);
-    }
-
+  /**
+   * The physics rectangle, drawn.
+   *
+   * Skipped in the dragon pit, where the palisade is the boundary a student
+   * reads and the physics holds the dragons inside that circle instead — four
+   * straight stone walls out past it would be a fence standing in mid-air over
+   * the sea.
+   */
+  private addBoundaryWalls(group: THREE.Group, setup: ArenaSetupConfig): void {
     const wallThickness = 0.24;
     const wallY = setup.wallHeight / 2;
     this.addWallMesh(
@@ -905,16 +1005,24 @@ export class AssemblyArenaRendererService {
       { x: setup.floorSize.x / 2 + wallThickness / 2, y: wallY, z: 0 },
       { x: wallThickness, y: setup.wallHeight, z: setup.floorSize.z },
     );
+  }
 
-    for (const obstacle of setup.obstacles) {
-      this.addObstacleMesh(
-        group,
-        obstacle.position,
-        obstacle.size,
-        Number.parseInt(obstacle.color.replace('#', ''), 16),
-        obstacle.rotation,
-      );
-    }
+  /**
+   * The sea stack the ring is built on.
+   *
+   * Registered on `this.island` so `render` can run the swell; it lives inside
+   * the environment group, so the handle is dropped with it.
+   */
+  private addSeaStackIsland(group: THREE.Group, pitRadius: number, wallHeight: number): void {
+    this.island = createSeaStackIsland({
+      pitRadius,
+      // Matches the gallery built by `addKillRingGallery`: the timber under the
+      // overhang has to reach the deck it is actually carrying.
+      deckRadius: pitRadius + 2.1,
+      deckHeight: wallHeight * 1.7,
+      quality: this.quality,
+    });
+    group.add(this.island.group);
   }
 
   /**
@@ -1246,59 +1354,6 @@ export class AssemblyArenaRendererService {
     shields.instanceMatrix.needsUpdate = true;
     if (shields.instanceColor) shields.instanceColor.needsUpdate = true;
     group.add(shields);
-  }
-
-  /**
-   * Sea stacks on the horizon.
-   *
-   * The pit sits on an island, and without anything past the palisade the sky
-   * meets the turf on a hard line that reads as a studio backdrop rather than
-   * as weather. These are deliberately crude — six-sided flat-shaded cones, no
-   * texture, no shadows — because they stand far enough out that the fog has
-   * eaten everything but the silhouette by the time they reach the camera.
-   */
-  private addSeaStacks(group: THREE.Group, radius: number): void {
-    const stackCount = 15;
-    const stacks = new THREE.InstancedMesh(
-      // Unit height: each instance scales this to its own.
-      new THREE.CylinderGeometry(0.22, 1, 1, 6, 1),
-      new THREE.MeshStandardMaterial({
-        color: BERK_MATERIALS.seaStack,
-        roughness: 1,
-        metalness: 0,
-        flatShading: true,
-      }),
-      stackCount,
-    );
-
-    const matrix = new THREE.Matrix4();
-    const position = new THREE.Vector3();
-    const quaternion = new THREE.Quaternion();
-    const scale = new THREE.Vector3();
-    const euler = new THREE.Euler();
-
-    for (let index = 0; index < stackCount; index += 1) {
-      // Same seeded wobble as the palisade: the horizon must not reshuffle
-      // itself every time a match is rebuilt.
-      const wobble = Math.sin(index * 12.9898) * 0.5 + Math.sin(index * 4.1414) * 0.5;
-      const angle = (index / stackCount) * Math.PI * 2 + wobble * 0.16;
-      const distance = radius * (1.85 + Math.abs(wobble) * 0.6);
-      const height = radius * (0.5 + Math.abs(wobble) * 0.72);
-      const width = radius * (0.16 + Math.abs(wobble) * 0.1);
-
-      position.set(
-        Math.cos(angle) * distance,
-        height / 2 - radius * 0.08,
-        Math.sin(angle) * distance,
-      );
-      euler.set(wobble * 0.04, angle, wobble * 0.03);
-      quaternion.setFromEuler(euler);
-      scale.set(width, height, width);
-      stacks.setMatrixAt(index, matrix.compose(position, quaternion, scale));
-    }
-
-    stacks.instanceMatrix.needsUpdate = true;
-    group.add(stacks);
   }
 
   /**

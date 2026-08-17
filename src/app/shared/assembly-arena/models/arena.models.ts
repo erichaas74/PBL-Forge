@@ -209,6 +209,8 @@ export interface ArenaSetupConfig {
   description: string;
   floorSize: Vector3Data;
   wallHeight: number;
+  /** Hold combatants inside the round pit rather than the floor's rectangle. */
+  ringBoundary?: boolean;
   defaultRedPresetId: string;
   defaultBluePresetId: string;
   redSpawn: Vector3Data;

@@ -73,19 +73,27 @@ export const MINI_PATTERN_LABELS: Readonly<Record<MiniInheritancePattern, string
 /**
  * Which parts a gene changes.
  *
- * Coat and pattern paint the whole animal and ember lights it, so those carry
- * no roles: highlighting every part at once is the same as highlighting none,
- * and the readout says so in words instead.
+ * Back scales now own a dedicated procedural part, while pattern paints the
+ * whole animal and ember lights it.
  */
 function miniGeneRoles(geneId: MiniGeneId): readonly AssemblyPartRole[] {
   switch (geneId) {
     case 'horns':
+    case 'ears':
+    case 'muzzle':
+    case 'crest':
       return ['head'];
     case 'wings':
       return ['wing'];
     case 'size':
+    case 'legs':
       return ['leg'];
+    case 'tail':
+      return ['tail'];
     case 'coat':
+      return ['dorsal-scales'];
+    case 'frame':
+      return ['core'];
     case 'pattern':
     case 'ember':
       return [];

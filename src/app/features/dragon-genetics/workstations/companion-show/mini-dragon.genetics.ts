@@ -5,7 +5,7 @@
  * reason it exists — its own *inheritance patterns*. The lab dragon models one
  * relationship four times: one dominant allele is enough, and the heterozygote
  * is invisible. A breeding program that only ever replays that square teaches one
- * idea. These six genes cover five different relationships, so a student writing
+ * idea. These twelve genes cover four different relationships, so a student writing
  * a breed standard meets a different problem at each locus.
  *
  * Nothing here is ever rendered to a student as a symbol. The workstation shows
@@ -13,7 +13,19 @@
  * can compute, not so the surface can display them.
  */
 
-export type MiniGeneId = 'coat' | 'horns' | 'wings' | 'pattern' | 'ember' | 'size';
+export type MiniGeneId =
+  | 'coat'
+  | 'horns'
+  | 'wings'
+  | 'pattern'
+  | 'ember'
+  | 'size'
+  | 'ears'
+  | 'muzzle'
+  | 'legs'
+  | 'tail'
+  | 'crest'
+  | 'frame';
 
 export type MiniInheritancePattern =
   | 'complete-dominance'
@@ -57,12 +69,15 @@ function form(id: string, label: string): MiniPhenotypeForm {
 export const MINI_DRAGON_GENES: readonly MiniGeneDefinition[] = [
   {
     id: 'coat',
-    name: 'Coat',
+    name: 'Back scales',
     pattern: 'complete-dominance',
     alleles: ['F', 'f'],
-    forms: [form('coat:sleek', 'Sleek coat'), form('coat:fluffy', 'Fluffy coat')],
+    forms: [
+      form('coat:sleek', 'Smooth scale rows'),
+      form('coat:fluffy', 'Baby-bumpy spike rows'),
+    ],
     observation:
-      'A sleek dragon can carry the fluffy form without showing it, so two sleek parents can produce fluffy young.',
+      'A smooth-backed dragon can carry the baby-bumpy form without showing it, so two smooth-backed parents can produce bumpy young.',
   },
   {
     id: 'horns',
@@ -118,6 +133,78 @@ export const MINI_DRAGON_GENES: readonly MiniGeneDefinition[] = [
     alleles: ['T', 't'],
     forms: [form('size:standard', 'Standard'), form('size:teacup', 'Teacup')],
     observation: 'Teacup is the hidden form: two standard parents can produce a teacup.',
+  },
+  {
+    id: 'ears',
+    name: 'Ears',
+    pattern: 'incomplete-dominance',
+    alleles: ['E', 'e'],
+    forms: [
+      form('ears:sail', 'Tall sail ears'),
+      form('ears:petal', 'Petal ears'),
+      form('ears:button', 'Tiny button ears'),
+    ],
+    observation: 'The middle combination grows petal ears between tall sails and tiny buttons.',
+  },
+  {
+    id: 'muzzle',
+    name: 'Muzzle',
+    pattern: 'incomplete-dominance',
+    alleles: ['M', 'm'],
+    forms: [
+      form('muzzle:long', 'Long storybook muzzle'),
+      form('muzzle:medium', 'Round short muzzle'),
+      form('muzzle:pug', 'Button-pug muzzle'),
+    ],
+    observation: 'Muzzle length blends into three clearly different face shapes.',
+  },
+  {
+    id: 'legs',
+    name: 'Leg length',
+    pattern: 'incomplete-dominance',
+    alleles: ['L', 'l'],
+    forms: [
+      form('legs:stilt', 'Long stilt legs'),
+      form('legs:medium', 'Medium legs'),
+      form('legs:waddler', 'Tiny waddler legs'),
+    ],
+    observation: 'The middle combination stands halfway between a tall runner and a low waddler.',
+  },
+  {
+    id: 'tail',
+    name: 'Tail tip',
+    pattern: 'multiple-alleles',
+    alleles: ['Ts', 'Tf', 'Tp'],
+    forms: [
+      form('tail:star', 'Round star club'),
+      form('tail:fork', 'Twin-fork paddle'),
+      form('tail:pom', 'Soft pom tail'),
+    ],
+    observation: 'Three tail-tip forms circulate in the kennel, with the star form highest in the series.',
+  },
+  {
+    id: 'crest',
+    name: 'Head crest',
+    pattern: 'codominance',
+    alleles: ['K', 'R'],
+    forms: [
+      form('crest:crown', 'Crown bumps'),
+      form('crest:crown-frill', 'Crown-and-frill crest'),
+      form('crest:frill', 'Side petal frills'),
+    ],
+    observation: 'A dragon carrying both crest forms displays the crown and side frills together.',
+  },
+  {
+    id: 'frame',
+    name: 'Body frame',
+    pattern: 'incomplete-dominance',
+    alleles: ['B', 'b'],
+    forms: [
+      form('frame:long', 'Long noodle frame'),
+      form('frame:balanced', 'Balanced frame'),
+      form('frame:round', 'Round dumpling frame'),
+    ],
+    observation: 'Body length and roundness blend, creating long, balanced, and dumpling silhouettes.',
   },
 ];
 
@@ -203,7 +290,7 @@ export function miniPhenotypeLabel(geneId: MiniGeneId, genome: MiniGenome): stri
  * A genotype that produces the requested visible form.
  *
  * The inverse of {@link expressMiniGene}, and deliberately not a bijection: a
- * sleek dragon may be `FF` or `Ff`, and this answers `FF`. That is the right
+ * smooth-backed dragon may be `FF` or `Ff`, and this answers `FF`. That is the right
  * answer for the one caller that needs it — a bench where a form is chosen and
  * the animal drawn — because the genotype behind a *displayed* form is exactly
  * what a student cannot read off a dragon. Anything that needs carriers must
@@ -344,7 +431,7 @@ export function miniCoatPaint(genome: MiniGenome, individualId: string): MiniCoa
 export interface MiniIndividualFeatures {
   earTuft: number;
   eyeSize: number;
-  snoutLength: number;
+  cheekTuft: number;
   plumeFan: number;
   toeCount: number;
 }
@@ -353,7 +440,7 @@ export function miniIndividualFeatures(individualId: string): MiniIndividualFeat
   return {
     earTuft: 0.35 + (stableHash(`${individualId}:ear`) % 60) / 100,
     eyeSize: 0.45 + (stableHash(`${individualId}:eye`) % 50) / 100,
-    snoutLength: 0.18 + (stableHash(`${individualId}:snout`) % 32) / 100,
+    cheekTuft: 0.35 + (stableHash(`${individualId}:cheek`) % 55) / 100,
     plumeFan: 0.4 + (stableHash(`${individualId}:plume`) % 55) / 100,
     toeCount: 3 + (stableHash(`${individualId}:toes`) % 2),
   };
@@ -366,7 +453,7 @@ export function miniIndividualFeatureList(
   return [
     { label: 'Ear tufts', value: band(features.earTuft, ['Short', 'Full', 'Long']) },
     { label: 'Eyes', value: band(features.eyeSize, ['Round', 'Large', 'Enormous']) },
-    { label: 'Snout', value: band(features.snoutLength, ['Stub', 'Short', 'Tapered']) },
+    { label: 'Cheek tufts', value: band(features.cheekTuft, ['Neat', 'Full', 'Rosy']) },
     { label: 'Tail plume', value: band(features.plumeFan, ['Narrow', 'Open', 'Sweeping']) },
     { label: 'Toes', value: `${features.toeCount} per paw` },
   ];
@@ -394,8 +481,14 @@ function genome(
   pattern: MiniGenotype,
   ember: MiniGenotype,
   size: MiniGenotype,
+  ears: MiniGenotype,
+  muzzle: MiniGenotype,
+  legs: MiniGenotype,
+  tail: MiniGenotype,
+  crest: MiniGenotype,
+  frame: MiniGenotype,
 ): MiniGenome {
-  return { coat, horns, wings, pattern, ember, size };
+  return { coat, horns, wings, pattern, ember, size, ears, muzzle, legs, tail, crest, frame };
 }
 
 /**
@@ -404,7 +497,7 @@ function genome(
  * Chosen so the pool is a workable puzzle rather than a random draw: every
  * allele of every gene is present somewhere, all three ember forms and all three
  * wing forms are visible in the founders so the ladders can be discovered by
- * looking, and both the fluffy coat and the teacup size are carried by sleek
+ * looking, and both the baby-bumpy scale rows and the teacup size are carried by smooth-backed
  * standard-sized founders — so the two recessive traits have to be bred out of
  * hiding rather than picked off a shelf.
  */
@@ -413,37 +506,37 @@ export const MINI_FOUNDERS: readonly MiniFounderDefinition[] = [
     id: 'mini-biscuit',
     name: 'Biscuit',
     title: 'Gold founder · Royal Mini Dragon Society',
-    genome: genome(['F', 'f'], ['C', 'c'], ['W', 'w'], ['G', 'G'], ['Er', 'ep'], ['T', 't']),
+    genome: genome(['F', 'f'], ['C', 'c'], ['W', 'w'], ['G', 'G'], ['Er', 'ep'], ['T', 't'], ['E', 'E'], ['M', 'M'], ['L', 'L'], ['Ts', 'Ts'], ['K', 'K'], ['B', 'B']),
   },
   {
     id: 'mini-pepper',
     name: 'Pepper',
     title: 'Ash founder · teacup line',
-    genome: genome(['F', 'F'], ['c', 'c'], ['W', 'W'], ['A', 'A'], ['Eb', 'ep'], ['t', 't']),
+    genome: genome(['F', 'F'], ['c', 'c'], ['W', 'W'], ['A', 'A'], ['Eb', 'ep'], ['t', 't'], ['E', 'e'], ['M', 'm'], ['L', 'l'], ['Tf', 'Tf'], ['K', 'R'], ['B', 'b']),
   },
   {
     id: 'mini-cinder',
     name: 'Cinder',
-    title: 'Patterned founder · fluffy line',
-    genome: genome(['f', 'f'], ['C', 'c'], ['W', 'w'], ['A', 'G'], ['Er', 'Eb'], ['T', 't']),
+    title: 'Patterned founder · baby-bumpy scale line',
+    genome: genome(['f', 'f'], ['C', 'c'], ['W', 'w'], ['A', 'G'], ['Er', 'Eb'], ['T', 't'], ['e', 'e'], ['m', 'm'], ['l', 'l'], ['Tp', 'Tp'], ['R', 'R'], ['b', 'b']),
   },
   {
     id: 'mini-nimbus',
     name: 'Nimbus',
     title: 'Gold founder · wingless line',
-    genome: genome(['F', 'f'], ['C', 'C'], ['w', 'w'], ['G', 'G'], ['ep', 'ep'], ['T', 'T']),
+    genome: genome(['F', 'f'], ['C', 'C'], ['w', 'w'], ['G', 'G'], ['ep', 'ep'], ['T', 'T'], ['E', 'E'], ['M', 'm'], ['l', 'l'], ['Tf', 'Tp'], ['K', 'R'], ['B', 'b']),
   },
   {
     id: 'mini-sorrel',
     name: 'Sorrel',
     title: 'Ash founder · blue ember line',
-    genome: genome(['F', 'F'], ['C', 'c'], ['W', 'w'], ['A', 'A'], ['Eb', 'ep'], ['T', 't']),
+    genome: genome(['F', 'F'], ['C', 'c'], ['W', 'w'], ['A', 'A'], ['Eb', 'ep'], ['T', 't'], ['E', 'e'], ['M', 'M'], ['L', 'L'], ['Ts', 'Tp'], ['K', 'K'], ['b', 'b']),
   },
   {
     id: 'mini-thistle',
     name: 'Thistle',
     title: 'Patterned founder · teacup line',
-    genome: genome(['f', 'f'], ['c', 'c'], ['W', 'W'], ['A', 'G'], ['ep', 'ep'], ['t', 't']),
+    genome: genome(['f', 'f'], ['c', 'c'], ['W', 'W'], ['A', 'G'], ['ep', 'ep'], ['t', 't'], ['e', 'e'], ['m', 'm'], ['L', 'l'], ['Tp', 'Tp'], ['R', 'R'], ['B', 'B']),
   },
 ];
 

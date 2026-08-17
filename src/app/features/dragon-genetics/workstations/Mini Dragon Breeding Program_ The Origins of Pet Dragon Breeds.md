@@ -11,7 +11,7 @@ The project begins with the story of how humans first domesticated wild mini dra
 - unusual colors
 - floppy or curled horns
 - large eyes
-- fluffy scales
+- baby-bumpy scale rows
 - short snouts
 - wing shape
 - tail shape
@@ -85,7 +85,7 @@ Rare variations exist:
 - white scales
 - curled horns
 - calm behavior
-- fluffy neck scales
+- baby-bumpy scale rows
 
 Students identify:
 
@@ -154,7 +154,7 @@ Desired breed standard:
 - very small body
 - white scales
 - curled horns
-- fluffy neck
+- baby-bumpy back scales
 - gentle temperament
 
 Or:
@@ -187,9 +187,9 @@ Curled horns:
 
 ### Recessive
 
-Fluffy scales:
+Baby-bumpy back scales:
 
-`f = fluffy`
+`f = baby-bumpy rows`
 
 `F = smooth`
 
@@ -227,11 +227,11 @@ Some foundation dragons carry recessive traits that students need.
 
 For example:
 
-The student wants fluffy scales.
+The student wants baby-bumpy scale rows.
 
-None of their dragons look fluffy.
+None of their dragons show the bumpy rows.
 
-But pedigree records suggest several descend from an old fluffy champion.
+But pedigree records suggest several descend from an old baby-bumpy champion.
 
 Students use the **Pedigree Lab** to locate likely carriers.
 
@@ -476,7 +476,7 @@ Winning should not determine the grade. The student's genetics evidence should.
 The program could eventually contain established breeds students encounter before making their own.
 
 ### Cloud Puff
-Tiny, fluffy white dragon with very weak fire.
+Tiny white dragon with soft rows of baby bumps and very weak fire.
 
 ### Ember Pug
 Stocky dragon with short snout and enormous personality.
@@ -485,7 +485,7 @@ Stocky dragon with short snout and enormous personality.
 Small black dragon with huge eyes and excellent night vision.
 
 ### Highland Floof
-Large fluffy miniature dragon adapted to cold climates.
+Large miniature dragon with protective bumpy scale rows adapted to cold climates.
 
 ### Ruby Crest
 Red dragon bred for dramatic horns and bright scale coloration.

@@ -43,7 +43,7 @@ describe('companion show standard', () => {
     const matches = standardMatches(cinder.genome, [FLUFFY, CURLED]);
 
     expect(matches.map((match) => match.matched)).toEqual([true, true]);
-    expect(matches[0].actualLabel).toBe('Fluffy coat');
+    expect(matches[0].actualLabel).toBe('Baby-bumpy spike rows');
     // The record a phenotype-only surface renders must carry no allele pair.
     expect(JSON.stringify(matches)).not.toMatch(/"[A-Za-z]{1,2}","[A-Za-z]{1,2}"/);
   });
@@ -241,8 +241,9 @@ describe('anatomy', () => {
   });
 
   it('shortens the legs and keeps the head large on a teacup', () => {
-    const teacup = companionAssembly(founder('mini-pepper'));
-    const standard = companionAssembly(founder('mini-nimbus'));
+    // Thistle and Biscuit share the long frame, while their size forms differ.
+    const teacup = companionAssembly(founder('mini-thistle'));
+    const standard = companionAssembly(founder('mini-biscuit'));
     const legHeight = (parts: typeof teacup['parts']): number =>
       parts.find((part) => part.id === 'mini-leg-front-left')!.dimensions.y;
     const headToBody = (parts: typeof teacup['parts']): number =>
@@ -254,14 +255,87 @@ describe('anatomy', () => {
     expect(headToBody(teacup.parts)).toBeGreaterThan(headToBody(standard.parts));
   });
 
-  it('passes the coat, horn, and wing genes through to the renderer', () => {
-    const fluffyCurled = companionAssembly(founder('mini-cinder'));
-    const head = fluffyCurled.parts.find((part) => part.id === 'mini-head')!;
-    const wing = fluffyCurled.parts.find((part) => part.id === 'mini-wing-left')!;
+  it('builds every leg as a hip, thigh, and articulated lower leg', () => {
+    const blueprint = companionAssembly(founder('mini-biscuit'));
+    const thigh = blueprint.parts.find((part) => part.id === 'mini-leg-front-left')!;
+    const lower = blueprint.parts.find(
+      (part) => part.id === 'mini-leg-front-left-lower-leg',
+    )!;
+    const hip = blueprint.joints.find((joint) => joint.childPartId === thigh.id)!;
+    const knee = blueprint.joints.find((joint) => joint.childPartId === lower.id)!;
 
-    expect(head.visualProfile?.parameters?.['miniCoatDepth']).toBe(1);
+    expect(thigh.visualProfile?.profileId).toBe('mini-dragon-thigh');
+    expect(lower.visualProfile?.profileId).toBe('mini-dragon-leg');
+    expect(hip.parentPartId).toBe('mini-body');
+    expect(hip.pivotOnChild.y).toBeCloseTo(thigh.dimensions.y * 0.4, 6);
+    expect(knee.parentPartId).toBe(thigh.id);
+    expect(knee.pivotOnChild.y).toBeCloseTo(lower.dimensions.y * 0.4, 6);
+  });
+
+  it('maps the six expanded silhouette genes into major part changes', () => {
+    const longRunner = companionAssembly(founder('mini-biscuit'));
+    const roundWaddler = companionAssembly(founder('mini-cinder'));
+    const part = (blueprint: typeof longRunner, id: string) =>
+      blueprint.parts.find((candidate) => candidate.id === id)!;
+    const headParameters = part(longRunner, 'mini-head').visualProfile?.parameters;
+    const roundHeadParameters = part(roundWaddler, 'mini-head').visualProfile?.parameters;
+
+    expect(part(longRunner, 'mini-body').dimensions.x)
+      .toBeGreaterThan(part(roundWaddler, 'mini-body').dimensions.x);
+    expect(part(longRunner, 'mini-leg-front-left').dimensions.y)
+      .toBeGreaterThan(part(roundWaddler, 'mini-leg-front-left').dimensions.y * 2);
+    expect(headParameters?.['miniEarScale']).toBeGreaterThan(1);
+    expect(roundHeadParameters?.['miniEarScale']).toBeLessThan(0.5);
+    expect(headParameters?.['miniSnoutLength']).toBeGreaterThan(1);
+    expect(roundHeadParameters?.['miniSnoutLength']).toBeLessThan(0.1);
+    expect(headParameters?.['miniCrestCrown']).toBe(1);
+    expect(roundHeadParameters?.['miniCrestFrill']).toBe(1);
+    expect(part(longRunner, 'mini-tail-plume').visualProfile?.parameters?.['miniTailStyle']).toBe(0);
+    expect(part(roundWaddler, 'mini-tail-plume').visualProfile?.parameters?.['miniTailStyle']).toBe(2);
+  });
+
+  it('overlaps the slim tail pieces along one continuous centreline', () => {
+    const blueprint = companionAssembly(founder('mini-biscuit'));
+    const tail1 = blueprint.parts.find((part) => part.id === 'mini-tail-1')!;
+    const tail2 = blueprint.parts.find((part) => part.id === 'mini-tail-2')!;
+    const plume = blueprint.parts.find((part) => part.id === 'mini-tail-plume')!;
+
+    expect(tail2.position.y).toBeCloseTo(tail1.position.y, 6);
+    expect(plume.position.y).toBeCloseTo(tail1.position.y, 6);
+    expect(tail2.position.x + tail2.dimensions.x / 2)
+      .toBeGreaterThan(tail1.position.x - tail1.dimensions.x / 2);
+    expect(plume.position.x + plume.dimensions.x * 0.12)
+      .toBeGreaterThan(tail2.position.x - tail2.dimensions.x / 2);
+    expect(tail1.dimensions.y).toBeLessThan(tail1.dimensions.x);
+  });
+
+  it('passes the back-scale, horn, and wing genes through to the renderer', () => {
+    const bumpyCurled = companionAssembly(founder('mini-cinder'));
+    const scales = bumpyCurled.parts.find((part) => part.id === 'mini-dorsal-scales')!;
+    const head = bumpyCurled.parts.find((part) => part.id === 'mini-head')!;
+    const wing = bumpyCurled.parts.find((part) => part.id === 'mini-wing-left')!;
+
+    expect(scales.visualProfile?.parameters?.['miniDorsalBumps']).toBe(1);
     expect(head.visualProfile?.parameters?.['miniHornCurl']).toBe(1);
     expect(wing.visualProfile?.parameters?.['miniWingSpread']).toBeCloseTo(0.58, 5);
+  });
+
+  it('includes a separate lower jaw for learned show motions', () => {
+    const blueprint = companionAssembly(founder('mini-biscuit'));
+    const jaw = blueprint.parts.find((part) => part.id === 'mini-jaw');
+
+    expect(jaw?.roles).toContain('jaw');
+    expect(jaw?.visualProfile?.profileId).toBe('mini-dragon-jaw');
+    expect(blueprint.joints.some((joint) => joint.childPartId === 'mini-jaw')).toBe(true);
+  });
+
+  it('includes a separate neck and dorsal-scale rows for expression and learned poses', () => {
+    const blueprint = companionAssembly(founder('mini-biscuit'));
+
+    expect(blueprint.parts.find((part) => part.id === 'mini-neck')?.roles).toContain('neck');
+    expect(
+      blueprint.parts.find((part) => part.id === 'mini-dorsal-scales')?.roles,
+    ).toContain('dorsal-scales');
   });
 
   it('collapses the wings of a vestigial genotype', () => {
@@ -273,10 +347,14 @@ describe('anatomy', () => {
   it('authors part-local joint pivots', () => {
     const blueprint = companionAssembly(founder('mini-biscuit'));
     const head = blueprint.parts.find((part) => part.id === 'mini-head')!;
+    const neck = blueprint.parts.find((part) => part.id === 'mini-neck')!;
     const joint = blueprint.joints.find((candidate) => candidate.childPartId === 'mini-head')!;
 
-    // The body sits at the origin, so the pivot equals the head's offset.
-    expect(joint.pivotOnParent).toEqual(head.position);
+    expect(joint.pivotOnParent).toEqual({
+      x: head.position.x - neck.position.x,
+      y: head.position.y - neck.position.y,
+      z: head.position.z - neck.position.z,
+    });
     expect(joint.pivotOnChild).toEqual({ x: 0, y: 0, z: 0 });
   });
 });

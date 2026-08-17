@@ -3,9 +3,9 @@
     <span class="lab__eyebrow">Parts lab</span>
     <h1>Part mesh workbench</h1>
     <p class="lab__lede">
-      Every part rendered on its own, from every angle. Edit
-      <code>dragon-procedural-mesh.factory.ts</code>, save, and this page rebuilds — no dragon to
-      hunt through. Deep-link a part with <code>?part=&lt;id&gt;</code>.
+      Every part rendered on its own, from every angle. Switch between the lab dragon and Mini
+      Dragon, edit their shared procedural mesh factories, and save to rebuild without hunting
+      through a complete animal. Deep-link a part with <code>?part=&lt;id&gt;</code>.
     </p>
   </header>
 
@@ -21,6 +21,26 @@
         >{{ option }}</button>
       }
     </div>
+
+    @if (family() === 'dragon') {
+      <div class="lab__species" role="group" aria-label="Dragon species">
+        <span>Dragon species</span>
+        <button
+          type="button"
+          class="lab__chip"
+          [class.lab__chip--active]="dragonSpecies() === 'lab'"
+          [attr.aria-pressed]="dragonSpecies() === 'lab'"
+          (click)="setDragonSpecies('lab')"
+        >Lab dragon</button>
+        <button
+          type="button"
+          class="lab__chip"
+          [class.lab__chip--active]="dragonSpecies() === 'mini'"
+          [attr.aria-pressed]="dragonSpecies() === 'mini'"
+          (click)="setDragonSpecies('mini')"
+        >Mini dragon</button>
+      </div>
+    }
 
     <label class="lab__field">
       <span>Colour</span>
@@ -38,7 +58,7 @@
 
   <!-- Contact sheet -->
   <section class="lab__sheet" aria-labelledby="sheet-heading" data-bake="contact-sheet">
-    <h2 class="lab__section-title" id="sheet-heading">All {{ family() }} parts ({{ tiles().length }})</h2>
+    <h2 class="lab__section-title" id="sheet-heading">All {{ collectionLabel() }} parts ({{ tiles().length }})</h2>
 
     <ul class="lab__grid">
       @for (tile of tiles(); track tile.definition.id) {

@@ -5,8 +5,8 @@ import { MiniGenome, miniPhenotypeFormId } from './mini-dragon.genetics';
  *
  * Each trial is a second, independent read-out of the genome: not a score the
  * app invents, but an observable consequence of traits the student can already
- * see on the animal. That is the point. A breeder who has only looked at coats
- * can enter a trial and discover that the coat they bred for costs them the
+ * see on the animal. That is the point. A breeder who has only looked at back scales
+ * can enter a trial and discover that the rows they bred for cost them the
  * agility run, and nothing on the surface told them so in advance.
  *
  * Two rules keep these honest:
@@ -14,8 +14,8 @@ import { MiniGenome, miniPhenotypeFormId } from './mini-dragon.genetics';
  * 1. **No trial names a gene or a genotype.** A result is a thing that happened
  *    in the ring — "Soars", "Withdraws" — and the student infers the link by
  *    entering animals and comparing.
- * 2. **The trials disagree with each other.** Cold endurance rewards the fluffy
- *    coat and the agility run punishes it, so no single companion can place in
+ * 2. **The trials disagree with each other.** Cold endurance rewards protective bumpy
+ *    scale rows and the agility run punishes their drag, so no single companion can place in
  *    everything and a breed standard has to commit to something.
  */
 
@@ -26,6 +26,8 @@ export interface MiniTrialOutcome {
   label: string;
   /** Whether this outcome takes the ribbon in its trial. */
   places: boolean;
+  /** Natural aptitude used by the genetics half of the 50/50 Society score. */
+  aptitudePercent: number;
   detail: string;
 }
 
@@ -37,8 +39,14 @@ export interface MiniTrialDefinition {
   outcomes: readonly MiniTrialOutcome[];
 }
 
-function outcome(id: string, label: string, places: boolean, detail: string): MiniTrialOutcome {
-  return { id, label, places, detail };
+function outcome(
+  id: string,
+  label: string,
+  places: boolean,
+  aptitudePercent: number,
+  detail: string,
+): MiniTrialOutcome {
+  return { id, label, places, aptitudePercent, detail };
 }
 
 export const MINI_TRIALS: readonly MiniTrialDefinition[] = [
@@ -47,9 +55,9 @@ export const MINI_TRIALS: readonly MiniTrialDefinition[] = [
     name: 'Flight trial',
     brief: 'The companion is released across the ring and judged on how it crosses.',
     outcomes: [
-      outcome('flight:soars', 'Soars', true, 'Crosses the ring without touching down.'),
-      outcome('flight:hovers', 'Hovers', false, 'Lifts clear but cannot hold height.'),
-      outcome('flight:grounded', 'Grounded', false, 'Runs the ring on foot.'),
+      outcome('flight:soars', 'Soars', true, 100, 'Crosses the ring without touching down.'),
+      outcome('flight:hovers', 'Hovers', false, 65, 'Lifts clear but cannot hold height.'),
+      outcome('flight:grounded', 'Grounded', false, 25, 'Runs the ring on foot.'),
     ],
   },
   {
@@ -57,9 +65,9 @@ export const MINI_TRIALS: readonly MiniTrialDefinition[] = [
     name: 'Agility run',
     brief: 'A weaving course against the clock.',
     outcomes: [
-      outcome('agility:nimble', 'Nimble', true, 'Clears the course without a fault.'),
-      outcome('agility:brisk', 'Brisk', false, 'Finishes cleanly but unhurried.'),
-      outcome('agility:heavy', 'Heavy', false, 'Labours through the turns.'),
+      outcome('agility:nimble', 'Nimble', true, 100, 'Clears the course without a fault.'),
+      outcome('agility:brisk', 'Brisk', false, 65, 'Finishes cleanly but unhurried.'),
+      outcome('agility:heavy', 'Heavy', false, 30, 'Labours through the turns.'),
     ],
   },
   {
@@ -67,8 +75,8 @@ export const MINI_TRIALS: readonly MiniTrialDefinition[] = [
     name: 'Cold endurance',
     brief: 'An hour on the exposed north bench.',
     outcomes: [
-      outcome('endurance:endures', 'Endures', true, 'Settles and stays out the full hour.'),
-      outcome('endurance:withdraws', 'Withdraws', false, 'Asks to come in early.'),
+      outcome('endurance:endures', 'Endures', true, 100, 'Settles and stays out the full hour.'),
+      outcome('endurance:withdraws', 'Withdraws', false, 35, 'Asks to come in early.'),
     ],
   },
   {
@@ -76,9 +84,9 @@ export const MINI_TRIALS: readonly MiniTrialDefinition[] = [
     name: 'Ember display',
     brief: 'The evening display, judged on the colour and carry of the flame.',
     outcomes: [
-      outcome('ember:rose-flare', 'Rose flare', true, 'A bright flare that carries the ring.'),
-      outcome('ember:blue-flare', 'Blue flare', false, 'A clean flame, short in reach.'),
-      outcome('ember:faint', 'Faint glow', false, 'Little more than a warm throat.'),
+      outcome('ember:rose-flare', 'Rose flare', true, 100, 'A bright flare that carries the ring.'),
+      outcome('ember:blue-flare', 'Blue flare', false, 70, 'A clean flame, short in reach.'),
+      outcome('ember:faint', 'Faint glow', false, 35, 'Little more than a warm throat.'),
     ],
   },
 ];
@@ -122,9 +130,9 @@ function resolveOutcomeId(trialId: MiniTrialId, genome: MiniGenome): string {
 
     case 'agility': {
       const light = miniPhenotypeFormId('size', genome) === 'size:teacup';
-      const fluffy = miniPhenotypeFormId('coat', genome) === 'coat:fluffy';
-      if (light && !fluffy) return 'agility:nimble';
-      if (light || !fluffy) return 'agility:brisk';
+      const bumpy = miniPhenotypeFormId('coat', genome) === 'coat:fluffy';
+      if (light && !bumpy) return 'agility:nimble';
+      if (light || !bumpy) return 'agility:brisk';
       return 'agility:heavy';
     }
 

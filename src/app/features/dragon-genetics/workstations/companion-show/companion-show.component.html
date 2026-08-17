@@ -45,6 +45,36 @@
         />
       </label>
 
+      <section class="division-board" aria-labelledby="division-title">
+        <header>
+          <span>SOCIETY DIVISION</span>
+          <h4 id="division-title">Which published combination will the judges seek?</h4>
+        </header>
+        <div class="division-choices">
+          @for (division of showDivisions; track division.id) {
+            <button
+              type="button"
+              [class.chosen]="showDivisionId() === division.id"
+              [attr.aria-pressed]="showDivisionId() === division.id"
+              [attr.data-testid]="'division-' + division.id"
+              (click)="setShowDivision(division.id)"
+            >
+              <strong>{{ division.name }}</strong>
+              <small>{{ division.motto }}</small>
+              <span>
+                @for (target of division.targets; track target.geneId) {
+                  <i>{{ standardLabel(target) }}</i>
+                }
+              </span>
+            </button>
+          }
+        </div>
+        <p>
+          Your breed standard is your goal. The chosen division is the fixed combination used by
+          Society judges, so breeding decisions can help one goal while making another harder.
+        </p>
+      </section>
+
       <div class="standard-rows">
         @for (row of standardRows(); track row.geneId) {
           <fieldset>
@@ -313,7 +343,7 @@
                 <dl class="feature-readout">
                   <div class="feature-head">
                     <dt>Individual features</dt>
-                    <dd>not one of the six inherited genes</dd>
+                    <dd>not one of the twelve inherited genes</dd>
                   </div>
                   @for (feature of standFeatures(); track feature.label) {
                     <div>
@@ -430,6 +460,224 @@
     </aside>
   </div>
 
+  <!-- Open-order show training ------------------------------------------- -->
+  <section class="training-yard" aria-labelledby="training-yard-title">
+    <header>
+      <div>
+        <span>SHOW TRAINING YARD</span>
+        <h3 id="training-yard-title">Inherited aptitude meets learned skill</h3>
+      </div>
+      <p>
+        Practice any cue in any order. Training belongs to this dragon only; young inherit genes,
+        never practice sessions.
+      </p>
+    </header>
+
+    <div class="training-yard__body">
+      <aside class="training-roster" aria-label="Kennel dragons available for training">
+        <span>TRAINING DRAGON</span>
+        @if (kennel().length) {
+          <div>
+            @for (dragon of kennel(); track dragon.id) {
+              <button
+                type="button"
+                [class.selected]="trainingDragon().id === dragon.id"
+                [attr.aria-pressed]="trainingDragon().id === dragon.id"
+                (click)="selectTrainingDragon(dragon.id)"
+              >
+                <i [style.--pup-color]="paintFor(dragon).color" aria-hidden="true"></i>
+                <span
+                  ><strong>{{ dragon.name }}</strong
+                  ><small>Generation {{ dragon.generation }}</small></span
+                >
+              </button>
+            }
+          </div>
+        } @else {
+          <p>Bring a founder into the kennel to open the training yard.</p>
+        }
+      </aside>
+
+      <div class="training-model" [class.empty]="!trainingSource()">
+        <app-specimen-viewport
+          #trainingViewport
+          [source]="trainingSource()"
+          [ariaLabel]="
+            trainingDragon()
+              ? trainingDragon()!.name + ' demonstrating learned show behavior'
+              : 'Training yard is empty'
+          "
+          [controls]="false"
+          [showGroundShadow]="true"
+          [framePadding]="1.18"
+        />
+        @if (trainingDragon(); as dragon) {
+          <div class="training-model__plate">
+            <span>Currently training</span>
+            <strong>{{ dragon.name }}</strong>
+          </div>
+        } @else {
+          <div class="empty-stand"><span>SELECT A KENNEL DRAGON</span></div>
+        }
+      </div>
+
+      <div class="training-stations" aria-label="Learned show skills">
+        @for (skill of trainingSkills; track skill.id) {
+          <article [class.mastered]="trainingLevel(skill.id) === trainingLevelMax">
+            <header>
+              <span>{{ skill.cue }} cue</span>
+              <strong>{{ skill.name }}</strong>
+            </header>
+            <p>{{ skill.practice }}</p>
+            <div
+              class="training-meter"
+              role="progressbar"
+              [attr.aria-label]="skill.name + ' training level'"
+              aria-valuemin="0"
+              [attr.aria-valuemax]="trainingLevelMax"
+              [attr.aria-valuenow]="trainingLevel(skill.id)"
+            >
+              @for (level of [1, 2, 3, 4]; track level) {
+                <i [class.filled]="trainingLevel(skill.id) >= level"></i>
+              }
+            </div>
+            <footer>
+              <small>{{ trainingLevelLabel(skill.id) }}</small>
+              <button
+                type="button"
+                [attr.data-testid]="'train-' + skill.id"
+                [disabled]="
+                  !trainingDragon() ||
+                  trainingInProgress() !== null ||
+                  trainingLevel(skill.id) >= trainingLevelMax
+                "
+                (click)="practiceTraining(skill.id)"
+              >
+                @if (trainingInProgress() === skill.id) {
+                  Demonstrating...
+                } @else if (trainingLevel(skill.id) >= trainingLevelMax) {
+                  Ring-ready
+                } @else {
+                  Practice cue
+                }
+              </button>
+            </footer>
+          </article>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Rare trait pedigree hunt ------------------------------------------- -->
+  <section class="rare-pedigree" aria-labelledby="rare-pedigree-title">
+    <header>
+      <div>
+        <span>RARE TRAIT PEDIGREE HUNT</span>
+        <h3 id="rare-pedigree-title">Follow a hidden form through the family</h3>
+      </div>
+      <p>
+        Choose a recessive trait, compare parents and offspring, then flag the dragons whose
+        family records make them promising breeding candidates.
+      </p>
+    </header>
+
+    <div class="rare-trait-picker" aria-label="Rare recessive trait to trace">
+      @for (target of rareTraitTargets; track target.geneId) {
+        <button
+          type="button"
+          [class.selected]="rareTraitGeneId() === target.geneId"
+          [attr.aria-pressed]="rareTraitGeneId() === target.geneId"
+          [attr.data-testid]="'rare-trait-' + target.geneId"
+          (click)="setRareTraitGene(target.geneId)"
+        >
+          <small>{{ target.geneName }}</small>
+          <strong>{{ target.formLabel }}</strong>
+        </button>
+      }
+    </div>
+
+    @if (rareTraitTarget(); as target) {
+      <div class="pedigree-brief">
+        <div>
+          <span>BREEDER'S CLUE</span>
+          <p>{{ target.clue }}</p>
+        </div>
+        <strong>
+          {{ rareTraitFoundCount() }} recorded
+          {{ rareTraitFoundCount() === 1 ? 'dragon' : 'dragons' }} showing
+          {{ target.formLabel.toLowerCase() }}
+        </strong>
+      </div>
+
+      @if (pedigreePopulation().length) {
+        <div class="pedigree-chart" aria-label="Mini dragon family generations">
+          @for (group of pedigreeGenerations(); track group.generation) {
+            <section class="pedigree-generation">
+              <h4>Generation {{ group.generation }}</h4>
+              <div>
+                @for (dragon of group.dragons; track dragon.id) {
+                  <article
+                    class="pedigree-dragon"
+                    [class.flagged]="isRareCandidate(dragon.id)"
+                    [attr.data-evidence]="pedigreeEvidenceFor(dragon)?.id"
+                  >
+                    <header>
+                      <i [style.--pup-color]="paintFor(dragon).color" aria-hidden="true"></i>
+                      <div>
+                        <strong>{{ dragon.name }}</strong>
+                        <small>{{ pedigreeParentNames(dragon) }}</small>
+                      </div>
+                    </header>
+                    <p><span>Visible {{ target.geneName }}</span>{{ pedigreeTraitLabel(dragon) }}</p>
+
+                    @if (isRareCandidate(dragon.id)) {
+                      @if (pedigreeEvidenceFor(dragon); as evidence) {
+                        <div class="pedigree-evidence" [attr.data-rank]="evidence.rank">
+                          <strong>{{ evidence.label }}</strong>
+                          <small>{{ evidence.detail }}</small>
+                        </div>
+                      }
+                    }
+
+                    <footer>
+                      <button
+                        type="button"
+                        class="candidate-toggle"
+                        [class.selected]="isRareCandidate(dragon.id)"
+                        [attr.aria-pressed]="isRareCandidate(dragon.id)"
+                        [attr.data-testid]="'rare-candidate-' + dragon.id"
+                        (click)="toggleRareCandidate(dragon.id)"
+                      >
+                        {{ isRareCandidate(dragon.id) ? 'Remove flag' : 'Flag candidate' }}
+                      </button>
+                      @if (isRareCandidate(dragon.id) && !isInKennel(dragon.id)) {
+                        <button type="button" (click)="keepPedigreeCandidate(dragon)">
+                          Keep for breeding
+                        </button>
+                      }
+                      @if (isRareCandidate(dragon.id) && isInKennel(dragon.id)) {
+                        <button type="button" (click)="assignToPair('dam', dragon.id)">Parent 1</button>
+                        <button type="button" (click)="assignToPair('sire', dragon.id)">Parent 2</button>
+                      }
+                    </footer>
+                  </article>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      } @else {
+        <p class="pedigree-empty">
+          Adopt two founders and whelp a litter. Their offspring will appear here as a family chart.
+        </p>
+      }
+    } @else {
+      <p class="pedigree-empty">
+        Start by choosing the rare form you hope to recover in a future litter.
+      </p>
+    }
+  </section>
+
   <!-- Litter record ------------------------------------------------------- -->
   <section class="record-card" aria-labelledby="litter-record-title">
     <header>
@@ -514,6 +762,7 @@
       <div class="ring-stand">
         <div class="champion-model" [class.empty]="!championSource()">
           <app-specimen-viewport
+            #championViewport
             [source]="championSource()"
             [ariaLabel]="champion() ? champion()!.name + ' in the show ring' : 'Show ring is empty'"
             [controls]="false"
@@ -580,6 +829,66 @@
           </div>
         </div>
 
+        <section class="judge-console" aria-labelledby="judge-console-title">
+          <header>
+            <span>50 / 50 JUDGING</span>
+            <h4 id="judge-console-title">
+              {{ showDivision()?.name ?? 'Choose a Society division' }}
+            </h4>
+          </header>
+          <div class="judge-balance" aria-label="Show score is half genetics and half training">
+            <span><b>50</b> inherited</span>
+            <i aria-hidden="true"></i>
+            <span><b>50</b> trained</span>
+          </div>
+          @if (showDivision(); as division) {
+            <p>{{ division.description }}</p>
+            <ul class="judge-targets" aria-label="Division target combination">
+              @for (target of division.targets; track target.geneId) {
+                <li>{{ standardLabel(target) }}</li>
+              }
+            </ul>
+          } @else {
+            <p>Choose a published combination on the Breed Standard bench.</p>
+          }
+
+          <button
+            type="button"
+            class="enter-show-button"
+            data-testid="enter-show"
+            [disabled]="!canEnterShow()"
+            (click)="enterShow()"
+          >
+            Enter current representative
+          </button>
+
+          @if (latestShowRun(); as run) {
+            <div class="judge-result" aria-live="polite">
+              <div>
+                <span>Inherited score</span>
+                <strong>{{ run.geneticScore }}<small>/50</small></strong>
+              </div>
+              <div>
+                <span>Training score</span>
+                <strong>{{ run.trainingScore }}<small>/50</small></strong>
+              </div>
+              <div class="total">
+                <span>{{ run.award }}</span>
+                <strong>{{ run.combinedScore }}<small>/100</small></strong>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="championship-routine-button"
+              data-testid="championship-routine"
+              [disabled]="championshipInProgress()"
+              (click)="performChampionshipRoutine()"
+            >
+              {{ championshipInProgress() ? 'Performing routine...' : 'Perform championship routine' }}
+            </button>
+          }
+        </section>
+
         <ul class="evidence-list" aria-label="Registry evidence">
           @for (check of evidenceChecks(); track check.id) {
             <li [class.met]="check.met">
@@ -629,6 +938,11 @@
               }
             </p>
             <p class="registry-claim">{{ entry.claim }}</p>
+            <p class="registry-score">
+              <strong>{{ entry.combinedScore }}/100 {{ entry.award }}</strong>
+              <span>{{ entry.geneticScore }} inherited + {{ entry.trainingScore }} trained</span>
+            </p>
+            <span class="registry-division">{{ divisionLabel(entry.showDivisionId) }}</span>
             <small
               >Representative {{ entry.championName }} · {{ entry.generations }} generations ·
               {{ entry.ribbons }} ribbons · pairing inbreeding {{ entry.inbreedingPercent }}%</small

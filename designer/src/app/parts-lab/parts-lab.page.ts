@@ -29,6 +29,7 @@ import {
 } from '@pbl/assembly/rendering/dragon-procedural-mesh.factory';
 import { PartTuningStore } from './part-tuning.store';
 import { DesignerDragonDraftStore } from '../designer-dragon-draft.store';
+import { MINI_DRAGON_PART_DEFINITIONS } from './mini-dragon-part-definitions';
 
 /**
  * A workbench for the part meshes themselves.
@@ -52,6 +53,8 @@ interface AngleView {
   label: string;
   direction: Vector3Data;
 }
+
+export type PartsLabDragonSpecies = 'lab' | 'mini';
 
 /** One tunable number, resolved from the selected part's style section. */
 export interface StyleControl {
@@ -194,6 +197,7 @@ export class PartsLabPage implements OnDestroy {
   readonly contextLost = this.renderer.contextLost;
 
   readonly family = signal<AssemblyPartFamily>('dragon');
+  readonly dragonSpecies = signal<PartsLabDragonSpecies>('lab');
   readonly selectedId = signal<string | null>(null);
   readonly color = signal(NEUTRAL_COLOR);
   readonly useDefinitionColor = signal(false);
@@ -213,8 +217,18 @@ export class PartsLabPage implements OnDestroy {
 
   private readonly params = toSignal(this.route.queryParamMap, { initialValue: null });
 
-  readonly definitions = computed(() =>
-    ASSEMBLY_PART_DEFINITIONS.filter(definition => definition.family === this.family()));
+  readonly definitions = computed(() => {
+    const family = this.family();
+    if (family === 'dragon' && this.dragonSpecies() === 'mini') {
+      return MINI_DRAGON_PART_DEFINITIONS;
+    }
+    return ASSEMBLY_PART_DEFINITIONS.filter(definition => definition.family === family);
+  });
+
+  readonly collectionLabel = computed(() =>
+    this.family() === 'dragon'
+      ? this.dragonSpecies() === 'mini' ? 'mini dragon' : 'lab dragon'
+      : this.family());
 
   /**
    * Explicitly nullable: `list[0]` is typed as always-present without
@@ -296,6 +310,8 @@ export class PartsLabPage implements OnDestroy {
       if (!params) return;
       const family = params.get('family') as AssemblyPartFamily | null;
       if (family && FAMILIES.includes(family)) this.family.set(family);
+      const species = params.get('species');
+      if (species === 'lab' || species === 'mini') this.dragonSpecies.set(species);
       const part = params.get('part');
       if (part) this.selectedId.set(part);
       const tile = Number(params.get('tile'));
@@ -430,7 +446,11 @@ export class PartsLabPage implements OnDestroy {
     this.selectedId.set(definition.id);
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { part: definition.id, family: this.family() },
+      queryParams: {
+        part: definition.id,
+        family: this.family(),
+        species: this.family() === 'dragon' ? this.dragonSpecies() : null,
+      },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
@@ -439,6 +459,17 @@ export class PartsLabPage implements OnDestroy {
   setFamily(family: AssemblyPartFamily): void {
     this.family.set(family);
     this.selectedId.set(null);
+  }
+
+  setDragonSpecies(species: PartsLabDragonSpecies): void {
+    this.dragonSpecies.set(species);
+    this.selectedId.set(null);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { species, part: null, family: 'dragon' },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   resetScale(): void {

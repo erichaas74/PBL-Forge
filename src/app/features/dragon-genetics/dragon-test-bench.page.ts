@@ -51,6 +51,12 @@ const DEFAULT_MINI_FORMS: Readonly<Record<MiniGeneId, string>> = {
   pattern: 'pattern:ash-gold',
   ember: 'ember:rose',
   size: 'size:standard',
+  ears: 'ears:petal',
+  muzzle: 'muzzle:medium',
+  legs: 'legs:medium',
+  tail: 'tail:pom',
+  crest: 'crest:crown-frill',
+  frame: 'frame:balanced',
 };
 
 /**
@@ -59,7 +65,7 @@ const DEFAULT_MINI_FORMS: Readonly<Record<MiniGeneId, string>> = {
  * Two species share the bench, and the toggle between them is the point rather
  * than a convenience: the lab dragon models one relationship — a dominant
  * allele is enough — thirteen times over, while the mini dragon runs four
- * different inheritance patterns across six genes. Seeing them on the same
+ * different inheritance patterns across twelve genes. Seeing them on the same
  * instrument, framed and lit the same way, is what makes the second species
  * read as a different *genetics* rather than a different art style.
  */

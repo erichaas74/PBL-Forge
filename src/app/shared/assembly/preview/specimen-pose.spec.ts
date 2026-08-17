@@ -139,6 +139,20 @@ describe('estimateSpecimenFrame', () => {
     expect(wingedFrame.radius).toBeGreaterThan(plainFrame.radius);
   });
 
+  it('includes a mini dragon\'s procedural face and sail ears in its frame', () => {
+    const plain: AssemblyPart = { ...part('head', 0, ['head']) };
+    const miniHead: AssemblyPart = {
+      ...plain,
+      visualProfile: { profileId: 'mini-dragon-head', meshType: 'procedural' },
+    };
+
+    const plainFrame = estimateSpecimenFrame({ parts: [plain], joints: [] });
+    const miniFrame = estimateSpecimenFrame({ parts: [miniHead], joints: [] });
+
+    expect(miniFrame.halfExtents.x).toBeGreaterThan(plainFrame.halfExtents.x);
+    expect(miniFrame.halfHeight).toBeGreaterThan(plainFrame.halfHeight * 2);
+  });
+
   it('uses the posed positions when a pose is supplied', () => {
     const blueprint = chainBlueprint();
     const pose = buildSpecimenPose(blueprint, { droopRadians: 0.4 });

@@ -1,31 +1,91 @@
 @if (viewModel(); as view) {
-  <main class="hall">
-    <header class="lintel">
-      <a class="lintel__back" routerLink="/catalog">← Science 7</a>
-      <span class="lintel__mark">Dragon Genetics Lab</span>
-      <a class="lintel__aside" routerLink="/dragon-genetics/wise-dragon">Preview Wise Dragon</a>
-    </header>
+  <a class="skip-link" href="#current-quest">Skip to today’s quest</a>
 
-    <section class="landfall" aria-labelledby="mission-title">
-      <app-harbour-panorama class="landfall__scene" />
+  <main class="academy-shell">
+    <header class="great-beam" aria-label="Academy navigation">
+      <a class="beam-link beam-link--back" routerLink="/catalog">
+        <span aria-hidden="true">←</span>
+        <span><small>Return to</small>Science 7</span>
+      </a>
 
-      <div class="landfall__copy">
-        <p class="eyebrow">
-          {{ view.selectedPathId ? 'Final path selected' : 'Dragon conservation academy' }}
-        </p>
-        <h1 id="mission-title">{{ view.title }}</h1>
-        <p class="landfall__mission">{{ view.mission }}</p>
+      <div class="academy-seal" aria-label="Viking Academy of Dragon Studies">
+        <span class="academy-seal__crest" aria-hidden="true">ᛞ</span>
+        <span>
+          <small>Viking Academy of</small>
+          Dragon Studies
+        </span>
       </div>
 
-      <!--
-        The progress dial is an instrument, not a chart: brass plate, engraved ticks, one arc.
-        The SVG is decorative and the whole plate carries the progressbar role, so a screen
-        reader gets a single reading instead of a pile of circles.
-      -->
+      <a class="beam-link beam-link--dragon" routerLink="/dragon-genetics/wise-dragon">
+        <span class="dragon-eye" aria-hidden="true"></span>
+        <span><small>Need guidance?</small>Ask the Wise Dragon</span>
+      </a>
+    </header>
+
+    <section class="great-hall" aria-labelledby="academy-title">
+      <div class="great-hall__art" aria-hidden="true"></div>
+      <div class="great-hall__shade" aria-hidden="true"></div>
+      <div class="embers" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+
+      <div class="hero-copy">
+        <p class="hero-copy__kicker">Great Hall · Dragon Conservation Academy</p>
+        <h1 id="academy-title">{{ view.title }}</h1>
+        <p class="hero-copy__mission">{{ view.mission }}</p>
+        <p class="hero-copy__motto">
+          <span>Observe the trait</span><i aria-hidden="true">◆</i>
+          <span>Test the pattern</span><i aria-hidden="true">◆</i>
+          <span>Protect the dragons</span>
+        </p>
+      </div>
+
+      <section class="quest-scroll" id="current-quest" aria-labelledby="quest-title">
+        <span class="quest-scroll__pin quest-scroll__pin--left" aria-hidden="true"></span>
+        <span class="quest-scroll__pin quest-scroll__pin--right" aria-hidden="true"></span>
+
+        @if (view.nextAction; as next) {
+          @if (next.kind === 'activity') {
+            <div class="quest-scroll__copy">
+              <p class="quest-scroll__label">Today’s Quest</p>
+              <h2 id="quest-title">{{ next.title }}</h2>
+              <p>{{ next.objective }}</p>
+            </div>
+            <a class="quest-action" [routerLink]="next.route">
+              <span>{{ actionLabel(next) }}</span>
+              <strong>Begin quest</strong>
+              <span aria-hidden="true">→</span>
+            </a>
+          } @else {
+            <div class="quest-scroll__copy">
+              <p class="quest-scroll__label">The Saga Forge Awaits</p>
+              <h2 id="quest-title">{{ next.title }}</h2>
+              <p>{{ next.objective }}</p>
+            </div>
+            <a class="quest-action" href="#saga-paths">
+              <span>Final project</span>
+              <strong>Choose your saga</strong>
+              <span aria-hidden="true">↓</span>
+            </a>
+          }
+        } @else {
+          <div class="quest-scroll__copy">
+            <p class="quest-scroll__label">Required Training Complete</p>
+            <h2 id="quest-title">Your evidence is secured.</h2>
+            <p>Review your field records or return to any open investigation.</p>
+          </div>
+          <a class="quest-action" href="#trial-map">
+            <span>Academy map</span>
+            <strong>Review your journey</strong>
+            <span aria-hidden="true">↓</span>
+          </a>
+        }
+      </section>
+
       <div
-        class="astrolabe"
+        class="progress-instrument"
         role="progressbar"
-        aria-label="Required project work complete"
+        aria-label="Required academy work complete"
         aria-valuemin="0"
         aria-valuemax="100"
         [attr.aria-valuenow]="view.progressPercent"
@@ -33,153 +93,237 @@
           view.completedRequiredCount + ' of ' + view.requiredActivityCount + ' required complete'
         "
       >
-        <svg class="astrolabe__face" viewBox="0 0 128 128" aria-hidden="true" focusable="false">
-          <circle class="astrolabe__plate" cx="64" cy="64" r="61" />
-          <circle class="astrolabe__bezel" cx="64" cy="64" r="57" />
-          <g class="astrolabe__ticks">
-            @for (tick of dialTicks; track tick) {
-              <line x1="64" y1="10" x2="64" y2="17" [attr.transform]="'rotate(' + tick + ' 64 64)'" />
+        <p>Academy Progress</p>
+        <div class="astrolabe">
+          <svg viewBox="0 0 128 128" aria-hidden="true" focusable="false">
+            <circle class="astrolabe__plate" cx="64" cy="64" r="61" />
+            <circle class="astrolabe__bezel" cx="64" cy="64" r="57" />
+            <g class="astrolabe__ticks">
+              @for (tick of dialTicks; track tick) {
+                <line x1="64" y1="9" x2="64" y2="16" [attr.transform]="'rotate(' + tick + ' 64 64)'" />
+              }
+            </g>
+            <circle class="astrolabe__track" cx="64" cy="64" r="44" />
+            @if (view.progressPercent > 0) {
+              <circle
+                class="astrolabe__arc"
+                cx="64"
+                cy="64"
+                r="44"
+                [style.stroke-dasharray]="dialDash(view.progressPercent)"
+              />
             }
-          </g>
-          <circle class="astrolabe__track" cx="64" cy="64" r="44" />
-          <!-- Omitted rather than zero-length: a round cap on an empty arc still draws a dot. -->
-          @if (view.progressPercent > 0) {
-            <circle
-              class="astrolabe__arc"
-              cx="64"
-              cy="64"
-              r="44"
-              [style.stroke-dasharray]="dialDash(view.progressPercent)"
-            />
+            <path class="astrolabe__needle" d="M64 61 L64 25 L68 59 Z" />
+            <circle class="astrolabe__hub" cx="64" cy="64" r="5" />
+          </svg>
+          <strong>{{ view.progressPercent }}%</strong>
+        </div>
+        <span>{{ view.completedRequiredCount }} of {{ view.requiredActivityCount }} seals earned</span>
+      </div>
+
+      <a class="enter-academy" href="#academy-grounds">
+        <span>Explore the academy</span>
+        <i aria-hidden="true">⌄</i>
+      </a>
+    </section>
+
+    <nav class="academy-grounds" id="academy-grounds" aria-label="Great Hall destinations">
+      <a class="destination-sign destination-sign--map" href="#trial-map">
+        <span class="destination-sign__icon" aria-hidden="true">⌁</span>
+        <span><strong>Trial Map</strong><small>See every investigation</small></span>
+        <i aria-hidden="true">→</i>
+      </a>
+      <a class="destination-sign destination-sign--vault" href="#evidence-vault">
+        <span class="destination-sign__icon" aria-hidden="true">▣</span>
+        <span><strong>Evidence Vault</strong><small>{{ evidenceCount(view) }} records secured</small></span>
+        <i aria-hidden="true">→</i>
+      </a>
+      <a class="destination-sign destination-sign--forge" href="#saga-paths">
+        <span class="destination-sign__icon" aria-hidden="true">♢</span>
+        <span><strong>Saga Forge</strong><small>{{ view.selectedPathId ? 'Path chosen' : 'Choose your final path' }}</small></span>
+        <i aria-hidden="true">→</i>
+      </a>
+      <a class="destination-sign destination-sign--council" routerLink="/dragon-genetics/wise-dragon">
+        <span class="destination-sign__icon" aria-hidden="true">◉</span>
+        <span><strong>Mentor Chamber</strong><small>Question the Wise Dragon</small></span>
+        <i aria-hidden="true">→</i>
+      </a>
+    </nav>
+
+    <div class="academy-body">
+      <section class="trial-map" id="trial-map" aria-labelledby="trial-map-title">
+        <header class="section-heading">
+          <div>
+            <p class="section-heading__kicker">The road through the academy</p>
+            <h2 id="trial-map-title">Trial Map</h2>
+          </div>
+          <p>Follow the glowing rune for your next quest, or revisit any open investigation.</p>
+        </header>
+
+        <ol class="stage-route">
+          @for (stage of view.stages; track stage.id) {
+            <li class="stage-stop" [attr.data-stage]="stage.id">
+              <div class="stage-stop__marker" aria-hidden="true">
+                <span>{{ stage.order }}</span>
+              </div>
+              <article class="stage-board">
+                <header>
+                  <div>
+                    <p>Training ground {{ stage.order }}</p>
+                    <h3>{{ stage.title }}</h3>
+                  </div>
+                  <span class="stage-progress">{{ stage.progressPercent }}%</span>
+                </header>
+                <div class="stage-progress-track" aria-hidden="true">
+                  <i [style.width.%]="stage.progressPercent"></i>
+                </div>
+                <ul>
+                  @for (activity of stage.activities; track activity.id) {
+                    <li
+                      class="activity-marker"
+                      [class.activity-marker--current]="activity.isNextAction"
+                      [attr.data-status]="activity.status"
+                      [attr.data-availability]="activity.availability"
+                    >
+                      <i class="status-rune" aria-hidden="true">{{ statusSymbol(activity) }}</i>
+                      <div class="activity-marker__copy">
+                        @if (activity.availability === 'available') {
+                          <a
+                            [routerLink]="activity.route"
+                            [attr.aria-current]="activity.isNextAction ? 'step' : null"
+                          >{{ activity.title }}</a>
+                        } @else {
+                          <span>{{ activity.title }}</span>
+                        }
+                        <small>{{ activity.objective }}</small>
+                      </div>
+                      <div class="activity-marker__meta">
+                        <span>{{ statusLabel(activity) }}</span>
+                        @if (activity.evidenceCount) {
+                          <small>{{ activity.evidenceCount }} evidence</small>
+                        }
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </article>
+            </li>
           }
-          <g class="astrolabe__rivets">
-            <circle cx="64" cy="9" r="2.6" />
-            <circle cx="112" cy="88" r="2.6" />
-            <circle cx="16" cy="88" r="2.6" />
-          </g>
-        </svg>
-        <strong>{{ view.progressPercent }}%</strong>
-        <span aria-hidden="true"
-          >{{ view.completedRequiredCount }}/{{ view.requiredActivityCount }} required</span
-        >
+        </ol>
+      </section>
+
+      <aside class="hall-wing" aria-label="Academy records and guidance">
+        <section class="evidence-vault" id="evidence-vault" aria-labelledby="vault-title">
+          <header>
+            <span class="vault-lock" aria-hidden="true">◇</span>
+            <div>
+              <p>Below the Great Hall</p>
+              <h2 id="vault-title">Evidence Vault</h2>
+            </div>
+            <strong>{{ evidenceCount(view) }}</strong>
+          </header>
+
+          <ul>
+            @for (stage of view.stages; track stage.id) {
+              @for (activity of stage.activities; track activity.id) {
+                @if (activity.evidenceCount) {
+                  <li>
+                    <span class="evidence-seal" aria-hidden="true">✦</span>
+                    <span>{{ activity.title }}</span>
+                    <strong>{{ activity.evidenceCount }}</strong>
+                  </li>
+                }
+              }
+            }
+          </ul>
+
+          @if (!evidenceCount(view)) {
+            <div class="vault-empty">
+              <span aria-hidden="true">▱</span>
+              <p><strong>Your vault is ready.</strong> Evidence appears here after you save an investigation.</p>
+            </div>
+          }
+        </section>
+
+        <section class="council-table" aria-labelledby="council-title">
+          <header>
+            <p>Dragon Council</p>
+            <h2 id="council-title">Three questions for strong science</h2>
+          </header>
+          <ol>
+            <li><span>01</span><p><strong>Observe</strong>Which traits appear, and how often?</p></li>
+            <li><span>02</span><p><strong>Compare</strong>What changes when the sample grows?</p></li>
+            <li><span>03</span><p><strong>Defend</strong>Does your evidence support your claim?</p></li>
+          </ol>
+          <a routerLink="/dragon-genetics/wise-dragon">
+            Visit the Mentor Chamber <span aria-hidden="true">→</span>
+          </a>
+        </section>
+      </aside>
+    </div>
+
+    <section class="saga-forge" id="saga-paths" aria-labelledby="saga-title">
+      <header class="saga-heading">
+        <p class="section-heading__kicker">The final branching path</p>
+        <h2 id="saga-title">Choose the Saga You Will Forge</h2>
+        <p>Each destination uses the same genetics skills for a different dragon-world challenge.</p>
+      </header>
+
+      <div class="saga-destinations">
+        @for (path of view.paths; track path.id) {
+          <article
+            class="saga-destination"
+            [class.saga-destination--selected]="path.selected"
+            [attr.data-path]="path.id"
+          >
+            <div class="saga-destination__scene">
+              @switch (path.id) {
+                @case ('dragon-arena') {
+                  <app-dragon-arena-saga-preview [studentId]="hub.studentId()" />
+                }
+                @case ('mini-dragon-show') {
+                  <app-mini-dragon-saga-preview [studentId]="hub.studentId()" />
+                }
+                @default {
+                  <span class="scene-emblem" aria-hidden="true"></span>
+                }
+              }
+            </div>
+            <div class="saga-destination__copy">
+              <p>
+                @switch (path.id) {
+                  @case ('dragon-arena') { Battle · Adapt · Prove }
+                  @case ('mini-dragon-show') { Display · Compare · Celebrate }
+                  @default { Restore · Protect · Rebuild }
+                }
+              </p>
+              <h3>{{ path.title }}</h3>
+              <span>{{ path.objective }}</span>
+              <small>{{ path.outcomeLabel }}</small>
+              <div class="saga-destination__footer">
+                <span class="saga-progress">{{ path.progressPercent }}% explored</span>
+                <button
+                  type="button"
+                  [value]="path.id"
+                  [attr.aria-pressed]="path.selected"
+                  (click)="selectPath($event)"
+                >
+                  {{ path.selected ? 'Saga chosen' : 'Choose this saga' }}
+                </button>
+              </div>
+            </div>
+            @if (path.selected) {
+              <span class="selected-banner">Your path</span>
+            }
+          </article>
+        }
       </div>
     </section>
 
-    <!-- The next move is a notice nailed to the hall door: parchment, wax, and four iron nails. -->
-    <section class="notice" aria-labelledby="next-action-title">
-      @if (view.nextAction; as next) {
-        @if (next.kind === 'activity') {
-          <div class="notice__body">
-            <span class="eyebrow">Your next move</span>
-            <h2 id="next-action-title">{{ next.title }}</h2>
-            <p>{{ next.objective }}</p>
-          </div>
-          <a class="forged-action" [routerLink]="next.route">{{ actionLabel(next) }} →</a>
-        } @else {
-          <div class="notice__body">
-            <span class="eyebrow">Your next move</span>
-            <h2 id="next-action-title">{{ next.title }}</h2>
-            <p>{{ next.objective }}</p>
-          </div>
-          <label class="iron-select">
-            <span class="sr-only">Final project path</span>
-            <select (change)="selectPath($event)">
-              <option value="">Choose a path</option>
-              @for (path of view.paths; track path.id) {
-                <option [value]="path.id">{{ path.title }}</option>
-              }
-            </select>
-          </label>
-        }
-      } @else {
-        <div class="notice__body">
-          <span class="eyebrow">Mission complete</span>
-          <h2 id="next-action-title">Required work secured.</h2>
-          <p>Review your evidence or explore another open lab.</p>
-        </div>
-      }
-    </section>
-
-    <div class="ledgers">
-      <details class="panel">
-        <summary>
-          <span>Course map</span>
-          <small>{{ view.completedRequiredCount }}/{{ view.requiredActivityCount }} required</small>
-        </summary>
-        <div class="course-map">
-          @for (stage of view.stages; track stage.id) {
-            <section class="course-map__stage">
-              <h3>{{ stage.title }}</h3>
-              <ul>
-                @for (activity of stage.activities; track activity.id) {
-                  <li
-                    [class.current]="activity.isNextAction"
-                    [attr.data-status]="activity.status"
-                    [attr.data-availability]="activity.availability"
-                  >
-                    <i class="token" aria-hidden="true">{{ statusSymbol(activity) }}</i>
-                    @if (activity.availability === 'available') {
-                      <a [routerLink]="activity.route">{{ activity.title }}</a>
-                    } @else {
-                      <span>{{ activity.title }}</span>
-                    }
-                    <small>{{ statusLabel(activity) }}</small>
-                  </li>
-                }
-              </ul>
-            </section>
-          }
-        </div>
-      </details>
-
-      <details class="panel">
-        <summary>
-          <span>Final paths</span>
-          <small>{{ view.selectedPathId ? 'Selected' : 'Not selected' }}</small>
-        </summary>
-        @if (view.nextAction?.kind !== 'choose-path') {
-          <label class="iron-select path-select">
-            <span>Final path</span>
-            <select [value]="view.selectedPathId ?? ''" (change)="selectPath($event)">
-              <option value="">Choose later</option>
-              @for (path of view.paths; track path.id) {
-                <option [value]="path.id">{{ path.title }}</option>
-              }
-            </select>
-          </label>
-        }
-        <ul class="path-list">
-          @for (path of view.paths; track path.id) {
-            <li [class.selected]="path.selected">
-              <strong>{{ path.title }}</strong>
-              <span>{{ path.objective }}</span>
-              <small>{{ path.outcomeLabel }}</small>
-            </li>
-          }
-        </ul>
-      </details>
-
-      <details class="panel">
-        <summary>
-          <span>Evidence</span>
-          <small>{{ evidenceCount(view) }} saved</small>
-        </summary>
-        <ul class="evidence-list">
-          @for (stage of view.stages; track stage.id) {
-            @for (activity of stage.activities; track activity.id) {
-              @if (activity.evidenceCount) {
-                <li>
-                  <span>{{ activity.title }}</span
-                  ><strong>{{ activity.evidenceCount }}</strong>
-                </li>
-              }
-            }
-          }
-        </ul>
-        @if (!evidenceCount(view)) {
-          <p class="empty-note">Evidence appears here after an investigation is saved.</p>
-        }
-      </details>
-    </div>
+    <footer class="hall-footer">
+      <span aria-hidden="true">◆</span>
+      <p>Observe bravely. Test carefully. Let evidence lead the way.</p>
+      <span aria-hidden="true">◆</span>
+    </footer>
   </main>
 }

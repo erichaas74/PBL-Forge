@@ -1,9 +1,11 @@
+import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
+import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import { CompanionShowComponent } from './companion-show.component';
 
 describe('CompanionShowComponent', () => {
   const studentId = 'companion-show-component-spec';
-  const storageKey = `pbl-forge.dragon-genetics.companion-show.v2.${studentId}`;
+  const storageKey = `pbl-forge.dragon-genetics.companion-show.v4.${studentId}`;
 
   beforeEach(async () => {
     localStorage.removeItem(storageKey);
@@ -65,6 +67,69 @@ describe('CompanionShowComponent', () => {
     expect(component.ribbonsFor(component.selectedPup()!.genome)).toBe(
       card.filter((result) => result.outcome.places).length,
     );
+    fixture.destroy();
+  });
+
+  it('keeps learned practice separate and creates a 50/50 judged show record', async () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    component.adoptFounder('dam', 'mini-biscuit');
+    component.setTarget('coat', 'coat:sleek');
+    component.selectChampion('mini-biscuit');
+    component.setShowDivision('sky-circuit');
+    fixture.detectChanges();
+    const trainingViewport = fixture.debugElement.query(
+      By.css('.training-model app-specimen-viewport'),
+    ).componentInstance as SpecimenViewportComponent;
+    spyOn(trainingViewport, 'playMotion').and.resolveTo();
+    await component.practiceTraining('course-cue');
+    fixture.detectChanges();
+
+    expect(component.trainingLevel('course-cue')).toBe(1);
+    expect(component.champion()?.genome).toEqual(component.trainingDragon()?.genome);
+
+    component.enterShow();
+    fixture.detectChanges();
+    const run = component.latestShowRun();
+    expect(run).not.toBeNull();
+    expect(run!.geneticScore).toBeLessThanOrEqual(50);
+    expect(run!.trainingScore).toBe(3.1);
+    expect(run!.combinedScore).toBeCloseTo(run!.geneticScore + run!.trainingScore, 1);
+
+    const routineButton = fixture.nativeElement.querySelector(
+      '[data-testid="championship-routine"]',
+    ) as HTMLButtonElement | null;
+    expect(routineButton).not.toBeNull();
+    const championViewport = fixture.debugElement.query(
+      By.css('.champion-model app-specimen-viewport'),
+    ).componentInstance as SpecimenViewportComponent;
+    spyOn(championViewport, 'playMotion').and.resolveTo();
+    await component.performChampionshipRoutine();
+    expect(championViewport.playMotion).toHaveBeenCalled();
+    fixture.destroy();
+  });
+
+  it('builds a rare-trait pedigree from offspring and moves a flagged candidate to breeding', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    component.adoptFounder('dam', 'mini-biscuit');
+    component.adoptFounder('sire', 'mini-pepper');
+    component.whelp();
+    component.setRareTraitGene('coat');
+    const pup = component.nurseryPups()[0];
+    const candidate = component.pedigreePopulation().find((dragon) => dragon.id === pup.id)!;
+
+    expect(component.pedigreePopulation().length).toBe(8);
+    expect(component.pedigreeGenerations().map((group) => group.generation)).toEqual([0, 1]);
+    component.toggleRareCandidate(candidate.id);
+    expect(component.pedigreeEvidenceFor(candidate)).not.toBeNull();
+    component.keepPedigreeCandidate(candidate);
+    component.assignToPair('dam', candidate.id);
+
+    expect(component.isInKennel(candidate.id)).toBe(true);
+    expect(component.dam()?.id).toBe(candidate.id);
     fixture.destroy();
   });
 

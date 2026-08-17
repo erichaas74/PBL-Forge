@@ -32,8 +32,13 @@ breeder; the sampler exposes only observable evidence.
 
 ## Open investigation behavior
 
-- Both parent selectors reuse the Hatchery's account dragon file in dragon-only mode.
+- Both parent selectors reuse the Hatchery's account dragon file in dragon-only compact mode, and
+  that file is the only place a parent is chosen.
+- A station shows one thing at a time: the inventory while its parent is being chosen, then that
+  dragon and its visible characteristics. `Change` reopens the inventory until a batch locks it.
 - Parent cards show the real assembly renderer, parent name, and visible characteristics only.
+- The trait, clutch size, and run controls are mounted on the incubator scene itself, so a narrow
+  window stacks both parents above the machine and the machine with its console below.
 - Trait choices are generated from the shared dragon trait catalog.
 - Supported sample sizes are 4, 8, 12, 25, 50, and 100 offspring.
 - A student may repeat the current pair at the current generation with any sample size.

@@ -90,7 +90,7 @@ export const DRAGON_PROJECT_HUB_DEFINITION: ProjectHubDefinition = {
       id: 'companion-show',
       stageId: 'final-path',
       title: 'Mini Dragon Show',
-      objective: 'Breed the best-adapted show dragon and defend the choice.',
+      objective: 'Breed a judged trait combination, train four learned skills, and defend a champion.',
       route: '/dragon-genetics/companion-show',
       order: 12,
       kind: 'final-challenge',

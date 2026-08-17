@@ -3,6 +3,30 @@ import { MiniGeneId, MiniGenome } from './mini-dragon.genetics';
 export const COMPANION_LITTER_SIZES = [4, 6, 8, 12] as const;
 export type CompanionLitterSize = (typeof COMPANION_LITTER_SIZES)[number];
 
+export type MiniShowDivisionId = 'sky-circuit' | 'hearth-companion' | 'festival-star';
+export type MiniTrainingSkillId = 'course-cue' | 'weave' | 'settle' | 'ember-cue';
+
+/** One practice session. Skill level is derived from these records rather than stored twice. */
+export interface MiniTrainingSessionRecord {
+  id: string;
+  dragonId: string;
+  skillId: MiniTrainingSkillId;
+  practicedAtIso: string;
+}
+
+/** A frozen 50/50 judge result from one trip through the show ring. */
+export interface MiniShowRunRecord {
+  id: string;
+  dragonId: string;
+  divisionId: MiniShowDivisionId;
+  geneticScore: number;
+  trainingScore: number;
+  combinedScore: number;
+  award: string;
+  trainingLevels: Readonly<Record<MiniTrainingSkillId, number>>;
+  judgedAtIso: string;
+}
+
 /**
  * One line of a student-authored breed standard: "this trait should look like
  * this."
@@ -71,11 +95,17 @@ export interface RegistryEntry {
   pupsObserved: number;
   inbreedingPercent: number;
   ribbons: number;
+  showDivisionId: MiniShowDivisionId;
+  showRunId: string;
+  geneticScore: number;
+  trainingScore: number;
+  combinedScore: number;
+  award: string;
   submittedAtIso: string;
 }
 
 export interface CompanionShowSnapshot {
-  schemaVersion: 2;
+  schemaVersion: 4;
   studentId: string;
   breedName: string;
   targets: readonly BreedStandardTarget[];
@@ -86,6 +116,13 @@ export interface CompanionShowSnapshot {
   litters: readonly LitterRecord[];
   nextRunNumber: number;
   championId: string | null;
+  showDivisionId: MiniShowDivisionId | null;
+  trainingSessions: readonly MiniTrainingSessionRecord[];
+  showRuns: readonly MiniShowRunRecord[];
+  /** Rare recessive form currently being traced through the student's pedigree. */
+  rareTraitGeneId: MiniGeneId | null;
+  /** Student-flagged candidates; evidence strength is always re-derived from the pedigree. */
+  rareCandidateIds: readonly string[];
   citedLitterIds: readonly string[];
   claim: string;
   registry: readonly RegistryEntry[];

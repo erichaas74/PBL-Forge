@@ -96,6 +96,14 @@ export function buildDragonStudentProjectState(
     );
   }
 
+  const companionShowEvidenceIds = [
+    ...sources.companionShow.litters.map((litter) => litter.id),
+    ...sources.companionShow.trainingSessions.map((session) => session.id),
+    ...sources.companionShow.showRuns.map((run) => run.id),
+    ...sources.companionShow.rareCandidateIds.map(
+      (dragonId) => `rare:${sources.companionShow.rareTraitGeneId ?? 'trait'}:${dragonId}`,
+    ),
+  ];
   if (sources.companionShow.registry.length) {
     activityProgress['companion-show'] = progress(
       'companion-show',
@@ -103,11 +111,15 @@ export function buildDragonStudentProjectState(
       sources.companionShow.registry.map((entry) => entry.id),
       sources.companionShow.updatedAtIso,
     );
-  } else if (sources.companionShow.litters.length) {
+  } else if (
+    companionShowEvidenceIds.length ||
+    sources.companionShow.showDivisionId ||
+    sources.companionShow.rareTraitGeneId
+  ) {
     activityProgress['companion-show'] = progress(
       'companion-show',
       'in-progress',
-      sources.companionShow.litters.map((litter) => litter.id),
+      companionShowEvidenceIds,
       sources.companionShow.updatedAtIso,
     );
   }

@@ -37,10 +37,13 @@ import {
 } from '../models/arena.models';
 import {
   CoreHalfExtents,
+  DragonBodyFrame,
   coreHalfExtents,
+  dragonBodyFrame,
   getBodyKey,
   horizontalTorsoSupport,
 } from '../utils/battle-assembly';
+import { arenaPitRadius } from '../data/arena-setups';
 
 interface BodyMeta {
   bodyKey: string;
@@ -54,6 +57,13 @@ interface BodyMeta {
    * cylinder torso all report the same three numbers.
    */
   half: CoreHalfExtents;
+  /**
+   * The posed animal around this torso, for dragon cores only. Everything that
+   * has to know how big a dragon really is — where its feet are, how far its
+   * tail reaches — reads it from here rather than from the torso box, which is
+   * the only shape the solver ever sees.
+   */
+  body?: DragonBodyFrame;
 }
 
 /** One torso riding on top of another, with the way off already chosen. */
@@ -224,6 +234,22 @@ const WING_FLAP = {
 } as const;
 
 /**
+ * Holding a dragon inside the fighting ring.
+ *
+ * Soft on purpose: a dragon that walks at the palisade should be turned back by
+ * it, not bounced off it. The gain is high enough that a running dragon loses
+ * only a few centimetres to the fence before it is held, and the cap stops a
+ * body that somehow started well outside from being fired across the pit.
+ */
+const RING_CONTAINMENT = {
+  /** Metres per second of push per metre of overshoot. */
+  gain: 6,
+  maxSpeed: 6,
+  /** Clearance kept between the animal and the inner face of the palisade. */
+  margin: 0.25,
+} as const;
+
+/**
  * Floor for how close two torsos may sit horizontally, as a fraction of their
  * summed half-widths.
  *
@@ -290,6 +316,11 @@ export class AssemblyArenaPhysicsService {
     }
 
     this.world.step(this.fixedTimeStep, deltaSeconds, this.maxSubSteps);
+    // Corrections against the *drawn* dragon, which the solver knows nothing
+    // about. Applied to the settled frame so nothing downstream — snapshots,
+    // damage, sensors — ever sees a dragon underground or outside the ring.
+    this.keepDragonsOnTheSand();
+    this.keepDragonsInsideTheRing();
 
     const damageEnabled = state.setup.physics?.damageEnabled !== false;
     const inSpawnGrace = state.elapsedSeconds < SPAWN_GRACE_SECONDS;
@@ -415,15 +446,19 @@ export class AssemblyArenaPhysicsService {
 
       const bodyKey = getBodyKey(combatant.id, part.id);
       const body = this.createBody(part, combatant.spawnPosition, combatant.initialRotation);
+      const isCore = part.id === combatant.corePartId;
 
       this.bodies.set(bodyKey, body);
       this.bodyMetaById.set(body.id, {
         bodyKey,
         combatantId: combatant.id,
         sourcePartId: part.id,
-        isCore: part.id === combatant.corePartId,
+        isCore,
         roles: [...(part.roles ?? [])],
         half: coreHalfExtents(part),
+        body: isCore && combatant.controlMode === 'dragon-attack'
+          ? dragonBodyFrame(combatant.assembly, combatant.corePartId) ?? undefined
+          : undefined,
       });
       this.world.addBody(body);
     }
@@ -717,11 +752,12 @@ export class AssemblyArenaPhysicsService {
       // response, so torso-on-torso overlap has to be re-supplied here or the
       // two dragons simply occupy each other.
       const separation = this.resolveCoreSeparation(combatant.id, core);
+      const containment = this.resolveRingContainment(combatant.id, core);
       // Input directly owns horizontal root velocity. Physics still controls
       // height, impacts, knockback, rotation, and recovery, but floor/leg state
       // cannot swallow or redirect a requested move.
-      core.velocity.x = desiredX + (reaction?.x ?? 0) + separation.x;
-      core.velocity.z = desiredZ + (reaction?.z ?? 0) + separation.z;
+      core.velocity.x = desiredX + (reaction?.x ?? 0) + separation.x + containment.x;
+      core.velocity.z = desiredZ + (reaction?.z ?? 0) + separation.z + containment.z;
       if (reaction) {
         reaction.scale(0.84, reaction);
         if (reaction.lengthSquared() < 0.01) this.attackReactions.delete(combatant.id);
@@ -862,8 +898,8 @@ export class AssemblyArenaPhysicsService {
     }
 
     const corePart = combatant.assembly.parts.find(part => part.id === combatant.corePartId);
-    const grounded = (corePart?.position.y ?? 1) * WING_FLAP.groundedRatio;
-    if (core.position.y > grounded) {
+    const stance = this.dragonStandingHeight(combatant.id) ?? corePart?.position.y ?? 1;
+    if (core.position.y > stance * WING_FLAP.groundedRatio) {
       return;
     }
 
@@ -980,7 +1016,14 @@ export class AssemblyArenaPhysicsService {
     const shapeHalfHeight = corePart.shape === 'sphere'
       ? corePart.dimensions.x
       : corePart.dimensions.y / 2;
-    const targetHeight = Math.max(corePart.position.y, shapeHalfHeight + 0.3);
+    // The height that puts the *feet* on the sand, not the authored torso
+    // height. Blueprints hang the feet a little below y = 0 so a solver settles
+    // them onto the floor, and a dragon whose limbs are posed rather than
+    // simulated has no such settling — it simply stood with its soles buried.
+    const targetHeight = Math.max(
+      this.dragonStandingHeight(combatant.id) ?? corePart.position.y,
+      shapeHalfHeight + 0.3,
+    );
     const heightError = targetHeight - core.position.y;
 
     // Gravity compensation plus a damped spring. Never apply a downward drive:
@@ -1231,6 +1274,159 @@ export class AssemblyArenaPhysicsService {
       ));
       this.lastBuckAt.set(carrierId, elapsedSeconds);
     }
+  }
+
+  /**
+   * The measured animal around a dragon's torso, or null for anything else.
+   */
+  private dragonBody(combatantId: string): DragonBodyFrame | null {
+    const core = this.getCoreBody(combatantId);
+    if (!core) return null;
+    return this.bodyMetaById.get(core.id)?.body ?? null;
+  }
+
+  private dragonStandingHeight(combatantId: string): number | null {
+    return this.dragonBody(combatantId)?.standingHeight ?? null;
+  }
+
+  /**
+   * Stops a dragon sinking into the sand.
+   *
+   * The ride-height spring holds a *standing* dragon at the right height, but
+   * it is switched off in every state where the animal is supposed to fall — a
+   * knockdown, a leap, a torso being climbed on — and in those states the only
+   * thing the solver can rest on the floor is the small torso box in the middle
+   * of the chest, which leaves the whole leg buried.
+   *
+   * What holds the dragon up is therefore chosen by how upright it is: on its
+   * feet it stops at the height its legs reach, and as it goes over it settles
+   * onto the torso itself, which is what a dragon lying on its flank should
+   * rest on. Blending between the two rather than measuring the drawn animal's
+   * whole box matters — that box contains the spread wings, and a banking
+   * dragon would be propped up on a wing tip and never come down.
+   *
+   * Run after the step, so it corrects whatever the solver just produced rather
+   * than fighting it for a frame.
+   */
+  private keepDragonsOnTheSand(): void {
+    for (const body of this.getCoreBodies()) {
+      const meta = this.bodyMetaById.get(body.id);
+      if (!meta?.body) continue;
+
+      const up = body.quaternion.vmult(new CANNON.Vec3(0, 1, 0));
+      const onItsFlank = rotatedHalfHeight(
+        { x: meta.half.length, y: meta.half.height, z: meta.half.width },
+        body.quaternion,
+      );
+      const floor = Math.max(onItsFlank, meta.body.standingHeight * Math.max(0, up.y));
+      if (body.position.y >= floor) continue;
+
+      body.position.y = floor;
+      // Only the fall is cancelled: a dragon still rising out of a bad landing
+      // keeps whatever upward speed it had.
+      if (body.velocity.y < 0) body.velocity.y = 0;
+    }
+  }
+
+  /**
+   * Inward push that keeps a dragon's whole body inside the fighting ring.
+   *
+   * The physics boundary is the floor's rectangle, but the pit a student sees
+   * is the circle inscribed in it, and only the torso is a physics body — so a
+   * dragon could stand a metre inside a wall it never touched with three metres
+   * of tail and a wing already out through the palisade. Measuring the drawn
+   * animal against the drawn ring is the only version of "inside" that matches
+   * what is on the screen.
+   *
+   * Returned as a velocity added to the requested move, like the separation
+   * push, because a dragon's controller assigns horizontal velocity outright
+   * and would otherwise erase anything applied as a force.
+   */
+  private resolveRingContainment(combatantId: string, core: CANNON.Body): { x: number; z: number } {
+    const frame = this.dragonBody(combatantId);
+    const push = frame ? this.ringOvershoot(core, frame) : null;
+    if (!push || push.overshoot <= 0) return { x: 0, z: 0 };
+
+    const speed = Math.min(push.overshoot * RING_CONTAINMENT.gain, RING_CONTAINMENT.maxSpeed);
+    return { x: -push.outX * speed, z: -push.outZ * speed };
+  }
+
+  /**
+   * The backstop behind {@link resolveRingContainment}.
+   *
+   * The push above only reaches a dragon that is being driven; a knockback, a
+   * charge, or a buck assigns velocity of its own and can carry a torso through
+   * the palisade between two frames. This puts it back, so "inside the ring" is
+   * a guarantee rather than a tendency.
+   */
+  private keepDragonsInsideTheRing(): void {
+    for (const body of this.getCoreBodies()) {
+      const frame = this.bodyMetaById.get(body.id)?.body;
+      if (!frame) continue;
+
+      const push = this.ringOvershoot(body, frame);
+      if (push.overshoot <= 0) continue;
+
+      body.position.x -= push.outX * push.overshoot;
+      body.position.z -= push.outZ * push.overshoot;
+      // Outward speed is spent on the fence; anything travelling along it or
+      // back toward the middle of the pit survives.
+      const outwardSpeed = body.velocity.x * push.outX + body.velocity.z * push.outZ;
+      if (outwardSpeed > 0) {
+        body.velocity.x -= push.outX * outwardSpeed;
+        body.velocity.z -= push.outZ * outwardSpeed;
+      }
+    }
+  }
+
+  /**
+   * How far the outermost point of the drawn animal is past the ring, and the
+   * direction it went out by.
+   */
+  private ringOvershoot(
+    core: CANNON.Body,
+    frame: DragonBodyFrame,
+  ): { overshoot: number; outX: number; outZ: number } {
+    // Rectangular arenas keep their walls: a round boundary in a pad barely
+    // wider than the animal would pin it to the middle of the floor.
+    if (!this.currentSetup.ringBoundary) return { overshoot: 0, outX: 0, outZ: 0 };
+
+    const distance = Math.hypot(core.position.x, core.position.z);
+    // Dead centre is as far inside as it gets, and has no outward direction of
+    // its own; the reach alone decides whether it is already over the line.
+    const outX = distance > 1e-4 ? core.position.x / distance : 1;
+    const outZ = distance > 1e-4 ? core.position.z / distance : 0;
+
+    const forward = getHorizontalAxis(core, new CANNON.Vec3(1, 0, 0));
+    const right = getHorizontalAxis(core, new CANNON.Vec3(0, 0, 1));
+    // A dragon is not centred on its torso — it is mostly tail — so the box's
+    // own offset counts before its half extents do.
+    const centerOut = (forward.x * frame.center.x + right.x * frame.center.z) * outX
+      + (forward.z * frame.center.x + right.z * frame.center.z) * outZ;
+    const reach = horizontalTorsoSupport(
+      { length: frame.half.x, width: frame.half.z, height: frame.half.y },
+      forward.x,
+      forward.z,
+      outX,
+      outZ,
+    );
+
+    return {
+      overshoot: distance + centerOut + reach - this.ringLimitRadius(),
+      outX,
+      outZ,
+    };
+  }
+
+  /**
+   * How far the outermost point of a dragon may be from the middle of the pit.
+   *
+   * Just inside the palisade, which stands a little outside the ring the curb
+   * marks — a wing tip brushing the posts reads as contact, one passing through
+   * them reads as a bug.
+   */
+  private ringLimitRadius(): number {
+    return Math.max(arenaPitRadius(this.currentSetup) - RING_CONTAINMENT.margin, 0.5);
   }
 
   private isCarrying(combatantId: string): boolean {
@@ -2061,6 +2257,17 @@ function horizontalSupport(
 ): number {
   const forward = getHorizontalAxis(body, new CANNON.Vec3(1, 0, 0));
   return horizontalTorsoSupport(meta.half, forward.x, forward.z, dirX, dirZ);
+}
+
+/**
+ * Half the vertical extent of an oriented box: how far a body reaches below its
+ * own centre once it has been rolled or pitched.
+ */
+function rotatedHalfHeight(half: Vector3Data, rotation: CANNON.Quaternion): number {
+  const { x, y, z, w } = rotation;
+  return Math.abs(2 * (x * y + w * z)) * half.x
+    + Math.abs(1 - 2 * (x * x + z * z)) * half.y
+    + Math.abs(2 * (y * z - w * x)) * half.z;
 }
 
 /** A body-local axis projected onto the ground plane and normalized. */

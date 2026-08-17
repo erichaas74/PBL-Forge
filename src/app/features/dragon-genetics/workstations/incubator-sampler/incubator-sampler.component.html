@@ -197,6 +197,75 @@
         </div>
 
         <!--
+          The receiving barrels stand inside the scene, directly under the branch belts that feed
+          them. The stage above is reserved as `padding-top`, so this row starts exactly where the
+          machinery run ends and each barrel sits a short drop below its belt's outer lip — which
+          is what lets a hatchling roll off the end and fall into an opening rather than vanish
+          into a panel somewhere below the machine.
+        -->
+        <section class="bucket-bank" aria-label="Phenotype buckets">
+          @if (buckets().length) {
+            @for (bucket of buckets(); track bucket.id; let index = $index) {
+              <article
+                class="phenotype-bucket"
+                [class.bucket-left]="index === 0"
+                [class.bucket-right]="index === buckets().length - 1"
+                [class.tipping]="pouringPhenotypeId() === bucket.id"
+                [class.form-one]="index === 0"
+                [class.form-two]="index !== 0"
+                [attr.data-trait]="selectedTraitId()"
+              >
+                <div class="bucket-rim" aria-hidden="true"><i></i></div>
+                <header>
+                  <span>{{ bucket.label }}</span>
+                  <strong>{{ bucket.count }}</strong>
+                  <b>{{ bucket.percentage }}%</b>
+                </header>
+                <div class="hatchling-pool" [attr.aria-label]="bucket.count + ' ' + bucket.label">
+                  @for (dragon of bucket.offspring; track dragon.id) {
+                    <span
+                      class="mini-dragon"
+                      [class.chosen]="isSelectedForBreeding(dragon.id)"
+                      [style.--hatchling-color]="dragon.color"
+                      [style.--hatchling-accent]="dragon.accentColor"
+                      [attr.title]="dragon.name"
+                      ><i></i><b></b
+                    ></span>
+                  }
+                  @if (bucket.hiddenCount) {
+                    <span class="more-dragons">+{{ bucket.hiddenCount }}</span>
+                  }
+                </div>
+                <button
+                  type="button"
+                  class="pour-button"
+                  [attr.data-testid]="'breed-' + bucket.id"
+                  [disabled]="bucket.count < 2 || interactionLocked()"
+                  (click)="breedFromBucket(bucket)"
+                >
+                  {{
+                    bucket.count < 2
+                      ? 'Need two hatchlings to breed'
+                      : 'Breed these for more hatchlings'
+                  }}
+                </button>
+              </article>
+            }
+          } @else {
+            @for (category of categories(); track category.id) {
+              <article class="phenotype-bucket empty-bucket">
+                <div class="bucket-rim" aria-hidden="true"><i></i></div>
+                <header>
+                  <span>{{ category.label }}</span
+                  ><strong>0</strong><b>0%</b>
+                </header>
+                <div class="hatchling-pool"><small>Waiting for a batch</small></div>
+              </article>
+            }
+          }
+        </section>
+
+        <!--
           The console is bolted to the machine rather than sitting in its own band above the
           workbench. Keeping it inside the scene means the machine column travels as one piece,
           so a narrow window can stack both parents above the incubator and the incubator below
@@ -271,68 +340,6 @@
           </p>
         </section>
       }
-
-      <section class="bucket-bank" aria-label="Phenotype buckets">
-        @if (buckets().length) {
-          @for (bucket of buckets(); track bucket.id; let index = $index) {
-            <article
-              class="phenotype-bucket"
-              [class.bucket-left]="index === 0"
-              [class.bucket-right]="index === buckets().length - 1"
-              [class.tipping]="pouringPhenotypeId() === bucket.id"
-              [class.form-one]="index === 0"
-              [class.form-two]="index !== 0"
-              [attr.data-trait]="selectedTraitId()"
-            >
-              <div class="bucket-rim" aria-hidden="true"><i></i></div>
-              <header>
-                <span>{{ bucket.label }}</span>
-                <strong>{{ bucket.count }}</strong>
-                <b>{{ bucket.percentage }}%</b>
-              </header>
-              <div class="hatchling-pool" [attr.aria-label]="bucket.count + ' ' + bucket.label">
-                @for (dragon of bucket.offspring; track dragon.id) {
-                  <span
-                    class="mini-dragon"
-                    [class.chosen]="isSelectedForBreeding(dragon.id)"
-                    [style.--hatchling-color]="dragon.color"
-                    [style.--hatchling-accent]="dragon.accentColor"
-                    [attr.title]="dragon.name"
-                    ><i></i><b></b
-                  ></span>
-                }
-                @if (bucket.hiddenCount) {
-                  <span class="more-dragons">+{{ bucket.hiddenCount }}</span>
-                }
-              </div>
-              <button
-                type="button"
-                class="pour-button"
-                [attr.data-testid]="'breed-' + bucket.id"
-                [disabled]="bucket.count < 2 || interactionLocked()"
-                (click)="breedFromBucket(bucket)"
-              >
-                {{
-                  bucket.count < 2
-                    ? 'Need two hatchlings to breed'
-                    : 'Breed these for more hatchlings'
-                }}
-              </button>
-            </article>
-          }
-        } @else {
-          @for (category of categories(); track category.id) {
-            <article class="phenotype-bucket empty-bucket">
-              <div class="bucket-rim" aria-hidden="true"><i></i></div>
-              <header>
-                <span>{{ category.label }}</span
-                ><strong>0</strong><b>0%</b>
-              </header>
-              <div class="hatchling-pool"><small>Waiting for a batch</small></div>
-            </article>
-          }
-        }
-      </section>
 
       <p class="status-bar" aria-live="polite">{{ statusMessage() }}</p>
     </main>

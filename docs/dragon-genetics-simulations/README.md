@@ -35,7 +35,7 @@ All active feature-specific workstation files live under
 [`src/app/features/dragon-genetics/workstations`](../../src/app/features/dragon-genetics/workstations/README.md):
 
 - `allele-workbench/` contains the active allele investigation.
-- `companion-show/` contains the mini dragon species — genetics, anatomy, and show trials — plus the
+- `companion-show/` contains the mini dragon species — genetics, anatomy, rare-trait pedigree hunting, learned training, and 50/50 show judging — plus the
   breed standard, kennel, litter, bloodline, and registry model.
 - `dna-process-lab/` contains DNA comparison, mutation, and repair tools.
 - `dragon-hatchery/` contains the complete Hatchery feature slice.

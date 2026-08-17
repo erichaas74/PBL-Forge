@@ -461,7 +461,9 @@ export class DragonArenaComponent implements OnChanges {
     if (!this.studentAssetId || !this.opponentAssetId) return;
     this.clearTurnState();
     this.arena.loadMatch(
-      'duel-arena',
+      // The ring sized for dragons, not the general-purpose robot-and-car box:
+      // two dragons in that one spawned already overlapping.
+      'dragon-duel-ring',
       this.studentAssetId,
       this.opponentAssetId,
       'dragon-attack',

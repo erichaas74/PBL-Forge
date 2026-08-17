@@ -1,940 +1,1694 @@
-/**
- * The hall at Berk: the Dragon Genetics project hub as a place rather than a card stack.
- *
- * The page had been left on the old navy/teal palette after the rest of the app moved to Berk,
- * so a student crossed from a parchment-and-timber world into a flat dark console the moment
- * they hit the project hub. This rebuilds it in the same materials the stations already use —
- * timber, forged iron, brass, parchment, rope, carved stone, leather — with one warm light.
- *
- * ## The rule that keeps it readable
- *
- * Texture never carries text. Every material below is a *frame*: a plank edge, an iron band, a
- * riveted plate. Copy always sits on one of two fields — parchment with dark ink, or an unlit
- * slate panel with `--on-dark` — both of which clear contrast at the smallest size on the
- * scale. This is read on Chromebooks and projectors, so atmosphere loses to legibility every
- * time the two disagree.
- *
- * ## Why the materials are gradients and not images
- *
- * Nothing here loads a byte. Each recipe is layered repeating gradients at *coprime* periods
- * (6/11/19/31px) and angles a fraction of a degree apart. A single repeating gradient reads as
- * stripes; three beating against each other take thousands of pixels to repeat, which the eye
- * reads as grain. It also means the grain scales with zoom instead of going soft.
- */
-
-/* ── Materials ─────────────────────────────────────────────────────────────────── */
-
-/** Sawn plank, grain running horizontally, optionally divided into boards. */
-@mixin timber($face, $shadow, $seam: 0) {
-  background:
-    /* Board seams first: a dark gap with a lit chamfer under it, so boards have thickness. */
-    repeating-linear-gradient(
-        180deg,
-        rgb(0 0 0 / 34%) 0 2px,
-        rgb(255 222 172 / 5%) 2px 3px,
-        transparent 3px $seam
-      ),
-    /*
-     * Grain is kept near the threshold of visibility on purpose. Turned up far enough to
-     * admire, it stops being a surface and becomes a stripe pattern that fights every line
-     * of text laid over it.
-     */
-    repeating-linear-gradient(179.3deg, rgb(0 0 0 / 7%) 0 1px, transparent 1px 6px),
-    repeating-linear-gradient(180.6deg, rgb(255 233 199 / 3%) 0 1px, transparent 1px 11px),
-    repeating-linear-gradient(179.7deg, rgb(0 0 0 / 5%) 0 2px, transparent 2px 19px),
-    repeating-linear-gradient(180deg, rgb(0 0 0 / 4%) 0 1px, transparent 1px 31px),
-    /* Cathedral figure: the broad sweep in a sawn board, off-centre so it is not a vignette. */
-      radial-gradient(140% 70% at 18% 34%, rgb(255 214 160 / 5%), transparent 62%),
-    linear-gradient(178deg, $face, $shadow);
-}
-
-/** Hand-forged plate: hammer dents scattered off-grid, bevelled at the edges by box-shadow. */
 /*
- * Dent radii are absolute, not percentages. A percentage radius is a percentage of the
- * element, so the same recipe that reads as fine hammer texture on a wide band blows up into
- * saucers on a 2rem token — the marks have to stay the size of a hammer face.
+ * The Dragon Genetics hub is an academy location, not a dashboard skin. The hero is a single
+ * deep room; everything below it is a named physical place with one clear job. Live Angular
+ * content always sits on an opaque reading surface so the atmosphere never competes with it.
  */
-@mixin forged-iron($top: #49535b, $bottom: #222930) {
+
+$ink: #23190f;
+$parchment: #f0dfb7;
+$parchment-deep: #d3b77a;
+$cream: #fff2d1;
+$night: #071016;
+$slate: #14232a;
+$slate-soft: #20343b;
+$timber: #3c2415;
+$timber-dark: #1b100a;
+$brass: #d7a94d;
+$brass-light: #ffe1a0;
+$ember: #ed6b2e;
+$rune: #62c7bd;
+$muted: #b9c5c3;
+
+@mixin timber-surface($top: #54331e, $bottom: #25150c) {
   background:
-    radial-gradient(circle 7px at 12% 32%, rgb(255 255 255 / 6%), transparent 100%),
-    radial-gradient(circle 9px at 33% 71%, rgb(0 0 0 / 20%), transparent 100%),
-    radial-gradient(circle 6px at 57% 22%, rgb(255 255 255 / 5%), transparent 100%),
-    radial-gradient(circle 8px at 78% 64%, rgb(0 0 0 / 18%), transparent 100%),
-    radial-gradient(circle 5px at 91% 26%, rgb(255 255 255 / 4%), transparent 100%),
-    radial-gradient(circle 7px at 46% 90%, rgb(0 0 0 / 15%), transparent 100%),
-    linear-gradient(168deg, $top, $bottom 62%, #161c21);
+    repeating-linear-gradient(179deg, rgb(255 224 174 / 4%) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(181deg, rgb(0 0 0 / 11%) 0 2px, transparent 2px 17px),
+    radial-gradient(130% 100% at 20% 0%, rgb(255 209 142 / 8%), transparent 55%),
+    linear-gradient(170deg, $top, $bottom);
 }
 
-/**
- * Polished brass.
- *
- * The stop list is deliberately uneven — dark, bright, dark, brighter, dark. Metal is
- * anisotropic: it does not ramp evenly from shadow to highlight the way a plastic gradient
- * does, it bands. Evenly spaced stops are what make CSS "gold" look like mustard.
- */
-@mixin brass($angle: 100deg) {
+@mixin iron-surface {
+  background:
+    radial-gradient(circle 6px at 18% 23%, rgb(255 255 255 / 5%), transparent 100%),
+    radial-gradient(circle 8px at 62% 74%, rgb(0 0 0 / 22%), transparent 100%),
+    radial-gradient(circle 5px at 86% 31%, rgb(255 255 255 / 4%), transparent 100%),
+    linear-gradient(155deg, #425058, #1b272d 62%, #111a1f);
+}
+
+@mixin parchment-surface {
+  background:
+    repeating-linear-gradient(92deg, rgb(105 75 40 / 4%) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(4deg, rgb(105 75 40 / 3%) 0 1px, transparent 1px 9px),
+    radial-gradient(90% 80% at 18% 8%, rgb(255 255 244 / 70%), transparent 64%),
+    linear-gradient(148deg, $parchment, $parchment-deep);
+}
+
+@mixin brass-surface {
   background: linear-gradient(
-    $angle,
-    #7c591b 0%,
-    #c69739 13%,
-    #f4e1a7 26%,
-    #cb9e45 39%,
-    #96712a 56%,
-    #e8ca79 72%,
-    #b78a32 87%,
-    #785419 100%
+    112deg,
+    #765116 0%,
+    #bd8c31 13%,
+    #f2dc91 28%,
+    #a87622 46%,
+    #e5c26c 67%,
+    #8a5e19 100%
   );
 }
-
-/** Aged sheet, lit from the upper left, grubbier toward the lower right. */
-@mixin parchment {
-  background:
-    repeating-linear-gradient(91deg, rgb(122 92 62 / 4%) 0 1px, transparent 1px 4px),
-    repeating-linear-gradient(2.4deg, rgb(122 92 62 / 3%) 0 1px, transparent 1px 7px),
-    radial-gradient(80% 62% at 28% 18%, rgb(255 252 240 / 72%), transparent 72%),
-    radial-gradient(72% 70% at 84% 90%, rgb(168 132 80 / 24%), transparent 70%),
-    linear-gradient(162deg, #f1e5c6, #dbc69a);
-}
-
-/** Three-strand rope, laid at the angle real rope twists. */
-@mixin rope {
-  background: repeating-linear-gradient(
-    62deg,
-    #5d4728 0 3px,
-    #a8814a 3px 7px,
-    #cba36c 7px 9px,
-    #8a6a3d 9px 13px,
-    #5d4728 13px 16px
-  );
-}
-
-/** Chiselled granite: mottled, cool, and never evenly lit. */
-@mixin carved-stone($top: #4b525b, $bottom: #2c323a) {
-  background:
-    radial-gradient(58% 80% at 22% 24%, rgb(255 255 255 / 7%), transparent 70%),
-    radial-gradient(50% 62% at 74% 72%, rgb(0 0 0 / 22%), transparent 72%),
-    radial-gradient(32% 42% at 60% 16%, rgb(0 0 0 / 13%), transparent 70%),
-    repeating-linear-gradient(148deg, rgb(255 255 255 / 2%) 0 2px, transparent 2px 9px),
-    repeating-linear-gradient(28deg, rgb(0 0 0 / 3%) 0 1px, transparent 1px 6px),
-    linear-gradient(165deg, $top, $bottom);
-}
-
-/** Oiled hide: fine crosshatched pores, warm sheen at the top. */
-@mixin leather {
-  background:
-    repeating-linear-gradient(34deg, rgb(0 0 0 / 6%) 0 2px, transparent 2px 5px),
-    repeating-linear-gradient(-28deg, rgb(0 0 0 / 5%) 0 2px, transparent 2px 7px),
-    radial-gradient(70% 60% at 26% 20%, rgb(255 208 156 / 9%), transparent 70%),
-    linear-gradient(160deg, #543720, #32200f);
-}
-
-/** A driven nail head, domed and catching the light from the upper left. */
-@mixin nail-head {
-  background: radial-gradient(circle at 34% 30%, #98a2a9 0 20%, #5c666e 42%, #2d343a 74%, #161b1f);
-  box-shadow:
-    0 1px 2px rgb(0 0 0 / 55%),
-    inset 0 -1px 1px rgb(0 0 0 / 50%);
-}
-
-/* ── The hall ──────────────────────────────────────────────────────────────────── */
 
 :host {
-  /*
-   * Inside the hall: unlit timber, one hearth off to the left. Everything below the hero is
-   * an object standing in this room, which is why the room itself is nearly featureless.
-   */
   display: block;
   min-height: 100vh;
-  color: var(--on-dark);
+  color: $cream;
   background:
-    radial-gradient(80% 45% at 6% 34%, rgb(226 98 42 / 10%), transparent 60%),
-    radial-gradient(70% 40% at 94% 82%, rgb(217 164 65 / 6%), transparent 62%),
-    repeating-linear-gradient(179.6deg, rgb(0 0 0 / 12%) 0 1px, transparent 1px 9px),
-    linear-gradient(184deg, #121a1f, #172026 44%, #0f1519);
-  background-color: #10171c;
+    radial-gradient(circle at 10% 8%, rgb(85 143 146 / 10%), transparent 28rem),
+    radial-gradient(circle at 90% 68%, rgb(229 103 43 / 8%), transparent 32rem),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 1.5%) 0 1px, transparent 1px 6.25rem),
+    linear-gradient(#08131a, #0d171a 48%, #071014);
 }
 
-.hall {
-  width: min(74rem, 92vw);
-  margin-inline: auto;
-  padding: 1rem 0 5rem;
-}
-
-/* ── Lintel: the carved beam over the door ─────────────────────────────────────── */
-
-.lintel {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.7rem 1.1rem;
-  border: 1px solid #23303a;
-  border-radius: 0.3rem;
-  box-shadow:
-    inset 0 1px rgb(255 220 170 / 12%),
-    inset 0 -3px 0.5rem rgb(0 0 0 / 45%),
-    0 0.5rem 1.4rem rgb(0 0 0 / 35%);
-
-  @include timber(#4c3721, #291d11);
-}
-
-/* Iron straps pinning the beam at both ends, with a nail through each. */
-.lintel::before,
-.lintel::after {
-  position: absolute;
-  top: -1px;
-  bottom: -1px;
-  width: 0.55rem;
-  border-radius: 0.15rem;
-  content: '';
-
-  @include forged-iron;
-}
-
-.lintel::before {
-  left: 0.5rem;
-}
-
-.lintel::after {
-  right: 0.5rem;
-}
-
-.lintel__mark {
-  color: #e7c98a;
-  font-family: var(--font-display);
-  font-size: var(--text-md);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 60%);
-}
-
-.lintel a {
-  position: relative;
-  z-index: 1;
-  color: #d8c19a;
-  font-size: var(--text-sm);
-  font-weight: 800;
+.skip-link {
+  position: fixed;
+  top: 0.7rem;
+  left: 0.7rem;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  color: $ink;
+  font-weight: 900;
   text-decoration: none;
+  transform: translateY(-160%);
+
+  @include parchment-surface;
 }
 
-.lintel a:hover {
-  color: #ffe2a4;
-  text-decoration: underline;
-  text-underline-offset: 0.22rem;
+.skip-link:focus {
+  transform: translateY(0);
 }
 
-/* The aside is a leather tab stitched to the beam. */
-.lintel__aside {
-  padding: 0.4rem 0.7rem;
-  border: 1px solid #7a5c3e;
-  border-radius: 0.3rem;
-  outline: 1px dashed rgb(226 198 150 / 35%);
-  outline-offset: -4px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 45%);
-
-  @include leather;
-}
-
-/* ── Landfall: the view from the door ──────────────────────────────────────────── */
-
-.landfall {
+.academy-shell {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 2rem;
-  min-height: clamp(20rem, 34vw, 29rem);
-  margin-top: 1rem;
-  padding: clamp(1.6rem, 4vw, 2.8rem) clamp(1.2rem, 3vw, 2.4rem) clamp(1.5rem, 4vw, 2.6rem);
+  width: min(100%, 110rem);
+  min-height: 100vh;
+  margin-inline: auto;
   overflow: hidden;
-  border: 1px solid #2b3a45;
-  border-radius: 0.5rem;
-  /*
-   * Dusk over the water: cold overhead, warm where the sun is going down. The warm band is
-   * placed at 68–76% because that is where the panorama's horizon lands — the sky and the
-   * artwork have to agree about where the sun is or the seam between them shows.
-   */
-  background: linear-gradient(
-    178deg,
-    #0b131b 0%,
-    #14212c 26%,
-    #2a3a46 52%,
-    #4e5450 68%,
-    #8a6f52 76%,
-    #5d4a39 88%,
-    #2a2a2a 100%
-  );
+  border-inline: 1px solid rgb(215 169 77 / 14%);
+  background: linear-gradient(90deg, rgb(0 0 0 / 26%), transparent 12% 88%, rgb(0 0 0 / 26%));
+  box-shadow: 0 0 5rem rgb(0 0 0 / 55%);
+}
+
+/* ── Great Hall lintel ─────────────────────────────────────────────────────── */
+
+.great-beam {
+  position: relative;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 5.4rem;
+  padding: 0.65rem clamp(1rem, 3vw, 3rem);
+  border-bottom: 0.3rem solid #0d0a07;
   box-shadow:
-    inset 0 0 0 1px rgb(255 220 170 / 6%),
-    0 1.4rem 3rem rgb(0 0 0 / 45%);
+    inset 0 -1px rgb(255 220 160 / 15%),
+    0 0.75rem 1.8rem rgb(0 0 0 / 60%);
+
+  @include timber-surface(#58351f, #2b190e);
 }
 
-/*
- * Full bleed rather than a strip along the bottom. `slice` crops the panorama's width to fill,
- * which is the right trade: the frame's edges are foreground rock and losing some costs
- * nothing, whereas letterboxing it would put a dead band across the sky.
- */
-.landfall__scene {
+.great-beam::before,
+.great-beam::after {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
+  top: 0;
+  bottom: -0.3rem;
+  width: clamp(0.8rem, 1.6vw, 1.4rem);
+  border-inline: 1px solid #070b0e;
+  content: '';
+  box-shadow: inset 1px 0 rgb(255 255 255 / 8%);
+
+  @include iron-surface;
 }
 
-/*
- * A scrim under the copy only. The panorama's sky is bright near the horizon, and a title
- * that relies on the artwork staying dark is a title that becomes unreadable the first time
- * the artwork changes.
- */
-.landfall__copy {
+.great-beam::before {
+  left: 1.2%;
+}
+
+.great-beam::after {
+  right: 1.2%;
+}
+
+.beam-link,
+.academy-seal {
   position: relative;
   z-index: 1;
-  max-width: 42rem;
 }
 
-.landfall__copy::before {
-  position: absolute;
-  inset: -2rem -3rem -1.5rem -3rem;
-  z-index: -1;
-  background: radial-gradient(70% 90% at 26% 46%, rgb(8 13 18 / 78%), transparent 72%);
-  content: '';
-}
-
-.eyebrow {
-  margin: 0;
-  color: #e3b568;
-  font-size: var(--text-eyebrow);
+.beam-link {
+  display: inline-flex;
+  gap: 0.65rem;
+  align-items: center;
+  width: fit-content;
+  min-height: 2.8rem;
+  padding: 0.5rem 0.75rem;
+  color: #f1d9ad;
+  font-size: 0.88rem;
   font-weight: 850;
-  letter-spacing: 0.11em;
+  line-height: 1.05;
+  text-decoration: none;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.beam-link small,
+.academy-seal small {
+  display: block;
+  margin-bottom: 0.18rem;
+  color: #bca57b;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.landfall h1 {
-  /*
-   * Carved rather than printed: a hairline of firelight along the top bevel and a dark cut
-   * below it. Two shadows a pixel apart is the whole trick.
-   */
-  margin: 0.35rem 0 0.6rem;
-  color: #f6ecd8;
+.beam-link:hover {
+  color: #fff2ce;
+  transform: translateY(-1px);
+}
+
+.beam-link--back > span:first-child {
+  color: $brass-light;
+  font-size: 1.35rem;
+}
+
+.beam-link--dragon {
+  justify-self: end;
+  border: 1px solid rgb(215 169 77 / 32%);
+  border-radius: 0.25rem;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 35%);
+
+  @include iron-surface;
+}
+
+.dragon-eye {
+  width: 1.35rem;
+  height: 0.75rem;
+  border: 1px solid #a0782d;
+  border-radius: 90% 10% 90% 10%;
+  background: radial-gradient(circle, #fff2a5 0 8%, #87d6c5 16%, #1c847d 35%, #0e2928 68%);
+  box-shadow: 0 0 0.8rem rgb(98 199 189 / 50%);
+  transform: rotate(45deg);
+}
+
+.academy-seal {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  color: $brass-light;
   font-family: var(--font-display);
-  font-size: clamp(2.6rem, 7.5vw, 6rem);
-  line-height: 0.9;
-  letter-spacing: -0.04em;
-  text-shadow:
-    0 1px 0 rgb(255 226 176 / 30%),
-    0 -1px 1px rgb(0 0 0 / 55%),
-    0 0.5rem 1.6rem rgb(0 0 0 / 60%);
+  font-size: clamp(0.88rem, 1.4vw, 1.1rem);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.05;
+  text-align: center;
+  text-transform: uppercase;
 }
 
-.landfall__mission {
-  max-width: 34rem;
+.academy-seal__crest {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  aspect-ratio: 0.82;
+  border: 2px solid #6d4b15;
+  border-radius: 48% 48% 55% 55% / 35% 35% 68% 68%;
+  color: #24180b;
+  font-size: 1.7rem;
+  text-shadow: 0 1px rgb(255 241 190 / 35%);
+  box-shadow:
+    inset 0 0 0 2px rgb(255 239 178 / 28%),
+    0 0.3rem 0.7rem rgb(0 0 0 / 45%);
+
+  @include brass-surface;
+}
+
+/* ── Great Hall arrival ────────────────────────────────────────────────────── */
+
+.great-hall {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(16rem, 0.65fr);
+  grid-template-rows: 1fr auto auto;
+  gap: clamp(1rem, 2.2vw, 2rem);
+  min-height: clamp(44rem, calc(100vh - 5.4rem), 61rem);
+  padding: clamp(3rem, 7vw, 6.5rem) clamp(1rem, 5vw, 5rem) 2rem;
+  isolation: isolate;
+  overflow: hidden;
+  border-bottom: 0.7rem solid #22150d;
+}
+
+.great-hall__art,
+.great-hall__shade {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+}
+
+.great-hall__art {
+  background-image: url('/assets/dragon-genetics/great-hall-home-v2.png');
+  background-position: center center;
+  background-size: cover;
+  transform: scale(1.006);
+}
+
+.great-hall__shade {
+  z-index: -2;
+  background:
+    linear-gradient(180deg, rgb(1 7 12 / 30%), transparent 21%, transparent 68%, rgb(3 7 9 / 80%) 100%),
+    radial-gradient(ellipse 62% 58% at 24% 31%, rgb(3 8 12 / 36%), rgb(3 8 12 / 76%) 72%, transparent 100%),
+    linear-gradient(90deg, rgb(2 7 10 / 36%), transparent 58%, rgb(2 7 10 / 12%));
+}
+
+.hero-copy {
+  align-self: start;
+  max-width: 47rem;
+  padding: clamp(1rem, 2.2vw, 2rem);
+  text-shadow: 0 0.3rem 1.1rem rgb(0 0 0 / 90%);
+}
+
+.hero-copy__kicker,
+.section-heading__kicker,
+.quest-scroll__label,
+.evidence-vault header p,
+.council-table header p,
+.stage-board header p,
+.saga-destination__copy > p {
   margin: 0;
-  color: #d3ddde;
-  font-size: var(--text-lg);
-  line-height: 1.5;
-  text-shadow: 0 1px 4px rgb(0 0 0 / 70%);
+  color: $brass-light;
+  font-size: clamp(0.76rem, 1.1vw, 0.9rem);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-/* ── The dial: brass plate on the hall wall ────────────────────────────────────── */
+.hero-copy h1 {
+  max-width: 42rem;
+  margin: 0.55rem 0 0.9rem;
+  color: #fff7e4;
+  font-family: var(--font-display);
+  font-size: clamp(3.3rem, 8vw, 7.5rem);
+  line-height: 0.82;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.hero-copy__mission {
+  max-width: 35rem;
+  margin: 0;
+  color: #e5ecea;
+  font-size: clamp(1rem, 1.7vw, 1.3rem);
+  font-weight: 620;
+  line-height: 1.55;
+}
+
+.hero-copy__motto {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+  align-items: center;
+  margin: 1.2rem 0 0;
+  color: #d8c59d;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hero-copy__motto i {
+  color: $ember;
+  font-size: 0.75rem;
+}
+
+.quest-scroll {
+  position: relative;
+  display: grid;
+  grid-column: 1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(1rem, 2vw, 2rem);
+  align-items: center;
+  align-self: end;
+  max-width: 55rem;
+  min-height: 10rem;
+  padding: clamp(1.25rem, 2.2vw, 2rem) clamp(1.25rem, 2.8vw, 2.4rem);
+  color: $ink;
+  border: 1px solid #765222;
+  border-radius: 1.4rem 0.45rem 1.1rem 0.55rem;
+  clip-path: polygon(0.8% 2%, 98.7% 0, 100% 94%, 96% 100%, 2% 98%, 0 7%);
+  box-shadow:
+    inset 0 0 3rem rgb(113 75 30 / 20%),
+    0 1rem 2.8rem rgb(0 0 0 / 65%);
+
+  @include parchment-surface;
+}
+
+.quest-scroll::after {
+  position: absolute;
+  inset: 0.45rem;
+  border: 1px solid rgb(100 67 27 / 20%);
+  border-radius: inherit;
+  content: '';
+  pointer-events: none;
+}
+
+.quest-scroll__pin {
+  position: absolute;
+  top: 0.72rem;
+  z-index: 1;
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #9ba5a9, #30383d 68%, #131719);
+  box-shadow: 0 2px 3px rgb(0 0 0 / 50%);
+}
+
+.quest-scroll__pin--left {
+  left: 0.82rem;
+}
+
+.quest-scroll__pin--right {
+  right: 0.82rem;
+}
+
+.quest-scroll__copy,
+.quest-action {
+  position: relative;
+  z-index: 1;
+}
+
+.quest-scroll__label {
+  color: #8b561d;
+}
+
+.quest-scroll h2 {
+  margin: 0.28rem 0 0.45rem;
+  color: #281b0f;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2.3rem);
+  line-height: 1.06;
+}
+
+.quest-scroll__copy > p:last-child {
+  max-width: 38rem;
+  margin: 0;
+  color: #514028;
+  font-size: clamp(0.9rem, 1.2vw, 1.02rem);
+  line-height: 1.5;
+}
+
+.quest-action {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  min-width: 12rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #52360f;
+  border-radius: 0.3rem;
+  color: #241909;
+  text-decoration: none;
+  text-shadow: 0 1px rgb(255 241 194 / 45%);
+  box-shadow:
+    inset 0 1px rgb(255 246 203 / 55%),
+    inset 0 -2px 3px rgb(76 47 8 / 45%),
+    0 4px 0 #3f290c,
+    0 0.7rem 1.3rem rgb(0 0 0 / 35%);
+  transition: filter 160ms ease, transform 160ms ease;
+
+  @include brass-surface;
+}
+
+.quest-action span:first-child {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.quest-action strong {
+  font-size: 0.96rem;
+  text-transform: uppercase;
+}
+
+.quest-action:hover {
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+}
+
+.progress-instrument {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1 / 3;
+  place-items: center;
+  align-self: center;
+  justify-self: end;
+  width: clamp(14.5rem, 20vw, 18rem);
+  padding: 1rem 1rem 1.25rem;
+  border: 0.55rem solid #1b1009;
+  border-radius: 48% 52% 14% 14% / 12% 12% 8% 8%;
+  background: linear-gradient(165deg, rgb(37 53 59 / 94%), rgb(10 19 24 / 97%));
+  box-shadow:
+    inset 0 0 0 2px #8a6429,
+    inset 0 0 1.8rem rgb(0 0 0 / 72%),
+    0 1.2rem 2.4rem rgb(0 0 0 / 65%);
+}
+
+.progress-instrument > p {
+  margin: 0 0 0.35rem;
+  color: $brass-light;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.progress-instrument > span {
+  color: $muted;
+  font-size: 0.78rem;
+  font-weight: 760;
+}
 
 .astrolabe {
   position: relative;
-  z-index: 1;
   display: grid;
   place-items: center;
-  width: clamp(9rem, 16vw, 11.5rem);
+  width: min(100%, 13rem);
   aspect-ratio: 1;
-  padding: 0.6rem;
-  border-radius: 50%;
-  box-shadow:
-    0 0.6rem 1.6rem rgb(0 0 0 / 55%),
-    0 0 3rem rgb(226 98 42 / 18%);
 }
 
-.astrolabe__face {
+.astrolabe svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  filter: drop-shadow(0 0.65rem 0.65rem rgb(0 0 0 / 55%));
+}
+
+.astrolabe strong {
+  position: relative;
+  z-index: 1;
+  color: #fff0c6;
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 3.2vw, 2.4rem);
+  text-shadow: 0 2px 0.5rem rgb(0 0 0 / 90%);
 }
 
 .astrolabe__plate {
-  fill: #2a333a;
-  stroke: #11171b;
-  stroke-width: 2;
+  fill: #18282e;
+  stroke: #10181b;
+  stroke-width: 3;
 }
 
 .astrolabe__bezel {
   fill: none;
-  stroke: #c79a44;
+  stroke: $brass;
   stroke-width: 4;
-  opacity: 0.85;
 }
 
 .astrolabe__ticks line {
-  stroke: #e7c98a;
-  stroke-width: 1.6;
-  opacity: 0.55;
+  stroke: #f2d590;
+  stroke-width: 1.5;
+  opacity: 0.7;
 }
 
-/* Every fourth mark is a cardinal, cut longer and brighter. */
 .astrolabe__ticks line:nth-child(6n + 1) {
   stroke-width: 2.6;
-  opacity: 0.95;
+  opacity: 1;
 }
 
 .astrolabe__track {
   fill: none;
-  stroke: rgb(0 0 0 / 45%);
+  stroke: rgb(0 0 0 / 52%);
   stroke-width: 7;
 }
 
 .astrolabe__arc {
   fill: none;
-  stroke: #e2622a;
+  stroke: $ember;
   stroke-width: 7;
   stroke-linecap: round;
-  /* Start the sweep at twelve o'clock, where an instrument's zero belongs. */
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
-  filter: drop-shadow(0 0 4px rgb(226 98 42 / 70%));
+  filter: drop-shadow(0 0 4px rgb(237 107 46 / 78%));
   transition: stroke-dasharray 600ms ease;
 }
 
-.astrolabe__rivets circle {
-  fill: #8c949a;
-  stroke: #171d21;
-  stroke-width: 1;
+.astrolabe__needle {
+  fill: $brass;
+  opacity: 0.55;
+  transform: rotate(28deg);
+  transform-origin: 64px 64px;
 }
 
-/*
- * Both readouts need a stacking context. The face is absolutely positioned, and a positioned
- * element paints over its non-positioned siblings whatever the source order says — without
- * this the plate is drawn straight over its own percentage.
- */
-.astrolabe strong,
-.astrolabe span {
-  z-index: 1;
+.astrolabe__hub {
+  fill: $brass-light;
+  stroke: #6c4c18;
+  stroke-width: 2;
 }
 
-.astrolabe strong {
-  position: relative;
-  color: #ffe1a6;
-  font-family: var(--font-display);
-  font-size: clamp(1.8rem, 3.6vw, 2.6rem);
-  line-height: 1;
-  text-shadow: 0 2px 4px rgb(0 0 0 / 70%);
-}
-
-.astrolabe span {
-  position: absolute;
-  bottom: 22%;
-  color: #b9c3c4;
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-/* ── The notice nailed to the door ─────────────────────────────────────────────── */
-
-.notice {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1.5rem;
-  margin-top: 1.2rem;
-  padding: 1.6rem 1.8rem;
-  color: #33281a;
-  /* Deckled: four different corner radii, none of them round enough to read as a card. */
-  border-radius: 0.9rem 0.4rem 1.1rem 0.5rem;
-  box-shadow:
-    inset 0 0 3.5rem rgb(120 84 40 / 20%),
-    inset 0 0 0 1px rgb(120 84 40 / 22%),
-    0 0.8rem 2rem rgb(0 0 0 / 45%);
-
-  @include parchment;
-}
-
-/* Four iron nails, one per corner, sitting proud of the sheet. */
-.notice::before,
-.notice::after,
-.notice__body::before,
-.notice__body::after {
-  position: absolute;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
-  content: '';
-
-  @include nail-head;
-}
-
-.notice::before {
-  top: 0.6rem;
-  left: 0.7rem;
-}
-
-.notice::after {
-  top: 0.6rem;
-  right: 0.7rem;
-}
-
-.notice__body {
-  position: static;
-}
-
-.notice__body::before {
-  bottom: 0.6rem;
-  left: 0.7rem;
-}
-
-.notice__body::after {
-  bottom: 0.6rem;
-  right: 0.7rem;
-}
-
-.notice .eyebrow {
-  color: #8a5a22;
-}
-
-.notice h2 {
-  margin: 0.25rem 0 0.3rem;
-  color: #2a2013;
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
-  line-height: 1.05;
-}
-
-.notice p {
-  max-width: 44rem;
-  margin: 0;
-  color: #4d3d28;
-  font-size: var(--text-md);
-  line-height: 1.45;
-}
-
-/**
- * The call to action: a forged tag with a brass face, pressed rather than drawn. The inset
- * highlight along the top edge and the dark line along the bottom are what give it thickness.
- */
-.forged-action {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2.9rem;
-  padding: 0.7rem 1.3rem;
-  border: 1px solid #5e3f13;
-  border-radius: 0.35rem;
-  color: #2c2210;
-  font-weight: 900;
-  text-decoration: none;
-  text-shadow: 0 1px 0 rgb(255 240 200 / 45%);
-  box-shadow:
-    inset 0 1px 0 rgb(255 246 214 / 60%),
-    inset 0 -2px 3px rgb(90 60 16 / 45%),
-    0 3px 0 #4a300f,
-    0 5px 0.9rem rgb(0 0 0 / 45%);
-
-  @include brass;
-}
-
-.forged-action:hover {
-  filter: brightness(1.08);
-}
-
-.forged-action:active {
-  transform: translateY(2px);
-  box-shadow:
-    inset 0 1px 0 rgb(255 246 214 / 50%),
-    inset 0 -1px 2px rgb(90 60 16 / 45%),
-    0 1px 0 #4a300f,
-    0 2px 0.5rem rgb(0 0 0 / 45%);
-}
-
-/* ── Controls ──────────────────────────────────────────────────────────────────── */
-
-.iron-select select {
-  min-width: 14rem;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid #10161a;
-  border-radius: 0.35rem;
-  color: var(--on-dark);
-  font: inherit;
-  box-shadow:
-    inset 0 1px rgb(255 255 255 / 10%),
-    inset 0 -2px 4px rgb(0 0 0 / 45%);
-
-  @include forged-iron;
-}
-
-.path-select {
-  display: grid;
-  max-width: 22rem;
-  gap: 0.35rem;
-  padding: 0.6rem 0 1rem;
-  color: var(--on-dark-muted);
-  font-size: var(--text-sm);
-  font-weight: 800;
-}
-
-/* ── Ledger panels: boards banded in iron ──────────────────────────────────────── */
-
-.ledgers {
-  display: grid;
-  gap: 0.8rem;
-  margin-top: 1.2rem;
-}
-
-.panel {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid #1b242b;
-  border-radius: 0.4rem;
-  box-shadow:
-    inset 0 1px rgb(255 220 170 / 8%),
-    0 0.7rem 1.8rem rgb(0 0 0 / 40%);
-
-  @include timber(#3d2e1e, #221810, 7.5rem);
-}
-
-.panel summary {
-  position: relative;
+.enter-academy {
   display: flex;
+  grid-column: 1 / -1;
+  flex-direction: column;
+  gap: 0.1rem;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.95rem 1.1rem 0.95rem 2.4rem;
-  color: #f0e2c4;
-  font-family: var(--font-display);
-  font-size: var(--text-md);
-  font-weight: 700;
-  cursor: pointer;
-  list-style: none;
-}
-
-.panel summary::-webkit-details-marker {
-  display: none;
-}
-
-/* A brass boss standing in for the disclosure triangle; it turns when the panel opens. */
-.panel summary::before {
-  position: absolute;
-  left: 0.9rem;
-  width: 0.85rem;
-  height: 0.85rem;
-  border: 1px solid #5e4415;
-  border-radius: 50%;
-  content: '';
-  box-shadow: inset 0 -1px 2px rgb(80 52 12 / 60%);
-  transition: transform 220ms ease;
-
-  @include brass(120deg);
-}
-
-.panel[open] summary::before {
-  transform: rotate(90deg) scale(1.1);
-  box-shadow:
-    inset 0 -1px 2px rgb(80 52 12 / 60%),
-    0 0 0.6rem rgb(226 98 42 / 70%);
-}
-
-.panel summary small {
-  color: #c2ab84;
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.panel summary:hover {
-  color: #fff2d6;
-}
-
-/* The iron band across the foot of an opened board. */
-.panel[open] summary {
-  border-bottom: 1px solid rgb(0 0 0 / 55%);
-  box-shadow: 0 1px 0 rgb(255 220 170 / 8%);
-}
-
-.panel > *:not(summary) {
-  padding-inline: 1.1rem;
-}
-
-/* ── Course map ────────────────────────────────────────────────────────────────── */
-
-.course-map {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 2rem;
-  padding-block: 0.4rem 1rem;
-}
-
-.course-map__stage h3 {
-  margin: 0.9rem 0 0.4rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 0.25rem;
-  color: #cfd6da;
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
+  justify-self: center;
+  align-self: end;
+  color: #ead9b7;
+  font-size: 0.78rem;
   font-weight: 850;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  text-shadow: 0 2px 4px #000;
   text-transform: uppercase;
-  text-shadow:
-    0 1px 0 rgb(255 255 255 / 8%),
-    0 -1px 1px rgb(0 0 0 / 60%);
-  box-shadow:
-    inset 0 1px rgb(255 255 255 / 8%),
-    inset 0 -2px 3px rgb(0 0 0 / 40%);
-
-  @include carved-stone;
 }
 
-.course-map ul,
-.path-list,
-.evidence-list {
+.enter-academy i {
+  color: $brass;
+  font-size: 1.8rem;
+  font-style: normal;
+  line-height: 0.6;
+  animation: hall-bob 1.8s ease-in-out infinite;
+}
+
+.embers {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.embers i {
+  position: absolute;
+  bottom: 12%;
+  left: 61%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffc66d;
+  box-shadow: 0 0 0.6rem #ff7a32;
+  animation: ember-rise 5s linear infinite;
+}
+
+.embers i:nth-child(2) { left: 64%; animation-delay: -1s; animation-duration: 6.2s; }
+.embers i:nth-child(3) { left: 66%; animation-delay: -2.2s; animation-duration: 4.6s; }
+.embers i:nth-child(4) { left: 60%; animation-delay: -3.1s; animation-duration: 5.6s; }
+.embers i:nth-child(5) { left: 68%; animation-delay: -4.4s; animation-duration: 7s; }
+.embers i:nth-child(6) { left: 63%; animation-delay: -5.2s; animation-duration: 5.1s; }
+
+/* ── Hall destinations ─────────────────────────────────────────────────────── */
+
+.academy-grounds {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+  width: min(96%, 94rem);
+  margin: -1.25rem auto 0;
+  padding: 0.7rem;
+  border: 1px solid #11181b;
+  border-radius: 0.35rem;
+  box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 55%);
+
+  @include iron-surface;
+}
+
+.destination-sign {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  min-height: 4.7rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgb(221 178 92 / 22%);
+  color: #f2e7d1;
+  text-decoration: none;
+  box-shadow: inset 0 1px rgb(255 255 255 / 5%);
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.destination-sign:hover {
+  border-color: rgb(255 212 126 / 66%);
+  background-color: rgb(255 214 128 / 6%);
+  transform: translateY(-2px);
+}
+
+.destination-sign__icon {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  aspect-ratio: 1;
+  border: 1px solid #8c6729;
+  border-radius: 50%;
+  color: $brass-light;
+  font-size: 1.25rem;
+  background: #16242a;
+  box-shadow: inset 0 0 0 3px rgb(215 169 77 / 8%);
+}
+
+.destination-sign strong,
+.destination-sign small {
+  display: block;
+}
+
+.destination-sign strong {
+  color: #fff0cb;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+}
+
+.destination-sign small {
+  margin-top: 0.2rem;
+  color: $muted;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.destination-sign > i {
+  color: $brass;
+  font-style: normal;
+}
+
+/* ── Journey and right wing ────────────────────────────────────────────────── */
+
+.academy-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(19rem, 0.7fr);
+  gap: clamp(1.25rem, 3vw, 3rem);
+  width: min(92%, 91rem);
+  margin: 0 auto;
+  padding: clamp(4rem, 7vw, 7rem) 0;
+}
+
+.section-heading {
+  display: flex;
+  gap: 2rem;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgb(215 169 77 / 25%);
+}
+
+.section-heading h2,
+.saga-heading h2,
+.evidence-vault h2,
+.council-table h2 {
+  margin: 0.2rem 0 0;
+  color: #fff0cb;
+  font-family: var(--font-display);
+}
+
+.section-heading h2 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+}
+
+.section-heading > p {
+  max-width: 26rem;
+  margin: 0;
+  color: $muted;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.stage-route {
+  position: relative;
+  display: grid;
+  gap: 1.4rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.course-map li {
+.stage-route::before {
+  position: absolute;
+  top: 2rem;
+  bottom: 2rem;
+  left: 1.7rem;
+  width: 0.3rem;
+  border-inline: 1px solid #5b431e;
+  background: repeating-linear-gradient(180deg, $brass 0 0.65rem, #2a251b 0.65rem 1.1rem);
+  content: '';
+  box-shadow: 0 0 0.6rem rgb(215 169 77 / 12%);
+}
+
+.stage-stop {
+  position: relative;
   display: grid;
-  grid-template-columns: 1.35rem minmax(0, 1fr) auto;
-  gap: 0.55rem;
-  align-items: center;
-  padding: 0.42rem 0.2rem;
-  border-bottom: 1px solid rgb(0 0 0 / 28%);
-  color: #cdd6d6;
-  box-shadow: 0 1px 0 rgb(255 220 170 / 5%);
+  grid-template-columns: 3.7rem minmax(0, 1fr);
+  gap: 1.1rem;
+  align-items: start;
 }
 
-.course-map li:last-child {
-  border-bottom: 0;
-  box-shadow: none;
-}
-
-/**
- * The status token: one physical object per state rather than one colour per state. Locked is
- * a cold rivet, ready an empty brass ring, current a lit ember, complete a struck brass seal.
- * The glyph inside carries the same information, so colour is never doing the work alone.
- */
-.token {
+.stage-stop__marker {
+  position: sticky;
+  top: 1rem;
+  z-index: 2;
   display: grid;
   place-items: center;
-  width: 1.35rem;
-  height: 1.35rem;
-  border: 1px solid #10161a;
+  width: 3.7rem;
+  aspect-ratio: 1;
+  border: 0.25rem solid #151b1d;
   border-radius: 50%;
-  color: #8fa0a6;
-  font-size: var(--text-xs);
-  font-style: normal;
+  color: #23190d;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
   font-weight: 900;
-  line-height: 1;
   box-shadow:
-    inset 0 1px rgb(255 255 255 / 12%),
-    inset 0 -1px 2px rgb(0 0 0 / 55%);
+    inset 0 0 0 2px rgb(255 240 194 / 35%),
+    0 0.4rem 0.8rem rgb(0 0 0 / 60%);
 
-  @include forged-iron(#3d474e, #1d2429);
+  @include brass-surface;
 }
 
-.course-map li[data-status='complete'] .token {
-  border-color: #5e4415;
-  color: #3b2c0c;
-  text-shadow: 0 1px 0 rgb(255 240 200 / 50%);
-
-  @include brass(120deg);
+.stage-stop__marker span {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  aspect-ratio: 1;
+  border: 1px solid rgb(67 42 8 / 55%);
+  border-radius: 50%;
 }
 
-.course-map li[data-status='needs-revision'] .token {
-  border-color: #7a2f14;
-  color: #ffe0c8;
-  background: linear-gradient(165deg, #c0532a, #7e3010);
-}
-
-.course-map li.current .token {
-  border-color: #7c3a15;
-  color: #fff1d8;
-  background: radial-gradient(circle at 40% 32%, #ffd08a, #e2622a 58%, #9c3f12);
+.stage-board {
+  overflow: hidden;
+  border: 1px solid #293c44;
+  border-radius: 0.35rem 1rem 0.35rem 0.7rem;
+  background: linear-gradient(156deg, rgb(29 48 55 / 97%), rgb(13 25 30 / 98%));
   box-shadow:
-    inset 0 1px rgb(255 255 255 / 30%),
-    0 0 0.7rem rgb(226 98 42 / 80%);
+    inset 0 1px rgb(255 255 255 / 6%),
+    0 0.8rem 1.5rem rgb(0 0 0 / 34%);
 }
 
-.course-map li.current {
-  color: #fff4e2;
+.stage-board > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.2rem 0.75rem;
+  border-bottom: 1px solid rgb(215 169 77 / 12%);
+
+  @include timber-surface(#46301d, #25170e);
 }
 
-.course-map li[data-availability='locked'] {
-  color: #889599;
+.stage-board header p {
+  color: #b99860;
+  font-size: 0.75rem;
 }
 
-.course-map a {
+.stage-board h3 {
+  margin: 0.15rem 0 0;
+  color: #f6e8ca;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2vw, 1.5rem);
+}
+
+.stage-progress {
+  color: $brass-light;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.stage-progress-track {
+  height: 0.28rem;
+  background: #091116;
+}
+
+.stage-progress-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #297f78, $rune, #d1e6bc);
+  box-shadow: 0 0 0.6rem rgb(98 199 189 / 40%);
+  transition: width 500ms ease;
+}
+
+.stage-board ul,
+.evidence-vault ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-marker {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+  min-height: 4.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgb(204 225 225 / 8%);
+  color: #dce5e3;
+}
+
+.activity-marker:last-child {
+  border-bottom: 0;
+}
+
+.activity-marker--current {
+  background:
+    linear-gradient(90deg, rgb(237 107 46 / 17%), transparent 48%),
+    rgb(255 255 255 / 2%);
+  box-shadow: inset 0.22rem 0 $ember;
+}
+
+.activity-marker[data-availability='locked'] {
+  color: #819092;
+  background: rgb(0 0 0 / 12%);
+}
+
+.status-rune {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  aspect-ratio: 1;
+  border: 1px solid #47565d;
+  border-radius: 50%;
+  color: #a8b5b7;
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 950;
+  background: #101c21;
+}
+
+.activity-marker[data-status='complete'] .status-rune {
+  border-color: #7c5b20;
+  color: #2c1d08;
+
+  @include brass-surface;
+}
+
+.activity-marker[data-status='needs-revision'] .status-rune {
+  border-color: #bf5a2c;
+  color: #fff4da;
+  background: #8d3319;
+}
+
+.activity-marker--current .status-rune {
+  border-color: #ffb45e;
+  color: #fff6dd;
+  background: radial-gradient(circle at 40% 30%, #ffd38b, $ember 55%, #70230e);
+  box-shadow: 0 0 0.8rem rgb(237 107 46 / 75%);
+  animation: rune-pulse 2.4s ease-in-out infinite;
+}
+
+.activity-marker__copy a,
+.activity-marker__copy > span {
+  display: block;
+  width: fit-content;
   color: inherit;
-  font-weight: 750;
+  font-size: 0.98rem;
+  font-weight: 850;
   text-decoration: none;
 }
 
-.course-map a:hover {
-  color: #ffe2a4;
+.activity-marker__copy a:hover {
+  color: $brass-light;
   text-decoration: underline;
   text-underline-offset: 0.2rem;
 }
 
-.course-map small {
-  color: #a3b0b3;
-  font-size: var(--text-xs);
+.activity-marker__copy small {
+  display: block;
+  max-width: 40rem;
+  margin-top: 0.2rem;
+  color: #9eafb0;
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
-/* ── Final paths: three runestones ─────────────────────────────────────────────── */
-
-.path-list {
+.activity-marker__meta {
   display: grid;
-  gap: 0.6rem;
-  padding-bottom: 1rem;
-}
-
-.path-list li {
-  display: grid;
-  /* `auto` on the title so the objective starts beside it rather than half a panel away. */
-  grid-template-columns: minmax(9rem, auto) minmax(0, 1fr) auto;
-  gap: 1rem;
-  align-items: baseline;
-  padding: 0.85rem 1rem;
-  /* Uneven corners: a split stone, not a rounded rectangle. */
-  border-radius: 0.6rem 0.25rem 0.5rem 0.3rem;
-  color: #ccd4d8;
-  box-shadow:
-    inset 0 1px rgb(255 255 255 / 9%),
-    inset 0 -2px 4px rgb(0 0 0 / 45%),
-    0 3px 0.7rem rgb(0 0 0 / 35%);
-
-  @include carved-stone(#525963, #313740);
-}
-
-.path-list strong {
-  color: #eee6d4;
-  font-family: var(--font-display);
-  font-size: var(--text-md);
-  text-shadow:
-    0 1px 0 rgb(255 255 255 / 10%),
-    0 -1px 1px rgb(0 0 0 / 65%);
-}
-
-/* The chosen stone is the one the torch is on. */
-.path-list li.selected {
-  box-shadow:
-    inset 0 1px rgb(255 220 170 / 18%),
-    inset 0 -2px 4px rgb(0 0 0 / 45%),
-    0 0 0 1px rgb(217 164 65 / 45%),
-    0 0 1.6rem rgb(226 98 42 / 30%);
-
-  @include carved-stone(#5f5749, #393126);
-}
-
-.path-list li.selected strong {
-  color: #ffdc9c;
-}
-
-.path-list small {
-  color: #b3bec1;
-  font-size: var(--text-xs);
-  text-align: right;
-}
-
-/* ── Evidence: the leather ledger ──────────────────────────────────────────────── */
-
-.evidence-list {
-  display: grid;
-  gap: 0.4rem;
-  padding-bottom: 1rem;
-}
-
-.evidence-list li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.5rem;
-  padding: 0.55rem 0.8rem;
-  border: 1px solid #22303a;
-  border-radius: 0.3rem;
-  outline: 1px dashed rgb(226 198 150 / 22%);
-  outline-offset: -4px;
-  color: #e6d9c2;
-
-  @include leather;
-}
-
-.evidence-list strong {
-  color: #ffd894;
-  font-family: var(--font-display);
-}
-
-.empty-note {
-  margin: 0;
-  padding: 0 0 1.1rem;
-  color: var(--on-dark-muted);
-  font-size: var(--text-sm);
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  gap: 0.15rem;
+  justify-items: end;
+  color: #b7c4c3;
+  font-size: 0.75rem;
+  font-weight: 800;
   white-space: nowrap;
-  border: 0;
 }
 
-/* ── Narrow ────────────────────────────────────────────────────────────────────── */
+.activity-marker__meta small {
+  color: $brass;
+  font-size: 0.75rem;
+}
 
-@media (max-width: 780px) {
-  .landfall,
-  .notice,
-  .course-map {
-    grid-template-columns: 1fr;
+.hall-wing {
+  display: grid;
+  align-content: start;
+  gap: 1.5rem;
+}
+
+.evidence-vault,
+.council-table {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #314047;
+  box-shadow: 0 1rem 2rem rgb(0 0 0 / 38%);
+}
+
+.evidence-vault {
+  border-radius: 1rem 1rem 0.25rem 0.25rem;
+  background:
+    radial-gradient(circle at 50% 0, rgb(98 199 189 / 8%), transparent 12rem),
+    linear-gradient(160deg, #202b30, #0d171c);
+}
+
+.evidence-vault::before,
+.evidence-vault::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.6rem;
+  content: '';
+
+  @include iron-surface;
+}
+
+.evidence-vault::before { left: 0; }
+.evidence-vault::after { right: 0; }
+
+.evidence-vault > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid rgb(215 169 77 / 23%);
+  background: rgb(0 0 0 / 20%);
+}
+
+.vault-lock {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  aspect-ratio: 1;
+  border: 1px solid #835f22;
+  border-radius: 50%;
+  color: $brass-light;
+  background: #19282e;
+  box-shadow: inset 0 0 0 3px rgb(215 169 77 / 10%);
+}
+
+.evidence-vault h2 {
+  font-size: 1.3rem;
+}
+
+.evidence-vault > header > strong {
+  display: grid;
+  place-items: center;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  color: #251909;
+  font-family: var(--font-display);
+
+  @include brass-surface;
+}
+
+.evidence-vault ul {
+  padding: 0.8rem 1rem 1rem;
+}
+
+.evidence-vault li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.6rem;
+  border-bottom: 1px solid rgb(255 255 255 / 7%);
+  color: #dce5e2;
+  font-size: 0.82rem;
+}
+
+.evidence-seal,
+.evidence-vault li strong {
+  color: $brass-light;
+}
+
+.vault-empty {
+  display: grid;
+  place-items: center;
+  padding: 2rem 1.4rem 2.3rem;
+  text-align: center;
+}
+
+.vault-empty > span {
+  color: #718287;
+  font-size: 3.5rem;
+}
+
+.vault-empty p {
+  max-width: 16rem;
+  margin: 0.6rem 0 0;
+  color: #a8b7b7;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.vault-empty strong {
+  display: block;
+  color: #e8eee9;
+}
+
+.council-table {
+  padding: 1.3rem;
+  border-radius: 0.35rem;
+
+  @include timber-surface(#4a2e1a, #26170d);
+}
+
+.council-table::before,
+.council-table::after {
+  position: absolute;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #9ca6a9, #30383c 65%, #15191b);
+  content: '';
+}
+
+.council-table::before { top: 0.7rem; left: 0.7rem; }
+.council-table::after { top: 0.7rem; right: 0.7rem; }
+
+.council-table header {
+  padding: 0.5rem 0.4rem 1rem;
+  border-bottom: 1px solid rgb(215 169 77 / 20%);
+}
+
+.council-table h2 {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.council-table ol {
+  display: grid;
+  gap: 0.35rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.council-table li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.65rem;
+  background: rgb(4 10 13 / 30%);
+}
+
+.council-table li > span {
+  color: $brass;
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+}
+
+.council-table li p {
+  margin: 0;
+  color: #c5cecb;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.council-table li strong {
+  display: block;
+  margin-bottom: 0.1rem;
+  color: #fff0cc;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.council-table > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #6e5629;
+  color: $brass-light;
+  font-size: 0.8rem;
+  font-weight: 850;
+  text-decoration: none;
+  background: #14252a;
+}
+
+/* ── Saga destinations ─────────────────────────────────────────────────────── */
+
+.saga-forge {
+  position: relative;
+  padding: clamp(4rem, 7vw, 7rem) clamp(1rem, 4vw, 4rem) clamp(5rem, 8vw, 8rem);
+  border-block: 1px solid rgb(215 169 77 / 18%);
+  background:
+    radial-gradient(circle at 50% 100%, rgb(237 107 46 / 14%), transparent 34rem),
+    linear-gradient(180deg, #0a151a, #111b1e 60%, #0a1114);
+}
+
+.saga-forge::before {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(60deg, transparent 48%, rgb(255 255 255 / 2%) 49% 50%, transparent 51%) 0 0 / 3rem 3rem,
+    linear-gradient(-60deg, transparent 48%, rgb(255 255 255 / 2%) 49% 50%, transparent 51%) 0 0 / 3rem 3rem;
+  content: '';
+  pointer-events: none;
+}
+
+.saga-heading {
+  position: relative;
+  max-width: 48rem;
+  margin: 0 auto 2.4rem;
+  text-align: center;
+}
+
+.saga-heading h2 {
+  font-size: clamp(2.2rem, 5vw, 4.4rem);
+  line-height: 0.98;
+}
+
+.saga-heading > p:last-child {
+  max-width: 37rem;
+  margin: 0.9rem auto 0;
+  color: $muted;
+  line-height: 1.55;
+}
+
+.saga-destinations {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.8rem);
+  max-width: 96rem;
+  margin-inline: auto;
+}
+
+.saga-destination {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(15rem, 1fr) auto;
+  min-height: 34rem;
+  overflow: hidden;
+  border: 1px solid #45545a;
+  border-radius: 50% 50% 0.45rem 0.45rem / 9% 9% 0.45rem 0.45rem;
+  background: #0e181c;
+  box-shadow:
+    inset 0 0 0 0.45rem #15100b,
+    inset 0 0 0 0.55rem #705123,
+    0 1.2rem 2.5rem rgb(0 0 0 / 48%);
+  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.saga-destination:hover {
+  border-color: #bb9145;
+  transform: translateY(-0.3rem);
+}
+
+.saga-destination--selected {
+  border-color: $brass-light;
+  box-shadow:
+    inset 0 0 0 0.45rem #15100b,
+    inset 0 0 0 0.6rem $brass,
+    0 0 2.2rem rgb(237 107 46 / 30%),
+    0 1.2rem 2.5rem rgb(0 0 0 / 55%);
+}
+
+.saga-destination__scene {
+  position: relative;
+  min-height: 16rem;
+  margin: 0.6rem 0.6rem 0;
+  overflow: hidden;
+  border-radius: 50% 50% 0 0 / 10% 10% 0 0;
+}
+
+.saga-destination[data-path='island-diversity'] .saga-destination__scene {
+  background:
+    radial-gradient(ellipse at 72% 13%, rgb(255 231 165 / 70%), transparent 20%),
+    linear-gradient(145deg, transparent 0 45%, #283e40 45.5% 60%, transparent 60.5%) 72% 38% / 70% 65% no-repeat,
+    linear-gradient(215deg, transparent 0 43%, #355354 43.5% 63%, transparent 63.5%) 25% 45% / 78% 70% no-repeat,
+    linear-gradient(175deg, transparent 0 63%, #1e4037 63.5% 72%, #173040 72.5% 76%, #294f5d 77%);
+  background-color: #77969a;
+}
+
+.saga-destination[data-path='island-diversity'] .scene-emblem {
+  position: absolute;
+  right: 14%;
+  bottom: 9%;
+  width: 24%;
+  height: 18%;
+  border-radius: 60% 8% 60% 8%;
+  background: #1b2d25;
+  box-shadow:
+    -5rem 0.6rem 0 -1.1rem #263f31,
+    -8rem -0.3rem 0 -1.6rem #304d3c;
+}
+
+.saga-destination__copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 17rem;
+  padding: 1.2rem 1.35rem 1.4rem;
+  border-top: 0.25rem solid #5e431d;
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 3%), transparent 30%),
+    linear-gradient(155deg, #17272d, #0d181c);
+}
+
+.saga-destination__copy > p {
+  color: $brass;
+  font-size: 0.75rem;
+}
+
+.saga-destination h3 {
+  margin: 0.35rem 0 0.55rem;
+  color: #fff1ce;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 2.4vw, 2.1rem);
+  line-height: 1.03;
+}
+
+.saga-destination__copy > span {
+  color: #cad4d1;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.saga-destination__copy > small {
+  margin-top: 0.6rem;
+  color: #86aaa7;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.saga-destination__footer {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.saga-progress {
+  color: #a8b8b7;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.saga-destination button {
+  min-height: 2.8rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #866223;
+  border-radius: 0.25rem;
+  color: $brass-light;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: #18292e;
+  box-shadow: inset 0 1px rgb(255 255 255 / 8%);
+}
+
+.saga-destination button:hover {
+  background: #233c41;
+}
+
+.saga-destination button[aria-pressed='true'] {
+  border-color: #583a0c;
+  color: #271a08;
+  cursor: default;
+
+  @include brass-surface;
+}
+
+.selected-banner {
+  position: absolute;
+  top: 2.7rem;
+  right: -2.6rem;
+  z-index: 2;
+  width: 11rem;
+  padding: 0.35rem;
+  color: #271907;
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  transform: rotate(39deg);
+
+  @include brass-surface;
+}
+
+.hall-footer {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 7rem;
+  padding: 1.5rem;
+  border-top: 0.35rem solid #0e0906;
+  color: #c9b895;
+  font-family: var(--font-display);
+  text-align: center;
+
+  @include timber-surface(#402716, #211209);
+}
+
+.hall-footer p {
+  margin: 0;
+}
+
+.hall-footer span {
+  color: $brass;
+  font-size: 0.75rem;
+}
+
+/* ── Focus, motion, and responsive routes ─────────────────────────────────── */
+
+a:focus-visible,
+button:focus-visible {
+  outline: 0.22rem solid #84e4d8;
+  outline-offset: 0.22rem;
+}
+
+@keyframes hall-bob {
+  50% { transform: translateY(0.3rem); }
+}
+
+@keyframes ember-rise {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.7); }
+  14% { opacity: 1; }
+  100% { opacity: 0; transform: translate(1.5rem, -14rem) scale(0); }
+}
+
+@keyframes rune-pulse {
+  50% { box-shadow: 0 0 1.25rem rgb(237 107 46 / 95%); }
+}
+
+@media (max-width: 1100px) {
+  .great-hall {
+    grid-template-columns: minmax(0, 1fr) 14rem;
+    background-position: 58% center;
   }
 
-  .landfall {
-    align-items: start;
-    gap: 1.2rem;
+  .progress-instrument {
+    width: 14rem;
+  }
+
+  .academy-grounds {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .academy-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hall-wing {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .saga-destinations {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 62rem;
+  }
+
+  .saga-destination:last-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc(50% - 0.5rem);
+  }
+
+  .saga-destination {
+    min-height: 32rem;
+  }
+}
+
+@media (max-width: 820px) {
+  .great-beam {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .academy-seal {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: center;
+    margin-bottom: 0.4rem;
+  }
+
+  .beam-link--back {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .beam-link--dragon {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .great-hall {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    min-height: 51rem;
+    padding-top: 3rem;
+  }
+
+  .great-hall__art {
+    background-position: 61% center;
+  }
+
+  .great-hall__shade {
+    background:
+      linear-gradient(180deg, rgb(2 7 10 / 45%) 0%, rgb(2 7 10 / 22%) 45%, rgb(2 7 10 / 88%) 100%),
+      linear-gradient(90deg, rgb(2 7 10 / 48%), transparent 80%);
+  }
+
+  .hero-copy {
+    max-width: 38rem;
+  }
+
+  .progress-instrument {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: end;
+    width: 11.5rem;
+    padding: 0.65rem 0.7rem 0.9rem;
+  }
+
+  .progress-instrument > p {
+    font-size: 0.75rem;
   }
 
   .astrolabe {
-    justify-self: start;
+    width: 8.5rem;
   }
 
-  .notice {
-    align-items: start;
+  .quest-scroll {
+    grid-column: 1;
+    grid-row: 2;
   }
 
-  .forged-action,
-  .iron-select select {
-    width: 100%;
+  .enter-academy {
+    grid-row: 4;
   }
 
-  .path-list li {
+  .saga-destinations {
     grid-template-columns: 1fr;
-    gap: 0.25rem;
+    max-width: 40rem;
   }
 
-  .path-list small {
-    text-align: left;
+  .saga-destination:last-child {
+    grid-column: auto;
+    width: auto;
+  }
+
+  .saga-destination {
+    grid-template-columns: minmax(12rem, 0.85fr) minmax(0, 1.15fr);
+    grid-template-rows: 1fr;
+    min-height: 24rem;
+    border-radius: 2rem 0.4rem 0.4rem 2rem / 50% 0.4rem 0.4rem 50%;
+  }
+
+  .saga-destination__scene {
+    min-height: 100%;
+    margin: 0.6rem 0 0.6rem 0.6rem;
+    border-radius: 50% 0 0 50%;
+  }
+
+  .saga-destination__copy {
+    min-height: auto;
+    border-top: 0;
+    border-left: 0.25rem solid #5e431d;
   }
 }
 
-@media (max-width: 560px) {
-  .lintel {
-    flex-wrap: wrap;
-    justify-content: center;
+@media (max-width: 620px) {
+  .great-beam {
+    min-height: auto;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .academy-seal {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .academy-seal__crest {
+    width: 2.5rem;
+  }
+
+  .beam-link {
+    padding-inline: 0.35rem;
+  }
+
+  .beam-link--dragon {
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .great-hall {
+    min-height: 52rem;
+    padding-inline: 0.75rem;
+  }
+
+  .great-hall__art {
+    background-position: 66% center;
+  }
+
+  .hero-copy {
+    padding: 0.65rem;
+  }
+
+  .hero-copy h1 {
+    max-width: 19rem;
+    font-size: clamp(3.2rem, 16vw, 5rem);
+  }
+
+  .hero-copy__mission {
+    max-width: 24rem;
+  }
+
+  .hero-copy__motto i {
+    display: none;
+  }
+
+  .hero-copy__motto span {
+    width: 100%;
+  }
+
+  .progress-instrument {
+    justify-self: start;
+    width: 9.5rem;
+  }
+
+  .astrolabe {
+    width: 6.8rem;
+  }
+
+  .progress-instrument > span {
     text-align: center;
+  }
+
+  .quest-scroll {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1.35rem 1.2rem;
+  }
+
+  .quest-action {
+    width: 100%;
+  }
+
+  .academy-grounds {
+    grid-template-columns: 1fr;
+    width: calc(100% - 1rem);
+  }
+
+  .academy-body {
+    width: calc(100% - 1.5rem);
+  }
+
+  .section-heading {
+    display: block;
+  }
+
+  .section-heading > p {
+    margin-top: 0.7rem;
+    text-align: left;
+  }
+
+  .stage-route::before {
+    left: 1.25rem;
+  }
+
+  .stage-stop {
+    grid-template-columns: 2.7rem minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .stage-stop__marker {
+    width: 2.7rem;
+    font-size: 0.95rem;
+  }
+
+  .stage-stop__marker span {
+    width: 1.55rem;
+  }
+
+  .activity-marker {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .activity-marker__meta {
+    grid-column: 2;
+    justify-items: start;
+  }
+
+  .hall-wing {
+    grid-template-columns: 1fr;
+  }
+
+  .saga-forge {
+    padding-inline: 0.75rem;
+  }
+
+  .saga-destination {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(14rem, 0.8fr) auto;
+    min-height: 34rem;
+    border-radius: 50% 50% 0.45rem 0.45rem / 8% 8% 0.45rem 0.45rem;
+  }
+
+  .saga-destination__scene {
+    min-height: 14rem;
+    margin: 0.6rem 0.6rem 0;
+    border-radius: 50% 50% 0 0 / 10% 10% 0 0;
+  }
+
+  .saga-destination__copy {
+    min-height: 17rem;
+    border-top: 0.25rem solid #5e431d;
+    border-left: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .enter-academy i,
+  .embers i,
+  .activity-marker--current .status-rune {
+    animation: none;
+  }
+
   .astrolabe__arc,
-  .panel summary::before {
+  .stage-progress-track i,
+  .beam-link,
+  .quest-action,
+  .destination-sign,
+  .saga-destination {
     transition: none;
   }
 }

@@ -25,6 +25,43 @@ export const TEST_SCENARIO_CATALOG = [
     },
   },
   {
+    id: 'dragon-duel-ring',
+    name: 'Dragon Duel Ring',
+    description: 'The Berk training ring, sized for two full-grown dragons to circle each other.',
+    kind: 'battle',
+    tags: ['battle', 'arena', 'dragon'],
+    compatibleGameIds: ['assembly-arena'],
+    environment: {
+      /*
+       * Square, so the round pit the renderer draws is inscribed exactly and
+       * every stretch of sand has palisade behind it.
+       *
+       * The size is set off the animal rather than chosen: a grown dragon is
+       * roughly six units nose to tail and five across the wings, so a ring
+       * this wide is a little over three body lengths across. The old duel
+       * arena was nine — barely more than one — which is why two dragons
+       * spawned already inside one another and fought by shoving.
+       */
+      floorSize: { x: 21, y: 0.12, z: 21 },
+      // Tall enough to read as an enclosure beside a standing dragon; the
+      // palisade is drawn at 1.7x this and the gallery rides on top of it.
+      wallHeight: 2.2,
+      // Fight inside the palisade that is drawn, not the rectangle behind it.
+      ringBoundary: true,
+      obstacles: [],
+    },
+    participants: [
+      participant('red', 'Champion', 'classic-dragon-test', { x: -5.4, y: 0, z: 0 }, 'player', 'dragon-attack'),
+      // Face the red combatant: assemblies are authored facing +x.
+      participant('blue', 'Challenger', 'classic-dragon-test', { x: 5.4, y: 0, z: 0 }, 'ai', 'dragon-attack', { x: 0, y: Math.PI, z: 0 }),
+    ],
+    winCondition: { type: 'core-survival' },
+    physics: {
+      damageEnabled: true,
+      jointBreakageEnabled: true,
+    },
+  },
+  {
     id: 'car-crash-test',
     name: 'Car Crash Test',
     description: 'A narrow lane with a rigid crash wall and static target car for impact tuning.',

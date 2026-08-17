@@ -8,6 +8,12 @@ const GENOME: MiniGenome = miniGenomeFromForms({
   pattern: 'pattern:ash-gold',
   ember: 'ember:blue',
   size: 'size:standard',
+  ears: 'ears:sail',
+  muzzle: 'muzzle:pug',
+  legs: 'legs:waddler',
+  tail: 'tail:star',
+  crest: 'crest:crown-frill',
+  frame: 'frame:round',
 });
 
 describe('mini dragon specimen source', () => {
@@ -29,6 +35,10 @@ describe('mini dragon specimen source', () => {
       expect(readout).withContext(gene.id).toBeTruthy();
     }
     expect(readouts.find((entry) => entry.id === 'mini:wings')?.valueLabel).toBe('Small wings');
+    expect(readouts.find((entry) => entry.id === 'mini:coat')?.valueLabel)
+      .toBe('Baby-bumpy spike rows');
+    expect(readouts.find((entry) => entry.id === 'mini:coat')?.roles)
+      .toContain('dorsal-scales');
     expect(readouts.find((entry) => entry.id === 'mini:pattern')?.valueLabel)
       .toBe('Ash-and-gold coat');
   });

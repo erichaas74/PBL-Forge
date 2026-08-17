@@ -60,6 +60,49 @@ describe('Dragon project hub adapter', () => {
     expect(state.activityProgress['dragon-arena']?.evidenceIds).toEqual(['trial-1']);
   });
 
+  it('links mini dragon training and show runs into in-progress hub evidence', () => {
+    const sources = emptySources();
+    sources.companionShow = {
+      ...sources.companionShow,
+      showDivisionId: 'sky-circuit',
+      trainingSessions: [
+        {
+          id: 'practice-1',
+          dragonId: 'mini-biscuit',
+          skillId: 'course-cue',
+          practicedAtIso: '2026-08-14T00:00:00.000Z',
+        },
+      ],
+    };
+
+    const state = buildDragonStudentProjectState(sources);
+
+    expect(state.activityProgress['companion-show']).toEqual(
+      jasmine.objectContaining({
+        status: 'in-progress',
+        evidenceIds: ['practice-1'],
+      }),
+    );
+  });
+
+  it('links a rare-trait pedigree candidate into project evidence', () => {
+    const sources = emptySources();
+    sources.companionShow = {
+      ...sources.companionShow,
+      rareTraitGeneId: 'coat',
+      rareCandidateIds: ['pup-1'],
+    };
+
+    const state = buildDragonStudentProjectState(sources);
+
+    expect(state.activityProgress['companion-show']).toEqual(
+      jasmine.objectContaining({
+        status: 'in-progress',
+        evidenceIds: ['rare:coat:pup-1'],
+      }),
+    );
+  });
+
   it('completes the island path after every population has been managed', () => {
     const sources = emptySources();
     for (const islandId of ISLAND_IDS) {

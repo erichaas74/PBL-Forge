@@ -6,7 +6,8 @@ import {
   ProjectNextAction,
 } from '../project/domain/project-hub.models';
 import { DragonProjectHubFacade } from './project/dragon-project-hub.facade';
-import { HarbourPanoramaComponent } from './project/harbour-panorama.component';
+import { DragonArenaSagaPreviewComponent } from './project/dragon-arena-saga-preview.component';
+import { MiniDragonSagaPreviewComponent } from './project/mini-dragon-saga-preview.component';
 
 /** Radius of the progress dial's arc, in the face's 128-unit viewBox. */
 const DIAL_RADIUS = 44;
@@ -14,7 +15,7 @@ const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS;
 
 @Component({
   selector: 'app-dragon-genetics-page',
-  imports: [RouterLink, HarbourPanoramaComponent],
+  imports: [RouterLink, DragonArenaSagaPreviewComponent, MiniDragonSagaPreviewComponent],
   templateUrl: './dragon-genetics.page.html',
   styleUrl: './dragon-genetics.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,7 +43,8 @@ export class DragonGeneticsPage {
   }
 
   selectPath(event: Event): void {
-    this.hub.selectPath((event.target as HTMLSelectElement).value || null);
+    const control = event.currentTarget as HTMLSelectElement | HTMLButtonElement;
+    this.hub.selectPath(control.value || null);
   }
 
   actionLabel(action: ProjectNextAction): string {

@@ -7,8 +7,8 @@ import { AssemblyPart, Vector3Data } from '../domain/assembly.models';
  * A separate animal from the classic dragon, not a scaled-down one: it shares no
  * builder, no silhouette module, no palette, and no texture with
  * `dragon-procedural-mesh.factory.ts`. Where that animal is a scaled reptile with
- * membranes and talons, this one is a small furred quadruped — a thick coat built
- * from geometry rather than a scale texture, soft paws instead of talons, and
+ * membranes and talons, this one is a small round-scaled quadruped with orderly
+ * baby dorsal bumps, rounded cheek scales, soft paws instead of talons, and
  * wings that some genotypes lose entirely.
  *
  * Everything is sized from `part.dimensions`, so the genetics pipeline can
@@ -19,7 +19,11 @@ import { AssemblyPart, Vector3Data } from '../domain/assembly.models';
 
 export const MINI_DRAGON_PROFILE_IDS = [
   'mini-dragon-body',
+  'mini-dragon-dorsal-scales',
+  'mini-dragon-neck',
   'mini-dragon-head',
+  'mini-dragon-jaw',
+  'mini-dragon-thigh',
   'mini-dragon-leg',
   'mini-dragon-wing',
   'mini-dragon-tail',
@@ -40,8 +44,16 @@ export function createMiniDragonProceduralObject(part: AssemblyPart): THREE.Obje
   switch (profileId) {
     case 'mini-dragon-body':
       return buildMiniBody(part, palette);
+    case 'mini-dragon-dorsal-scales':
+      return buildMiniDorsalScales(part, palette);
+    case 'mini-dragon-neck':
+      return buildMiniNeck(part, palette);
     case 'mini-dragon-head':
       return buildMiniHead(part, palette);
+    case 'mini-dragon-jaw':
+      return buildMiniJaw(part, palette);
+    case 'mini-dragon-thigh':
+      return buildMiniThigh(part, palette);
     case 'mini-dragon-leg':
       return buildMiniLeg(part, palette);
     case 'mini-dragon-wing':
@@ -60,7 +72,7 @@ export function createMiniDragonProceduralObject(part: AssemblyPart): THREE.Obje
 //
 // No texture maps anywhere. A tiled scale map is the single thing that most
 // makes the classic dragon read as a reptile, so the mini dragon carries none:
-// its surface is matte, and the coat is geometry.
+// its surface is matte, and its readable scale pattern is geometry.
 // ---------------------------------------------------------------------------
 
 interface MiniDragonPalette {
@@ -89,7 +101,7 @@ function createMiniDragonPalette(part: AssemblyPart): MiniDragonPalette {
   };
 }
 
-/** Soft, unlit-looking coat. High roughness and no map is what reads as fur. */
+/** Matte scale material with no expensive image texture. */
 function coatMaterial(color: THREE.Color): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.94, metalness: 0 });
 }
@@ -136,136 +148,7 @@ function mesh(geometry: THREE.BufferGeometry, material: THREE.Material): THREE.M
 }
 
 // ---------------------------------------------------------------------------
-// Coat.
-//
-// Fur is built, not painted. A tuft is one tapered spike; rings of them along
-// the spine, throat, cheeks, haunches, and tail are what carry the coat gene.
-// `miniCoatDepth` runs 0 (sleek, tufts almost absent) to 1 (fluffy).
-// ---------------------------------------------------------------------------
-
-const TUFT_RADIAL_SEGMENTS = 5;
-
-/**
- * One clump of coat.
- *
- * A truncated cone, not a cone. The first version used cones and the animal came
- * back a porcupine: a sharp point reads as a spine however short you make it,
- * and the eye needs a blunt tip to see fur. Keeping ~45% of the radius at the
- * top is the whole difference between a coat and a defensive weapon.
- */
-function tuftMesh(radius: number, length: number, material: THREE.Material): THREE.Mesh {
-  const geometry = new THREE.CylinderGeometry(radius * 0.45, radius, length, TUFT_RADIAL_SEGMENTS);
-  // Shift so the base sits at the origin and a tuft can be placed by its root.
-  geometry.translate(0, length / 2, 0);
-  return mesh(geometry, material);
-}
-
-interface TuftRingOptions {
-  /** Where along the local X axis the ring sits. */
-  x: number;
-  /** Distance from the X axis to the skin at this station. */
-  radiusY: number;
-  radiusZ: number;
-  count: number;
-  length: number;
-  thickness: number;
-  /** Radians around the axis: 0 is straight down, PI is the spine. */
-  fromAngle: number;
-  toAngle: number;
-  /** Extra backward lean, radians. Fur lies along the animal, it does not bristle. */
-  sweep: number;
-  seed: number;
-  /**
-   * Second coat colour for a two-toned animal. Supplied, roughly half the ring
-   * takes it in contiguous blocks — a codominant coat is patchy *fur*, and
-   * painting the skin underneath leaves the trait invisible on a fluffy dragon.
-   */
-  patchMaterial?: THREE.Material;
-}
-
-/**
- * Places one arc of tufts around the body axis. Each tuft is rooted on the skin
- * and points outward along the surface normal, then leans back by `sweep`.
- */
-function addTuftRing(
-  group: THREE.Group,
-  material: THREE.Material,
-  options: TuftRingOptions,
-): void {
-  // A tuft barely longer than it is wide is a bump, not fur. Sleek coats fall
-  // through here and leave the animal smooth rather than pebbled.
-  if (options.count < 1 || options.length <= options.thickness * 1.15) return;
-  const span = options.toAngle - options.fromAngle;
-
-  for (let index = 0; index < options.count; index += 1) {
-    const step = options.count === 1 ? 0.5 : index / (options.count - 1);
-    const jitter = hashUnit(`${options.seed}:${options.x}:${index}`);
-    const drift = hashUnit(`${options.seed}:${options.x}:${index}:drift`);
-    /*
-     * Evenly spaced tufts of equal length tile like roof shingles. Scattering
-     * the angle, the length, the axial station, and the lean is the whole
-     * difference between a coat and a set of overlapping plates.
-     */
-    const angle = options.fromAngle + span * step + (drift - 0.5) * (span / options.count) * 0.9;
-    const length = options.length * (0.62 + jitter * 0.8);
-    // Bucketed by station and angle so neighbours agree: the patch reads as a
-    // blotch of another colour rather than as pepper.
-    const patched =
-      options.patchMaterial &&
-      hashUnit(`${Math.round(options.x * 7)}:${Math.round(angle * 2.1)}`) > 0.5;
-
-    const tuft = tuftMesh(
-      options.thickness * (0.78 + drift * 0.5),
-      length,
-      patched && options.patchMaterial ? options.patchMaterial : material,
-    );
-    tuft.position.set(
-      options.x + (jitter - 0.5) * options.thickness * 2.2,
-      -Math.cos(angle) * options.radiusY,
-      Math.sin(angle) * options.radiusZ,
-    );
-    // Point the tuft's local +Y along the outward normal, then lean it back.
-    const normal = new THREE.Vector3(0, -Math.cos(angle), Math.sin(angle)).normalize();
-    tuft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
-    tuft.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), options.sweep * (0.7 + jitter * 0.6));
-    tuft.rotateOnAxis(new THREE.Vector3(0, 1, 0), (drift - 0.5) * 1.4);
-    group.add(tuft);
-  }
-}
-
-/** Fan of tufts radiating in a plane — ear tips, cheeks, and the tail plume. */
-function addTuftFan(
-  group: THREE.Group,
-  material: THREE.Material,
-  options: {
-    origin: Vector3Data;
-    count: number;
-    length: number;
-    thickness: number;
-    /** Direction the fan points, before spreading. */
-    direction: THREE.Vector3;
-    spread: number;
-    seed: number;
-  },
-): void {
-  if (options.count < 1 || options.length <= 0.001) return;
-  const direction = options.direction.clone().normalize();
-
-  for (let index = 0; index < options.count; index += 1) {
-    const step = options.count === 1 ? 0 : index / (options.count - 1) - 0.5;
-    const jitter = hashUnit(`${options.seed}:fan:${index}`);
-    const tuft = tuftMesh(options.thickness, options.length * (0.68 + jitter * 0.6), material);
-    tuft.position.set(options.origin.x, options.origin.y, options.origin.z);
-    tuft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
-    // Spread within the fan plane, then a little out of it so it reads as volume.
-    tuft.rotateOnAxis(new THREE.Vector3(0, 0, 1), step * options.spread);
-    tuft.rotateOnAxis(new THREE.Vector3(1, 0, 0), (jitter - 0.5) * options.spread * 0.7);
-    group.add(tuft);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Body: a short round barrel with a neck ruff.
+// Body: a short round barrel with clean scale geometry.
 // ---------------------------------------------------------------------------
 
 /** `[fraction along the spine, radius as a fraction of the half extents]`. */
@@ -298,16 +181,73 @@ export function miniBodySurfacePoint(
   };
 }
 
+/** Three orderly rows of rounded scales; the recessive form grows soft baby spikes. */
+function buildMiniDorsalScales(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
+  const group = new THREE.Group();
+  group.name = 'mini-dragon-dorsal-scale-rows';
+  const dims = part.dimensions;
+  const bumpy = visualNumber(part, 'miniDorsalBumps', 0) >= 0.5;
+  const baseMaterial = coatMaterial(palette.coat.clone().lerp(new THREE.Color('#fff4d6'), 0.08));
+  const patchMaterial = coatMaterial(palette.patch);
+  const rowAngles = [Math.PI - 0.42, Math.PI, Math.PI + 0.42] as const;
+  const stations = [-0.38, -0.25, -0.12, 0.01, 0.14, 0.27, 0.38] as const;
+
+  for (const [rowIndex, angle] of rowAngles.entries()) {
+    for (const [stationIndex, axial] of stations.entries()) {
+      const root = miniBodySurfacePoint(dims, axial, angle);
+      const material =
+        !palette.patch.equals(palette.coat) && (stationIndex + rowIndex) % 4 < 2
+          ? patchMaterial
+          : baseMaterial;
+      const scaleRadius = dims.y * (bumpy ? 0.052 : 0.045);
+      const scale = mesh(new THREE.SphereGeometry(scaleRadius, 10, 7), material);
+      scale.name = bumpy ? 'mini-dragon-bumpy-scale' : 'mini-dragon-smooth-scale';
+      scale.position.set(root.x, root.y + scaleRadius * 0.18, root.z);
+      scale.scale.set(1.25, bumpy ? 0.72 : 0.34, 0.9);
+      group.add(scale);
+
+      if (!bumpy) continue;
+      const spikeHeight = dims.y * (rowIndex === 1 ? 0.105 : 0.078);
+      const spike = mesh(
+        new THREE.CapsuleGeometry(scaleRadius * 0.46, spikeHeight, 4, 8),
+        material,
+      );
+      spike.name = 'mini-dragon-baby-spike';
+      spike.position.set(root.x - dims.x * 0.012, root.y + spikeHeight * 0.56, root.z);
+      spike.rotation.z = -0.16;
+      group.add(spike);
+    }
+  }
+
+  return group;
+}
+
+/** A separate neck gives learned cues a second expressive hinge behind the head. */
+function buildMiniNeck(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
+  const group = new THREE.Group();
+  const dims = part.dimensions;
+  const neck = mesh(new THREE.CapsuleGeometry(dims.z * 0.34, dims.x * 0.48, 6, 12), coatMaterial(palette.coat));
+  neck.name = 'mini-dragon-neck';
+  neck.rotation.z = Math.PI / 2.7;
+  neck.scale.set(1, 1, dims.y / Math.max(dims.z, 0.001));
+  group.add(neck);
+  addJointBall(
+    group,
+    dims.z * 0.25 * visualNumber(part, 'miniJointBall', 1),
+    coatMaterial(palette.coat),
+    { x: 0, y: 0, z: 0 },
+  );
+  return group;
+}
+
 function buildMiniBody(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
   const group = new THREE.Group();
   const dims = part.dimensions;
-  const coatDepth = visualNumber(part, 'miniCoatDepth', 0.5);
   const coat = coatMaterial(palette.coat);
   const twoToned = !palette.patch.equals(palette.coat);
   const patchCoat = twoToned ? coatMaterial(palette.patch) : undefined;
-  // Fur thins as well as shortens on a sleek coat; a fixed thickness leaves a
-  // sleek animal covered in stubby pebbles.
-  const tuftWidth = 0.045 + coatDepth * 0.075;
+  // Keep these tufts sparse enough that the inherited dorsal rows remain the
+  // readable silhouette feature.
 
   const barrel = new THREE.LatheGeometry(
     MINI_BODY_PROFILE.map(([t, radius]) => new THREE.Vector2(Math.max(radius, 0.02), t * dims.x)),
@@ -319,14 +259,47 @@ function buildMiniBody(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
   torso.name = 'mini-dragon-torso';
   group.add(torso);
 
+  // LatheGeometry leaves both axial ends open. Close those large cuts so the
+  // only openings the assembled animal suggests are the deliberately sized
+  // neck and tail sockets below.
+  for (const side of [-1, 1] as const) {
+    const endRadius = sampleMiniBodyRadius(side * 0.5);
+    const cap = mesh(new THREE.CircleGeometry(1, 28), coat);
+    cap.name = side > 0 ? 'mini-dragon-front-body-cap' : 'mini-dragon-rear-body-cap';
+    cap.position.x = side * dims.x * 0.5;
+    cap.rotation.y = side * Math.PI / 2;
+    cap.scale.set(endRadius * dims.z * 0.5, endRadius * dims.y * 0.5, 1);
+    group.add(cap);
+  }
+
+  // Recessed cups beneath the two axial attachment balls. The neck pivot is
+  // authored at (+.38, +.28) of the torso and the shortened tail's root ball
+  // lands at about (-.42, +.08), so these rims remain visible around the balls
+  // instead of making either appendage look pasted onto an unbroken hide.
+  addMiniBodySocket(
+    group,
+    dims,
+    palette,
+    'neck',
+    { x: dims.x * 0.38, y: dims.y * 0.28, z: 0 },
+    new THREE.Vector3(0.58, 0.82, 0),
+  );
+  addMiniBodySocket(
+    group,
+    dims,
+    palette,
+    'tail',
+    { x: -dims.x * 0.42, y: dims.y * 0.08, z: 0 },
+    new THREE.Vector3(-0.96, 0.28, 0),
+  );
+
   /*
    * Two-tone coat. A codominant specimen carries both alleles' colours at once,
    * so the second colour has to appear as its own area on the animal rather than
    * as a blend — a blended midpoint would be indistinguishable from a third
    * allele, which is exactly the confusion this locus exists to break.
    *
-   * Blotches on the hide carry it for a sleek dragon; the tuft rings below carry
-   * it for a fluffy one, whose hide is not visible at all.
+   * Blotches on the hide and alternating dorsal scales carry both colours.
    */
   if (patchCoat) {
     const patches: readonly (readonly [number, number, number])[] = [
@@ -337,79 +310,19 @@ function buildMiniBody(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
     for (const [axial, angle, size] of patches) {
       for (const side of [-1, 1] as const) {
         const point = miniBodySurfacePoint(dims, axial, angle * side);
-        const blob = mesh(new THREE.SphereGeometry(dims.y * 0.2 * size, 10, 8), patchCoat);
+        const blob = mesh(new THREE.SphereGeometry(dims.y * 0.13 * size, 12, 9), patchCoat);
         blob.name = 'mini-dragon-coat-patch';
         blob.position.set(point.x, point.y, point.z);
         // Sink the blob so only the cap shows, reading as a patch of coat rather
         // than a ball stuck to the flank.
         blob.position.multiplyScalar(0.88);
-        blob.scale.set(1.35, 0.85, 0.85);
+        blob.scale.set(1.6, 0.72, 0.88);
         group.add(blob);
       }
     }
   }
 
-  /*
-   * Dorsal coat. Short, fat, densely packed, and laid almost flat along the
-   * back — fur, not a crest. Length is capped well under a fifth of the body
-   * height for the same reason: anything longer stands off the silhouette and
-   * the animal stops reading as something you would pick up.
-   */
-  const spineStations = [-0.34, -0.2, -0.06, 0.08, 0.22];
-  for (const axial of spineStations) {
-    const radius = sampleMiniBodyRadius(axial);
-    addTuftRing(group, coat, {
-      x: axial * dims.x,
-      radiusY: (radius * dims.y) / 2,
-      radiusZ: (radius * dims.z) / 2,
-      count: 9,
-      length: dims.y * (0.04 + coatDepth * 0.15),
-      thickness: dims.y * tuftWidth,
-      fromAngle: Math.PI * 0.5,
-      toAngle: Math.PI * 1.5,
-      sweep: -1.05,
-      seed: palette.seed + axial,
-      patchMaterial: patchCoat,
-    });
-  }
-
-  /*
-   * The neck ruff, and the reason a fluffy specimen reads as fluffy at thumbnail
-   * size: one dense collar at the shoulders, fanning all the way round rather
-   * than only over the spine.
-   */
-  const ruffRadius = sampleMiniBodyRadius(0.34);
-  addTuftRing(group, coat, {
-    x: dims.x * 0.34,
-    radiusY: (ruffRadius * dims.y) / 2,
-    radiusZ: (ruffRadius * dims.z) / 2,
-    count: 20,
-    length: dims.y * (0.07 + coatDepth * 0.28),
-    thickness: dims.y * (tuftWidth * 1.25),
-    fromAngle: -Math.PI * 0.92,
-    toAngle: Math.PI * 0.92,
-    sweep: 0.75,
-    seed: palette.seed + 7,
-    patchMaterial: patchCoat,
-  });
-
-  // Haunch feathering at the hips.
-  const haunchRadius = sampleMiniBodyRadius(-0.3);
-  addTuftRing(group, coat, {
-    x: -dims.x * 0.3,
-    radiusY: (haunchRadius * dims.y) / 2,
-    radiusZ: (haunchRadius * dims.z) / 2,
-    count: 13,
-    length: dims.y * (0.05 + coatDepth * 0.2),
-    thickness: dims.y * (tuftWidth * 1.1),
-    fromAngle: Math.PI * 0.2,
-    toAngle: Math.PI * 1.8,
-    sweep: -1.15,
-    seed: palette.seed + 13,
-    patchMaterial: patchCoat,
-  });
-
-  // Throat glow, tucked under the ruff.
+  // Throat glow, tucked under the neck.
   const throat = mesh(new THREE.SphereGeometry(dims.y * 0.11, 10, 8), emberMaterial(palette, 0.7));
   throat.name = 'mini-dragon-throat-ember';
   const throatPoint = miniBodySurfacePoint(dims, 0.3, 0.25);
@@ -426,12 +339,15 @@ function buildMiniBody(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
 function buildMiniHead(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
   const group = new THREE.Group();
   const dims = part.dimensions;
-  const coatDepth = visualNumber(part, 'miniCoatDepth', 0.5);
   const eyeSize = visualNumber(part, 'miniEyeSize', 0.62);
   const snoutLength = visualNumber(part, 'miniSnoutLength', 0.34);
   const hornCurl = visualNumber(part, 'miniHornCurl', 0);
   const hornLength = visualNumber(part, 'miniHornLength', 0.62);
   const earTuft = visualNumber(part, 'miniEarTuft', 0.6);
+  const earScale = visualNumber(part, 'miniEarScale', 1);
+  const cheekTuft = visualNumber(part, 'miniCheekTuft', 0.6);
+  const crownCrest = visualNumber(part, 'miniCrestCrown', 0) >= 0.5;
+  const sideFrill = visualNumber(part, 'miniCrestFrill', 0) >= 0.5;
   const coat = coatMaterial(palette.coat);
 
   // Cranium: wider than long, which is most of what makes it read as young.
@@ -522,7 +438,7 @@ function buildMiniHead(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
    * the part height and produced two balloons larger than the snout.
    */
   for (const side of [-1, 1] as const) {
-    const radius = dims.y * 0.085 * (0.8 + eyeSize * 0.5);
+    const radius = dims.y * 0.075 * (0.8 + eyeSize * 0.5);
     const socket = skullPoint(new THREE.Vector3(1, 0.12, side * 0.52), 0.94);
     const outward = socket.clone().normalize();
 
@@ -550,24 +466,22 @@ function buildMiniHead(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
    * when it tilts — placed independently they hung in the air above the head.
    */
   for (const side of [-1, 1] as const) {
-    const earLength = dims.y * 0.5;
+    const earLength = dims.y * 0.36 * earScale;
     const earRoot = skullPoint(new THREE.Vector3(-0.24, 0.9, side * 0.5), 0.9);
     const ear = new THREE.Group();
     ear.name = 'mini-dragon-ear';
 
-    const cone = mesh(new THREE.ConeGeometry(dims.y * 0.13, earLength, 9), coat);
-    cone.position.y = earLength * 0.5;
-    ear.add(cone);
+    const petal = mesh(new THREE.SphereGeometry(dims.y * 0.16, 12, 10), coat);
+    petal.name = 'mini-dragon-ear-petal';
+    petal.scale.set(0.58, earLength / (dims.y * 0.16), 0.34);
+    petal.position.y = earLength * 0.48;
+    ear.add(petal);
 
-    addTuftFan(ear, coat, {
-      origin: { x: 0, y: earLength * 0.86, z: 0 },
-      count: 4,
-      length: dims.y * (0.05 + earTuft * coatDepth * 0.2),
-      thickness: dims.y * 0.05,
-      direction: new THREE.Vector3(0, 1, 0),
-      spread: 1.1,
-      seed: palette.seed + side,
-    });
+    const tuft = mesh(new THREE.SphereGeometry(dims.y * (0.025 + earTuft * 0.018), 9, 7), coat);
+    tuft.name = 'mini-dragon-ear-tuft';
+    tuft.scale.set(0.75, 1.25, 0.75);
+    tuft.position.y = earLength * 0.88;
+    ear.add(tuft);
 
     ear.position.copy(earRoot);
     ear.rotation.z = side * -0.34;
@@ -575,18 +489,23 @@ function buildMiniHead(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
     group.add(ear);
   }
 
-  // Cheek fluff, the second-strongest read of the coat gene after the ruff.
+  // Small cheek tufts keep the species youthful without carrying a gene.
   for (const side of [-1, 1] as const) {
     const cheek = skullPoint(new THREE.Vector3(0.1, -0.34, side * 0.94), 0.94);
-    addTuftFan(group, coat, {
-      origin: { x: cheek.x, y: cheek.y, z: cheek.z },
-      count: 6,
-      length: dims.y * (0.05 + coatDepth * 0.24),
-      thickness: dims.y * 0.075,
-      direction: new THREE.Vector3(-0.5, -0.15, side * 1),
-      spread: 1.35,
-      seed: palette.seed + 3 + side,
-    });
+    for (let index = 0; index < 3; index += 1) {
+      const cheekScale = mesh(
+        new THREE.SphereGeometry(dims.y * (0.035 + cheekTuft * 0.018), 9, 7),
+        coat,
+      );
+      cheekScale.name = 'mini-dragon-cheek-scale';
+      cheekScale.scale.set(0.72, 1, 0.48);
+      cheekScale.position.set(
+        cheek.x - index * dims.x * 0.035,
+        cheek.y - index * dims.y * 0.018,
+        cheek.z + side * index * dims.z * 0.018,
+      );
+      group.add(cheekScale);
+    }
   }
 
   for (const side of [-1, 1] as const) {
@@ -594,6 +513,90 @@ function buildMiniHead(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
     const horn = buildMiniHorn(dims, palette, side, hornCurl, hornLength);
     horn.position.copy(hornRoot);
     group.add(horn);
+  }
+
+  if (crownCrest) {
+    for (const [index, axial] of [-0.24, -0.08, 0.08, 0.24].entries()) {
+      const bump = mesh(
+        new THREE.CapsuleGeometry(dims.y * 0.055, dims.y * (0.08 + index * 0.015), 4, 8),
+        coat,
+      );
+      bump.name = 'mini-dragon-crown-bump';
+      bump.position.set(axial * dims.x, dims.y * (0.43 + index * 0.012), 0);
+      bump.rotation.z = -0.18;
+      group.add(bump);
+    }
+  }
+
+  if (sideFrill) {
+    for (const side of [-1, 1] as const) {
+      for (const [index, lift] of [-0.18, 0, 0.18].entries()) {
+        const petal = mesh(new THREE.SphereGeometry(dims.y * 0.13, 10, 8), coat);
+        petal.name = 'mini-dragon-side-frill';
+        petal.scale.set(0.48, 1.05, 1.3);
+        petal.position.set(-dims.x * (0.25 + index * 0.035), lift * dims.y, side * dims.z * 0.47);
+        group.add(petal);
+      }
+    }
+  }
+
+  return group;
+}
+
+/**
+ * Soft lower muzzle with a readable mouth line and two tiny milk teeth.
+ *
+ * It is a separate part because the show-training rig opens it on the lantern
+ * cue. Keeping it in the mini factory preserves the species' matte coat and
+ * avoids borrowing the classic dragon's scaled jaw.
+ */
+function buildMiniJaw(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
+  const group = new THREE.Group();
+  const dims = part.dimensions;
+  const coat = coatMaterial(palette.coat);
+  const mouthMaterial = new THREE.MeshStandardMaterial({
+    color: '#351820',
+    roughness: 0.82,
+    metalness: 0,
+  });
+
+  const lowerMuzzle = mesh(new THREE.SphereGeometry(0.5, 14, 10), coat);
+  lowerMuzzle.name = 'mini-dragon-lower-muzzle';
+  lowerMuzzle.scale.set(dims.x, dims.y, dims.z);
+  group.add(lowerMuzzle);
+  addJointBall(group, dims.y * 0.32 * visualNumber(part, 'miniJointBall', 1), coat, {
+    x: -dims.x * 0.36,
+    y: 0,
+    z: 0,
+  });
+
+  const mouth = mesh(
+    new THREE.SphereGeometry(0.5, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.56),
+    mouthMaterial,
+  );
+  mouth.name = 'mini-dragon-mouth';
+  mouth.scale.set(dims.x * 0.78, dims.y * 0.12, dims.z * 0.72);
+  mouth.position.set(dims.x * 0.06, dims.y * 0.46, 0);
+  group.add(mouth);
+
+  // A small lantern inside the articulated mouth makes ember colour readable
+  // during the learned cue without turning the whole face into a light source.
+  const emberLantern = mesh(
+    new THREE.SphereGeometry(dims.y * 0.22, 10, 8),
+    emberMaterial(palette, 1.65),
+  );
+  emberLantern.name = 'mini-dragon-mouth-ember';
+  emberLantern.position.set(dims.x * 0.24, dims.y * 0.32, 0);
+  emberLantern.scale.set(1.35, 0.65, 0.88);
+  group.add(emberLantern);
+
+  const toothMaterial = hornMaterial(palette);
+  for (const side of [-1, 1] as const) {
+    const tooth = mesh(new THREE.ConeGeometry(dims.y * 0.12, dims.y * 0.42, 7), toothMaterial);
+    tooth.name = 'mini-dragon-milk-tooth';
+    tooth.position.set(dims.x * 0.12, dims.y * 0.48, side * dims.z * 0.23);
+    tooth.rotation.z = Math.PI;
+    group.add(tooth);
   }
 
   return group;
@@ -619,8 +622,8 @@ function buildMiniHorn(
 
   const material = hornMaterial(palette);
   const length = dims.y * 0.72 * Math.max(lengthFactor, 0.15);
-  const baseRadius = dims.y * 0.1;
-  const segments = 9;
+  const baseRadius = dims.y * 0.065;
+  const segments = 12;
   const sweep = 0.55 + curl * 4.7;
   // Radius of the coil that makes the arc come out `length` long overall.
   const coil = length / sweep;
@@ -658,7 +661,7 @@ function buildMiniHorn(
         taper((index + 1) / segments),
         taper(index / segments),
         height,
-        8,
+        10,
       ),
       material,
     );
@@ -677,8 +680,68 @@ function buildMiniHorn(
 }
 
 // ---------------------------------------------------------------------------
-// Leg: stubby, feathered at the top, soft paw at the bottom.
+// Two-piece leg: rounded hip and thigh, articulated knee, soft paw below.
 // ---------------------------------------------------------------------------
+
+const MINI_THIGH_PROFILE: readonly (readonly [number, number])[] = [
+  [-0.5, 0.58],
+  [-0.2, 0.66],
+  [0.2, 0.78],
+  [0.5, 0.9],
+];
+
+function buildMiniThigh(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
+  const group = new THREE.Group();
+  const dims = part.dimensions;
+  const coat = coatMaterial(palette.coat);
+  const limb = new THREE.LatheGeometry(
+    MINI_THIGH_PROFILE.map(([t, radius]) => new THREE.Vector2(radius * dims.x, t * dims.y)),
+    14,
+  );
+  const thigh = mesh(limb, coat);
+  thigh.name = 'mini-dragon-thigh';
+  group.add(thigh);
+
+  // The ball is centred exactly on the body-to-thigh pivot authored by the
+  // anatomy builder, so it stays seated in the hip while the leg swings.
+  addJointBall(group, dims.x * 0.92 * visualNumber(part, 'miniJointBall', 1), coat, {
+    x: 0,
+    y: dims.y * 0.4,
+    z: 0,
+  });
+  return group;
+}
+
+/** A shallow visual socket whose normal points toward the attached appendage. */
+function addMiniBodySocket(
+  group: THREE.Group,
+  dims: Vector3Data,
+  palette: MiniDragonPalette,
+  kind: 'neck' | 'tail',
+  position: Vector3Data,
+  normal: THREE.Vector3,
+): void {
+  const radius = dims.y * 0.12;
+  const direction = normal.clone().normalize();
+  const orientation = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 0, 1),
+    direction,
+  );
+  const cavityMaterial = coatMaterial(palette.coatDeep.clone().multiplyScalar(0.55));
+  const rimMaterial = coatMaterial(palette.coat.clone().multiplyScalar(0.86));
+
+  const cavity = mesh(new THREE.CircleGeometry(radius * 0.82, 24), cavityMaterial);
+  cavity.name = `mini-dragon-${kind}-socket-cavity`;
+  cavity.position.set(position.x, position.y, position.z).addScaledVector(direction, radius * 0.035);
+  cavity.quaternion.copy(orientation);
+  group.add(cavity);
+
+  const rim = mesh(new THREE.TorusGeometry(radius * 0.88, radius * 0.13, 8, 24), rimMaterial);
+  rim.name = `mini-dragon-${kind}-socket-rim`;
+  rim.position.set(position.x, position.y, position.z).addScaledVector(direction, radius * 0.055);
+  rim.quaternion.copy(orientation);
+  group.add(rim);
+}
 
 const MINI_LEG_PROFILE: readonly (readonly [number, number])[] = [
   [-0.5, 0.62],
@@ -692,7 +755,6 @@ const MINI_LEG_PROFILE: readonly (readonly [number, number])[] = [
 function buildMiniLeg(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
   const group = new THREE.Group();
   const dims = part.dimensions;
-  const coatDepth = visualNumber(part, 'miniCoatDepth', 0.5);
   const toeCount = Math.max(2, Math.round(visualNumber(part, 'miniToeCount', 3)));
   const coat = coatMaterial(palette.coat);
 
@@ -703,6 +765,11 @@ function buildMiniLeg(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gro
   const shank = mesh(limb, coat);
   shank.name = 'mini-dragon-shank';
   group.add(shank);
+  addJointBall(group, dims.x * 0.82 * visualNumber(part, 'miniJointBall', 1), coat, {
+    x: 0,
+    y: dims.y * 0.4,
+    z: 0,
+  });
 
   // Paw: a squashed ball with soft toe beans. No talons — this animal is bred
   // to sit on a lap.
@@ -722,48 +789,38 @@ function buildMiniLeg(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gro
     group.add(toe);
   }
 
-  /*
-   * Leg feathering: a cuff where the limb meets the body. The ring is authored
-   * around the X axis, so it rides in its own group lifted to the top of the
-   * limb rather than being nudged mesh by mesh.
-   */
-  const cuff = new THREE.Group();
+  // A shallow collar blends the knee ball into the narrower shank. It sits
+  // inside both meshes instead of forming a separate floating ring.
+  const cuff = mesh(new THREE.SphereGeometry(dims.x * 0.68, 12, 9), coat);
   cuff.name = 'mini-dragon-leg-cuff';
-  cuff.position.y = dims.y * 0.3;
-  addTuftRing(cuff, coat, {
-    x: 0,
-    radiusY: dims.x * 0.58,
-    radiusZ: dims.x * 0.58,
-    count: 8,
-    length: dims.x * (0.3 + coatDepth * 1.15),
-    thickness: dims.x * 0.2,
-    fromAngle: -Math.PI,
-    toAngle: Math.PI,
-    sweep: 0,
-    seed: palette.seed,
-  });
+  cuff.scale.set(1, 0.34, 1);
+  cuff.position.y = dims.y * 0.28;
   group.add(cuff);
 
   return group;
 }
 
 // ---------------------------------------------------------------------------
-// Wing: small, rounded, furred along the leading edge — and often barely there.
+// Wing: small, rounded, and often barely there.
 // ---------------------------------------------------------------------------
 
 function buildMiniWing(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
   const group = new THREE.Group();
   const dims = part.dimensions;
   const spread = visualNumber(part, 'miniWingSpread', 1);
-  const coatDepth = visualNumber(part, 'miniCoatDepth', 0.5);
   // Which flank this wing grows from, as data rather than as a substring of the
   // part id: a renamed part must not silently mirror the animal.
   const side = visualNumber(part, 'miniWingSide', 1) < 0 ? -1 : 1;
   const coat = coatMaterial(palette.coat);
+  addJointBall(group, dims.y * 0.18 * visualNumber(part, 'miniJointBall', 1), coat, {
+    x: 0,
+    y: 0,
+    z: 0,
+  });
 
   /*
    * A vestigial wing is not a small wing. Below this threshold the membrane and
-   * struts are gone entirely and what remains is a furred bump — which is what
+   * struts are gone entirely and what remains is a rounded bump — which is what
    * the recessive genotype actually produces, and what stops a student reading
    * "wingless" as "wings I cannot see at this zoom".
    */
@@ -772,15 +829,6 @@ function buildMiniWing(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
     nub.name = 'mini-dragon-wing-nub';
     nub.scale.set(1.1, 0.8, 0.7);
     group.add(nub);
-    addTuftFan(group, coat, {
-      origin: { x: 0, y: dims.y * 0.16, z: side * dims.y * 0.1 },
-      count: 4,
-      length: dims.y * (0.16 + coatDepth * 0.42),
-      thickness: dims.y * 0.07,
-      direction: new THREE.Vector3(-0.3, 0.55, side * 1),
-      spread: 1.0,
-      seed: palette.seed,
-    });
     return group;
   }
 
@@ -824,17 +872,6 @@ function buildMiniWing(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
     group.add(strut);
   }
 
-  // Fur along the shoulder and the leading edge.
-  addTuftFan(group, coat, {
-    origin: { x: chord * 0.24, y: 0, z: side * span * 0.08 },
-    count: 6,
-    length: dims.y * (0.08 + coatDepth * 0.28),
-    thickness: dims.y * 0.085,
-    direction: new THREE.Vector3(0.35, 0.3, side * 1),
-    spread: 1.3,
-    seed: palette.seed + 5,
-  });
-
   // Lift the outer edge. A wing built flat in the XZ plane is a card seen
   // edge-on from every angle the specimen camera uses.
   group.rotation.x = -side * 0.5;
@@ -847,17 +884,16 @@ function buildMiniWing(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
 // ---------------------------------------------------------------------------
 
 const MINI_TAIL_PROFILE: readonly (readonly [number, number])[] = [
-  [-0.5, 0.94],
-  [-0.2, 0.82],
+  [-0.5, 0.42],
+  [-0.2, 0.5],
   [0.16, 0.66],
-  [0.42, 0.5],
-  [0.5, 0.42],
+  [0.42, 0.82],
+  [0.5, 0.94],
 ];
 
 function buildMiniTail(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
   const group = new THREE.Group();
   const dims = part.dimensions;
-  const coatDepth = visualNumber(part, 'miniCoatDepth', 0.5);
   const coat = coatMaterial(palette.coat);
 
   const lathe = new THREE.LatheGeometry(
@@ -869,21 +905,19 @@ function buildMiniTail(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
   const segment = mesh(lathe, coat);
   segment.name = 'mini-dragon-tail-segment';
   group.add(segment);
-
-  for (const axial of [-0.3, -0.08, 0.14, 0.34] as const) {
-    addTuftRing(group, coat, {
-      x: axial * dims.x,
-      radiusY: (sampleProfile(MINI_TAIL_PROFILE, axial) * dims.y) / 2,
-      radiusZ: (sampleProfile(MINI_TAIL_PROFILE, axial) * dims.z) / 2,
-      count: 8,
-      length: dims.y * (0.08 + coatDepth * 0.34),
-      thickness: dims.y * 0.14,
-      fromAngle: Math.PI * 0.35,
-      toAngle: Math.PI * 1.65,
-      sweep: -1.15,
-      seed: palette.seed + axial,
-    });
-  }
+  const jointBallScale = visualNumber(part, 'miniJointBall', 1);
+  // +X is the body-facing, broad end; -X is the narrow distal end. Match each
+  // socket cover to the surface beneath it so neither a gap nor a bead appears.
+  addJointBall(group, dims.y * 0.48 * jointBallScale, coat, {
+    x: dims.x * 0.47,
+    y: 0,
+    z: 0,
+  });
+  addJointBall(group, dims.y * 0.24 * jointBallScale, coat, {
+    x: -dims.x * 0.47,
+    y: 0,
+    z: 0,
+  });
 
   return group;
 }
@@ -891,32 +925,71 @@ function buildMiniTail(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
 function buildMiniTailPlume(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
   const group = new THREE.Group();
   const dims = part.dimensions;
-  const coatDepth = visualNumber(part, 'miniCoatDepth', 0.5);
   const fan = visualNumber(part, 'miniPlumeFan', 0.8);
+  const tailStyle = Math.round(visualNumber(part, 'miniTailStyle', 2));
   const coat = coatMaterial(palette.coat);
 
   const core = mesh(new THREE.SphereGeometry(dims.y * 0.3, 10, 8), coat);
   core.name = 'mini-dragon-plume-core';
   group.add(core);
+  addJointBall(group, dims.y * 0.28 * visualNumber(part, 'miniJointBall', 1), coat, {
+    x: dims.x * 0.12,
+    y: 0,
+    z: 0,
+  });
 
-  // Four overlapping fans read as a plume; one flat fan reads as a comb.
-  const layers = [
-    { direction: new THREE.Vector3(-1, 0.5, 0), count: 7 },
-    { direction: new THREE.Vector3(-1, 0.05, 0.42), count: 6 },
-    { direction: new THREE.Vector3(-1, 0.05, -0.42), count: 6 },
-    { direction: new THREE.Vector3(-1, -0.42, 0), count: 6 },
-  ] as const;
+  if (tailStyle === 0) {
+    const club = mesh(new THREE.SphereGeometry(dims.y * 0.48, 14, 10), coat);
+    club.name = 'mini-dragon-star-club';
+    club.scale.set(1.15, 1, 1);
+    club.position.x = -dims.x * 0.2;
+    group.add(club);
+    for (let index = 0; index < 5; index += 1) {
+      const angle = (index / 5) * Math.PI * 2;
+      const lobe = mesh(new THREE.CapsuleGeometry(dims.y * 0.11, dims.y * 0.16, 4, 8), coat);
+      lobe.name = 'mini-dragon-star-lobe';
+      lobe.position.set(
+        -dims.x * 0.2,
+        Math.cos(angle) * dims.y * 0.44,
+        Math.sin(angle) * dims.z * 0.44,
+      );
+      lobe.rotation.x = angle;
+      group.add(lobe);
+    }
+    return group;
+  }
 
-  for (const [index, layer] of layers.entries()) {
-    addTuftFan(group, coat, {
-      origin: { x: -dims.x * 0.08, y: 0, z: 0 },
-      count: layer.count,
-      length: dims.x * (0.3 + coatDepth * 0.72),
-      thickness: dims.y * 0.2,
-      direction: layer.direction,
-      spread: 0.8 + fan * 0.8,
-      seed: palette.seed + index * 11,
-    });
+  if (tailStyle === 1) {
+    for (const side of [-1, 1] as const) {
+      const fork = mesh(new THREE.CapsuleGeometry(dims.y * 0.18, dims.x * 0.48, 5, 10), coat);
+      fork.name = 'mini-dragon-tail-fork';
+      fork.rotation.z = Math.PI / 2 + side * 0.42;
+      fork.position.set(-dims.x * 0.28, side * dims.y * 0.19, 0);
+      fork.scale.z = 0.72;
+      group.add(fork);
+    }
+    return group;
+  }
+
+  // One soft pom with a solid heart and six overlapping dimples. The previous
+  // ring duplicated its first bubble and read as loose grapes with holes.
+  const pomCore = mesh(new THREE.SphereGeometry(dims.y * (0.34 + fan * 0.04), 14, 11), coat);
+  pomCore.name = 'mini-dragon-pom-core';
+  pomCore.position.x = -dims.x * 0.2;
+  pomCore.scale.set(1.18, 1, 1);
+  group.add(pomCore);
+
+  const pomRadius = dims.y * (0.19 + fan * 0.035);
+  for (let index = 0; index < 6; index += 1) {
+    const angle = (index / 6) * Math.PI * 2;
+    const bubble = mesh(new THREE.SphereGeometry(pomRadius, 10, 8), coat);
+    bubble.name = 'mini-dragon-pom-bubble';
+    bubble.position.set(
+      -dims.x * (0.2 + (index % 2) * 0.035),
+      Math.cos(angle) * dims.y * 0.24,
+      Math.sin(angle) * dims.z * 0.24,
+    );
+    group.add(bubble);
   }
 
   return group;
@@ -940,6 +1013,19 @@ function sampleProfile(
     }
   }
   return profile[profile.length - 1][1];
+}
+
+/** Rounded socket cover seated at an attachment end so animated parts never reveal a gap. */
+function addJointBall(
+  group: THREE.Group,
+  radius: number,
+  material: THREE.Material,
+  position: Vector3Data,
+): void {
+  const ball = mesh(new THREE.SphereGeometry(Math.max(radius, 0.001), 12, 9), material);
+  ball.name = 'mini-dragon-joint-ball';
+  ball.position.set(position.x, position.y, position.z);
+  group.add(ball);
 }
 
 function visualNumber(part: AssemblyPart, key: string, fallback: number): number {

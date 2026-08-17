@@ -25,6 +25,10 @@ export interface MiniDragonShowProgressSummary {
   registryCount: number;
   consistencyPercent: number;
   ribbons: number;
+  showDivisionId: string;
+  geneticScore: number;
+  trainingScore: number;
+  combinedScore: number;
   generations: number;
   latestAtIso: string;
 }
@@ -76,7 +80,12 @@ export function summarizeMiniDragonShow(
     snapshot.breedName.trim() ||
       snapshot.targets.length ||
       snapshot.litters.length ||
-      snapshot.championId,
+      snapshot.championId ||
+      snapshot.showDivisionId ||
+      snapshot.trainingSessions.length ||
+      snapshot.showRuns.length ||
+      snapshot.rareTraitGeneId ||
+      snapshot.rareCandidateIds.length,
   );
   return {
     status: latestRegistryEntry ? 'complete' : hasWork ? 'in-progress' : 'not-started',
@@ -84,6 +93,10 @@ export function summarizeMiniDragonShow(
     registryCount: snapshot.registry.length,
     consistencyPercent: latestRegistryEntry?.consistencyPercent ?? 0,
     ribbons: latestRegistryEntry?.ribbons ?? 0,
+    showDivisionId: latestRegistryEntry?.showDivisionId ?? snapshot.showDivisionId ?? '',
+    geneticScore: latestRegistryEntry?.geneticScore ?? 0,
+    trainingScore: latestRegistryEntry?.trainingScore ?? 0,
+    combinedScore: latestRegistryEntry?.combinedScore ?? snapshot.showRuns.at(-1)?.combinedScore ?? 0,
     generations: latestRegistryEntry?.generations ?? 0,
     latestAtIso: latestRegistryEntry?.submittedAtIso ?? snapshot.updatedAtIso,
   };

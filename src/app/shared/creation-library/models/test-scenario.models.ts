@@ -49,6 +49,17 @@ export interface CreationTestScenarioDefinition {
   environment: {
     floorSize: Vector3Data;
     wallHeight: number;
+    /**
+     * Fight inside the circle inscribed in the floor rather than inside its
+     * corners.
+     *
+     * The dragon pit is *drawn* round whatever this says; setting it makes the
+     * drawn ring the boundary combatants are actually held to, instead of the
+     * floor's rectangle a couple of metres further out. Only worth setting on a
+     * floor whose scale leaves room for it — in a pad barely wider than the
+     * animal, a round boundary would pin it to the middle.
+     */
+    ringBoundary?: boolean;
     obstacles: CreationStaticObstacle[];
   };
   participants: CreationScenarioParticipant[];
