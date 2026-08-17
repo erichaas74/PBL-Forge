@@ -183,6 +183,36 @@ describe('CellModelComponent', () => {
     expect(component.membranePath()).not.toBe(component.membraneInnerPath());
   });
 
+  it('turns the plate, the poles, and the furrow when the cell divides end to end', () => {
+    fixture.componentRef.setInput('axis', 'vertical');
+    fixture.componentRef.setInput('stage', 'metaphase');
+    fixture.detectChanges();
+
+    expect(element.querySelector('.cell-model')?.getAttribute('data-axis')).toBe('vertical');
+    // One row across the middle rather than a column down it.
+    expect(new Set(component.slots().map((slot) => slot.y)).size).toBe(1);
+    expect(new Set(component.slots().map((slot) => slot.x)).size).toBe(5);
+    expect(Number(component.spindlePoles().a.x)).toBe(Number(component.spindlePoles().b.x));
+
+    const plate = component.equator();
+    expect(plate?.y1).toBe(plate?.y2);
+    expect(plate?.x1).not.toBe(plate?.x2);
+
+    fixture.componentRef.setInput('stage', 'anaphase');
+    fixture.detectChanges();
+
+    expect(component.slots().filter((slot) => slot.y < 80).length).toBe(3);
+    expect(component.slots().filter((slot) => slot.y > 80).length).toBe(2);
+
+    fixture.componentRef.setInput('stage', 'telophase');
+    fixture.detectChanges();
+
+    const nuclei = component.nuclei();
+    expect(nuclei.length).toBe(2);
+    expect(nuclei[0].cx).toBe(nuclei[1].cx);
+    expect(nuclei[0].cy).toBeLessThan(nuclei[1].cy);
+  });
+
   it('labels the drawn structures only when the diagram asks for it', () => {
     expect(element.querySelectorAll('.cell-model__annotation').length).toBe(0);
 

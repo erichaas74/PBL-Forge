@@ -21,20 +21,19 @@ describe('Dragon project hub definition', () => {
     expect(view.nextAction).toEqual(
       jasmine.objectContaining({ kind: 'activity', activityId: 'trait-evidence' }),
     );
-    expect(view.paths.map((path) => path.id)).toEqual([
-      'dragon-arena',
-      'mini-dragon-show',
-      'island-diversity',
-    ]);
+    expect(view.paths.map((path) => path.id)).toEqual(['dragon-arena', 'mini-dragon-show']);
   });
 
   it('offers one final-path choice after shared work is complete', () => {
     const progress = Object.fromEntries(
       DRAGON_PROJECT_HUB_DEFINITION.activities
         .filter((activity) => activity.required)
-        .filter((activity) => !DRAGON_PROJECT_HUB_DEFINITION.paths?.some(
-          (path) => path.activityIds.includes(activity.id),
-        ))
+        .filter(
+          (activity) =>
+            !DRAGON_PROJECT_HUB_DEFINITION.paths?.some((path) =>
+              path.activityIds.includes(activity.id),
+            ),
+        )
         .map((activity) => [
           activity.id,
           {
@@ -52,9 +51,7 @@ describe('Dragon project hub definition', () => {
     );
 
     expect(view.progressPercent).toBe(100);
-    expect(view.nextAction).toEqual(
-      jasmine.objectContaining({ kind: 'choose-path' }),
-    );
+    expect(view.nextAction).toEqual(jasmine.objectContaining({ kind: 'choose-path' }));
   });
 });
 
@@ -68,4 +65,3 @@ function studentState(
     mastery: {},
   };
 }
-

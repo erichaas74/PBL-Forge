@@ -128,6 +128,14 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
     return eggParent && spermParent ? [eggParent, spermParent] : null;
   });
   readonly canFertilize = computed(() => Boolean(this.eggSelection() && this.spermSelection()));
+  /**
+   * The fusion visual exists only once both gametes are in. It then takes over
+   * the space the two selected gametes occupied, so the animation plays where
+   * the student put them rather than in a separate panel that was always there.
+   */
+  readonly fusionVisible = computed(
+    () => this.canFertilize() || this.fertilizationState() !== 'loading',
+  );
   readonly gameteOutlineChromosomes = computed<readonly CellChromosomeViewportItem[]>(() =>
     GAMETE_CHROMOSOME_LABELS.map((label) => {
       const visual = chromosomeVisual(label);

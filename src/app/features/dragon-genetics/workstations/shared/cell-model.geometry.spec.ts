@@ -8,6 +8,7 @@ import {
   CELL_ORGANELLES,
   CELL_POLES,
   CELL_RIBOSOMES,
+  CELL_SPINDLE_POLES,
   CELL_VIEW,
   cellFocusRect,
   cellMembranePath,
@@ -54,8 +55,11 @@ describe('cell model geometry', () => {
       chromosomeSlots(10, CELL_NUCLEUS, CHROMOSOME_RATIO),
       chromosomeSlots(10, CELL_NUCLEUS, REPLICATED_RATIO),
       metaphasePlateSlots(5, REPLICATED_RATIO),
-      metaphasePlateSlots(10, REPLICATED_RATIO, 2),
+      metaphasePlateSlots(10, REPLICATED_RATIO, { lanes: 2 }),
+      metaphasePlateSlots(5, REPLICATED_RATIO, { axis: 'vertical' }),
+      metaphasePlateSlots(10, REPLICATED_RATIO, { lanes: 2, axis: 'vertical' }),
       polarSlots(10, REPLICATED_RATIO),
+      polarSlots(10, REPLICATED_RATIO, 'vertical'),
     ];
 
     layouts.forEach((slots, layout) => {
@@ -76,7 +80,7 @@ describe('cell model geometry', () => {
     expect(polarSlots(0, CHROMOSOME_RATIO)).toEqual([]);
   });
 
-  it('stacks the metaphase plate on the equator inside the cell', () => {
+  it('stacks the metaphase plate down the middle when the poles are at the sides', () => {
     const slots = metaphasePlateSlots(5, CHROMOSOME_RATIO);
 
     expect(slots.length).toBe(5);
@@ -85,13 +89,62 @@ describe('cell model geometry', () => {
     slots.forEach((slot) => expect(slotInsideEllipse(slot, CELL_BODY)).toBeTrue());
   });
 
-  it('splits chromosomes between the two poles, keeping each inside its pole', () => {
-    const slots = polarSlots(5, CHROMOSOME_RATIO);
+  it('lays the metaphase plate across the middle when the poles are top and bottom', () => {
+    const slots = metaphasePlateSlots(5, CHROMOSOME_RATIO, { axis: 'vertical' });
 
     expect(slots.length).toBe(5);
-    expect(slots.slice(0, 3).every((slot) => slotInsideEllipse(slot, CELL_POLES.a))).toBeTrue();
-    expect(slots.slice(3).every((slot) => slotInsideEllipse(slot, CELL_POLES.b))).toBeTrue();
-    expect(slots.every((slot) => slotInsideEllipse(slot, CELL_BODY))).toBeTrue();
+    expect(slots.map((slot) => slot.y)).toEqual(slots.map(() => CELL_BODY.cy));
+    expect([...slots].sort((left, right) => left.x - right.x)).toEqual(slots);
+    // The chromosomes stay the same way up; only the plate turns.
+    expect(slots.every((slot) => slot.width > slot.height)).toBeTrue();
+    slots.forEach((slot) => expect(slotInsideEllipse(slot, CELL_BODY)).toBeTrue());
+  });
+
+  it('splits chromosomes between the two poles on either division axis', () => {
+    const sideways = polarSlots(5, CHROMOSOME_RATIO);
+
+    expect(sideways.length).toBe(5);
+    expect(
+      sideways.slice(0, 3).every((slot) => slotInsideEllipse(slot, CELL_POLES.horizontal.a)),
+    ).toBeTrue();
+    expect(
+      sideways.slice(3).every((slot) => slotInsideEllipse(slot, CELL_POLES.horizontal.b)),
+    ).toBeTrue();
+    expect(sideways.every((slot) => slotInsideEllipse(slot, CELL_BODY))).toBeTrue();
+
+    const endways = polarSlots(10, CHROMOSOME_RATIO, 'vertical');
+
+    expect(endways.slice(0, 5).every((slot) => slot.y < CELL_BODY.cy)).toBeTrue();
+    expect(endways.slice(5).every((slot) => slot.y > CELL_BODY.cy)).toBeTrue();
+    expect(
+      endways.slice(0, 5).every((slot) => slotInsideEllipse(slot, CELL_POLES.vertical.a)),
+    ).toBeTrue();
+    expect(
+      endways.slice(5).every((slot) => slotInsideEllipse(slot, CELL_POLES.vertical.b)),
+    ).toBeTrue();
+    expect(endways.every((slot) => slotInsideEllipse(slot, CELL_BODY))).toBeTrue();
+  });
+
+  it('puts the spindle poles square across whichever way the cell divides', () => {
+    expect(CELL_SPINDLE_POLES.horizontal.a.y).toBe(CELL_SPINDLE_POLES.horizontal.b.y);
+    expect(CELL_SPINDLE_POLES.horizontal.a.x).toBeLessThan(CELL_SPINDLE_POLES.horizontal.b.x);
+    expect(CELL_SPINDLE_POLES.vertical.a.x).toBe(CELL_SPINDLE_POLES.vertical.b.x);
+    expect(CELL_SPINDLE_POLES.vertical.a.y).toBeLessThan(CELL_SPINDLE_POLES.vertical.b.y);
+
+    [CELL_SPINDLE_POLES.horizontal, CELL_SPINDLE_POLES.vertical].forEach((poles) => {
+      expect(insideEllipse(poles.a, CELL_BODY)).toBeTrue();
+      expect(insideEllipse(poles.b, CELL_BODY)).toBeTrue();
+    });
+  });
+
+  it('pinches the cleavage furrow across the division axis, not along it', () => {
+    const resting = cellMembranePath();
+    const sideways = cellMembranePath(1, 1, 'horizontal');
+    const endways = cellMembranePath(1, 1, 'vertical');
+
+    expect(sideways).not.toBe(resting);
+    expect(endways).not.toBe(resting);
+    expect(endways).not.toBe(sideways);
   });
 
   it('places every organelle in the cytoplasm, never in the nucleus or outside the cell', () => {
@@ -198,6 +251,9 @@ describe('cell model geometry', () => {
     const separating = cellFocusRect(polarSlots(10, CHROMOSOME_RATIO));
 
     expect(separating.width).toBeGreaterThan(held.width);
+    expect(cellFocusRect(polarSlots(10, CHROMOSOME_RATIO, 'vertical')).height).toBeGreaterThan(
+      held.height,
+    );
     expect(separating.x).toBeGreaterThanOrEqual(0);
     expect(separating.x + separating.width).toBeLessThanOrEqual(CELL_VIEW.width);
     expect(separating.y).toBeGreaterThanOrEqual(0);

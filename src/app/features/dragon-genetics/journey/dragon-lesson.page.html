@@ -1,0 +1,115 @@
+<main class="lesson-page">
+  @if (lesson(); as lesson) {
+    <header>
+      <a [routerLink]="['/dragon-genetics/journey', lesson.definition.pathId]">← Journey map</a>
+      <p>
+        Lesson {{ lesson.order }} ·
+        {{ lesson.required ? 'Class requirement' : 'Open investigation' }}
+      </p>
+      <h1>{{ lesson.definition.title }}</h1>
+      <span>{{ lesson.definition.story }}</span>
+    </header>
+
+    <section class="lesson-brief">
+      <div>
+        <p>Learning goal</p>
+        <h2>{{ lesson.definition.learningGoal }}</h2>
+      </div>
+      <div class="mastery-tags">
+        @for (skill of lesson.definition.masterySkillIds; track skill) {
+          <span>{{ skill }}</span>
+        }
+      </div>
+    </section>
+
+    @if (journey.roster(); as roster) {
+      <section class="lesson-roster" aria-label="Dragons for this lesson">
+        <div>
+          <p>Your dragons</p>
+          <strong>{{ roster.starters[0].label }}</strong>
+          <span>{{ roster.starters[0].sex }}</span>
+        </div>
+        <span aria-hidden="true">×</span>
+        <div>
+          <p>Your dragons</p>
+          <strong>{{ roster.starters[1].label }}</strong>
+          <span>{{ roster.starters[1].sex }}</span>
+        </div>
+        <dl>
+          <dt>Bred so far</dt>
+          <dd>{{ roster.bredCount }}</dd>
+        </dl>
+      </section>
+    }
+
+    <section class="workstation-launch" aria-labelledby="workstation-title">
+      @for (visit of lesson.definition.workstationVisits; track visit.activityId) {
+        <div>
+          <p>Open investigation</p>
+          <h2 id="workstation-title">{{ visit.title }}</h2>
+          <span>{{ visit.launchHint }}</span>
+        </div>
+        <a
+          [routerLink]="visit.route"
+          [queryParams]="{ journeyPath: lesson.definition.pathId, lesson: lesson.definition.id }"
+        >
+          Enter workstation →
+        </a>
+      }
+    </section>
+
+    <section class="evidence" aria-labelledby="evidence-title">
+      <header>
+        <div>
+          <p>Authentic evidence</p>
+          <h2 id="evidence-title">What completes this lesson</h2>
+        </div>
+        <button type="button" (click)="refreshEvidence()">Refresh evidence</button>
+      </header>
+      <ul>
+        @for (result of lesson.requirements; track result.requirement.id) {
+          <li [class.met]="result.met">
+            <span aria-hidden="true">{{ result.met ? '✓' : '○' }}</span>
+            <div>
+              <strong>{{ result.requirement.label }}</strong>
+              <small>{{ result.current }} of {{ result.required }} recorded</small>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <footer [class.complete]="lesson.complete">
+      <div>
+        <p>{{ lesson.complete ? 'Lesson complete' : 'Investigation still open' }}</p>
+        <span>
+          {{
+            lesson.complete
+              ? 'Your saved evidence satisfies this class lesson.'
+              : 'You can leave, return, repeat tests, or explore another workstation at any time.'
+          }}
+        </span>
+      </div>
+      @if (nextLesson(); as next) {
+        <a
+          [routerLink]="[
+            '/dragon-genetics/journey',
+            next.definition.pathId,
+            'lesson',
+            next.definition.id,
+          ]"
+          >Next lesson →</a
+        >
+      } @else {
+        <a [routerLink]="['/dragon-genetics/journey', lesson.definition.pathId]"
+          >Return to journey →</a
+        >
+      }
+    </footer>
+  } @else {
+    <section class="missing-lesson">
+      <h1>This lesson is not part of the selected dragon path.</h1>
+      <a routerLink="/dragon-genetics/journey">Return to the journey map</a>
+    </section>
+  }
+</main>

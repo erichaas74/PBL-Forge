@@ -4,6 +4,7 @@
   [class.cell-model--annotated]="annotations().length > 0"
   [class.cell-model--has-selection]="!!selectedChromosome()"
   [attr.data-stage]="stage()"
+  [attr.data-axis]="axis()"
   [attr.data-focus]="focus()"
   [style.aspect-ratio]="aspectRatio()"
   role="group"
@@ -119,10 +120,10 @@
     @if (equator(); as plate) {
       <line
         class="cell-model__equator"
-        [attr.x1]="plate.x"
-        [attr.y1]="plate.top"
-        [attr.x2]="plate.x"
-        [attr.y2]="plate.bottom"
+        [attr.x1]="plate.x1"
+        [attr.y1]="plate.y1"
+        [attr.x2]="plate.x2"
+        [attr.y2]="plate.y2"
       />
     }
 
@@ -137,7 +138,7 @@
             [attr.y2]="fibre.y2"
           />
         }
-        @for (pole of [spindlePoles.a, spindlePoles.b]; track $index) {
+        @for (pole of [spindlePoles().a, spindlePoles().b]; track $index) {
           <g class="cell-model__pole" [attr.transform]="'translate(' + pole.x + ',' + pole.y + ')'">
             <circle class="cell-model__pericentriolar" r="8" />
             <rect class="cell-model__centriole-barrel" x="-5" y="-2" width="10" height="4" rx="1.5" />

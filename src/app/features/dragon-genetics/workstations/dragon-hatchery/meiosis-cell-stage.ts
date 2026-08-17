@@ -3,6 +3,7 @@ import {
   CellModelFocus,
   CellModelStage,
 } from '../shared/cell-model.component';
+import { CellDivisionAxis } from '../shared/cell-model.geometry';
 import { MeiosisChromosomePair, MeiosisRun } from './meiosis-gamete.models';
 import { meiosisChromatidSvgModel, meiosisGameteChromosomeSvgModel } from './meiosis-gamete.viewport';
 
@@ -12,6 +13,11 @@ export interface MeiosisCellView {
   label: string;
   chromosomes: readonly CellModelChromosome[];
   stage: CellModelStage;
+  /**
+   * Meiosis I splits the parent cell side to side; meiosis II then splits each
+   * daughter across that, top to bottom, as the two divisions do in a real cell.
+   */
+  axis: CellDivisionAxis;
 }
 
 export interface MeiosisStageView {
@@ -67,9 +73,21 @@ export function meiosisStageView(run: MeiosisRun | null, phaseIndex: number): Me
     case ANAPHASE_II:
       return { focus: 'nucleus', cells: separatingSisters(run) };
     default:
-      // Telophase II: the four finished gametes, drawn by the gamete cards.
-      return { focus: 'cell', cells: [] };
+      // Telophase II: the camera pulls back out to four whole gamete cells,
+      // which is the last thing the animation shows before the gamete cards.
+      return { focus: 'cell', cells: gameteCells(run) };
   }
+}
+
+/** The four finished gametes, each as a whole cell of its own. */
+function gameteCells(run: MeiosisRun): readonly MeiosisCellView[] {
+  return run.gametes.map((gamete, index) => ({
+    id: gamete.id,
+    label: `Gamete ${index + 1}`,
+    chromosomes: meiosisGameteCellChromosomes(run, index),
+    stage: 'interphase' as const,
+    axis: 'horizontal' as const,
+  }));
 }
 
 /** The four gametes, in the order the run produced them. */
@@ -90,7 +108,7 @@ function parentCell(
   chromosomes: readonly CellModelChromosome[],
   stage: CellModelStage,
 ): MeiosisCellView {
-  return { id: 'parent', label: 'Parent cell', chromosomes, stage };
+  return { id: 'parent', label: 'Parent cell', chromosomes, stage, axis: 'horizontal' };
 }
 
 /** Before replication: one chromosome from each homologue of every pair. */
@@ -143,6 +161,7 @@ function daughterCells(run: MeiosisRun, stage: CellModelStage): readonly Meiosis
     label: `Cell ${daughter + 1}`,
     chromosomes: daughterChromosomes(run, daughter),
     stage,
+    axis: 'vertical',
   }));
 }
 
@@ -156,6 +175,7 @@ function separatingSisters(run: MeiosisRun): readonly MeiosisCellView[] {
       ...meiosisGameteCellChromosomes(run, daughter * 2 + 1),
     ].map((item, index) => ({ ...item, id: `${item.id}:${index}` })),
     stage: 'anaphase' as const,
+    axis: 'vertical' as const,
   }));
 }
 

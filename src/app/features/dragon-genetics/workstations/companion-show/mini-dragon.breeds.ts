@@ -35,6 +35,7 @@ export interface MiniBreedTargetPlan {
 
 const EXAMPLE_BASE_FORMS: Readonly<Record<MiniGeneId, string>> = {
   coat: 'coat:sleek',
+  plumage: 'plumage:bare',
   horns: 'horns:curled',
   wings: 'wings:small',
   pattern: 'pattern:ash-gold',
@@ -92,16 +93,17 @@ export const MINI_DRAGON_BREEDS: readonly MiniBreedDefinition[] = [
     description:
       'Delicate, graceful, and expressive, this curious little dragon resembles a friendly forest sprite and uses its petal-like features to disappear among oversized flowers.',
     cuteDirection:
-      'Rounded leaf-like frills and ears, a plush dandelion-pom tail, broad butterfly-like wings, and large amazed eyes keep the silhouette soft and playful.',
+      'Rounded leaf-like frills and ears, a soft feather mantle, a plush dandelion-pom tail, broad butterfly-like wings, and large amazed eyes keep the silhouette soft and playful.',
     difficulty: 'Advanced',
     breedingSummary:
-      'Balanced frame and petal ears are mixed forms. Even two matching Fairy parents can produce young outside the standard, so each generation must be selected again.',
+      'Balanced frame and petal ears are mixed forms, while the full feather mantle can be fixed. Even two matching Fairy parents can produce young outside the standard, so each generation must be selected again.',
     targets: [
       target('frame', 'frame:balanced'),
       target('crest', 'crest:frill'),
       target('ears', 'ears:petal'),
       target('wings', 'wings:broad'),
       target('tail', 'tail:pom'),
+      target('plumage', 'plumage:full'),
     ],
   }),
   defineBreed({

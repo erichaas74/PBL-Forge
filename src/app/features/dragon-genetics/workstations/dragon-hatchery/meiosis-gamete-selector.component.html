@@ -22,7 +22,7 @@
   </ol>
 
   <div class="cell-stage">
-    @if (!complete()) {
+    @if (!gametesRevealed()) {
       <div
         class="shared-meiosis-stage"
         [class.slow-crossing]="slowCrossing()"
@@ -42,6 +42,7 @@
               <app-cell-model
                 [chromosomes]="cell.chromosomes"
                 [stage]="cell.stage"
+                [axis]="cell.axis"
                 [focus]="stageView().focus"
                 [selectable]="false"
                 [showLoci]="true"
@@ -88,6 +89,7 @@
               [chromosomes]="chromosomesForGamete(gamete.id)"
               [selectedChromosome]="inspectedChromosome(gamete.id)"
               [selectedLocus]="inspectedLocus(gamete.id)"
+              [autoSelectFirst]="false"
               [selectable]="true"
               [locusSelectable]="true"
               [showLoci]="true"

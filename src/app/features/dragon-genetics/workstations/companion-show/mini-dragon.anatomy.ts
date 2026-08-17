@@ -91,6 +91,12 @@ const FRAME_SHAPE: Readonly<Record<string, Vector3Data>> = {
   'frame:round': { x: 0.82, y: 1.25, z: 1.18 },
 };
 
+const FEATHER_COVERAGE: Readonly<Record<string, number>> = {
+  'plumage:full': 1,
+  'plumage:fringe': 0.55,
+  'plumage:bare': 0,
+};
+
 export function buildMiniDragonBlueprint(
   genome: MiniGenome,
   individualId: string,
@@ -103,6 +109,7 @@ export function buildMiniDragonBlueprint(
       : STANDARD_PROPORTIONS;
 
   const dorsalBumps = miniPhenotypeFormId('coat', genome) === 'coat:fluffy' ? 1 : 0;
+  const featherCoverage = FEATHER_COVERAGE[miniPhenotypeFormId('plumage', genome)] ?? 0;
   const hornCurl = miniPhenotypeFormId('horns', genome) === 'horns:curled' ? 1 : 0.05;
   const wingSpread = WING_SPREAD[miniPhenotypeFormId('wings', genome)] ?? 1;
   const earScale = EAR_SCALE[miniPhenotypeFormId('ears', genome)] ?? 1;
@@ -110,13 +117,15 @@ export function buildMiniDragonBlueprint(
   const legLength = LEG_LENGTH[miniPhenotypeFormId('legs', genome)] ?? 1;
   const tailStyle = TAIL_STYLE[miniPhenotypeFormId('tail', genome)] ?? 2;
   const crestForm = miniPhenotypeFormId('crest', genome);
-  const frameShape = FRAME_SHAPE[miniPhenotypeFormId('frame', genome)] ?? FRAME_SHAPE['frame:balanced'];
+  const frameShape =
+    FRAME_SHAPE[miniPhenotypeFormId('frame', genome)] ?? FRAME_SHAPE['frame:balanced'];
 
   /** Parameters every part carries, whatever it is. */
   const surfaceParameters = {
-    // The inherited locus controls clear rows of rounded back scales rather than
-    // an expensive full fur coat.
     miniDorsalBumps: dorsalBumps,
+    // Feathers are an independent inherited surface layer, so a dragon can
+    // combine them with either smooth or baby-bumpy dorsal scales.
+    miniFeatherCoverage: featherCoverage,
     miniPatchColor: paint.patchColor,
     miniEmberColor: paint.emberColor,
     miniJointBall: 1,
@@ -451,7 +460,10 @@ function fixedJoint(
   };
 }
 
-function scaled(value: Vector3Data | { x: number; y: number; z: number }, factor: number): Vector3Data {
+function scaled(
+  value: Vector3Data | { x: number; y: number; z: number },
+  factor: number,
+): Vector3Data {
   return { x: value.x * factor, y: value.y * factor, z: value.z * factor };
 }
 
@@ -480,11 +492,7 @@ function fixedJointAt(
   };
 }
 
-function componentScaled(
-  value: Vector3Data,
-  factor: number,
-  shape: Vector3Data,
-): Vector3Data {
+function componentScaled(value: Vector3Data, factor: number, shape: Vector3Data): Vector3Data {
   return {
     x: value.x * factor * shape.x,
     y: value.y * factor * shape.y,

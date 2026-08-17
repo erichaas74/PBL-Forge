@@ -41,7 +41,14 @@
 .pair-mark small { writing-mode: vertical-rl; font-size: .75rem; letter-spacing: .09em; }
 
 .fertilization-bench { padding: .9rem 1rem; }
-.fertilization-visual { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .55rem; align-items: center; min-height: 12.5rem; margin-bottom: .8rem; padding: .7rem; border: 1px solid #302d49; border-radius: .8rem; background: #0d0d1d; overflow: hidden; }
+/* The chambers and the fusion share one grid cell, so the fusion appears
+   exactly over the two gametes the student loaded instead of beside them. */
+.fertilization-stage { display: grid; margin-bottom: .8rem; }
+.fertilization-stage > * { grid-area: 1 / 1; }
+.gamete-chambers { transition: opacity 260ms ease, transform 260ms ease, visibility 0s linear 260ms; }
+.gamete-chambers.handing-over { opacity: 0; visibility: hidden; transform: scale(.97); pointer-events: none; transition-delay: 0s, 0s, 260ms; }
+.fertilization-visual { z-index: 3; animation: fusion-takes-over 320ms ease-out both; }
+.fertilization-visual { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .55rem; align-items: center; min-height: 12.5rem; padding: .7rem; border: 1px solid #302d49; border-radius: .8rem; background: #0d0d1d; overflow: hidden; }
 .gamete-cell { position: relative; z-index: 2; display: grid; align-content: start; gap: .35rem; min-width: 0; min-height: 10.5rem; padding: .55rem; border: 1px dashed #514b6b; border-radius: .7rem; background: #111120; transition: opacity 240ms ease, transform 240ms ease; }
 .gamete-cell.loaded { border-style: solid; }
 .egg-cell.loaded { border-color: #d9629e; }
@@ -78,7 +85,7 @@
 .fertilization-visual.egg-formed .gamete-cell { opacity: 0; pointer-events: none; }
 .fertilization-visual.egg-formed .egg-cell { transform: translateX(55%) scale(.72); }
 .fertilization-visual.egg-formed .sperm-cell { transform: translateX(-55%) scale(.72); }
-.gamete-chambers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(10rem, .34fr) minmax(0, 1fr); gap: .65rem; align-items: start; }
+.gamete-chambers { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .65rem; align-items: start; }
 .loaded-gamete-cell { display: grid; gap: .5rem; min-width: 0; padding: .7rem; overflow: hidden; border: 1px dashed #514b6b; border-radius: .75rem; background: #111120; }
 .loaded-gamete-cell.filled { border-style: solid; }
 .egg-gamete-cell { grid-column: 1; grid-row: 1; }
@@ -97,7 +104,7 @@
 .parent-gamete-analysis span { color: #ffe28a; font-size: .75rem; font-weight: 850; letter-spacing: .08em; }
 .parent-gamete-analysis strong { font-size: .82rem; }
 .parent-gamete-analysis small { color: #b8b1c9; font-size: .75rem; line-height: 1.45; }
-.gamete-chambers > .fusion { display: none; }
+.gamete-chambers > .fusion { grid-column: 2; grid-row: 1; align-self: center; justify-content: center; }
 .gamete-slot { display: flex; align-items: center; gap: .65rem; min-width: 0; padding: .65rem; color: #c9c3d9; background: #111120; border: 1px dashed #514b6b; border-radius: .65rem; text-align: left; }
 .gamete-slot.active { border-color: #ffe28a; }
 .gamete-slot.filled { border-style: solid; background: #1b1930; }
@@ -109,7 +116,7 @@
 .gamete-slot strong { overflow: hidden; font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
 .fusion { display: flex; align-items: center; gap: .2rem; color: #827b97; }
 .fusion i { width: .7rem; border-top: 1px solid #514b6b; }
-.fertilize-status { display: grid; grid-column: 2; grid-row: 1; align-content: center; min-height: 8rem; padding: .7rem .9rem; color: #241d28; background: #ffe28a; border-radius: .6rem; text-align: center; }
+.fertilize-status { display: grid; align-content: center; margin-top: .8rem; min-height: 4.8rem; padding: .7rem .9rem; color: #241d28; background: #ffe28a; border-radius: .6rem; text-align: center; }
 .fertilize-status strong { font-size: .8rem; font-weight: 900; }
 .fertilize-status small { color: #5b4d37; font-size: .75rem; font-weight: 650; }
 .show-baby-dragon { display: grid; gap: .25rem; width: 100%; padding: .85rem .6rem; border: 1px solid #6f5b2f; border-radius: .55rem; color: #241d28; background: #fff0b8; cursor: pointer; }
@@ -127,6 +134,7 @@
 .waiting-cell strong { color: #e1dbee; }
 .waiting-cell span { font-size: .8rem; }
 
+@keyframes fusion-takes-over { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
 @keyframes egg-converges { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(55%) scale(.72); } }
 @keyframes sperm-converges { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(-55%) scale(.72); } }
 @keyframes nucleus-forms { from { opacity: 0; transform: translate(-50%, -50%) scale(.42); } to { opacity: 1; transform: translate(-50%, -50%) scale(.9); } }
@@ -136,7 +144,6 @@
   .gamete-chambers { grid-template-columns: 1fr 1fr; }
   .egg-gamete-cell { grid-column: 1; }
   .sperm-gamete-cell { grid-column: 2; }
-  .fertilize-status { grid-column: 1 / -1; grid-row: 2; min-height: 4.8rem; }
 }
 
 @media (max-width: 700px) {
@@ -144,10 +151,10 @@
   .parent-selectors { grid-template-columns: 1fr; }
   .pair-mark small { writing-mode: horizontal-tb; }
   .gamete-chambers { grid-template-columns: 1fr; }
-  .egg-gamete-cell, .sperm-gamete-cell, .fertilize-status { grid-column: 1; }
+  .egg-gamete-cell, .sperm-gamete-cell { grid-column: 1; }
   .egg-gamete-cell { grid-row: 1; }
-  .fertilize-status { grid-row: 2; }
   .sperm-gamete-cell { grid-row: 3; }
+  .gamete-chambers > .fusion { grid-column: 1; grid-row: 2; }
   .fusion { justify-content: center; }
   .new-dragon { grid-template-columns: 1fr; }
   .new-dragon app-specimen-viewport { min-height: 20rem; }
@@ -166,8 +173,10 @@
 @keyframes sperm-converges-mobile { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-55%) scale(.72); } }
 
 @media (prefers-reduced-motion: reduce) {
+  .fertilization-visual,
   .fertilization-visual.fusing .egg-cell,
   .fertilization-visual.fusing .sperm-cell,
   .fusion-result.visible,
   .fusion-result.formed-egg { animation: none; }
+  .gamete-chambers { transition: none; }
 }

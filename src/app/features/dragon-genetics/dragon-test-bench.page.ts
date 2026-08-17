@@ -46,6 +46,7 @@ export type BenchSpecies = 'lab' | 'mini';
  */
 const DEFAULT_MINI_FORMS: Readonly<Record<MiniGeneId, string>> = {
   coat: 'coat:sleek',
+  plumage: 'plumage:fringe',
   horns: 'horns:curled',
   wings: 'wings:broad',
   pattern: 'pattern:ash-gold',
@@ -65,7 +66,7 @@ const DEFAULT_MINI_FORMS: Readonly<Record<MiniGeneId, string>> = {
  * Two species share the bench, and the toggle between them is the point rather
  * than a convenience: the lab dragon models one relationship — a dominant
  * allele is enough — thirteen times over, while the mini dragon runs four
- * different inheritance patterns across twelve genes. Seeing them on the same
+ * different inheritance patterns across thirteen genes. Seeing them on the same
  * instrument, framed and lit the same way, is what makes the second species
  * read as a different *genetics* rather than a different art style.
  */
@@ -95,24 +96,26 @@ export class DragonTestBenchPage {
   readonly build = computed(() =>
     createExpressiveDragonBenchBuild('bench-dragon', this.profile(), {
       label: `${this.profile().sex === 'female' ? 'Female' : 'Male'} test dragon`,
-    }));
+    }),
+  );
 
-  readonly genotypeSummary = computed(() => this.traits
-    .map(trait => `${trait.name} ${this.genotypeLabel(trait.id)}`)
-    .join(' · '));
+  readonly genotypeSummary = computed(() =>
+    this.traits.map((trait) => `${trait.name} ${this.genotypeLabel(trait.id)}`).join(' · '),
+  );
 
   private readonly miniIndividualId = computed(() => `bench-mini-${this.miniIndividual()}`);
 
   readonly miniSource = computed(() =>
     miniDragonSpecimenSource(miniGenomeFromForms(this.miniForms()), this.miniIndividualId(), {
       label: `Mini dragon ${this.miniIndividual()}`,
-    }));
+    }),
+  );
 
   readonly miniFeatures = computed(() => miniIndividualFeatureList(this.miniIndividualId()));
 
-  readonly miniSummary = computed(() => this.miniGenes
-    .map(gene => this.miniFormLabel(gene))
-    .join(' · '));
+  readonly miniSummary = computed(() =>
+    this.miniGenes.map((gene) => this.miniFormLabel(gene)).join(' · '),
+  );
 
   selectSpecies(species: BenchSpecies): void {
     this.species.set(species);
@@ -121,13 +124,14 @@ export class DragonTestBenchPage {
   // -- Lab dragon -----------------------------------------------------------
 
   choicesFor(trait: ExpressiveDragonTraitDefinition): GenotypeChoice[] {
-    return genotypeChoices(trait, this.profile().sex).map(genotype => ({
+    return genotypeChoices(trait, this.profile().sex).map((genotype) => ({
       genotype,
-      label: trait.inheritance === 'x-linked'
-        ? genotype[1] === 'Y'
-          ? `X${genotype[0]}Y`
-          : `X${genotype[0]}X${genotype[1]}`
-        : genotype.join(''),
+      label:
+        trait.inheritance === 'x-linked'
+          ? genotype[1] === 'Y'
+            ? `X${genotype[0]}Y`
+            : `X${genotype[0]}X${genotype[1]}`
+          : genotype.join(''),
     }));
   }
 
@@ -136,19 +140,19 @@ export class DragonTestBenchPage {
   }
 
   phenotypeOf(traitId: ExpressiveDragonTraitId): string {
-    const trait = this.traits.find(entry => entry.id === traitId);
+    const trait = this.traits.find((entry) => entry.id === traitId);
     return trait ? expressivePhenotype(this.profile(), trait) : '';
   }
 
   select(traitId: ExpressiveDragonTraitId, choice: GenotypeChoice): void {
-    this.profile.update(current => ({
+    this.profile.update((current) => ({
       ...current,
       genome: { ...current.genome, [traitId]: choice.genotype },
     }));
   }
 
   selectSex(sex: DragonSex): void {
-    this.profile.update(current => normalizeGenomeForSex(current, sex));
+    this.profile.update((current) => normalizeGenomeForSex(current, sex));
   }
 
   sexChromosomes(): 'XX' | 'XY' {
@@ -158,7 +162,9 @@ export class DragonTestBenchPage {
   genotypeLabel(traitId: ExpressiveDragonTraitId): string {
     const pair = this.profile().genome[traitId];
     return traitId === 'eye-color'
-      ? pair[1] === 'Y' ? `X${pair[0]}Y` : `X${pair[0]}X${pair[1]}`
+      ? pair[1] === 'Y'
+        ? `X${pair[0]}Y`
+        : `X${pair[0]}X${pair[1]}`
       : pair.join('');
   }
 
@@ -173,7 +179,7 @@ export class DragonTestBenchPage {
    * model is still reachable: each form has a genotype that produces it.
    */
   selectMiniForm(geneId: MiniGeneId, form: MiniPhenotypeForm): void {
-    this.miniForms.update(current => ({ ...current, [geneId]: form.id }));
+    this.miniForms.update((current) => ({ ...current, [geneId]: form.id }));
   }
 
   isMiniFormSelected(geneId: MiniGeneId, form: MiniPhenotypeForm): boolean {
@@ -186,11 +192,11 @@ export class DragonTestBenchPage {
 
   miniFormLabel(gene: MiniGeneDefinition): string {
     const formId = this.miniForms()[gene.id];
-    return gene.forms.find(form => form.id === formId)?.label ?? '';
+    return gene.forms.find((form) => form.id === formId)?.label ?? '';
   }
 
   nextMiniIndividual(): void {
-    this.miniIndividual.update(current => current + 1);
+    this.miniIndividual.update((current) => current + 1);
   }
 }
 

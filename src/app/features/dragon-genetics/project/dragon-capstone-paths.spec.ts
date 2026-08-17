@@ -1,13 +1,12 @@
 import { DRAGON_CAPSTONE_PATHS } from './dragon-capstone-paths';
 
 describe('Dragon Genetics capstone paths', () => {
-  it('registers the three distinct final project outcomes', () => {
+  it('registers Arena and Show as the two final project outcomes', () => {
     expect(DRAGON_CAPSTONE_PATHS.map((path) => path.id)).toEqual([
       'dragon-arena',
       'mini-dragon-show',
-      'island-diversity',
     ]);
-    expect(new Set(DRAGON_CAPSTONE_PATHS.flatMap((path) => path.activityIds)).size).toBe(4);
+    expect(new Set(DRAGON_CAPSTONE_PATHS.flatMap((path) => path.activityIds)).size).toBe(3);
   });
 
   it('starts the arena path in the Hatchery and finishes in the Arena', () => {
@@ -18,4 +17,3 @@ describe('Dragon Genetics capstone paths', () => {
     expect(arena?.outcomeLabel).toBe('Arena trial record');
   });
 });
-

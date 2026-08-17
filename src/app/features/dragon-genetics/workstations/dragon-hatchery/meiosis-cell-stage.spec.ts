@@ -34,6 +34,25 @@ describe('meiosis cell stage', () => {
     ]);
   });
 
+  it('divides meiosis II across meiosis I rather than the same way again', () => {
+    const axisByPhase = Array.from({ length: MEIOSIS_PHASE_COUNT }, (_, phase) =>
+      meiosisStageView(run, phase).cells.map((cell) => cell.axis),
+    );
+
+    expect(axisByPhase).toEqual([
+      ['horizontal'],
+      ['horizontal'],
+      ['horizontal'],
+      ['horizontal'],
+      ['horizontal'],
+      ['horizontal'],
+      ['vertical', 'vertical'],
+      ['vertical', 'vertical'],
+      ['vertical', 'vertical'],
+      ['horizontal', 'horizontal', 'horizontal', 'horizontal'],
+    ]);
+  });
+
   it('starts as one diploid cell of ten unreplicated chromosomes', () => {
     const view = meiosisStageView(run, 0);
 
@@ -124,13 +143,25 @@ describe('meiosis cell stage', () => {
     });
   });
 
-  it('hands the four finished gametes to the gamete cards', () => {
-    expect(meiosisStageView(run, 9).cells).toEqual([]);
+  it('closes on four whole gamete cells before the cards take over', () => {
+    const view = meiosisStageView(run, 9);
 
-    [0, 1, 2, 3].forEach((index) => {
-      const chromosomes = meiosisGameteCellChromosomes(run, index);
-      expect(chromosomes.length).toBe(5);
-      expect(chromosomes.every((item) => !item.pairedModel)).toBeTrue();
+    expect(view.focus).toBe('cell');
+    expect(view.cells.length).toBe(4);
+    expect(view.cells.map((cell) => cell.label)).toEqual([
+      'Gamete 1',
+      'Gamete 2',
+      'Gamete 3',
+      'Gamete 4',
+    ]);
+    view.cells.forEach((cell, index) => {
+      expect(cell.stage).toBe('interphase');
+      expect(cell.chromosomes.length).toBe(5);
+      expect(cell.chromosomes.every((item) => !item.pairedModel)).toBeTrue();
+      // The same five chromosomes the matching gamete card then shows.
+      expect(cell.chromosomes.map((item) => item.model.loci)).toEqual(
+        meiosisGameteCellChromosomes(run, index).map((item) => item.model.loci),
+      );
     });
   });
 

@@ -90,6 +90,13 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
   readonly inspectedChromosomeByGamete = signal<Readonly<Record<string, string>>>({});
   readonly inspectedLocusByGamete = signal<Readonly<Record<string, string>>>({});
 
+  /**
+   * The last phase settles on four whole gamete cells before the cards replace
+   * them, so the animation ends by pulling back out to the cells it produced
+   * rather than cutting straight to a results grid.
+   */
+  readonly gametesRevealed = signal(false);
+
   readonly phase = computed(() => PHASES[this.phaseIndex()]);
   readonly complete = computed(() => this.phaseIndex() === PHASES.length - 1);
   readonly targetTrait = computed(() => getTrait(this.targetTraitId()));
@@ -119,6 +126,7 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
   );
 
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private revealTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     effect(() => {
@@ -130,6 +138,7 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
       this.run.set(nextRun);
       this.phaseIndex.set(0);
       this.playing.set(false);
+      this.gametesRevealed.set(false);
       this.chosenGameteIndex.set(null);
       this.inspectedChromosomeByGamete.set({});
       this.inspectedLocusByGamete.set({});
@@ -141,6 +150,7 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTimer();
+    this.stopRevealTimer();
   }
 
   togglePlaying(): void {
@@ -166,10 +176,17 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
     this.setPhase(Math.min(PHASES.length - 1, this.phaseIndex() + 1));
   }
 
+  /** Skips the closing animation: the student asked for the outcome, so show it. */
   finishMeiosis(): void {
     this.playing.set(false);
     this.stopTimer();
     this.setPhase(PHASES.length - 1);
+    this.revealGametes();
+  }
+
+  revealGametes(): void {
+    this.stopRevealTimer();
+    this.gametesRevealed.set(true);
   }
 
   restartAnimation(): void {
@@ -224,21 +241,20 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
     return this.gameteChromosomeViews().get(gameteId) ?? [];
   }
 
+  /**
+   * Null until the student picks one. A gamete card opens with nothing selected
+   * and no chromosome detail, so the first thing they do is choose what to look
+   * at rather than read an answer the card picked for them.
+   */
   inspectedChromosome(gameteId: string): string | null {
-    const targetChromosome = `Chr ${this.targetTrait().chromosomeModel}`;
-    const chromosomes = this.chromosomesForGamete(gameteId);
-    return (
-      this.inspectedChromosomeByGamete()[gameteId] ??
-      chromosomes.find((item) => item.id === targetChromosome)?.id ??
-      chromosomes[0]?.id ??
-      null
-    );
+    return this.inspectedChromosomeByGamete()[gameteId] ?? null;
   }
 
   inspectedLocus(gameteId: string): string | null {
     const selected = this.inspectedLocusByGamete()[gameteId];
     if (selected) return selected;
     const chromosomeId = this.inspectedChromosome(gameteId);
+    if (!chromosomeId) return null;
     const loci = this.chromosomesForGamete(gameteId).find(
       (item) => item.id === chromosomeId,
     )?.model.loci;
@@ -299,6 +315,15 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
 
   private setPhase(index: number): void {
     this.phaseIndex.set(index);
+    if (index < PHASES.length - 1) {
+      this.stopRevealTimer();
+      this.gametesRevealed.set(false);
+    } else if (!this.gametesRevealed()) {
+      // Hold on the four gamete cells long enough for the camera to pull back
+      // out to them, then hand over to the cards.
+      this.stopRevealTimer();
+      this.revealTimer = setTimeout(() => this.revealGametes(), 2200);
+    }
     if (this.playing()) this.scheduleAdvance();
   }
 
@@ -327,5 +352,10 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
   private stopTimer(): void {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
+  }
+
+  private stopRevealTimer(): void {
+    if (this.revealTimer) clearTimeout(this.revealTimer);
+    this.revealTimer = null;
   }
 }

@@ -153,7 +153,9 @@ describe('kennel rebuild', () => {
 
   it('ignores a founder id the Society register does not recognize', () => {
     expect(founderToCompanion('mini-nonesuch')).toBeNull();
-    expect(rebuildKennel(snapshotWith({ kennelFounderIds: ['mini-nonesuch'] })).kennel.size).toBe(0);
+    expect(rebuildKennel(snapshotWith({ kennelFounderIds: ['mini-nonesuch'] })).kennel.size).toBe(
+      0,
+    );
   });
 });
 
@@ -244,9 +246,9 @@ describe('anatomy', () => {
     // Thistle and Biscuit share the long frame, while their size forms differ.
     const teacup = companionAssembly(founder('mini-thistle'));
     const standard = companionAssembly(founder('mini-biscuit'));
-    const legHeight = (parts: typeof teacup['parts']): number =>
+    const legHeight = (parts: (typeof teacup)['parts']): number =>
       parts.find((part) => part.id === 'mini-leg-front-left')!.dimensions.y;
-    const headToBody = (parts: typeof teacup['parts']): number =>
+    const headToBody = (parts: (typeof teacup)['parts']): number =>
       parts.find((part) => part.id === 'mini-head')!.dimensions.y /
       parts.find((part) => part.id === 'mini-body')!.dimensions.y;
 
@@ -258,9 +260,7 @@ describe('anatomy', () => {
   it('builds every leg as a hip, thigh, and articulated lower leg', () => {
     const blueprint = companionAssembly(founder('mini-biscuit'));
     const thigh = blueprint.parts.find((part) => part.id === 'mini-leg-front-left')!;
-    const lower = blueprint.parts.find(
-      (part) => part.id === 'mini-leg-front-left-lower-leg',
-    )!;
+    const lower = blueprint.parts.find((part) => part.id === 'mini-leg-front-left-lower-leg')!;
     const hip = blueprint.joints.find((joint) => joint.childPartId === thigh.id)!;
     const knee = blueprint.joints.find((joint) => joint.childPartId === lower.id)!;
 
@@ -280,18 +280,24 @@ describe('anatomy', () => {
     const headParameters = part(longRunner, 'mini-head').visualProfile?.parameters;
     const roundHeadParameters = part(roundWaddler, 'mini-head').visualProfile?.parameters;
 
-    expect(part(longRunner, 'mini-body').dimensions.x)
-      .toBeGreaterThan(part(roundWaddler, 'mini-body').dimensions.x);
-    expect(part(longRunner, 'mini-leg-front-left').dimensions.y)
-      .toBeGreaterThan(part(roundWaddler, 'mini-leg-front-left').dimensions.y * 2);
+    expect(part(longRunner, 'mini-body').dimensions.x).toBeGreaterThan(
+      part(roundWaddler, 'mini-body').dimensions.x,
+    );
+    expect(part(longRunner, 'mini-leg-front-left').dimensions.y).toBeGreaterThan(
+      part(roundWaddler, 'mini-leg-front-left').dimensions.y * 2,
+    );
     expect(headParameters?.['miniEarScale']).toBeGreaterThan(1);
     expect(roundHeadParameters?.['miniEarScale']).toBeLessThan(0.5);
     expect(headParameters?.['miniSnoutLength']).toBeGreaterThan(1);
     expect(roundHeadParameters?.['miniSnoutLength']).toBeLessThan(0.1);
     expect(headParameters?.['miniCrestCrown']).toBe(1);
     expect(roundHeadParameters?.['miniCrestFrill']).toBe(1);
-    expect(part(longRunner, 'mini-tail-plume').visualProfile?.parameters?.['miniTailStyle']).toBe(0);
-    expect(part(roundWaddler, 'mini-tail-plume').visualProfile?.parameters?.['miniTailStyle']).toBe(2);
+    expect(part(longRunner, 'mini-tail-plume').visualProfile?.parameters?.['miniTailStyle']).toBe(
+      0,
+    );
+    expect(part(roundWaddler, 'mini-tail-plume').visualProfile?.parameters?.['miniTailStyle']).toBe(
+      2,
+    );
   });
 
   it('overlaps the slim tail pieces along one continuous centreline', () => {
@@ -302,10 +308,12 @@ describe('anatomy', () => {
 
     expect(tail2.position.y).toBeCloseTo(tail1.position.y, 6);
     expect(plume.position.y).toBeCloseTo(tail1.position.y, 6);
-    expect(tail2.position.x + tail2.dimensions.x / 2)
-      .toBeGreaterThan(tail1.position.x - tail1.dimensions.x / 2);
-    expect(plume.position.x + plume.dimensions.x * 0.12)
-      .toBeGreaterThan(tail2.position.x - tail2.dimensions.x / 2);
+    expect(tail2.position.x + tail2.dimensions.x / 2).toBeGreaterThan(
+      tail1.position.x - tail1.dimensions.x / 2,
+    );
+    expect(plume.position.x + plume.dimensions.x * 0.12).toBeGreaterThan(
+      tail2.position.x - tail2.dimensions.x / 2,
+    );
     expect(tail1.dimensions.y).toBeLessThan(tail1.dimensions.x);
   });
 
@@ -318,6 +326,16 @@ describe('anatomy', () => {
     expect(scales.visualProfile?.parameters?.['miniDorsalBumps']).toBe(1);
     expect(head.visualProfile?.parameters?.['miniHornCurl']).toBe(1);
     expect(wing.visualProfile?.parameters?.['miniWingSpread']).toBeCloseTo(0.58, 5);
+  });
+
+  it('passes inherited feather coverage to the body and wings independently of back scales', () => {
+    const feathered = companionAssembly(founder('mini-pepper'));
+    const body = feathered.parts.find((part) => part.id === 'mini-body')!;
+    const wing = feathered.parts.find((part) => part.id === 'mini-wing-left')!;
+
+    expect(body.visualProfile?.parameters?.['miniFeatherCoverage']).toBe(1);
+    expect(wing.visualProfile?.parameters?.['miniFeatherCoverage']).toBe(1);
+    expect(body.visualProfile?.parameters?.['miniDorsalBumps']).toBe(0);
   });
 
   it('includes a separate lower jaw for learned show motions', () => {
@@ -333,9 +351,9 @@ describe('anatomy', () => {
     const blueprint = companionAssembly(founder('mini-biscuit'));
 
     expect(blueprint.parts.find((part) => part.id === 'mini-neck')?.roles).toContain('neck');
-    expect(
-      blueprint.parts.find((part) => part.id === 'mini-dorsal-scales')?.roles,
-    ).toContain('dorsal-scales');
+    expect(blueprint.parts.find((part) => part.id === 'mini-dorsal-scales')?.roles).toContain(
+      'dorsal-scales',
+    );
   });
 
   it('collapses the wings of a vestigial genotype', () => {

@@ -43,6 +43,7 @@ describe('mini dragon breed library', () => {
       'ears:petal',
       'wings:broad',
       'tail:pom',
+      'plumage:full',
     ]);
     expect(targetIds('triceratops')).toEqual([
       'crest:crown',
@@ -74,7 +75,14 @@ describe('mini dragon breed library', () => {
 
   it('flags forms that split or can hide alternatives in a pairing', () => {
     expect(planKinds('puggle')).toEqual(['fixed', 'fixed', 'fixed', 'fixed', 'fixed']);
-    expect(planKinds('fairy')).toEqual(['splitting', 'fixed', 'splitting', 'fixed', 'fixed']);
+    expect(planKinds('fairy')).toEqual([
+      'splitting',
+      'fixed',
+      'splitting',
+      'fixed',
+      'fixed',
+      'fixed',
+    ]);
     expect(planKinds('triceratops')).toEqual(['fixed', 'fixed', 'fixed', 'splitting', 'masked']);
     expect(planKinds('imperial-serpent')).toEqual([
       'fixed',

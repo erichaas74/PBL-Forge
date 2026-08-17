@@ -180,9 +180,7 @@ export class DragonSimulationExperiencePage {
         symbol: gene.id === activeGene.id ? referenceAllele?.sampleCode : undefined,
         color: geneDnaRecord(gene.id).locusColor,
         marking:
-          gene.id === activeGene.id
-            ? geneAlleleMarking(gene.id, referenceAlleleIndex)
-            : undefined,
+          gene.id === activeGene.id ? geneAlleleMarking(gene.id, referenceAlleleIndex) : undefined,
       })),
     };
   });
@@ -300,6 +298,7 @@ export class DragonSimulationExperiencePage {
           sampleA: event.pairIds[0],
           sampleB: event.pairIds[1],
         },
+        queryParamsHandling: 'merge',
       });
       return;
     }

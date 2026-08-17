@@ -1,4 +1,5 @@
 import { GeneticsSkill } from '../dragon-genetics.models';
+import { DragonClassJourneyPlan } from '../journey/domain/dragon-journey.models';
 
 export const INSTRUCTION_LEVELS = ['grade-7', 'grade-8', 'high-school', 'ap-biology'] as const;
 
@@ -126,6 +127,8 @@ export interface DragonAssignment {
   defaultLevel: InstructionLevel;
   alleleCatalog: AlleleCatalogSetting;
   simulationSettings: Partial<Record<DragonSimulationId, DragonSimulationSetting>>;
+  /** Code-validated lesson order, requirements, starter pair, and path choices for this class. */
+  journeyPlan: DragonClassJourneyPlan;
   studentOverrides: Record<string, DragonStudentOverride>;
   assignmentVersion: number;
   updatedAtIso: string;

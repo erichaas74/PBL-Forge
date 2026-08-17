@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   ProjectActivityViewModel,
   ProjectHubViewModel,
@@ -9,6 +9,7 @@ import { DragonProjectHubFacade } from './project/dragon-project-hub.facade';
 import { DragonArenaSagaPreviewComponent } from './project/dragon-arena-saga-preview.component';
 import { MiniDragonSagaPreviewComponent } from './project/mini-dragon-saga-preview.component';
 import { WiseDragonGuideService } from './wise-dragon/wise-dragon-guide.service';
+import { DragonJourneyFacade } from './journey/dragon-journey.facade';
 
 /** Radius of the progress dial's arc, in the face's 128-unit viewBox. */
 const DIAL_RADIUS = 44;
@@ -23,7 +24,9 @@ const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS;
 })
 export class DragonGeneticsPage {
   readonly hub = inject(DragonProjectHubFacade);
+  readonly journey = inject(DragonJourneyFacade);
   readonly wiseDragonGuide = inject(WiseDragonGuideService);
+  private readonly router = inject(Router);
   readonly viewModel = this.hub.viewModel;
   readonly sagaForgeOpen = signal(false);
   readonly expandedSagaPathId = signal<string | null>(null);
@@ -48,7 +51,13 @@ export class DragonGeneticsPage {
 
   selectPath(event: Event): void {
     const control = event.currentTarget as HTMLSelectElement | HTMLButtonElement;
-    this.hub.selectPath(control.value || null);
+    const pathId = control.value;
+    if (!pathId || !this.journey.choosePath(pathId)) return;
+    void this.router.navigate(['/dragon-genetics/journey', pathId]);
+  }
+
+  pathOffered(pathId: string): boolean {
+    return this.journey.pathOptions().some((path) => path.id === pathId);
   }
 
   toggleSagaForge(): void {

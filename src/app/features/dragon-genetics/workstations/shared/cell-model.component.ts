@@ -18,6 +18,7 @@ import {
   CELL_SPINDLE_POLES,
   CellAnnotation,
   CellChromosomeSlot,
+  CellDivisionAxis,
   CellEllipse,
   CellOrganelle,
   CellPoint,
@@ -117,6 +118,8 @@ let nextCellModelId = 0;
 export class CellModelComponent {
   readonly chromosomes = input<readonly CellModelChromosome[]>([]);
   readonly stage = input<CellModelStage>('interphase');
+  /** Which way the cell pulls apart. Meiosis II divides across meiosis I. */
+  readonly axis = input<CellDivisionAxis>('horizontal');
   readonly detail = input<CellModelDetail>('full');
   readonly focus = input<CellModelFocus>('cell');
   /** Names the drawn structures with leader lines, for a teaching diagram. */
@@ -166,7 +169,7 @@ export class CellModelComponent {
     const view = this.view();
     if (this.focus() === 'cell') return { scale: 1, x: 0, y: 0 };
 
-    const rect = cellFocusRect(this.slots(), this.nuclei());
+    const rect = cellFocusRect(this.slots(), [...this.nuclei(), ...this.spindleRegions()]);
     const scale = Math.min(view.width / rect.width, view.height / rect.height);
     const centreX = (rect.x + rect.width / 2 - view.x) / view.width;
     const centreY = (rect.y + rect.height / 2 - view.y) / view.height;
@@ -191,17 +194,20 @@ export class CellModelComponent {
         return 0;
     }
   });
-  readonly membranePath = computed(() => cellMembranePath(this.cleavage()));
-  readonly membraneInnerPath = computed(() => cellMembranePath(this.cleavage(), 0.965));
+  readonly membranePath = computed(() => cellMembranePath(this.cleavage(), 1, this.axis()));
+  readonly membraneInnerPath = computed(() =>
+    cellMembranePath(this.cleavage(), 0.965, this.axis()),
+  );
 
   /** The nuclei to draw: one at rest, none mid-division, two as division finishes. */
   readonly nuclei = computed<readonly CellEllipse[]>(() => {
+    const poles = CELL_POLES[this.axis()];
     switch (this.stage()) {
       case 'interphase':
       case 'prophase':
         return [CELL_NUCLEUS];
       case 'telophase':
-        return [CELL_POLES.a, CELL_POLES.b];
+        return [poles.a, poles.b];
       default:
         return [];
     }
@@ -218,13 +224,30 @@ export class CellModelComponent {
   readonly nucleolusVisible = computed(() => this.stage() === 'interphase');
 
   readonly spindleVisible = computed(() => STAGES_WITH_SPINDLE.includes(this.stage()));
-  readonly spindlePoles = CELL_SPINDLE_POLES;
-  /** The plate the chromosomes queue on, drawn between the two spindle poles. */
-  readonly equator = computed(() =>
-    this.stage() === 'metaphase' || this.stage() === 'metaphase-i'
-      ? { x: CELL_BODY.cx, top: CELL_BODY.cy - CELL_BODY.ry * 0.92, bottom: CELL_BODY.cy + CELL_BODY.ry * 0.92 }
-      : null,
-  );
+  readonly spindlePoles = computed(() => CELL_SPINDLE_POLES[this.axis()]);
+  /** Keeps a zoomed camera from cropping the poles the spindle runs to. */
+  readonly spindleRegions = computed<readonly CellEllipse[]>(() => {
+    if (!this.spindleVisible()) return [];
+    const poles = this.spindlePoles();
+    return [poles.a, poles.b].map((pole) => ({ cx: pole.x, cy: pole.y, rx: 9, ry: 9 }));
+  });
+  /** The plate the chromosomes queue on, drawn square across the spindle. */
+  readonly equator = computed(() => {
+    if (this.stage() !== 'metaphase' && this.stage() !== 'metaphase-i') return null;
+    return this.axis() === 'vertical'
+      ? {
+          x1: CELL_BODY.cx - CELL_BODY.rx * 0.92,
+          y1: CELL_BODY.cy,
+          x2: CELL_BODY.cx + CELL_BODY.rx * 0.92,
+          y2: CELL_BODY.cy,
+        }
+      : {
+          x1: CELL_BODY.cx,
+          y1: CELL_BODY.cy - CELL_BODY.ry * 0.92,
+          x2: CELL_BODY.cx,
+          y2: CELL_BODY.cy + CELL_BODY.ry * 0.92,
+        };
+  });
 
   /** A joined pair is taller than a single chromosome, so the whole set uses one ratio. */
   readonly slotRatio = computed(() =>
@@ -236,14 +259,15 @@ export class CellModelComponent {
   readonly slots = computed<readonly CellChromosomeSlot[]>(() => {
     const count = this.chromosomes().length;
     const ratio = this.slotRatio();
+    const axis = this.axis();
     switch (this.stage()) {
       case 'metaphase-i':
-        return metaphasePlateSlots(count, ratio, 2);
+        return metaphasePlateSlots(count, ratio, { lanes: 2, axis });
       case 'metaphase':
-        return metaphasePlateSlots(count, ratio, 1);
+        return metaphasePlateSlots(count, ratio, { lanes: 1, axis });
       case 'anaphase':
       case 'telophase':
-        return polarSlots(count, ratio);
+        return polarSlots(count, ratio, axis);
       default:
         return chromosomeSlots(count, CELL_NUCLEUS, ratio, { maxWidth: CELL_NUCLEUS.rx * 0.94 });
     }
@@ -272,13 +296,18 @@ export class CellModelComponent {
   readonly spindleFibres = computed<readonly SpindleFibre[]>(() => {
     if (!this.spindleVisible()) return [];
     const stage = this.stage();
+    const poleSet = this.spindlePoles();
+    const vertical = this.axis() === 'vertical';
     return this.placed().flatMap((chromosome, index) => {
       // Before the split every chromosome is held by both poles; after it, only
       // by the pole it is travelling towards.
+      const towards = vertical
+        ? chromosome.centre.y < CELL_BODY.cy
+        : chromosome.centre.x < CELL_BODY.cx;
       const poles: readonly CellPoint[] =
         stage === 'anaphase' || stage === 'telophase'
-          ? [chromosome.centre.x < CELL_BODY.cx ? this.spindlePoles.a : this.spindlePoles.b]
-          : [this.spindlePoles.a, this.spindlePoles.b];
+          ? [towards ? poleSet.a : poleSet.b]
+          : [poleSet.a, poleSet.b];
       return poles.map((pole, poleIndex) => ({
         id: `${index}:${poleIndex}`,
         x1: pole.x,

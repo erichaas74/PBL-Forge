@@ -32,6 +32,10 @@
   <router-outlet />
 </main>
 
+@if (journeyReturnUrl(); as returnUrl) {
+  <a class="journey-return" [routerLink]="returnUrl">← Return to lesson</a>
+}
+
 @defer (when immersive()) {
   <app-dragon-testing-shortcut />
 }

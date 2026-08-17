@@ -23,15 +23,4 @@ export const DRAGON_CAPSTONE_PATHS: readonly ProjectPathDefinition[] = [
     entryActivityId: 'companion-show',
     finalActivityId: 'companion-show',
   },
-  {
-    id: 'island-diversity' satisfies DragonCapstonePathId,
-    title: 'Island Diversity',
-    objective: 'Help island dragon populations survive across generations.',
-    outcomeLabel: 'Island population survival rates',
-    order: 3,
-    activityIds: ['island-diversity'],
-    entryActivityId: 'island-diversity',
-    finalActivityId: 'island-diversity',
-  },
 ];
-

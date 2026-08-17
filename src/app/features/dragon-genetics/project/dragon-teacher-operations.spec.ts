@@ -3,6 +3,7 @@ import {
   DragonSimulationDefinition,
   DragonSimulationId,
 } from '../adaptive/dragon-simulation.models';
+import { DEFAULT_DRAGON_CLASS_JOURNEY_PLAN } from '../journey/config/dragon-journey.registry';
 import {
   buildDragonTeacherOperations,
   DragonStudentProgressDocument,
@@ -135,6 +136,7 @@ function assignment(enabled: Partial<Record<DragonSimulationId, boolean>> = {}):
         { enabled: isEnabled },
       ]),
     ),
+    journeyPlan: DEFAULT_DRAGON_CLASS_JOURNEY_PLAN,
     studentOverrides: {},
     assignmentVersion: 1,
     updatedAtIso: '2026-08-14T00:00:00.000Z',

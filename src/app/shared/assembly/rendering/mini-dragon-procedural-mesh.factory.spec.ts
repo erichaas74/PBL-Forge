@@ -5,6 +5,7 @@ import {
   MINI_DRAGON_PROFILE_IDS,
   createMiniDragonProceduralObject,
   isMiniDragonProfileId,
+  miniBodySurfaceNormal,
   miniBodySurfacePoint,
   sampleMiniBodyRadius,
 } from './mini-dragon-procedural-mesh.factory';
@@ -45,7 +46,9 @@ function meshCount(object: THREE.Object3D): number {
 describe('mini dragon procedural mesh factory', () => {
   it('builds an object for every profile it claims', () => {
     for (const profileId of MINI_DRAGON_PROFILE_IDS) {
-      expect(createMiniDragonProceduralObject(part(profileId))).withContext(profileId).toBeTruthy();
+      expect(createMiniDragonProceduralObject(part(profileId)))
+        .withContext(profileId)
+        .toBeTruthy();
     }
   });
 
@@ -58,7 +61,9 @@ describe('mini dragon procedural mesh factory', () => {
   it('leaves the classic dragon factory to answer for classic dragon parts', () => {
     // The two species share a renderer and must not shadow one another.
     for (const profileId of MINI_DRAGON_PROFILE_IDS) {
-      expect(createDragonProceduralObject(part(profileId))).withContext(profileId).toBeNull();
+      expect(createDragonProceduralObject(part(profileId)))
+        .withContext(profileId)
+        .toBeNull();
     }
     expect(createDragonProceduralObject(part('dragon-body'))).toBeTruthy();
   });
@@ -78,6 +83,15 @@ describe('mini dragon procedural mesh factory', () => {
     expect(point.x).toBeCloseTo(0, 6);
     expect(point.y).toBeCloseTo((sampleMiniBodyRadius(0) * dimensions.y) / 2, 6);
     expect(point.z).toBeCloseTo(0, 6);
+  });
+
+  it('aligns the sampled torso normal away from the hide', () => {
+    const normal = miniBodySurfaceNormal({ x: 0.8, y: 0.6, z: 0.5 }, 0, Math.PI);
+
+    expect(normal.x).toBeLessThan(0);
+    expect(normal.y).toBeGreaterThan(0.99);
+    expect(normal.z).toBeCloseTo(0, 4);
+    expect(new THREE.Vector3(normal.x, normal.y, normal.z).length()).toBeCloseTo(1, 6);
   });
 
   describe('body', () => {
@@ -131,6 +145,43 @@ describe('mini dragon procedural mesh factory', () => {
 
       expect(named(plain!, 'mini-dragon-coat-patch').length).toBe(0);
       expect(named(patched!, 'mini-dragon-coat-patch').length).toBeGreaterThan(0);
+    });
+
+    it('draws inherited body feathers as one bounded instanced alpha-card layer', () => {
+      const bare = createMiniDragonProceduralObject(
+        part('mini-dragon-body', {}, { miniFeatherCoverage: 0 }),
+      )!;
+      const feathered = createMiniDragonProceduralObject(
+        part('mini-dragon-body', {}, { miniFeatherCoverage: 1 }),
+      )!;
+      const layer = named(feathered, 'mini-dragon-body-feathers')[0] as THREE.InstancedMesh;
+      const material = layer.material as THREE.MeshStandardMaterial;
+      const firstMatrix = new THREE.Matrix4();
+      layer.getMatrixAt(0, firstMatrix);
+
+      expect(named(bare, 'mini-dragon-body-feathers').length).toBe(0);
+      expect(layer).toBeInstanceOf(THREE.InstancedMesh);
+      expect(layer.count).toBe(96);
+      expect(material.map?.name).toBe('mini-dragon-feather-albedo');
+      expect(material.alphaMap?.name).toBe('mini-dragon-feather-alpha');
+      expect(material.alphaTest).toBeGreaterThan(0);
+      expect(material.transparent).toBe(false);
+      expect(firstMatrix.elements.every(Number.isFinite)).toBe(true);
+    });
+
+    it('uses feather coverage to change instance density without adding draw layers', () => {
+      const fringe = createMiniDragonProceduralObject(
+        part('mini-dragon-body', {}, { miniFeatherCoverage: 0.55 }),
+      )!;
+      const full = createMiniDragonProceduralObject(
+        part('mini-dragon-body', {}, { miniFeatherCoverage: 1 }),
+      )!;
+
+      const fringeLayer = named(fringe, 'mini-dragon-body-feathers')[0] as THREE.InstancedMesh;
+      const fullLayer = named(full, 'mini-dragon-body-feathers')[0] as THREE.InstancedMesh;
+      expect(fringeLayer.count).toBeLessThan(fullLayer.count);
+      expect(named(fringe, 'mini-dragon-body-feathers').length).toBe(1);
+      expect(named(full, 'mini-dragon-body-feathers').length).toBe(1);
     });
   });
 
@@ -229,6 +280,21 @@ describe('mini dragon procedural mesh factory', () => {
       expect(named(left, 'mini-dragon-wing-membrane')[0].scale.z).toBe(-1);
       expect(named(right, 'mini-dragon-wing-membrane')[0].scale.z).toBe(1);
     });
+
+    it('adds one instanced feather layer to a feathered functional wing', () => {
+      const wing = createMiniDragonProceduralObject(
+        part(
+          'mini-dragon-wing',
+          {},
+          { miniWingSpread: 1, miniWingSide: 1, miniFeatherCoverage: 1 },
+        ),
+      )!;
+      const layer = named(wing, 'mini-dragon-wing-feathers')[0] as THREE.InstancedMesh;
+
+      expect(layer).toBeInstanceOf(THREE.InstancedMesh);
+      expect(layer.count).toBe(30);
+      expect(layer.instanceColor).toBeTruthy();
+    });
   });
 
   describe('leg and tail', () => {
@@ -298,9 +364,7 @@ describe('mini dragon procedural mesh factory', () => {
         'mini-dragon-tail',
         'mini-dragon-tail-plume',
       ]) {
-        const object = createMiniDragonProceduralObject(
-          part(profileId, {}, { miniJointBall: 1 }),
-        )!;
+        const object = createMiniDragonProceduralObject(part(profileId, {}, { miniJointBall: 1 }))!;
         expect(named(object, 'mini-dragon-joint-ball').length)
           .withContext(profileId)
           .toBeGreaterThan(0);

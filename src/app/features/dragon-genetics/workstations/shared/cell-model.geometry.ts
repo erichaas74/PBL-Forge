@@ -86,16 +86,28 @@ export const CELL_NUCLEUS: CellEllipse = { cx: 120, cy: 80, rx: 74, ry: 46 };
 
 export const CELL_NUCLEOLUS: CellEllipse = { cx: 158, cy: 104, rx: 11, ry: 8.5 };
 
-/** Spindle poles, and where the two nuclei reform once division finishes. */
+/**
+ * Which way the cell pulls apart. Meiosis II divides across meiosis I, so the
+ * second division needs its poles at the top and bottom rather than the sides.
+ */
+export type CellDivisionAxis = 'horizontal' | 'vertical';
+
+/** Where the chromosomes gather, and where the two nuclei reform, at each pole. */
 export const CELL_POLES = {
-  a: { cx: 64, cy: 80, rx: 46, ry: 40 },
-  b: { cx: 176, cy: 80, rx: 46, ry: 40 },
-} as const satisfies Record<'a' | 'b', CellEllipse>;
+  horizontal: {
+    a: { cx: 64, cy: 80, rx: 46, ry: 40 },
+    b: { cx: 176, cy: 80, rx: 46, ry: 40 },
+  },
+  vertical: {
+    a: { cx: 120, cy: 44, rx: 76, ry: 26 },
+    b: { cx: 120, cy: 116, rx: 76, ry: 26 },
+  },
+} as const satisfies Record<CellDivisionAxis, Record<'a' | 'b', CellEllipse>>;
 
 export const CELL_SPINDLE_POLES = {
-  a: { x: 24, y: 80 },
-  b: { x: 216, y: 80 },
-} as const satisfies Record<'a' | 'b', CellPoint>;
+  horizontal: { a: { x: 24, y: 80 }, b: { x: 216, y: 80 } },
+  vertical: { a: { x: 120, y: 16 }, b: { x: 120, y: 144 } },
+} as const satisfies Record<CellDivisionAxis, Record<'a' | 'b', CellPoint>>;
 
 /** Per-vertex radius multipliers that keep the membrane from reading as an oval. */
 const MEMBRANE_WOBBLE = [
@@ -145,11 +157,16 @@ export const CELL_ANNOTATIONS: readonly CellAnnotation[] = [
 ];
 
 /**
- * The closed membrane outline. `cleavage` pinches the top and bottom towards the
- * equator so a dividing cell can be drawn from the same geometry.
+ * The closed membrane outline. `cleavage` pinches a furrow across the division
+ * axis — the sides for a vertical split, the top and bottom for a horizontal
+ * one — so a dividing cell comes from the same geometry as a resting one.
  */
-export function cellMembranePath(cleavage = 0, scale = 1): string {
-  return wobblePath(CELL_BODY, MEMBRANE_WOBBLE, scale, clamp01(cleavage));
+export function cellMembranePath(
+  cleavage = 0,
+  scale = 1,
+  axis: CellDivisionAxis = 'horizontal',
+): string {
+  return wobblePath(CELL_BODY, MEMBRANE_WOBBLE, scale, clamp01(cleavage), axis);
 }
 
 export function cellNucleusPath(region: CellEllipse = CELL_NUCLEUS, scale = 1): string {
@@ -257,14 +274,28 @@ export function chromosomeSlots(
 export function metaphasePlateSlots(
   count: number,
   ratio: number,
-  columns = 1,
-  region: CellEllipse = CELL_BODY,
+  options: { lanes?: number; axis?: CellDivisionAxis; region?: CellEllipse } = {},
 ): readonly CellChromosomeSlot[] {
   const total = Math.max(0, Math.trunc(count));
   if (total === 0) return [];
 
-  const lanes = Math.min(2, Math.max(1, Math.trunc(columns)));
-  const rows = Math.max(1, Math.ceil(total / lanes));
+  const region = options.region ?? CELL_BODY;
+  const lanes = Math.min(2, Math.max(1, Math.trunc(options.lanes ?? 1)));
+  const ranks = Math.max(1, Math.ceil(total / lanes));
+
+  return options.axis === 'vertical'
+    ? horizontalPlate(total, ratio, region, lanes, ranks)
+    : verticalPlate(total, ratio, region, lanes, ranks);
+}
+
+/** Poles at the sides: chromosomes stack down a vertical plate at the centre. */
+function verticalPlate(
+  total: number,
+  ratio: number,
+  region: CellEllipse,
+  lanes: number,
+  rows: number,
+): readonly CellChromosomeSlot[] {
   const rowPitch = (2 * region.ry * ROW_FILL) / rows;
   const edgeRow = Math.abs(rowOffset(0, rows)) * region.ry * ROW_FILL;
   const byPitch = (rowPitch * ROW_CLEARANCE) / Math.max(ratio, 0.01);
@@ -297,19 +328,62 @@ export function metaphasePlateSlots(
 }
 
 /**
+ * Poles at the top and bottom: chromosomes spread along a horizontal plate. They
+ * stay the same way up, because a chromosome's arms lie across the spindle.
+ */
+function horizontalPlate(
+  total: number,
+  ratio: number,
+  region: CellEllipse,
+  lanes: number,
+  columns: number,
+): readonly CellChromosomeSlot[] {
+  const laneOffset = (height: number) => (lanes === 1 ? 0 : height / 2 + LANE_GAP);
+  const columnWidth = (width: number) => {
+    const height = width * ratio;
+    const half =
+      rowHalfWidth(region.cy, region, laneOffset(height) + height / 2) * ROW_PADDING;
+    return ((2 * half) / columns) * SLOT_GAP;
+  };
+
+  let width = Math.min(region.rx * 0.62, ((2 * region.rx * ROW_PADDING) / columns) * SLOT_GAP);
+  for (let pass = 0; pass < 5; pass += 1) {
+    width = Math.min(region.rx * 0.62, columnWidth(width));
+  }
+  width = Math.min(width, columnWidth(width));
+
+  const height = width * ratio;
+  const offset = laneOffset(height);
+  const usable = rowHalfWidth(region.cy, region, offset + height / 2) * ROW_PADDING;
+  const pitch = (2 * usable) / columns;
+
+  return Array.from({ length: total }, (_, index) => {
+    const lane = index % lanes;
+    return {
+      x: round2(region.cx - usable + pitch * (Math.floor(index / lanes) + 0.5)),
+      y: round2(lanes === 1 ? region.cy : region.cy + (lane === 0 ? -offset : offset)),
+      width: round2(width),
+      height: round2(height),
+    };
+  });
+}
+
+/**
  * Chromosomes split between the two poles, as at anaphase. Index order decides
  * the pole so a caller can keep a chromosome's identity across stages.
  */
 export function polarSlots(
   count: number,
   ratio: number,
-  poles: Record<'a' | 'b', CellEllipse> = CELL_POLES,
+  axis: CellDivisionAxis = 'horizontal',
 ): readonly CellChromosomeSlot[] {
   const total = Math.max(0, Math.trunc(count));
+  const poles = CELL_POLES[axis];
   const half = Math.ceil(total / 2);
-  const a = chromosomeSlots(half, poles.a, ratio);
-  const b = chromosomeSlots(total - half, poles.b, ratio);
-  return [...a, ...b];
+  return [
+    ...chromosomeSlots(half, poles.a, ratio),
+    ...chromosomeSlots(total - half, poles.b, ratio),
+  ];
 }
 
 export function insideEllipse(point: CellPoint, region: CellEllipse, scale = 1): boolean {
@@ -426,14 +500,18 @@ function wobblePath(
   wobble: readonly number[],
   scale: number,
   cleavage: number,
+  axis: CellDivisionAxis = 'horizontal',
 ): string {
+  const vertical = axis === 'vertical';
   const points = wobble.map((factor, index) => {
     const angle = (index / wobble.length) * Math.PI * 2;
-    // Concentrated at the top and bottom so the furrow separates the two poles.
-    const pinch = 1 - cleavage * 0.66 * Math.abs(Math.sin(angle)) ** 6;
+    // Concentrated on the two sides of the waist, so the furrow closes between
+    // the poles rather than across them.
+    const along = vertical ? Math.cos(angle) : Math.sin(angle);
+    const pinch = 1 - cleavage * 0.66 * Math.abs(along) ** 6;
     return {
-      x: region.cx + Math.cos(angle) * region.rx * factor * scale,
-      y: region.cy + Math.sin(angle) * region.ry * factor * scale * pinch,
+      x: region.cx + Math.cos(angle) * region.rx * factor * scale * (vertical ? pinch : 1),
+      y: region.cy + Math.sin(angle) * region.ry * factor * scale * (vertical ? 1 : pinch),
     };
   });
   return closedSmoothPath(points);

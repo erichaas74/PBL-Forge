@@ -33,21 +33,24 @@ beans, a plumed tail, and small rounded wings that some genotypes lose.
 Six procedural profiles, all new, in
 [`mini-dragon-procedural-mesh.factory.ts`](../../src/app/shared/assembly/rendering/mini-dragon-procedural-mesh.factory.ts):
 `mini-dragon-body`, `-head`, `-leg`, `-wing`, `-tail`, `-tail-plume`. The module shares **no** builder,
-silhouette module, palette, or texture with the classic dragon factory. In particular it uses no
-texture maps at all — its readable surface is built from rounded scale geometry, shallow decorative
-tufts, and baby-safe bumps rather than a costly simulated fur coat.
+silhouette module, palette, or texture with the classic dragon factory. Its hide uses no tiled
+texture maps: the readable scale surface is built from rounded geometry and baby-safe bumps. The
+inherited plumage layer is the exception, using tiny procedurally generated albedo and alpha maps on
+bounded instanced cards rather than a costly simulated fur coat.
 
-Its parameter keys are all `mini`-prefixed (`miniCoatDepth`, `miniHornCurl`, `miniWingSpread`,
-`miniEmberColor`, …) so the two species' silent `visualProfile.parameters` contracts cannot collide.
+Its parameter keys are all `mini`-prefixed (`miniDorsalBumps`, `miniFeatherCoverage`,
+`miniHornCurl`, `miniWingSpread`, `miniEmberColor`, …) so the two species' silent
+`visualProfile.parameters` contracts cannot collide.
 
 Both factories are asked in `three-assembly-mesh.factory.ts`; neither answers for the other's profile
 ids, and a spec asserts that.
 
-### The twelve genes
+### The thirteen genes
 
 | Gene | Pattern | Visible forms | Channel on the animal |
 | --- | --- | --- | --- |
 | Back scales | complete dominance (baby-bumpy recessive) | Smooth rows · Baby-bumpy spike rows | three rounded scale rows down the back |
+| Feather coverage | **incomplete dominance** | Full mantle · Feathered fringe · Scale-only | one instanced alpha-card layer on the torso and each functional wing |
 | Horns | complete dominance (curled dominant) | Curled · Straight | the arc a horn sweeps |
 | Wings | **incomplete dominance** | Broad · Small · Vestigial | wing size, collapsing to a furred nub |
 | Coat pattern | **codominance** | Ash · Ash-and-gold · Gold | coat colour, both at once in patches |
@@ -74,7 +77,7 @@ be mistaken for ash, and no jitter leaks a genotype.
 ### The founding population
 
 Six founders, chosen so the pool is a workable puzzle rather than a random draw: every allele of
-every gene is present, all three wing forms and all three ember forms are visible among the founders
+every gene is present, all three wing, plumage, and ember forms are visible among the founders
 so the ladders can be discovered by looking, and the recessive baby-bumpy rows and teacup size are
 carried by smooth-backed standard-sized founders, so they must be bred out of hiding.
 
@@ -132,7 +135,7 @@ that at least one trial cannot be predicted from a single visible characteristic
 ## Open investigation behavior
 
 - The standard is empty at first. Choosing a form adds it; choosing the same form again removes it.
-  Any subset of the twelve genes is a legal standard.
+  Any subset of the thirteen genes is a legal standard.
 - Either parent stand accepts a click on a founder's `Parent 1` / `Parent 2` button, a drag of a
   founder card, a drag of a kennel card, or the same buttons on a kennel card. Every drag has a
   button equivalent.
@@ -169,7 +172,7 @@ shared ancestry and 25% young inbreeding.
 
 Ear tufts, eye size, snout length, tail plume, and toe count are hashed off each dragon's id — stable
 for one animal, unpredictable from its parents. They exist because a pet workstation needs young that
-look like individuals, and they are labelled on the surface as *not one of the twelve inherited genes*
+look like individuals, and they are labelled on the surface as *not one of the thirteen inherited genes*
 so no student reads inheritance out of an ear. Biological sex is deliberately absent: the model has
 no sex-linked gene, and the workstation rules forbid treating sex as a cosmetic toggle.
 

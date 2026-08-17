@@ -9,6 +9,7 @@ import {
   SimulationSectionDefinition,
 } from './dragon-simulation.models';
 import { ALLELE_VAULT_GENES } from '../workstations/allele-workbench/allele-vault.models';
+import { DEFAULT_DRAGON_CLASS_JOURNEY_PLAN } from '../journey/config/dragon-journey.registry';
 
 export const DRAGON_SIMULATION_CONTENT_VERSION = 1;
 
@@ -660,7 +661,11 @@ const DRAGON_SIMULATION_CATALOG: readonly DragonSimulationDefinition[] = [
       ),
       'grade-8': challenge(
         'Why does each gamete show only one chromosome of each type?',
-        ['Meiosis halves the chromosome number', 'Fertilization removes one', 'The shell hides one'],
+        [
+          'Meiosis halves the chromosome number',
+          'Fertilization removes one',
+          'The shell hides one',
+        ],
         0,
         'Meiosis separates homologous pairs so each gamete is haploid.',
         'gamete-stays-diploid',
@@ -680,7 +685,11 @@ const DRAGON_SIMULATION_CATALOG: readonly DragonSimulationDefinition[] = [
       ),
       'ap-biology': challenge(
         'Why can four gametes from one meiosis carry different allele combinations?',
-        ['Independent assortment and crossing over', 'Fertilization changes them', 'Dominant alleles divide first'],
+        [
+          'Independent assortment and crossing over',
+          'Fertilization changes them',
+          'Dominant alleles divide first',
+        ],
         0,
         'Independent assortment and crossing over can create distinct haploid chromosome sets.',
         'identical-gametes',
@@ -791,8 +800,9 @@ export const DEFAULT_DRAGON_ASSIGNMENT: DragonAssignment = {
     availableGeneIds: ALLELE_VAULT_GENES.map((gene) => gene.id),
   },
   simulationSettings: {},
+  journeyPlan: DEFAULT_DRAGON_CLASS_JOURNEY_PLAN,
   studentOverrides: {},
-  assignmentVersion: 3,
+  assignmentVersion: 4,
   updatedAtIso: new Date(0).toISOString(),
 };
 

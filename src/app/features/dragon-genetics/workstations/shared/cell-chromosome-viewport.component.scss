@@ -22,7 +22,9 @@
   min-width: 0;
 }
 
-.cell-chromosome-viewport--inspect .viewport-layout {
+/* Only splits in two once a chromosome is selected; until then the cell has the
+   whole panel and there is no empty detail column beside it. */
+.cell-chromosome-viewport--detail-open .viewport-layout {
   grid-template-columns: minmax(14rem, 0.9fr) minmax(14rem, 1.1fr);
   gap: 0.65rem;
 }
@@ -192,13 +194,13 @@
 }
 
 @media (max-width: 720px) {
-  .cell-chromosome-viewport--inspect .viewport-layout {
+  .cell-chromosome-viewport--detail-open .viewport-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @container (max-width: 35rem) {
-  .cell-chromosome-viewport--inspect .viewport-layout {
+  .cell-chromosome-viewport--detail-open .viewport-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 }

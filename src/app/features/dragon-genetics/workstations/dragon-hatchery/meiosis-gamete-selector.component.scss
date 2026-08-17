@@ -168,9 +168,20 @@
   justify-self: center;
 }
 
-.meiosis-cells[data-cell-count='2'] {
+.meiosis-cells[data-cell-count='2'],
+.meiosis-cells[data-cell-count='4'] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+/* The four gametes arrive in the two-by-two arrangement the cards then use, so
+   the hand-over from the animation to the cards does not move them. */
+.meiosis-cells[data-cell-count='4'] .meiosis-cell {
+  animation: gamete-settles 620ms ease-out both;
+}
+
+.meiosis-cells[data-cell-count='4'] .meiosis-cell:nth-child(2) { animation-delay: 90ms; }
+.meiosis-cells[data-cell-count='4'] .meiosis-cell:nth-child(3) { animation-delay: 180ms; }
+.meiosis-cells[data-cell-count='4'] .meiosis-cell:nth-child(4) { animation-delay: 270ms; }
 
 .meiosis-cell {
   display: grid;
@@ -430,6 +441,17 @@ button {
   50% { filter: drop-shadow(0 0 0.5rem rgb(142 226 200 / 62%)); }
 }
 
+@keyframes gamete-settles {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes cytokinesis-arrives {
   from {
     opacity: 0;
@@ -479,7 +501,8 @@ button {
     transition: none;
     animation: none;
   }
-  .crossing-over .meiosis-cell app-cell-model {
+  .crossing-over .meiosis-cell app-cell-model,
+  .meiosis-cells[data-cell-count='4'] .meiosis-cell {
     animation: none;
   }
 }

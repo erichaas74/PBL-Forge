@@ -93,6 +93,27 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'dragon-genetics/journey',
+    loadComponent: () =>
+      import('./features/dragon-genetics/journey/dragon-journey.page').then(
+        (m) => m.DragonJourneyPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/journey/:pathId',
+    loadComponent: () =>
+      import('./features/dragon-genetics/journey/dragon-journey.page').then(
+        (m) => m.DragonJourneyPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/journey/:pathId/lesson/:lessonId',
+    loadComponent: () =>
+      import('./features/dragon-genetics/journey/dragon-lesson.page').then(
+        (m) => m.DragonLessonPage,
+      ),
+  },
+  {
     path: 'dragon-genetics/:simulationId',
     loadComponent: () =>
       import('./features/dragon-genetics/adaptive/dragon-simulation-experience.page').then(

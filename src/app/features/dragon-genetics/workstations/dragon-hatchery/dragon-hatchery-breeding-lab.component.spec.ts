@@ -59,8 +59,11 @@ describe('DragonHatcheryBreedingLabComponent', () => {
     fixture.detectChanges();
 
     const root = fixture.nativeElement as HTMLElement;
-    expect(root.querySelectorAll('.egg-cell .chromosome-svg--placeholder').length).toBe(5);
-    expect(root.querySelectorAll('.sperm-cell .chromosome-svg--placeholder').length).toBe(5);
+    // Nothing to fuse yet, so the fusion visual is not on the bench at all.
+    expect(component.fusionVisible()).toBeFalse();
+    expect(root.querySelector('.fertilization-visual')).toBeNull();
+    expect(root.querySelector('.gamete-chambers.handing-over')).toBeNull();
+    expect(root.querySelectorAll('.loaded-gamete-cell').length).toBe(2);
 
     const eggRun = generateMeiosisRun(female, 'female', 'inventory-egg', 'scales');
     const spermRun = generateMeiosisRun(male, 'male', 'inventory-sperm', 'scales');
@@ -82,16 +85,20 @@ describe('DragonHatcheryBreedingLabComponent', () => {
     });
     fixture.detectChanges();
 
+    // Both gametes are in, so the fusion takes over the space they occupied and
+    // the two selected gametes are handed off rather than left on screen.
+    expect(component.fusionVisible()).toBeTrue();
+    expect(root.querySelector('.fertilization-visual')).not.toBeNull();
     expect(root.querySelectorAll('.egg-cell .chromosome-in-cell').length).toBe(5);
     expect(root.querySelectorAll('.sperm-cell .chromosome-in-cell').length).toBe(5);
     expect(root.querySelector('.egg-cell .chromosome-svg--placeholder')).toBeNull();
     expect(root.querySelector('.sperm-cell .chromosome-svg--placeholder')).toBeNull();
-    expect(root.querySelectorAll('.gamete-chambers .gamete-slot').length).toBe(0);
+
+    const chambers = root.querySelector('.gamete-chambers');
+    expect(chambers?.classList).toContain('handing-over');
+    expect(chambers?.getAttribute('aria-hidden')).toBe('true');
+    // Kept in place, so the fusion above lands where the gametes were.
     expect(root.querySelectorAll('.loaded-gamete-cell').length).toBe(2);
-    expect(root.querySelectorAll('.egg-gamete-cell .chromosome-in-cell').length).toBe(5);
-    expect(root.querySelectorAll('.sperm-gamete-cell .chromosome-in-cell').length).toBe(5);
-    expect(root.querySelector('.egg-gamete-cell .parent-gamete-analysis')).not.toBeNull();
-    expect(root.querySelector('.sperm-gamete-cell .parent-gamete-analysis')).not.toBeNull();
 
     expect(component.fertilizationState()).toBe('fusing');
     expect(root.querySelector('app-meiosis-gamete-selector')).toBeNull();

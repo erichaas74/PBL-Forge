@@ -4,6 +4,7 @@
   [class.cell-chromosome-viewport--inspect]="layout() === 'inspect'"
   [class.cell-chromosome-viewport--thumbnail]="layout() === 'thumbnail'"
   [class.cell-chromosome-viewport--has-selection]="!!resolvedSelectedChromosome()"
+  [class.cell-chromosome-viewport--detail-open]="layout() === 'inspect' && !!selectedItem()"
   [attr.data-chromosome-form]="chromosomeForm()"
   [attr.aria-label]="ariaLabel()"
 >
@@ -94,7 +95,11 @@
     </div>
 
     <output class="selection-readout" aria-live="polite">
-      Selected: <strong>{{ selectedItem().label }}</strong>
+      @if (selectedItem(); as selected) {
+        Selected: <strong>{{ selected.label }}</strong>
+      } @else {
+        Select a chromosome
+      }
     </output>
   }
 </section>

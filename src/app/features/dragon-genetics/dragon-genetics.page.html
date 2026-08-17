@@ -47,7 +47,18 @@
         <span class="quest-scroll__pin quest-scroll__pin--left" aria-hidden="true"></span>
         <span class="quest-scroll__pin quest-scroll__pin--right" aria-hidden="true"></span>
 
-        @if (view.nextAction; as next) {
+        @if (!journey.selectedPathId()) {
+          <div class="quest-scroll__copy">
+            <p class="quest-scroll__label">Choose Your Beginning</p>
+            <h2 id="quest-title">Which dragon line will you build?</h2>
+            <p>Choose Arena or Mini Dragon Show, then receive your female and male starters.</p>
+          </div>
+          <a class="quest-action" routerLink="/dragon-genetics/journey">
+            <span>First decision</span>
+            <strong>Choose your saga</strong>
+            <span aria-hidden="true">→</span>
+          </a>
+        } @else if (view.nextAction; as next) {
           @if (next.kind === 'activity') {
             <div class="quest-scroll__copy">
               <p class="quest-scroll__label">Today’s Quest</p>
@@ -156,7 +167,9 @@
         <span class="destination-sign__icon" aria-hidden="true">♢</span>
         <span
           ><strong>Saga Forge</strong
-          ><small>{{ view.selectedPathId ? 'Path chosen' : 'Choose your final path' }}</small></span
+          ><small>{{
+            view.selectedPathId ? 'Journey underway' : 'Choose your path first'
+          }}</small></span
         >
         <i aria-hidden="true">→</i>
       </a>
@@ -300,11 +313,11 @@
       aria-labelledby="saga-title"
     >
       <header class="saga-heading">
-        <p class="section-heading__kicker">The final branching path</p>
-        <h2 id="saga-title">Choose the Saga You Will Forge</h2>
+        <p class="section-heading__kicker">Your first choice</p>
+        <h2 id="saga-title">Choose the Saga You Will Build Through</h2>
         <p>
-          Every saga is open. Preview one when you are ready, then choose the focus that counts in
-          your project progress.
+          Choose Arena or Mini Dragon Show before the lessons begin. You will receive a female and
+          male starter and build their bloodline through your class lesson path.
         </p>
         <button
           type="button"
@@ -321,77 +334,79 @@
       @if (sagaForgeOpen()) {
         <div class="saga-destinations" id="saga-destinations">
           @for (path of view.paths; track path.id) {
-            <article
-              class="saga-destination"
-              [class.saga-destination--selected]="path.selected"
-              [class.saga-destination--expanded]="expandedSagaPathId() === path.id"
-              [attr.data-path]="path.id"
-            >
-              @if (expandedSagaPathId() === path.id) {
-                <div class="saga-destination__scene" [id]="'saga-preview-' + path.id">
-                  @switch (path.id) {
-                    @case ('dragon-arena') {
-                      @defer (when expandedSagaPathId() === path.id) {
-                        <app-dragon-arena-saga-preview [studentId]="hub.studentId()" />
-                      } @loading {
-                        <span class="saga-preview-loading">Opening the arena…</span>
+            @if (pathOffered(path.id)) {
+              <article
+                class="saga-destination"
+                [class.saga-destination--selected]="path.selected"
+                [class.saga-destination--expanded]="expandedSagaPathId() === path.id"
+                [attr.data-path]="path.id"
+              >
+                @if (expandedSagaPathId() === path.id) {
+                  <div class="saga-destination__scene" [id]="'saga-preview-' + path.id">
+                    @switch (path.id) {
+                      @case ('dragon-arena') {
+                        @defer (when expandedSagaPathId() === path.id) {
+                          <app-dragon-arena-saga-preview [studentId]="hub.studentId()" />
+                        } @loading {
+                          <span class="saga-preview-loading">Opening the arena…</span>
+                        }
+                      }
+                      @case ('mini-dragon-show') {
+                        @defer (when expandedSagaPathId() === path.id) {
+                          <app-mini-dragon-saga-preview [studentId]="hub.studentId()" />
+                        } @loading {
+                          <span class="saga-preview-loading">Raising the show curtain…</span>
+                        }
+                      }
+                      @default {
+                        <span class="scene-emblem" aria-hidden="true"></span>
                       }
                     }
-                    @case ('mini-dragon-show') {
-                      @defer (when expandedSagaPathId() === path.id) {
-                        <app-mini-dragon-saga-preview [studentId]="hub.studentId()" />
-                      } @loading {
-                        <span class="saga-preview-loading">Raising the show curtain…</span>
-                      }
-                    }
-                    @default {
-                      <span class="scene-emblem" aria-hidden="true"></span>
-                    }
-                  }
-                </div>
-              }
-              <div class="saga-destination__copy">
-                <p>
-                  @switch (path.id) {
-                    @case ('dragon-arena') {
-                      Battle · Adapt · Prove
-                    }
-                    @case ('mini-dragon-show') {
-                      Display · Compare · Celebrate
-                    }
-                    @default {
-                      Restore · Protect · Rebuild
-                    }
-                  }
-                </p>
-                <h3>{{ path.title }}</h3>
-                @if (path.selected) {
-                  <span class="selected-banner">Your focus</span>
+                  </div>
                 }
-                <span>{{ path.objective }}</span>
-                <small>{{ path.outcomeLabel }}</small>
-                <div class="saga-destination__footer">
-                  <span class="saga-progress">{{ path.progressPercent }}% explored</span>
-                  <button
-                    type="button"
-                    class="saga-preview-toggle"
-                    [attr.aria-controls]="'saga-preview-' + path.id"
-                    [attr.aria-expanded]="expandedSagaPathId() === path.id"
-                    (click)="toggleSagaPreview(path.id)"
-                  >
-                    {{ expandedSagaPathId() === path.id ? 'Hide preview' : 'Open preview' }}
-                  </button>
-                  <button
-                    type="button"
-                    [value]="path.id"
-                    [attr.aria-pressed]="path.selected"
-                    (click)="selectPath($event)"
-                  >
-                    {{ path.selected ? 'Saga chosen' : 'Choose this saga' }}
-                  </button>
+                <div class="saga-destination__copy">
+                  <p>
+                    @switch (path.id) {
+                      @case ('dragon-arena') {
+                        Battle · Adapt · Prove
+                      }
+                      @case ('mini-dragon-show') {
+                        Display · Compare · Celebrate
+                      }
+                      @default {
+                        Restore · Protect · Rebuild
+                      }
+                    }
+                  </p>
+                  <h3>{{ path.title }}</h3>
+                  @if (path.selected) {
+                    <span class="selected-banner">Your focus</span>
+                  }
+                  <span>{{ path.objective }}</span>
+                  <small>{{ path.outcomeLabel }}</small>
+                  <div class="saga-destination__footer">
+                    <span class="saga-progress">{{ path.progressPercent }}% explored</span>
+                    <button
+                      type="button"
+                      class="saga-preview-toggle"
+                      [attr.aria-controls]="'saga-preview-' + path.id"
+                      [attr.aria-expanded]="expandedSagaPathId() === path.id"
+                      (click)="toggleSagaPreview(path.id)"
+                    >
+                      {{ expandedSagaPathId() === path.id ? 'Hide preview' : 'Open preview' }}
+                    </button>
+                    <button
+                      type="button"
+                      [value]="path.id"
+                      [attr.aria-pressed]="path.selected"
+                      (click)="selectPath($event)"
+                    >
+                      {{ path.selected ? 'Continue this saga' : 'Choose and begin' }}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </article>
+              </article>
+            }
           }
         </div>
       }

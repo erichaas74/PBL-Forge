@@ -39,6 +39,18 @@ export class App {
       this.dragonGenetics() &&
       this.currentUrl().split(/[?#]/, 1)[0].replace(/\/$/, '') !== '/dragon-genetics/wise-dragon',
   );
+  readonly journeyReturnUrl = computed(() => {
+    const [path, query = ''] = this.currentUrl().split('?', 2);
+    if (!path.startsWith('/dragon-genetics/') || path.startsWith('/dragon-genetics/journey')) {
+      return null;
+    }
+    const params = new URLSearchParams(query.split('#', 1)[0]);
+    const journeyPath = params.get('journeyPath');
+    const lesson = params.get('lesson');
+    return journeyPath && lesson
+      ? `/dragon-genetics/journey/${encodeURIComponent(journeyPath)}/lesson/${encodeURIComponent(lesson)}`
+      : null;
+  });
 
   async signIn(): Promise<void> {
     await this.session.signInWithGoogle();

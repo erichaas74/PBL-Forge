@@ -33,6 +33,7 @@ import {
   recordAlleleExperiment as addAlleleExperiment,
 } from '../workstations/shared/genetics-notebook.models';
 import { LOCAL_WORKSTATION_STUDENT_ID } from '../workstations/shared/dragon-workstation-context.models';
+import { normalizeDragonClassJourneyPlan } from '../journey/config/dragon-journey.registry';
 
 const LOCAL_ASSIGNMENT_KEY = 'pbl-forge.dragon-genetics.assignment.v1';
 const LOCAL_RUNS_KEY_PREFIX = 'pbl-forge.dragon-genetics.runs.v1';
@@ -431,6 +432,7 @@ function loadLocalAssignment(): DragonAssignment {
             : [...DEFAULT_DRAGON_ASSIGNMENT.alleleCatalog.availableGeneIds],
       },
       simulationSettings: stored.simulationSettings ?? {},
+      journeyPlan: normalizeDragonClassJourneyPlan(stored.journeyPlan),
       studentOverrides: stored.studentOverrides ?? {},
     };
   } catch {

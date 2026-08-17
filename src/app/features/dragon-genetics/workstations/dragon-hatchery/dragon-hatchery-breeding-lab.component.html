@@ -97,6 +97,8 @@
             <p>Drag a gamete here or use its Send button.</p>
           </div>
         </header>
+        <div class="fertilization-stage">
+        @if (fusionVisible()) {
         <div
           class="fertilization-visual"
           [class.ready]="canFertilize()"
@@ -183,7 +185,15 @@
             <strong>{{ fertilizationState() === 'egg' ? 'Diploid egg formed' : 'One nucleus forming' }}</strong>
           </article>
         </div>
-        <div class="gamete-chambers">
+        }
+
+        <!-- Stays in place, hidden, so the fusion above lands exactly where the
+             two selected gametes were rather than somewhere else on the bench. -->
+        <div
+          class="gamete-chambers"
+          [class.handing-over]="fusionVisible()"
+          [attr.aria-hidden]="fusionVisible() ? 'true' : null"
+        >
           <article
             class="loaded-gamete-cell egg-gamete-cell"
             [class.filled]="eggSelection()"
@@ -255,36 +265,39 @@
               </section>
             }
           </article>
-          <div class="fertilize-status" aria-live="polite">
-            @if (fertilizationState() === 'egg') {
-              <button
-                type="button"
-                class="show-baby-dragon"
-                [class.revealed]="babyDragonRevealed()"
-                [attr.aria-pressed]="babyDragonRevealed()"
-                (click)="revealBabyDragon()"
-              >
-                <strong>{{ babyDragonRevealed() ? 'Baby dragon revealed' : 'Show baby dragon' }}</strong>
-                <small>{{ babyDragonRevealed() ? 'The new dragon is below' : 'Open the fertilized egg' }}</small>
-              </button>
-            } @else {
-              <strong>
+        </div>
+        </div>
+
+        <div class="fertilize-status" aria-live="polite">
+          @if (fertilizationState() === 'egg') {
+            <button
+              type="button"
+              class="show-baby-dragon"
+              [class.revealed]="babyDragonRevealed()"
+              [attr.aria-pressed]="babyDragonRevealed()"
+              (click)="revealBabyDragon()"
+            >
+              <strong>{{ babyDragonRevealed() ? 'Baby dragon revealed' : 'Show baby dragon' }}</strong>
+              <small>{{ babyDragonRevealed() ? 'The new dragon is below' : 'Open the fertilized egg' }}</small>
+            </button>
+          } @else {
+            <strong>
               @if (fertilizationState() === 'fusing') {
                 Forming egg…
               } @else {
                 Automatic fertilization
               }
-              </strong>
-              <small>
+            </strong>
+            <small>
               {{
                 fertilizationState() === 'fusing'
                   ? 'The two haploid nuclei are combining'
                   : 'Fusion begins when both gametes are loaded'
               }}
-              </small>
-            }
-          </div>
+            </small>
+          }
         </div>
+
         @if (babyDragonRevealed() && newDragon(); as dragon) {
           <section class="new-dragon" aria-label="New baby dragon">
             <header>

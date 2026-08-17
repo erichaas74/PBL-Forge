@@ -34,7 +34,7 @@ export class DragonProjectHubFacade {
   private readonly selectionRepository = inject(DragonProjectSelectionRepository);
   private readonly capstoneProgressRepository = inject(DragonCapstoneProgressRepository);
   private readonly testingProgressRepository = inject(DragonTestingProgressRepository);
-  private readonly selectedPathIdSignal = signal<DragonCapstonePathId | null>(null);
+  private readonly studentSelectedPathIdSignal = signal<DragonCapstonePathId | null>(null);
   private readonly selectionHydrated = signal(false);
   private readonly refreshVersion = signal(0);
   private selectionContext = '';
@@ -42,6 +42,18 @@ export class DragonProjectHubFacade {
 
   readonly definition = DRAGON_PROJECT_HUB_DEFINITION;
   readonly studentId = computed(() => this.session.user()?.uid ?? 'local-student');
+  readonly pathSelectionLocked = computed(
+    () => this.adaptiveStore.assignment().journeyPlan.selectionMode === 'teacher-assigned',
+  );
+  readonly offeredPathIds = computed(
+    () => this.adaptiveStore.assignment().journeyPlan.offeredPathIds,
+  );
+  readonly selectedPathId = computed<DragonCapstonePathId | null>(() => {
+    const plan = this.adaptiveStore.assignment().journeyPlan;
+    if (plan.selectionMode === 'teacher-assigned') return plan.defaultPathId;
+    const selected = this.studentSelectedPathIdSignal();
+    return selected && plan.offeredPathIds.some((pathId) => pathId === selected) ? selected : null;
+  });
   readonly assignment = computed<ProjectHubAssignment>(() => {
     const assignment = this.adaptiveStore.assignment();
     return {
@@ -66,7 +78,7 @@ export class DragonProjectHubFacade {
     return buildDragonStudentProjectState({
       studentId,
       assignmentId,
-      selectedPathId: this.selectedPathIdSignal(),
+      selectedPathId: this.selectedPathId(),
       traitEvidence: this.traitEvidenceRepository.load(studentId),
       runs: Object.values(this.adaptiveStore.runs()).filter((run) => run !== undefined),
       notebook: this.adaptiveStore.geneticsNotebook(),
@@ -92,7 +104,7 @@ export class DragonProjectHubFacade {
       if (context === this.selectionContext) return;
       this.selectionContext = context;
       const selection = this.selectionRepository.load(studentId, assignmentId);
-      this.selectedPathIdSignal.set(selection.selectedPathId);
+      this.studentSelectedPathIdSignal.set(selection.selectedPathId);
       this.selectionHydrated.set(true);
       this.refresh();
     });
@@ -100,7 +112,7 @@ export class DragonProjectHubFacade {
       if (!this.adaptiveStore.ready() || !this.selectionHydrated()) return;
       const studentId = this.studentId();
       const assignment = this.adaptiveStore.assignment();
-      const selectedPathId = this.selectedPathIdSignal();
+      const selectedPathId = this.selectedPathId();
       const signature = `${studentId}:${assignment.id}:${assignment.assignmentVersion}:${selectedPathId ?? 'none'}`;
       if (studentId === 'local-student' || signature === this.selectionSyncSignature) return;
       this.selectionSyncSignature = signature;
@@ -117,10 +129,13 @@ export class DragonProjectHubFacade {
   }
 
   selectPath(pathId: string | null): void {
-    const selectedPathId = DRAGON_CAPSTONE_PATHS.some((path) => path.id === pathId)
-      ? (pathId as DragonCapstonePathId)
-      : null;
-    this.selectedPathIdSignal.set(selectedPathId);
+    if (this.pathSelectionLocked()) return;
+    const selectedPathId =
+      DRAGON_CAPSTONE_PATHS.some((path) => path.id === pathId) &&
+      this.offeredPathIds().some((offeredPathId) => offeredPathId === pathId)
+        ? (pathId as DragonCapstonePathId)
+        : null;
+    this.studentSelectedPathIdSignal.set(selectedPathId);
     this.selectionRepository.save({
       schemaVersion: 1,
       studentId: this.studentId(),

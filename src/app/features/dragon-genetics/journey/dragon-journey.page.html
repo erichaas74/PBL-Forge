@@ -1,0 +1,171 @@
+<main class="journey" [attr.data-path]="journey.selectedPathId()">
+  <header class="journey-header">
+    <a routerLink="/dragon-genetics">← Dragon Genetics</a>
+    <p>Breeding journey</p>
+    @if (journey.selectedPath(); as path) {
+      <h1>{{ path.title }}</h1>
+      <span>{{ path.description }}</span>
+    } @else {
+      <h1>Choose the dragon line you will build</h1>
+      <span>Your class paths are open. Choose the story that will organize your lessons.</span>
+    }
+  </header>
+
+  @if (!journey.selectedPath()) {
+    <section class="path-choice" aria-labelledby="path-choice-title">
+      <h2 id="path-choice-title">Your two destinations</h2>
+      <div class="path-choice__grid">
+        @for (path of journey.pathOptions(); track path.id) {
+          <article>
+            <span>{{ path.shortTitle }}</span>
+            <h3>{{ path.title }}</h3>
+            <p>{{ path.description }}</p>
+            <button type="button" (click)="choosePath(path.id)">
+              Choose {{ path.shortTitle }} path
+            </button>
+          </article>
+        }
+      </div>
+    </section>
+  } @else {
+    @if (journey.roster(); as roster) {
+      <section class="roster" aria-labelledby="roster-title">
+        <div>
+          <p>Your starting line</p>
+          <h2 id="roster-title">One female. One male. A new bloodline.</h2>
+        </div>
+        <div class="starter-pair">
+          @for (starter of roster.starters; track starter.dragonId) {
+            <article>
+              <span aria-hidden="true">{{ starter.sex === 'female' ? '♀' : '♂' }}</span>
+              <div>
+                <strong>{{ starter.label }}</strong>
+                <small>{{ starter.sex }} · foundation dragon</small>
+              </div>
+            </article>
+          }
+        </div>
+        <dl>
+          <div>
+            <dt>Bred</dt>
+            <dd>{{ roster.bredCount }}</dd>
+          </div>
+          <div>
+            <dt>Available</dt>
+            <dd>{{ roster.availableCount }}</dd>
+          </div>
+        </dl>
+      </section>
+    }
+
+    <section class="journey-progress" aria-label="Journey progress">
+      <div>
+        <span>{{ journey.completedLessonCount() }} of {{ journey.lessons().length }} lessons</span>
+        <strong>{{ journey.progressPercent() }}%</strong>
+      </div>
+      <div class="progress-track" aria-hidden="true">
+        <span [style.width.%]="journey.progressPercent()"></span>
+      </div>
+    </section>
+
+    @if (journey.nextLesson(); as next) {
+      <section class="next-lesson" aria-labelledby="next-lesson-title">
+        <p>{{ next.complete ? 'Journey record' : 'Recommended next' }}</p>
+        <h2 id="next-lesson-title">{{ next.definition.title }}</h2>
+        <span>{{ next.definition.learningGoal }}</span>
+        <a
+          [routerLink]="[
+            '/dragon-genetics/journey',
+            next.definition.pathId,
+            'lesson',
+            next.definition.id,
+          ]"
+        >
+          {{ next.complete ? 'Review lesson' : 'Open lesson' }} →
+        </a>
+      </section>
+    }
+
+    <section class="lesson-map" aria-labelledby="lesson-map-title">
+      <header>
+        <p>Class lesson path</p>
+        <h2 id="lesson-map-title">Build the line one investigation at a time</h2>
+        <span
+          >Every workstation remains open. This map recommends an order and records evidence.</span
+        >
+      </header>
+      <ol>
+        @for (lesson of journey.lessons(); track lesson.definition.id) {
+          <li [class.complete]="lesson.complete" [class.active]="lesson.active">
+            <span class="lesson-number">{{ lesson.complete ? '✓' : lesson.order }}</span>
+            <div>
+              <small>{{ lessonStatus(lesson) }}</small>
+              <h3>{{ lesson.definition.title }}</h3>
+              <p>{{ lesson.definition.learningGoal }}</p>
+              <span>{{ lesson.definition.workstationVisits[0].title }}</span>
+            </div>
+            <a
+              [routerLink]="[
+                '/dragon-genetics/journey',
+                lesson.definition.pathId,
+                'lesson',
+                lesson.definition.id,
+              ]"
+              [attr.aria-label]="'Open lesson ' + lesson.definition.title"
+              >→</a
+            >
+          </li>
+        }
+      </ol>
+    </section>
+
+    <section class="readiness" [class.ready]="journey.capstoneReady()">
+      <div>
+        <p>{{ journey.capstoneReady() ? 'Capstone ready' : 'Keep building your line' }}</p>
+        <h2>
+          {{
+            journey.capstoneReady()
+              ? 'Your evidence is ready for the final challenge.'
+              : 'The capstone is open whenever you want to test early.'
+          }}
+        </h2>
+      </div>
+      @if (journey.selectedPath(); as path) {
+        <a
+          [routerLink]="
+            path.capstoneActivityId === 'dragon-arena'
+              ? '/dragon-genetics/dragon-arena'
+              : '/dragon-genetics/companion-show'
+          "
+        >
+          Enter {{ path.shortTitle }} →
+        </a>
+      }
+    </section>
+
+    <div class="open-world">
+      <section aria-labelledby="side-quests-title">
+        <p>Optional investigations</p>
+        <h2 id="side-quests-title">Side quests</h2>
+        <ul>
+          @for (activity of journey.sideQuests(); track activity.id) {
+            <li>
+              <a [routerLink]="activity.route">{{ activity.title }} <span>→</span></a>
+            </li>
+          }
+        </ul>
+      </section>
+      <section aria-labelledby="free-play-title">
+        <p>Continue the bloodline</p>
+        <h2 id="free-play-title">Experiment and breed more</h2>
+        <ul>
+          @for (activity of journey.freePlayActivities(); track activity.id) {
+            <li>
+              <a [routerLink]="activity.route">{{ activity.title }} <span>→</span></a>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+  }
+</main>

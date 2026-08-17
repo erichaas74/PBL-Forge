@@ -5,7 +5,7 @@
  * reason it exists — its own *inheritance patterns*. The lab dragon models one
  * relationship four times: one dominant allele is enough, and the heterozygote
  * is invisible. A breeding program that only ever replays that square teaches one
- * idea. These twelve genes cover four different relationships, so a student writing
+ * idea. These thirteen genes cover four different relationships, so a student writing
  * a breed standard meets a different problem at each locus.
  *
  * Nothing here is ever rendered to a student as a symbol. The workstation shows
@@ -15,6 +15,7 @@
 
 export type MiniGeneId =
   | 'coat'
+  | 'plumage'
   | 'horns'
   | 'wings'
   | 'pattern'
@@ -28,10 +29,7 @@ export type MiniGeneId =
   | 'frame';
 
 export type MiniInheritancePattern =
-  | 'complete-dominance'
-  | 'incomplete-dominance'
-  | 'codominance'
-  | 'multiple-alleles';
+  'complete-dominance' | 'incomplete-dominance' | 'codominance' | 'multiple-alleles';
 
 export type MiniGenotype = readonly [string, string];
 export type MiniGenome = Readonly<Record<MiniGeneId, MiniGenotype>>;
@@ -72,12 +70,22 @@ export const MINI_DRAGON_GENES: readonly MiniGeneDefinition[] = [
     name: 'Back scales',
     pattern: 'complete-dominance',
     alleles: ['F', 'f'],
-    forms: [
-      form('coat:sleek', 'Smooth scale rows'),
-      form('coat:fluffy', 'Baby-bumpy spike rows'),
-    ],
+    forms: [form('coat:sleek', 'Smooth scale rows'), form('coat:fluffy', 'Baby-bumpy spike rows')],
     observation:
       'A smooth-backed dragon can carry the baby-bumpy form without showing it, so two smooth-backed parents can produce bumpy young.',
+  },
+  {
+    id: 'plumage',
+    name: 'Feather coverage',
+    pattern: 'incomplete-dominance',
+    alleles: ['P', 'p'],
+    forms: [
+      form('plumage:full', 'Full feather mantle'),
+      form('plumage:fringe', 'Feathered fringe'),
+      form('plumage:bare', 'Scale-only coat'),
+    ],
+    observation:
+      'Feather coverage blends: a mixed pair grows a lighter fringe between the full mantle and a scale-only coat.',
   },
   {
     id: 'horns',
@@ -180,7 +188,8 @@ export const MINI_DRAGON_GENES: readonly MiniGeneDefinition[] = [
       form('tail:fork', 'Twin-fork paddle'),
       form('tail:pom', 'Soft pom tail'),
     ],
-    observation: 'Three tail-tip forms circulate in the kennel, with the star form highest in the series.',
+    observation:
+      'Three tail-tip forms circulate in the kennel, with the star form highest in the series.',
   },
   {
     id: 'crest',
@@ -204,7 +213,8 @@ export const MINI_DRAGON_GENES: readonly MiniGeneDefinition[] = [
       form('frame:balanced', 'Balanced frame'),
       form('frame:round', 'Round dumpling frame'),
     ],
-    observation: 'Body length and roundness blend, creating long, balanced, and dumpling silhouettes.',
+    observation:
+      'Body length and roundness blend, creating long, balanced, and dumpling silhouettes.',
   },
 ];
 
@@ -225,10 +235,7 @@ export function isMiniPhenotypeFormId(geneId: MiniGeneId, value: unknown): boole
 }
 
 /** Orders a genotype most-dominant allele first, so equivalent pairs compare equal. */
-export function normalizeMiniGenotype(
-  geneId: MiniGeneId,
-  genotype: MiniGenotype,
-): MiniGenotype {
+export function normalizeMiniGenotype(geneId: MiniGeneId, genotype: MiniGenotype): MiniGenotype {
   const order = miniGene(geneId).alleles;
   const rank = (allele: string): number => {
     const index = order.indexOf(allele);
@@ -332,11 +339,7 @@ export function miniGenomeFromForms(forms: Readonly<Record<MiniGeneId, string>>)
  * from each parent, and the draw is a hash of the seed so the same pairing and
  * the same clutch position always produce the same young.
  */
-export function breedMiniGenomes(
-  dam: MiniGenome,
-  sire: MiniGenome,
-  seed: string,
-): MiniGenome {
+export function breedMiniGenomes(dam: MiniGenome, sire: MiniGenome, seed: string): MiniGenome {
   return Object.fromEntries(
     MINI_DRAGON_GENES.map((gene) => [
       gene.id,
@@ -487,8 +490,23 @@ function genome(
   tail: MiniGenotype,
   crest: MiniGenotype,
   frame: MiniGenotype,
+  plumage: MiniGenotype,
 ): MiniGenome {
-  return { coat, horns, wings, pattern, ember, size, ears, muzzle, legs, tail, crest, frame };
+  return {
+    coat,
+    plumage,
+    horns,
+    wings,
+    pattern,
+    ember,
+    size,
+    ears,
+    muzzle,
+    legs,
+    tail,
+    crest,
+    frame,
+  };
 }
 
 /**
@@ -506,37 +524,121 @@ export const MINI_FOUNDERS: readonly MiniFounderDefinition[] = [
     id: 'mini-biscuit',
     name: 'Biscuit',
     title: 'Gold founder · Royal Mini Dragon Society',
-    genome: genome(['F', 'f'], ['C', 'c'], ['W', 'w'], ['G', 'G'], ['Er', 'ep'], ['T', 't'], ['E', 'E'], ['M', 'M'], ['L', 'L'], ['Ts', 'Ts'], ['K', 'K'], ['B', 'B']),
+    genome: genome(
+      ['F', 'f'],
+      ['C', 'c'],
+      ['W', 'w'],
+      ['G', 'G'],
+      ['Er', 'ep'],
+      ['T', 't'],
+      ['E', 'E'],
+      ['M', 'M'],
+      ['L', 'L'],
+      ['Ts', 'Ts'],
+      ['K', 'K'],
+      ['B', 'B'],
+      ['P', 'p'],
+    ),
   },
   {
     id: 'mini-pepper',
     name: 'Pepper',
     title: 'Ash founder · teacup line',
-    genome: genome(['F', 'F'], ['c', 'c'], ['W', 'W'], ['A', 'A'], ['Eb', 'ep'], ['t', 't'], ['E', 'e'], ['M', 'm'], ['L', 'l'], ['Tf', 'Tf'], ['K', 'R'], ['B', 'b']),
+    genome: genome(
+      ['F', 'F'],
+      ['c', 'c'],
+      ['W', 'W'],
+      ['A', 'A'],
+      ['Eb', 'ep'],
+      ['t', 't'],
+      ['E', 'e'],
+      ['M', 'm'],
+      ['L', 'l'],
+      ['Tf', 'Tf'],
+      ['K', 'R'],
+      ['B', 'b'],
+      ['P', 'P'],
+    ),
   },
   {
     id: 'mini-cinder',
     name: 'Cinder',
     title: 'Patterned founder · baby-bumpy scale line',
-    genome: genome(['f', 'f'], ['C', 'c'], ['W', 'w'], ['A', 'G'], ['Er', 'Eb'], ['T', 't'], ['e', 'e'], ['m', 'm'], ['l', 'l'], ['Tp', 'Tp'], ['R', 'R'], ['b', 'b']),
+    genome: genome(
+      ['f', 'f'],
+      ['C', 'c'],
+      ['W', 'w'],
+      ['A', 'G'],
+      ['Er', 'Eb'],
+      ['T', 't'],
+      ['e', 'e'],
+      ['m', 'm'],
+      ['l', 'l'],
+      ['Tp', 'Tp'],
+      ['R', 'R'],
+      ['b', 'b'],
+      ['p', 'p'],
+    ),
   },
   {
     id: 'mini-nimbus',
     name: 'Nimbus',
     title: 'Gold founder · wingless line',
-    genome: genome(['F', 'f'], ['C', 'C'], ['w', 'w'], ['G', 'G'], ['ep', 'ep'], ['T', 'T'], ['E', 'E'], ['M', 'm'], ['l', 'l'], ['Tf', 'Tp'], ['K', 'R'], ['B', 'b']),
+    genome: genome(
+      ['F', 'f'],
+      ['C', 'C'],
+      ['w', 'w'],
+      ['G', 'G'],
+      ['ep', 'ep'],
+      ['T', 'T'],
+      ['E', 'E'],
+      ['M', 'm'],
+      ['l', 'l'],
+      ['Tf', 'Tp'],
+      ['K', 'R'],
+      ['B', 'b'],
+      ['P', 'p'],
+    ),
   },
   {
     id: 'mini-sorrel',
     name: 'Sorrel',
     title: 'Ash founder · blue ember line',
-    genome: genome(['F', 'F'], ['C', 'c'], ['W', 'w'], ['A', 'A'], ['Eb', 'ep'], ['T', 't'], ['E', 'e'], ['M', 'M'], ['L', 'L'], ['Ts', 'Tp'], ['K', 'K'], ['b', 'b']),
+    genome: genome(
+      ['F', 'F'],
+      ['C', 'c'],
+      ['W', 'w'],
+      ['A', 'A'],
+      ['Eb', 'ep'],
+      ['T', 't'],
+      ['E', 'e'],
+      ['M', 'M'],
+      ['L', 'L'],
+      ['Ts', 'Tp'],
+      ['K', 'K'],
+      ['b', 'b'],
+      ['p', 'p'],
+    ),
   },
   {
     id: 'mini-thistle',
     name: 'Thistle',
     title: 'Patterned founder · teacup line',
-    genome: genome(['f', 'f'], ['c', 'c'], ['W', 'W'], ['A', 'G'], ['ep', 'ep'], ['t', 't'], ['e', 'e'], ['m', 'm'], ['L', 'l'], ['Tp', 'Tp'], ['R', 'R'], ['B', 'B']),
+    genome: genome(
+      ['f', 'f'],
+      ['c', 'c'],
+      ['W', 'W'],
+      ['A', 'G'],
+      ['ep', 'ep'],
+      ['t', 't'],
+      ['e', 'e'],
+      ['m', 'm'],
+      ['L', 'l'],
+      ['Tp', 'Tp'],
+      ['R', 'R'],
+      ['B', 'B'],
+      ['P', 'P'],
+    ),
   },
 ];
 

@@ -56,8 +56,9 @@ export function miniDragonTraitReadouts(
       id: `mini:feature-${index}`,
       label: feature.label,
       valueLabel: feature.value,
-      detail: 'Not inherited in this model. It varies between littermates and tells you nothing '
-        + 'about the parents.',
+      detail:
+        'Not inherited in this model. It varies between littermates and tells you nothing ' +
+        'about the parents.',
       roles: [] as readonly AssemblyPartRole[],
     })),
   ];
@@ -92,6 +93,8 @@ function miniGeneRoles(geneId: MiniGeneId): readonly AssemblyPartRole[] {
       return ['tail'];
     case 'coat':
       return ['dorsal-scales'];
+    case 'plumage':
+      return ['core', 'wing'];
     case 'frame':
       return ['core'];
     case 'pattern':

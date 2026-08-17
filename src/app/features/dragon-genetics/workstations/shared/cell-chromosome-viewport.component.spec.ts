@@ -91,6 +91,35 @@ describe('CellChromosomeViewportComponent', () => {
     expect(loci).toEqual([{ chromosomeId: 'Chr 1', locus: 'CH1-G1' }]);
   });
 
+  it('can open with nothing selected and no detail panel until one is chosen', () => {
+    fixture.componentRef.setInput('selectedChromosome', null);
+    fixture.componentRef.setInput('autoSelectFirst', false);
+    fixture.componentRef.setInput('layout', 'inspect');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('.inspection-panel')).toBeNull();
+    expect(element.querySelector('.chromosome-in-cell--selected')).toBeNull();
+    expect(element.querySelector('.selection-readout')?.textContent).toContain(
+      'Select a chromosome',
+    );
+
+    fixture.componentRef.setInput('selectedChromosome', 'Chr 3');
+    fixture.detectChanges();
+
+    expect(element.querySelector('.inspection-panel')).not.toBeNull();
+    expect(element.querySelector('.selection-readout')?.textContent).toContain('Chr 3');
+  });
+
+  it('still falls back to the first chromosome when a workstation wants a default', () => {
+    fixture.componentRef.setInput('selectedChromosome', null);
+    fixture.componentRef.setInput('layout', 'inspect');
+    fixture.detectChanges();
+
+    expect(component.resolvedSelectedChromosome()).toBe('Chr 1');
+    expect((fixture.nativeElement as HTMLElement).querySelector('.inspection-panel')).not.toBeNull();
+  });
+
   it('renders an unselected, control-free compact cell for inventory cards', () => {
     fixture.componentRef.setInput('layout', 'thumbnail');
     fixture.componentRef.setInput('selectedChromosome', null);

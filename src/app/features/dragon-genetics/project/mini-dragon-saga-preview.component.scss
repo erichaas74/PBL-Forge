@@ -31,44 +31,15 @@
   content: '';
 }
 
-.show-preview__canopy {
-  position: absolute;
-  top: 0;
-  right: -3%;
-  left: -3%;
-  height: 28%;
-  background: repeating-conic-gradient(
-    from 74deg at 50% 0%,
-    #974838 0 6deg,
-    #d2b25e 6deg 12deg,
-    #32766f 12deg 18deg
-  );
-  filter: drop-shadow(0 0.45rem 0.35rem rgb(0 0 0 / 35%));
-  clip-path: polygon(
-    0 0,
-    100% 0,
-    94% 70%,
-    86% 92%,
-    77% 68%,
-    68% 94%,
-    59% 70%,
-    50% 96%,
-    41% 70%,
-    32% 94%,
-    23% 68%,
-    14% 92%,
-    6% 70%
-  );
-}
-
 app-specimen-viewport {
   position: absolute;
   inset: 1.4rem 0.3rem 4.9rem;
   z-index: 1;
   --viewport-edge: transparent;
   --viewport-stage-background: transparent;
-  --viewport-min-height: 13rem;
-  --viewport-aspect-ratio: 4 / 3;
+  --viewport-min-height: 0;
+  --viewport-height: 100%;
+  --viewport-aspect-ratio: auto;
 }
 
 .show-preview__ribbon {

@@ -8,8 +8,9 @@ import { AssemblyPart, Vector3Data } from '../domain/assembly.models';
  * builder, no silhouette module, no palette, and no texture with
  * `dragon-procedural-mesh.factory.ts`. Where that animal is a scaled reptile with
  * membranes and talons, this one is a small round-scaled quadruped with orderly
- * baby dorsal bumps, rounded cheek scales, soft paws instead of talons, and
- * wings that some genotypes lose entirely.
+ * baby dorsal bumps, an optional inherited feather mantle, rounded cheek
+ * scales, soft paws instead of talons, and wings that some genotypes lose
+ * entirely.
  *
  * Everything is sized from `part.dimensions`, so the genetics pipeline can
  * rescale a specimen without any measurement drifting out of proportion, and
@@ -70,9 +71,9 @@ export function createMiniDragonProceduralObject(part: AssemblyPart): THREE.Obje
 // ---------------------------------------------------------------------------
 // Palette and materials.
 //
-// No texture maps anywhere. A tiled scale map is the single thing that most
-// makes the classic dragon read as a reptile, so the mini dragon carries none:
-// its surface is matte, and its readable scale pattern is geometry.
+// The hide has no tiled texture map. Its readable scale pattern is geometry.
+// Feathered genotypes use a tiny generated albedo/alpha pair on instanced cards;
+// the maps define one feather rather than painting reptile scales over the body.
 // ---------------------------------------------------------------------------
 
 interface MiniDragonPalette {
@@ -140,6 +141,104 @@ function wingSkinMaterial(palette: MiniDragonPalette): THREE.MeshStandardMateria
   });
 }
 
+interface MiniFeatherTextures {
+  albedo: THREE.DataTexture;
+  alpha: THREE.DataTexture;
+}
+
+/**
+ * One procedural colour card and one cutout mask, owned by the resulting
+ * InstancedMesh. This preserves the same alpha-card path a painted feather
+ * would use without adding another downloaded asset to every page.
+ */
+function createMiniFeatherTextures(): MiniFeatherTextures {
+  const width = 32;
+  const height = 64;
+  const albedoData = new Uint8Array(width * height * 4);
+  const alphaData = new Uint8Array(width * height * 4);
+
+  for (let y = 0; y < height; y += 1) {
+    const t = y / (height - 1);
+    // Narrow quill, full middle, and a rounded point. A small periodic bite at
+    // the edge reads as soft barbs once alpha-tested rather than as a leaf.
+    const envelope = 0.055 + Math.sin(Math.PI * Math.pow(t, 0.82)) * 0.43;
+    const barbEdge = envelope * (0.975 + Math.sin(t * Math.PI * 8) * 0.022);
+    for (let x = 0; x < width; x += 1) {
+      const offset = Math.abs(x / (width - 1) - 0.5);
+      const inside = offset <= barbEdge;
+      const shaft = Math.max(0, 1 - offset / 0.055);
+      const vane = 214 + Math.round(25 * (1 - offset / Math.max(envelope, 0.001)));
+      const shade = Math.max(170, Math.min(255, vane + Math.round(shaft * 24)));
+      const index = (y * width + x) * 4;
+
+      albedoData[index] = shade;
+      albedoData[index + 1] = shade;
+      albedoData[index + 2] = Math.min(255, shade + 7);
+      albedoData[index + 3] = 255;
+
+      const mask = inside ? 255 : 0;
+      // MeshStandardMaterial reads the alpha map's green channel, so all three
+      // colour channels carry the same mask value.
+      alphaData[index] = mask;
+      alphaData[index + 1] = mask;
+      alphaData[index + 2] = mask;
+      alphaData[index + 3] = 255;
+    }
+  }
+
+  const albedo = new THREE.DataTexture(
+    albedoData,
+    width,
+    height,
+    THREE.RGBAFormat,
+    THREE.UnsignedByteType,
+  );
+  albedo.name = 'mini-dragon-feather-albedo';
+  albedo.colorSpace = THREE.SRGBColorSpace;
+  albedo.needsUpdate = true;
+
+  const alpha = new THREE.DataTexture(
+    alphaData,
+    width,
+    height,
+    THREE.RGBAFormat,
+    THREE.UnsignedByteType,
+  );
+  alpha.name = 'mini-dragon-feather-alpha';
+  alpha.needsUpdate = true;
+  return { albedo, alpha };
+}
+
+function miniFeatherMaterial(textures: MiniFeatherTextures): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    map: textures.albedo,
+    alphaMap: textures.alpha,
+    alphaTest: 0.46,
+    transparent: false,
+    depthWrite: true,
+    roughness: 0.9,
+    metalness: 0,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+  });
+}
+
+/** A four-segment plane gives the feather a gentle lift without complex geometry. */
+function miniFeatherCardGeometry(): THREE.PlaneGeometry {
+  const geometry = new THREE.PlaneGeometry(1, 1, 1, 4);
+  geometry.translate(0, 0.5, 0);
+  const positions = geometry.getAttribute('position');
+  for (let index = 0; index < positions.count; index += 1) {
+    const t = positions.getY(index);
+    positions.setZ(index, Math.sin(t * Math.PI * 0.5) * 0.055 + t * t * 0.025);
+  }
+  positions.needsUpdate = true;
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 function mesh(geometry: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
   const result = new THREE.Mesh(geometry, material);
   result.castShadow = true;
@@ -179,6 +278,31 @@ export function miniBodySurfacePoint(
     y: (-Math.cos(angle) * radius * dimensions.y) / 2,
     z: (Math.sin(angle) * radius * dimensions.z) / 2,
   };
+}
+
+/** Surface normal for the same generated torso profile, sampled numerically. */
+export function miniBodySurfaceNormal(
+  dimensions: Vector3Data,
+  axialFraction: number,
+  angle: number,
+): Vector3Data {
+  const epsilon = 0.002;
+  const fromAxial = miniBodySurfacePoint(dimensions, axialFraction - epsilon, angle);
+  const toAxial = miniBodySurfacePoint(dimensions, axialFraction + epsilon, angle);
+  const fromAngle = miniBodySurfacePoint(dimensions, axialFraction, angle - epsilon);
+  const toAngle = miniBodySurfacePoint(dimensions, axialFraction, angle + epsilon);
+  const axialTangent = new THREE.Vector3(
+    toAxial.x - fromAxial.x,
+    toAxial.y - fromAxial.y,
+    toAxial.z - fromAxial.z,
+  );
+  const angleTangent = new THREE.Vector3(
+    toAngle.x - fromAngle.x,
+    toAngle.y - fromAngle.y,
+    toAngle.z - fromAngle.z,
+  );
+  const normal = axialTangent.cross(angleTangent).normalize();
+  return { x: normal.x, y: normal.y, z: normal.z };
 }
 
 /** Three orderly rows of rounded scales; the recessive form grows soft baby spikes. */
@@ -226,7 +350,10 @@ function buildMiniDorsalScales(part: AssemblyPart, palette: MiniDragonPalette): 
 function buildMiniNeck(part: AssemblyPart, palette: MiniDragonPalette): THREE.Group {
   const group = new THREE.Group();
   const dims = part.dimensions;
-  const neck = mesh(new THREE.CapsuleGeometry(dims.z * 0.34, dims.x * 0.48, 6, 12), coatMaterial(palette.coat));
+  const neck = mesh(
+    new THREE.CapsuleGeometry(dims.z * 0.34, dims.x * 0.48, 6, 12),
+    coatMaterial(palette.coat),
+  );
   neck.name = 'mini-dragon-neck';
   neck.rotation.z = Math.PI / 2.7;
   neck.scale.set(1, 1, dims.y / Math.max(dims.z, 0.001));
@@ -267,7 +394,7 @@ function buildMiniBody(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
     const cap = mesh(new THREE.CircleGeometry(1, 28), coat);
     cap.name = side > 0 ? 'mini-dragon-front-body-cap' : 'mini-dragon-rear-body-cap';
     cap.position.x = side * dims.x * 0.5;
-    cap.rotation.y = side * Math.PI / 2;
+    cap.rotation.y = (side * Math.PI) / 2;
     cap.scale.set(endRadius * dims.z * 0.5, endRadius * dims.y * 0.5, 1);
     group.add(cap);
   }
@@ -322,6 +449,8 @@ function buildMiniBody(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
     }
   }
 
+  addMiniBodyFeathers(group, part, palette);
+
   // Throat glow, tucked under the neck.
   const throat = mesh(new THREE.SphereGeometry(dims.y * 0.11, 10, 8), emberMaterial(palette, 0.7));
   throat.name = 'mini-dragon-throat-ember';
@@ -352,11 +481,7 @@ function buildMiniHead(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
 
   // Cranium: wider than long, which is most of what makes it read as young.
   const skullRadius = dims.y * 0.5;
-  const skullScale = new THREE.Vector3(
-    (dims.x / dims.y) * 0.92,
-    1,
-    (dims.z / dims.y) * 1.02,
-  );
+  const skullScale = new THREE.Vector3((dims.x / dims.y) * 0.92, 1, (dims.z / dims.y) * 1.02);
   const skull = mesh(new THREE.SphereGeometry(skullRadius, 20, 16), coat);
   skull.name = 'mini-dragon-cranium';
   skull.scale.copy(skullScale);
@@ -367,10 +492,7 @@ function buildMiniHead(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
    * it. Placing eyes by raw part fractions buried them in the head — a sphere
    * scaled on three axes has no single radius to guess at.
    */
-  const skullPoint = (
-    direction: THREE.Vector3,
-    lift = 1,
-  ): THREE.Vector3 => {
+  const skullPoint = (direction: THREE.Vector3, lift = 1): THREE.Vector3 => {
     const unit = direction.clone().normalize();
     return new THREE.Vector3(
       unit.x * skullRadius * skullScale.x * lift,
@@ -631,9 +753,7 @@ function buildMiniHorn(
   const start = new THREE.Vector2(0, 0);
   const heading = new THREE.Vector2(-0.42, 1).normalize();
   // Curve backward and down: the centre sits on the heading's right-hand side.
-  const centre = start
-    .clone()
-    .add(new THREE.Vector2(heading.y, -heading.x).multiplyScalar(coil));
+  const centre = start.clone().add(new THREE.Vector2(heading.y, -heading.x).multiplyScalar(coil));
 
   const pointAt = (t: number): THREE.Vector3 => {
     const angle = sweep * t;
@@ -732,7 +852,9 @@ function addMiniBodySocket(
 
   const cavity = mesh(new THREE.CircleGeometry(radius * 0.82, 24), cavityMaterial);
   cavity.name = `mini-dragon-${kind}-socket-cavity`;
-  cavity.position.set(position.x, position.y, position.z).addScaledVector(direction, radius * 0.035);
+  cavity.position
+    .set(position.x, position.y, position.z)
+    .addScaledVector(direction, radius * 0.035);
   cavity.quaternion.copy(orientation);
   group.add(cavity);
 
@@ -849,10 +971,7 @@ function buildMiniWing(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
   group.add(skin);
 
   // Leading-edge bone, tapering to the tip.
-  const bone = mesh(
-    new THREE.CylinderGeometry(dims.y * 0.055, dims.y * 0.1, span, 8),
-    coat,
-  );
+  const bone = mesh(new THREE.CylinderGeometry(dims.y * 0.055, dims.y * 0.1, span, 8), coat);
   bone.name = 'mini-dragon-wing-bone';
   bone.position.set(chord * 0.2, 0, (side * span) / 2);
   bone.rotation.x = (side * Math.PI) / 2;
@@ -871,6 +990,8 @@ function buildMiniWing(part: AssemblyPart, palette: MiniDragonPalette): THREE.Gr
     strut.rotation.y = side * -0.5;
     group.add(strut);
   }
+
+  addMiniWingFeathers(group, part, palette, side, span, chord);
 
   // Lift the outer edge. A wing built flat in the XZ plane is a card seen
   // edge-on from every angle the specimen camera uses.
@@ -996,6 +1117,164 @@ function buildMiniTailPlume(part: AssemblyPart, palette: MiniDragonPalette): THR
 }
 
 // ---------------------------------------------------------------------------
+// Feather cards. The known procedural torso and wing equations are sampled
+// directly, avoiding the cost and nondeterminism of a generic surface sampler.
+// Each anatomical layer is one InstancedMesh, regardless of feather count.
+// ---------------------------------------------------------------------------
+
+function addMiniBodyFeathers(
+  group: THREE.Group,
+  part: AssemblyPart,
+  palette: MiniDragonPalette,
+): void {
+  const coverage = clampedVisualNumber(part, 'miniFeatherCoverage', 0);
+  if (coverage <= 0) return;
+  const count = Math.max(1, Math.round(96 * coverage));
+  const feathers = createMiniFeatherInstances(count, 'mini-dragon-body-feathers');
+  const dims = part.dimensions;
+  const seed = hashUnit(`${part.id}:body-feathers`);
+
+  for (let index = 0; index < count; index += 1) {
+    const axialUnit = fract(seed + index * 0.61803398875);
+    const aroundUnit = fract(hashUnit(`${part.id}:body-angle:${index}`) + index * 0.38196601125);
+    const axial = -0.4 + axialUnit * 0.78;
+    const angle = Math.PI + (aroundUnit - 0.5) * 1.78;
+    const sampledRoot = miniBodySurfacePoint(dims, axial, angle);
+    const sampledNormal = miniBodySurfaceNormal(dims, axial, angle);
+    const normal = new THREE.Vector3(sampledNormal.x, sampledNormal.y, sampledNormal.z);
+    const root = new THREE.Vector3(sampledRoot.x, sampledRoot.y, sampledRoot.z).addScaledVector(
+      normal,
+      dims.y * 0.008,
+    );
+    const lengthJitter = hashUnit(`${part.id}:body-length:${index}`);
+    const length = dims.x * (0.105 + lengthJitter * 0.045);
+    const width = length * (0.36 + hashUnit(`${part.id}:body-width:${index}`) * 0.1);
+    const roll = (hashUnit(`${part.id}:body-roll:${index}`) - 0.5) * 0.42;
+    setMiniFeatherInstance(
+      feathers,
+      index,
+      root,
+      normal,
+      new THREE.Vector3(-1, 0.05, 0),
+      width,
+      length,
+      roll,
+      miniFeatherColor(part, palette, index),
+    );
+  }
+
+  finishMiniFeatherInstances(feathers);
+  group.add(feathers);
+}
+
+function addMiniWingFeathers(
+  group: THREE.Group,
+  part: AssemblyPart,
+  palette: MiniDragonPalette,
+  side: -1 | 1,
+  span: number,
+  chord: number,
+): void {
+  const coverage = clampedVisualNumber(part, 'miniFeatherCoverage', 0);
+  if (coverage <= 0) return;
+  const count = Math.max(1, Math.round(30 * coverage));
+  const feathers = createMiniFeatherInstances(count, 'mini-dragon-wing-feathers');
+  const normal = new THREE.Vector3(0, 1, 0);
+  const lay = new THREE.Vector3(-0.16, 0, side).normalize();
+  const seed = hashUnit(`${part.id}:wing-feathers`);
+
+  for (let index = 0; index < count; index += 1) {
+    const spanUnit = fract(seed + index * 0.61803398875);
+    const chordUnit = fract(hashUnit(`${part.id}:wing-chord:${index}`) + index * 0.38196601125);
+    const alongSpan = 0.16 + spanUnit * 0.7;
+    const centerX = chord * (0.1 - alongSpan * 0.18);
+    const halfWidth = chord * (0.08 + (1 - alongSpan) * 0.27);
+    const root = new THREE.Vector3(
+      centerX + (chordUnit - 0.5) * halfWidth * 2,
+      part.dimensions.y * 0.012,
+      side * span * alongSpan,
+    );
+    const length = span * (0.17 + hashUnit(`${part.id}:wing-length:${index}`) * 0.08);
+    const width = length * (0.38 + hashUnit(`${part.id}:wing-width:${index}`) * 0.1);
+    const roll = (hashUnit(`${part.id}:wing-roll:${index}`) - 0.5) * 0.36;
+    setMiniFeatherInstance(
+      feathers,
+      index,
+      root,
+      normal,
+      lay,
+      width,
+      length,
+      roll,
+      miniFeatherColor(part, palette, index),
+    );
+  }
+
+  finishMiniFeatherInstances(feathers);
+  group.add(feathers);
+}
+
+function createMiniFeatherInstances(count: number, name: string): THREE.InstancedMesh {
+  const textures = createMiniFeatherTextures();
+  const feathers = new THREE.InstancedMesh(
+    miniFeatherCardGeometry(),
+    miniFeatherMaterial(textures),
+    count,
+  );
+  feathers.name = name;
+  feathers.castShadow = true;
+  feathers.receiveShadow = true;
+  feathers.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+  return feathers;
+}
+
+function setMiniFeatherInstance(
+  feathers: THREE.InstancedMesh,
+  index: number,
+  root: THREE.Vector3,
+  surfaceNormal: THREE.Vector3,
+  layDirection: THREE.Vector3,
+  width: number,
+  length: number,
+  roll: number,
+  color: THREE.Color,
+): void {
+  const normal = surfaceNormal.clone().normalize();
+  const lengthAxis = layDirection
+    .clone()
+    .addScaledVector(normal, -layDirection.dot(normal))
+    .normalize()
+    .applyAxisAngle(normal, roll);
+  const widthAxis = lengthAxis.clone().cross(normal).normalize();
+  const correctedLengthAxis = normal.clone().cross(widthAxis).normalize();
+  const matrix = new THREE.Matrix4().makeBasis(widthAxis, correctedLengthAxis, normal);
+  matrix.setPosition(root);
+  // Scale the card's bend depth with its length too. Leaving the local Z curve
+  // in world units turns a small feather into a porcupine quill.
+  matrix.scale(new THREE.Vector3(width, length, length));
+  feathers.setMatrixAt(index, matrix);
+  feathers.setColorAt(index, color);
+}
+
+function finishMiniFeatherInstances(feathers: THREE.InstancedMesh): void {
+  feathers.instanceMatrix.needsUpdate = true;
+  if (feathers.instanceColor) feathers.instanceColor.needsUpdate = true;
+  feathers.computeBoundingBox();
+  feathers.computeBoundingSphere();
+}
+
+function miniFeatherColor(
+  part: AssemblyPart,
+  palette: MiniDragonPalette,
+  index: number,
+): THREE.Color {
+  if (!palette.patch.equals(palette.coat) && hashUnit(`${part.id}:feather-color:${index}`) < 0.28) {
+    return palette.patch.clone().lerp(new THREE.Color('#fff7df'), 0.14);
+  }
+  return palette.coat.clone().lerp(new THREE.Color('#fff7df'), 0.22);
+}
+
+// ---------------------------------------------------------------------------
 // Shared helpers. Deliberately local: the mini dragon owns its own plumbing so
 // a change to the classic dragon's factory can never reshape this animal.
 // ---------------------------------------------------------------------------
@@ -1033,6 +1312,10 @@ function visualNumber(part: AssemblyPart, key: string, fallback: number): number
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
+function clampedVisualNumber(part: AssemblyPart, key: string, fallback: number): number {
+  return Math.max(0, Math.min(1, visualNumber(part, key, fallback)));
+}
+
 function visualString(part: AssemblyPart, key: string, fallback: string): string {
   const value = part.visualProfile?.parameters?.[key];
   return typeof value === 'string' && value.length ? value : fallback;
@@ -1050,4 +1333,8 @@ function hashUnit(value: string | number): number {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0) / 4294967295;
+}
+
+function fract(value: number): number {
+  return value - Math.floor(value);
 }

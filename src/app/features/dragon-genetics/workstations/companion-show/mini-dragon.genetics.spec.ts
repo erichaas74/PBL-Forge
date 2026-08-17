@@ -17,6 +17,7 @@ import { MINI_TRIALS, miniRibbonCount, runMiniTrial } from './mini-dragon.events
 function genomeWith(overrides: Partial<MiniGenome>): MiniGenome {
   return {
     coat: ['F', 'F'],
+    plumage: ['p', 'p'],
     horns: ['C', 'c'],
     wings: ['W', 'w'],
     pattern: ['A', 'A'],
@@ -33,16 +34,11 @@ function genomeWith(overrides: Partial<MiniGenome>): MiniGenome {
 }
 
 describe('mini dragon inheritance patterns', () => {
-  it('covers four different relationships across twelve genes', () => {
+  it('covers four different relationships across thirteen genes', () => {
     const patterns = new Set(MINI_DRAGON_GENES.map((gene) => gene.pattern));
-    expect(MINI_DRAGON_GENES.length).toBe(12);
+    expect(MINI_DRAGON_GENES.length).toBe(13);
     expect(patterns).toEqual(
-      new Set([
-        'complete-dominance',
-        'incomplete-dominance',
-        'codominance',
-        'multiple-alleles',
-      ]),
+      new Set(['complete-dominance', 'incomplete-dominance', 'codominance', 'multiple-alleles']),
     );
   });
 
@@ -51,18 +47,26 @@ describe('mini dragon inheritance patterns', () => {
     expect(miniPhenotypeFormId('coat', genomeWith({ coat: ['f', 'f'] }))).toBe('coat:fluffy');
   });
 
-  it('gives incomplete dominance a visible heterozygote', () => {
-    expect(miniPhenotypeFormId('wings', genomeWith({ wings: ['W', 'W'] }))).toBe('wings:broad');
-    expect(miniPhenotypeFormId('wings', genomeWith({ wings: ['W', 'w'] }))).toBe('wings:small');
-    expect(miniPhenotypeFormId('wings', genomeWith({ wings: ['w', 'w'] }))).toBe(
-      'wings:vestigial',
+  it('blends feather coverage into a visible fringe', () => {
+    expect(miniPhenotypeFormId('plumage', genomeWith({ plumage: ['P', 'P'] }))).toBe(
+      'plumage:full',
+    );
+    expect(miniPhenotypeFormId('plumage', genomeWith({ plumage: ['P', 'p'] }))).toBe(
+      'plumage:fringe',
+    );
+    expect(miniPhenotypeFormId('plumage', genomeWith({ plumage: ['p', 'p'] }))).toBe(
+      'plumage:bare',
     );
   });
 
+  it('gives incomplete dominance a visible heterozygote', () => {
+    expect(miniPhenotypeFormId('wings', genomeWith({ wings: ['W', 'W'] }))).toBe('wings:broad');
+    expect(miniPhenotypeFormId('wings', genomeWith({ wings: ['W', 'w'] }))).toBe('wings:small');
+    expect(miniPhenotypeFormId('wings', genomeWith({ wings: ['w', 'w'] }))).toBe('wings:vestigial');
+  });
+
   it('shows both alleles at once for the codominant coat pattern', () => {
-    expect(miniPhenotypeFormId('pattern', genomeWith({ pattern: ['A', 'A'] }))).toBe(
-      'pattern:ash',
-    );
+    expect(miniPhenotypeFormId('pattern', genomeWith({ pattern: ['A', 'A'] }))).toBe('pattern:ash');
     expect(miniPhenotypeFormId('pattern', genomeWith({ pattern: ['A', 'G'] }))).toBe(
       'pattern:ash-gold',
     );
@@ -147,9 +151,8 @@ describe('the founding population', () => {
       MINI_FOUNDERS.some(
         (founder) =>
           founder.genome[geneId].includes(hidden) &&
-          expressMiniGene(geneId, founder.genome).id !== `${geneId}:${
-            geneId === 'coat' ? 'fluffy' : 'teacup'
-          }`,
+          expressMiniGene(geneId, founder.genome).id !==
+            `${geneId}:${geneId === 'coat' ? 'fluffy' : 'teacup'}`,
       );
     expect(carriesHidden('coat', 'f')).toBe(true);
     expect(carriesHidden('size', 't')).toBe(true);
@@ -248,7 +251,9 @@ describe('show ring trials', () => {
       // genotype pair, or a multi-letter symbol standing on its own.
       for (const left of gene.alleles) {
         for (const right of gene.alleles) {
-          expect(text).withContext(`${gene.id}/${left}${right}`).not.toContain(left + right);
+          expect(text)
+            .withContext(`${gene.id}/${left}${right}`)
+            .not.toContain(left + right);
         }
         if (left.length > 1) {
           expect(tokens).withContext(`${gene.id}/${left}`).not.toContain(left);
@@ -278,6 +283,7 @@ describe('choosing a mini dragon by its visible form', () => {
   it('builds a whole genome from one form per locus', () => {
     const genome = miniGenomeFromForms({
       coat: 'coat:fluffy',
+      plumage: 'plumage:full',
       horns: 'horns:straight',
       wings: 'wings:small',
       pattern: 'pattern:ash-gold',

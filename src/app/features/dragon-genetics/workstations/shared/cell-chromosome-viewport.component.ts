@@ -33,22 +33,26 @@ export class CellChromosomeViewportComponent {
   readonly layout = input<CellChromosomeViewportLayout>('overview');
   readonly ariaLabel = input('Cell chromosome viewport');
   readonly allowReplicatedView = input(false);
+  /**
+   * Whether an unset selection falls back to the first chromosome. Turn it off
+   * for a surface that should open with nothing chosen and no detail shown.
+   */
+  readonly autoSelectFirst = input(true);
 
   readonly chromosomeForm = signal<ChromosomeForm>('single');
 
   readonly chromosomeSelected = output<string>();
   readonly locusSelected = output<CellChromosomeLocusSelection>();
 
-  readonly resolvedSelectedChromosome = computed<string | null>(
-    () =>
-      this.selectedChromosome() ??
-      (this.layout() === 'thumbnail' ? null : (this.chromosomes()[0]?.id ?? null)),
-  );
+  readonly resolvedSelectedChromosome = computed<string | null>(() => {
+    const selected = this.selectedChromosome();
+    if (selected) return selected;
+    if (this.layout() === 'thumbnail' || !this.autoSelectFirst()) return null;
+    return this.chromosomes()[0]?.id ?? null;
+  });
   readonly selectedItem = computed(
     () =>
-      this.chromosomes().find((item) => item.id === this.resolvedSelectedChromosome()) ??
-      this.chromosomes()[0] ??
-      null,
+      this.chromosomes().find((item) => item.id === this.resolvedSelectedChromosome()) ?? null,
   );
   readonly replicated = computed(() => this.chromosomeForm() === 'replicated');
 

@@ -3,14 +3,13 @@ import { DragonProjectSelectionRepository } from './dragon-project-selection.rep
 describe('DragonProjectSelectionRepository', () => {
   const studentId = 'path-selection-spec';
   const assignmentId = 'assignment-1';
-  const storageKey =
-    `pbl-forge.dragon-genetics.project-selection.v1.${studentId}.${assignmentId}`;
+  const storageKey = `pbl-forge.dragon-genetics.project-selection.v1.${studentId}.${assignmentId}`;
   const repository = new DragonProjectSelectionRepository();
 
   beforeEach(() => localStorage.removeItem(storageKey));
   afterEach(() => localStorage.removeItem(storageKey));
 
-  it('persists one of the three registered capstone paths', () => {
+  it('persists one of the registered learning paths', () => {
     repository.save({
       schemaVersion: 1,
       studentId,
@@ -35,4 +34,3 @@ describe('DragonProjectSelectionRepository', () => {
     expect(repository.load(studentId, assignmentId).selectedPathId).toBeNull();
   });
 });
-

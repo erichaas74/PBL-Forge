@@ -3,6 +3,7 @@ import { miniDragonSpecimenSource, miniDragonTraitReadouts } from './mini-dragon
 
 const GENOME: MiniGenome = miniGenomeFromForms({
   coat: 'coat:fluffy',
+  plumage: 'plumage:full',
   horns: 'horns:curled',
   wings: 'wings:small',
   pattern: 'pattern:ash-gold',
@@ -35,21 +36,28 @@ describe('mini dragon specimen source', () => {
       expect(readout).withContext(gene.id).toBeTruthy();
     }
     expect(readouts.find((entry) => entry.id === 'mini:wings')?.valueLabel).toBe('Small wings');
-    expect(readouts.find((entry) => entry.id === 'mini:coat')?.valueLabel)
-      .toBe('Baby-bumpy spike rows');
-    expect(readouts.find((entry) => entry.id === 'mini:coat')?.roles)
-      .toContain('dorsal-scales');
-    expect(readouts.find((entry) => entry.id === 'mini:pattern')?.valueLabel)
-      .toBe('Ash-and-gold coat');
+    expect(readouts.find((entry) => entry.id === 'mini:coat')?.valueLabel).toBe(
+      'Baby-bumpy spike rows',
+    );
+    expect(readouts.find((entry) => entry.id === 'mini:coat')?.roles).toContain('dorsal-scales');
+    expect(readouts.find((entry) => entry.id === 'mini:plumage')?.valueLabel).toBe(
+      'Full feather mantle',
+    );
+    expect(readouts.find((entry) => entry.id === 'mini:plumage')?.roles).toContain('wing');
+    expect(readouts.find((entry) => entry.id === 'mini:pattern')?.valueLabel).toBe(
+      'Ash-and-gold coat',
+    );
   });
 
   it('names the inheritance pattern beside each gene, since that is what differs between them', () => {
     const readouts = miniDragonTraitReadouts(GENOME, 'bench-mini-1');
-    expect(readouts.find((entry) => entry.id === 'mini:wings')?.detail)
-      .toContain('Incomplete dominance');
+    expect(readouts.find((entry) => entry.id === 'mini:wings')?.detail).toContain(
+      'Incomplete dominance',
+    );
     expect(readouts.find((entry) => entry.id === 'mini:pattern')?.detail).toContain('Codominance');
-    expect(readouts.find((entry) => entry.id === 'mini:ember')?.detail)
-      .toContain('Multiple alleles');
+    expect(readouts.find((entry) => entry.id === 'mini:ember')?.detail).toContain(
+      'Multiple alleles',
+    );
   });
 
   it('keeps the non-inherited features in the list and marks them as such', () => {

@@ -186,6 +186,137 @@
           </select>
         </label>
 
+        <details class="subdrawer journey-settings">
+          <summary>Learning paths and lessons</summary>
+          <div class="journey-plan-controls">
+            <label>
+              Path selection
+              <select
+                [value]="adaptiveStore.assignment().journeyPlan.selectionMode"
+                (change)="setJourneySelectionMode($event)"
+              >
+                <option value="student-choice">Students choose</option>
+                <option value="teacher-assigned">Teacher assigns one path</option>
+              </select>
+            </label>
+            @if (adaptiveStore.assignment().journeyPlan.selectionMode === 'teacher-assigned') {
+              <label>
+                Assigned path
+                <select
+                  [value]="adaptiveStore.assignment().journeyPlan.defaultPathId"
+                  (change)="setJourneyDefaultPath($event)"
+                >
+                  @for (path of journeyPaths; track path.id) {
+                    @if (journeyPathOffered(path.id)) {
+                      <option [value]="path.id">{{ path.title }}</option>
+                    }
+                  }
+                </select>
+              </label>
+            }
+          </div>
+
+          @for (path of journeyPaths; track path.id) {
+            <section class="journey-path-setting" [class.off]="!journeyPathOffered(path.id)">
+              <header>
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="journeyPathOffered(path.id)"
+                    (change)="toggleJourneyPath(path.id)"
+                  />
+                  <span
+                    ><strong>{{ path.title }}</strong
+                    ><small>{{ path.description }}</small></span
+                  >
+                </label>
+                <label>
+                  Starter pair
+                  <select
+                    [value]="
+                      adaptiveStore.assignment().journeyPlan.pathSettings[path.id]
+                        .starterPairPresetId
+                    "
+                    (change)="setJourneyStarterPair(path.id, $event)"
+                  >
+                    @for (preset of starterPresetsFor(path.id); track preset.id) {
+                      <option [value]="preset.id">{{ preset.label }}</option>
+                    }
+                  </select>
+                </label>
+              </header>
+
+              <ol class="journey-lesson-settings">
+                @for (lesson of journeyLessons(path.id); track lesson.id) {
+                  @let included = journeyLessonIncluded(path.id, lesson.id);
+                  <li [class.excluded]="!included">
+                    <div class="lesson-toggle">
+                      <label>
+                        <input
+                          type="checkbox"
+                          [checked]="included"
+                          [disabled]="lesson.id === path.capstoneLessonId"
+                          (change)="toggleJourneyLesson(path.id, lesson.id)"
+                        />
+                        <span
+                          ><strong>{{ lesson.title }}</strong
+                          ><small>{{ lesson.workstationVisits[0].title }}</small></span
+                        >
+                      </label>
+                      <div>
+                        <button
+                          type="button"
+                          aria-label="Move lesson earlier"
+                          [disabled]="!included || lesson.id === path.capstoneLessonId"
+                          (click)="moveJourneyLesson(path.id, lesson.id, -1)"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Move lesson later"
+                          [disabled]="!included || lesson.id === path.capstoneLessonId"
+                          (click)="moveJourneyLesson(path.id, lesson.id, 1)"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </div>
+                    @if (included) {
+                      <label class="required-toggle">
+                        <input
+                          type="checkbox"
+                          [checked]="journeyLessonRequired(path.id, lesson.id)"
+                          (change)="toggleJourneyLessonRequired(path.id, lesson.id)"
+                        />
+                        Required for this class
+                      </label>
+                      <div class="requirement-settings">
+                        @for (requirement of lesson.requirements; track requirement.id) {
+                          @if (requirement.kind === 'metric' && requirement.teacherAdjustable) {
+                            <label>
+                              {{ requirement.label }}
+                              <input
+                                type="number"
+                                min="1"
+                                max="100"
+                                [value]="journeyRequirementMinimum(path.id, lesson, requirement.id)"
+                                (change)="
+                                  setJourneyRequirementMinimum(path.id, requirement.id, $event)
+                                "
+                              />
+                            </label>
+                          }
+                        }
+                      </div>
+                    }
+                  </li>
+                }
+              </ol>
+            </section>
+          }
+        </details>
+
         <details class="subdrawer">
           <summary>Investigations</summary>
           <div class="setting-list">

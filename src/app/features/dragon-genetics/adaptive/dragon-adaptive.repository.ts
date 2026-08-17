@@ -21,6 +21,7 @@ import {
   normalizeGeneticsNotebook,
 } from '../workstations/shared/genetics-notebook.models';
 import { normalizeAlleleVaultGeneIds } from '../workstations/allele-workbench/allele-vault.models';
+import { normalizeDragonClassJourneyPlan } from '../journey/config/dragon-journey.registry';
 
 export const DEFAULT_DRAGON_ASSIGNMENT_ID = 'default';
 
@@ -180,6 +181,7 @@ function normalizeAssignment(id: string, value: Record<string, unknown>): Dragon
     },
     simulationSettings: (value['simulationSettings'] ??
       {}) as DragonAssignment['simulationSettings'],
+    journeyPlan: normalizeDragonClassJourneyPlan(value['journeyPlan']),
     studentOverrides: (value['studentOverrides'] ?? {}) as DragonAssignment['studentOverrides'],
     updatedAtIso:
       typeof value['updatedAtIso'] === 'string' ? value['updatedAtIso'] : new Date(0).toISOString(),

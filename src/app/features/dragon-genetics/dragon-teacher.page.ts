@@ -26,6 +26,16 @@ import {
   DragonStudentProgressDocument,
 } from './project/dragon-teacher-operations';
 import { ALLELE_VAULT_GENES } from './workstations/allele-workbench/allele-vault.models';
+import {
+  DRAGON_JOURNEY_PATHS,
+  DRAGON_LESSONS,
+  DRAGON_STARTER_PAIR_PRESETS,
+} from './journey/config/dragon-journey.registry';
+import {
+  DragonLearningPathId,
+  DragonLessonDefinition,
+  DragonLessonId,
+} from './journey/domain/dragon-journey.models';
 
 @Component({
   selector: 'app-dragon-teacher-page',
@@ -45,6 +55,8 @@ export class DragonTeacherPage {
   readonly instructionLevels = INSTRUCTION_LEVELS;
   readonly instructionLevelLabels = INSTRUCTION_LEVEL_LABELS;
   readonly alleleGenes = ALLELE_VAULT_GENES;
+  readonly journeyPaths = DRAGON_JOURNEY_PATHS;
+  readonly starterPairPresets = DRAGON_STARTER_PAIR_PRESETS;
   readonly progress$ = toObservable(this.session.user).pipe(
     switchMap((user) => {
       this.error.set(null);
@@ -191,6 +203,172 @@ export class DragonTeacherPage {
     }));
   }
 
+  journeyLessons(pathId: DragonLearningPathId): readonly DragonLessonDefinition[] {
+    const setting = this.adaptiveStore.assignment().journeyPlan.pathSettings[pathId];
+    const order = new Map(setting.lessonIds.map((lessonId, index) => [lessonId, index]));
+    return DRAGON_LESSONS.filter((lesson) => lesson.pathId === pathId).sort((first, second) => {
+      const firstOrder = order.get(first.id);
+      const secondOrder = order.get(second.id);
+      if (firstOrder === undefined && secondOrder === undefined)
+        return first.title.localeCompare(second.title);
+      if (firstOrder === undefined) return 1;
+      if (secondOrder === undefined) return -1;
+      return firstOrder - secondOrder;
+    });
+  }
+
+  journeyPathOffered(pathId: DragonLearningPathId): boolean {
+    return this.adaptiveStore.assignment().journeyPlan.offeredPathIds.includes(pathId);
+  }
+
+  journeyLessonIncluded(pathId: DragonLearningPathId, lessonId: DragonLessonId): boolean {
+    return this.adaptiveStore
+      .assignment()
+      .journeyPlan.pathSettings[pathId].lessonIds.includes(lessonId);
+  }
+
+  journeyLessonRequired(pathId: DragonLearningPathId, lessonId: DragonLessonId): boolean {
+    return this.adaptiveStore
+      .assignment()
+      .journeyPlan.pathSettings[pathId].requiredLessonIds.includes(lessonId);
+  }
+
+  journeyRequirementMinimum(
+    pathId: DragonLearningPathId,
+    lesson: DragonLessonDefinition,
+    requirementId: string,
+  ): number {
+    const requirement = lesson.requirements.find((candidate) => candidate.id === requirementId);
+    if (!requirement || requirement.kind !== 'metric') return 1;
+    return (
+      this.adaptiveStore.assignment().journeyPlan.pathSettings[pathId].requirementOverrides[
+        requirementId
+      ]?.minimum ?? requirement.minimum
+    );
+  }
+
+  starterPresetsFor(pathId: DragonLearningPathId) {
+    return this.starterPairPresets.filter((preset) => preset.pathId === pathId);
+  }
+
+  async setJourneySelectionMode(event: Event): Promise<void> {
+    const selectionMode =
+      (event.target as HTMLSelectElement).value === 'teacher-assigned'
+        ? ('teacher-assigned' as const)
+        : ('student-choice' as const);
+    await this.changeAssignment((assignment) => ({
+      ...assignment,
+      journeyPlan: { ...assignment.journeyPlan, selectionMode },
+    }));
+  }
+
+  async setJourneyDefaultPath(event: Event): Promise<void> {
+    const pathId = (event.target as HTMLSelectElement).value as DragonLearningPathId;
+    if (!this.journeyPathOffered(pathId)) return;
+    await this.changeAssignment((assignment) => ({
+      ...assignment,
+      journeyPlan: { ...assignment.journeyPlan, defaultPathId: pathId },
+    }));
+  }
+
+  async toggleJourneyPath(pathId: DragonLearningPathId): Promise<void> {
+    const plan = this.adaptiveStore.assignment().journeyPlan;
+    const offered = plan.offeredPathIds.includes(pathId);
+    if (offered && plan.offeredPathIds.length === 1) {
+      this.assignmentMessage.set('At least one journey path must remain offered.');
+      return;
+    }
+    await this.changeAssignment((assignment) => {
+      const offeredPathIds = offered
+        ? assignment.journeyPlan.offeredPathIds.filter((id) => id !== pathId)
+        : [...assignment.journeyPlan.offeredPathIds, pathId];
+      return {
+        ...assignment,
+        journeyPlan: {
+          ...assignment.journeyPlan,
+          offeredPathIds,
+          defaultPathId: offeredPathIds.includes(assignment.journeyPlan.defaultPathId)
+            ? assignment.journeyPlan.defaultPathId
+            : offeredPathIds[0],
+        },
+      };
+    });
+  }
+
+  async setJourneyStarterPair(pathId: DragonLearningPathId, event: Event): Promise<void> {
+    const presetId = (event.target as HTMLSelectElement).value;
+    if (!this.starterPresetsFor(pathId).some((preset) => preset.id === presetId)) return;
+    await this.changePathSetting(pathId, (setting) => ({
+      ...setting,
+      starterPairPresetId: presetId,
+    }));
+  }
+
+  async toggleJourneyLesson(pathId: DragonLearningPathId, lessonId: DragonLessonId): Promise<void> {
+    const path = this.journeyPaths.find((candidate) => candidate.id === pathId);
+    if (!path || lessonId === path.capstoneLessonId) return;
+    await this.changePathSetting(pathId, (setting) => {
+      const included = setting.lessonIds.includes(lessonId);
+      const withoutCapstone = setting.lessonIds.filter((id) => id !== path.capstoneLessonId);
+      return {
+        ...setting,
+        lessonIds: included
+          ? setting.lessonIds.filter((id) => id !== lessonId)
+          : [...withoutCapstone, lessonId, path.capstoneLessonId],
+        requiredLessonIds: included
+          ? setting.requiredLessonIds.filter((id) => id !== lessonId)
+          : [...setting.requiredLessonIds, lessonId],
+      };
+    });
+  }
+
+  async toggleJourneyLessonRequired(
+    pathId: DragonLearningPathId,
+    lessonId: DragonLessonId,
+  ): Promise<void> {
+    if (!this.journeyLessonIncluded(pathId, lessonId)) return;
+    await this.changePathSetting(pathId, (setting) => ({
+      ...setting,
+      requiredLessonIds: setting.requiredLessonIds.includes(lessonId)
+        ? setting.requiredLessonIds.filter((id) => id !== lessonId)
+        : [...setting.requiredLessonIds, lessonId],
+    }));
+  }
+
+  async moveJourneyLesson(
+    pathId: DragonLearningPathId,
+    lessonId: DragonLessonId,
+    direction: -1 | 1,
+  ): Promise<void> {
+    const path = this.journeyPaths.find((candidate) => candidate.id === pathId);
+    if (!path || lessonId === path.capstoneLessonId) return;
+    await this.changePathSetting(pathId, (setting) => {
+      const lessons = [...setting.lessonIds];
+      const current = lessons.indexOf(lessonId);
+      const target = current + direction;
+      const capstoneIndex = lessons.indexOf(path.capstoneLessonId);
+      if (current < 0 || target < 0 || target >= capstoneIndex) return setting;
+      [lessons[current], lessons[target]] = [lessons[target], lessons[current]];
+      return { ...setting, lessonIds: lessons };
+    });
+  }
+
+  async setJourneyRequirementMinimum(
+    pathId: DragonLearningPathId,
+    requirementId: string,
+    event: Event,
+  ): Promise<void> {
+    const minimum = Number((event.target as HTMLInputElement).value);
+    if (!Number.isInteger(minimum) || minimum < 1 || minimum > 100) return;
+    await this.changePathSetting(pathId, (setting) => ({
+      ...setting,
+      requirementOverrides: {
+        ...setting.requirementOverrides,
+        [requirementId]: { minimum },
+      },
+    }));
+  }
+
   async setStudentSimulationLevel(
     studentId: string,
     simulationId: DragonSimulationId,
@@ -219,6 +397,24 @@ export class DragonTeacherPage {
     return INSTRUCTION_LEVELS.includes(value as InstructionLevel)
       ? (value as InstructionLevel)
       : null;
+  }
+
+  private async changePathSetting(
+    pathId: DragonLearningPathId,
+    change: (
+      setting: DragonAssignment['journeyPlan']['pathSettings'][DragonLearningPathId],
+    ) => DragonAssignment['journeyPlan']['pathSettings'][DragonLearningPathId],
+  ): Promise<void> {
+    await this.changeAssignment((assignment) => ({
+      ...assignment,
+      journeyPlan: {
+        ...assignment.journeyPlan,
+        pathSettings: {
+          ...assignment.journeyPlan.pathSettings,
+          [pathId]: change(assignment.journeyPlan.pathSettings[pathId]),
+        },
+      },
+    }));
   }
 
   private async changeAssignment(
