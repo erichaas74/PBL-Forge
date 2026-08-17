@@ -8,7 +8,6 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SessionService } from '../../../core/firebase/session.service';
-import { StageTheme } from '../../../shared/assembly/rendering/scene-environment';
 import { SpecimenSource } from '../../../shared/assembly/preview/specimen.models';
 import { SpecimenViewportComponent } from '../../../shared/assembly/preview/specimen-viewport.component';
 import { StudentDragonRecord } from '../dragon-genetics.models';
@@ -18,31 +17,17 @@ import { DragonArenaTrialRecord } from '../capstones/arena/dragon-arena-mission.
 import { DragonArenaMissionRepository } from '../capstones/arena/dragon-arena-mission.repository';
 import {
   dragonLabGenomeSource,
-  dragonParentSource,
   provideDragonSpecimenProfile,
 } from '../simulation/domain/dragon-specimen.profile';
-import { DragonParentProfile, DragonTraitId } from '../simulation/domain/dragon-lab.models';
+import { DragonTraitId } from '../simulation/domain/dragon-lab.models';
 import { DragonHatcheryBreedingRepository } from '../workstations/dragon-hatchery/dragon-hatchery-breeding.repository';
 import { AccountGeneticsLibraryService } from '../workstations/shared/account-genetics-library.service';
+import { WISE_DRAGON_SOURCE, WISE_DRAGON_STAGE_THEME } from './wise-dragon.character';
 import { WISE_DRAGON_CONVERSATION_GATEWAY } from './wise-dragon.gateway';
 import { MockWiseDragonConversationGateway } from './wise-dragon.mock-gateway';
 import { WiseDragonConversationContext, WiseDragonReply } from './wise-dragon.models';
 import { WISE_DRAGON_MOTIONS } from './wise-dragon.motion';
 import { WiseDragonSessionStore } from './wise-dragon-session.store';
-
-const WISE_DRAGON: DragonParentProfile = {
-  id: 'wise-dragon-sage',
-  name: 'Wise Dragon Sage',
-  title: 'Keeper of the Gene Records',
-  color: '#655d50',
-  accentColor: '#b28a4b',
-  genome: {
-    wings: ['W', 'W'],
-    fire: ['F', 'f'],
-    scales: ['S', 'S'],
-    horns: ['H', 'H'],
-  },
-};
 
 const PREVIEW_CHAMPION: StudentDragonRecord = {
   id: 'wise-dragon-preview-champion',
@@ -78,21 +63,6 @@ const PREVIEW_TRIAL: DragonArenaTrialRecord = {
   completedAtIso: '2026-08-15T00:00:00.000Z',
 };
 
-export const WISE_DRAGON_STAGE_THEME: StageTheme = {
-  skyTop: '#151b1b',
-  skyBottom: '#352b21',
-  fogColor: '#241f1a',
-  hemisphereSky: '#7d8790',
-  hemisphereGround: '#3a291c',
-  keyColor: '#ffd692',
-  keyIntensity: 1.85,
-  fillColor: '#7791a1',
-  fillIntensity: 0.38,
-  rimColor: '#d69b55',
-  rimIntensity: 0.78,
-  environmentIntensity: 0.18,
-};
-
 @Component({
   selector: 'app-wise-dragon-page',
   imports: [RouterLink, SpecimenViewportComponent],
@@ -121,7 +91,7 @@ export class WiseDragonPage {
 
   readonly store = inject(WiseDragonSessionStore);
   readonly theme = WISE_DRAGON_STAGE_THEME;
-  readonly wiseDragonSource = dragonParentSource(WISE_DRAGON);
+  readonly wiseDragonSource = WISE_DRAGON_SOURCE;
   readonly claim = signal('');
   readonly reasoning = signal('');
   readonly studentResponse = signal('');

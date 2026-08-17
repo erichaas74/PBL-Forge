@@ -349,27 +349,20 @@ select:focus-visible {
 .cell-level,
 .nucleus-level {
   place-items: center;
-  overflow: hidden;
 }
 
-.cell-level app-cell-chromosome-viewport,
-.nucleus-lens app-cell-chromosome-viewport {
-  width: min(58rem, 100%);
+/* The cell is 3:2, so its width also sets its height. Kept narrow enough that
+   the whole diagram, leader labels included, fits the stage without scrolling. */
+.cell-level app-cell-model,
+.nucleus-level app-cell-model {
+  --cell-viewport-accent: var(--microscope-accent);
+  --cell-viewport-edge: rgb(101 200 188 / 62%);
+  width: min(64rem, 100%);
   min-width: 0;
 }
 
-.nucleus-lens {
-  display: grid;
-  width: min(56rem, 94%);
-  min-width: 0;
-  place-items: center;
-  padding: clamp(0.75rem, 3vw, 2rem);
-  border: 0.55rem double rgb(185 139 213 / 68%);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(185 139 213 / 16%), rgb(31 51 70 / 20%) 67%, transparent 68%);
-  box-shadow:
-    inset 0 0 50px rgb(185 139 213 / 16%),
-    0 0 34px rgb(185 139 213 / 14%);
+.nucleus-level app-cell-model {
+  width: min(52rem, 100%);
 }
 
 .structure-label {
@@ -387,39 +380,9 @@ select:focus-visible {
   font-size: var(--text-xs);
 }
 
-.cell-label {
-  left: 1.5rem;
-  bottom: 1.5rem;
-}
-
 .nucleus-label {
   right: 1.5rem;
   bottom: 1.5rem;
-}
-
-.nucleus-target {
-  position: absolute;
-  display: grid;
-  top: 45%;
-  left: 50%;
-  width: 8.5rem;
-  height: 8.5rem;
-  place-items: center;
-  border: 2px solid var(--microscope-violet);
-  border-radius: 50%;
-  background: rgb(185 139 213 / 14%);
-  color: #f4eafb;
-  font-weight: 900;
-  cursor: zoom-in;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 28px rgb(185 139 213 / 35%);
-}
-
-.nucleus-target i {
-  position: absolute;
-  inset: 0.5rem;
-  border: 1px dashed rgb(235 213 247 / 58%);
-  border-radius: 50%;
 }
 
 .chromosome-set-level {

@@ -36,6 +36,12 @@
   <app-dragon-testing-shortcut />
 }
 
+@defer (when showWiseDragonGuide()) {
+  @if (showWiseDragonGuide()) {
+    <app-wise-dragon-guide [showLauncher]="!dragonGeneticsHome()" />
+  }
+}
+
 @if (!immersive()) {
   <footer>
     <span>PBL Forge</span>

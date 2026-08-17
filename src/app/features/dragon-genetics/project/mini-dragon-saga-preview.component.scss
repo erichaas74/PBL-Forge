@@ -9,6 +9,8 @@
 .show-preview {
   position: absolute;
   inset: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 68%, rgb(255 219 133 / 38%), transparent 31%),
@@ -42,12 +44,26 @@
     #32766f 12deg 18deg
   );
   filter: drop-shadow(0 0.45rem 0.35rem rgb(0 0 0 / 35%));
-  clip-path: polygon(0 0, 100% 0, 94% 70%, 86% 92%, 77% 68%, 68% 94%, 59% 70%, 50% 96%, 41% 70%, 32% 94%, 23% 68%, 14% 92%, 6% 70%);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    94% 70%,
+    86% 92%,
+    77% 68%,
+    68% 94%,
+    59% 70%,
+    50% 96%,
+    41% 70%,
+    32% 94%,
+    23% 68%,
+    14% 92%,
+    6% 70%
+  );
 }
 
 app-specimen-viewport {
   position: absolute;
-  inset: 1.4rem 0.3rem 1.9rem;
+  inset: 1.4rem 0.3rem 4.9rem;
   z-index: 1;
   --viewport-edge: transparent;
   --viewport-stage-background: transparent;
@@ -85,23 +101,28 @@ app-specimen-viewport {
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
 }
 
-.show-preview__ribbon i { left: 0.45rem; transform: rotate(8deg); }
-.show-preview__ribbon b { right: 0.45rem; transform: rotate(-8deg); }
+.show-preview__ribbon i {
+  left: 0.45rem;
+  transform: rotate(8deg);
+}
+.show-preview__ribbon b {
+  right: 0.45rem;
+  transform: rotate(-8deg);
+}
 
 .show-preview__plaque {
-  position: absolute;
-  right: 0.8rem;
-  bottom: 0.7rem;
-  left: 0.8rem;
+  position: relative;
+  z-index: 4;
+  grid-row: 2;
+  align-self: end;
+  margin: 0;
   z-index: 3;
   display: grid;
   gap: 0.08rem;
   padding: 0.48rem 0.65rem;
-  border: 1px solid #bf9148;
-  border-radius: 0.3rem;
+  border-top: 1px solid #bf9148;
   color: #fff2ce;
-  background: linear-gradient(90deg, rgb(29 23 17 / 94%), rgb(38 48 47 / 88%));
-  box-shadow: 0 0.5rem 1.2rem rgb(0 0 0 / 45%);
+  background: linear-gradient(90deg, #1d1711, #26302f);
 }
 
 .show-preview__plaque span,

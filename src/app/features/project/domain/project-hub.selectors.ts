@@ -1,6 +1,5 @@
 import {
   ProjectActivityDefinition,
-  ProjectActivityLockReason,
   ProjectActivityProgressStatus,
   ProjectActivityViewModel,
   ProjectHubAssignment,
@@ -23,18 +22,11 @@ export function buildProjectHubViewModel(
   const activityDefinitions = [...definition.activities].sort(byOrderThenTitle);
   const paths = [...(definition.paths ?? [])].sort(byOrderThenTitle);
   const pathByActivityId = pathActivityIndex(paths);
-  const completedActivityIds = new Set(
-    Object.values(studentState.activityProgress)
-      .filter((record) => record?.status === 'complete')
-      .map((record) => record?.activityId as string),
-  );
-
   const activities = activityDefinitions.map((activity) =>
     buildActivityViewModel(
       activity,
       assignment,
       studentState,
-      completedActivityIds,
       pathByActivityId.get(activity.id) ?? null,
     ),
   );
@@ -66,18 +58,10 @@ function buildActivityViewModel(
   activity: ProjectActivityDefinition,
   assignment: ProjectHubAssignment,
   studentState: StudentProjectState,
-  completedActivityIds: ReadonlySet<string>,
   pathId: string | null,
 ): ProjectActivityViewModel {
   const setting = assignment.activitySettings[activity.id];
   const progress = studentState.activityProgress[activity.id];
-  const lockReasons = buildLockReasons(
-    activity,
-    setting?.released ?? true,
-    completedActivityIds,
-    studentState,
-    pathId,
-  );
   const belongsToSelectedPath = !pathId || pathId === studentState.selectedPathId;
 
   return {
@@ -91,45 +75,12 @@ function buildActivityViewModel(
     pathId,
     required: belongsToSelectedPath && (setting?.required ?? activity.required),
     status: progress?.status ?? 'not-started',
-    availability: lockReasons.length ? 'locked' : 'available',
-    lockReasons,
+    // Release, prerequisite, mastery, and path data guide progress; they never gate entry.
+    availability: 'available',
+    lockReasons: [],
     evidenceCount: progress?.evidenceIds.length ?? 0,
     isNextAction: false,
   };
-}
-
-function buildLockReasons(
-  activity: ProjectActivityDefinition,
-  released: boolean,
-  completedActivityIds: ReadonlySet<string>,
-  studentState: StudentProjectState,
-  pathId: string | null,
-): ProjectActivityLockReason[] {
-  const reasons: ProjectActivityLockReason[] = [];
-  if (!released) reasons.push({ kind: 'not-released' });
-  if (pathId && pathId !== studentState.selectedPathId) {
-    reasons.push({ kind: 'path-not-selected', pathId });
-  }
-
-  for (const activityId of activity.prerequisiteActivityIds ?? []) {
-    if (!completedActivityIds.has(activityId)) {
-      reasons.push({ kind: 'prerequisite', activityId });
-    }
-  }
-
-  for (const requirement of activity.masteryRequirements ?? []) {
-    const currentLevel = studentState.mastery[requirement.skillId]?.level ?? 0;
-    if (currentLevel < requirement.minimumLevel) {
-      reasons.push({
-        kind: 'mastery',
-        skillId: requirement.skillId,
-        requiredLevel: requirement.minimumLevel,
-        currentLevel,
-      });
-    }
-  }
-
-  return reasons;
 }
 
 function selectNextAction(

@@ -6,14 +6,15 @@ import {
 import { buildProjectHubViewModel } from './project-hub.selectors';
 
 describe('project hub selectors', () => {
-  it('selects one available required activity and locks its dependent activity', () => {
+  it('suggests the first required activity while keeping its dependent activity open', () => {
     const view = buildProjectHubViewModel(PROJECT, ASSIGNMENT, emptyStudentState());
 
     expect(view.nextAction).toEqual(
       jasmine.objectContaining({ kind: 'activity', activityId: 'observe' }),
     );
     expect(view.stages[0].activities[0].isNextAction).toBeTrue();
-    expect(view.stages[0].activities[1].availability).toBe('locked');
+    expect(view.stages[0].activities[1].availability).toBe('available');
+    expect(view.stages[0].activities[1].lockReasons).toEqual([]);
     expect(view.progressPercent).toBe(0);
   });
 
@@ -49,7 +50,7 @@ describe('project hub selectors', () => {
     );
   });
 
-  it('reports mastery and release locks without mixing them into progress status', () => {
+  it('keeps release and mastery settings from gating workstation access', () => {
     const assignment: ProjectHubAssignment = {
       ...ASSIGNMENT,
       activitySettings: { explain: { released: false } },
@@ -60,11 +61,8 @@ describe('project hub selectors', () => {
     const explain = view.stages[0].activities.find((activity) => activity.id === 'explain');
 
     expect(explain?.status).toBe('not-started');
-    expect(explain?.availability).toBe('locked');
-    expect(explain?.lockReasons.map((reason) => reason.kind)).toEqual([
-      'not-released',
-      'mastery',
-    ]);
+    expect(explain?.availability).toBe('available');
+    expect(explain?.lockReasons).toEqual([]);
     expect(view.progressPercent).toBe(50);
   });
 
@@ -113,6 +111,9 @@ describe('project hub selectors', () => {
       jasmine.objectContaining({ kind: 'choose-path', pathIds: ['arena'] }),
     );
     expect(choiceView.requiredActivityCount).toBe(2);
+    expect(choiceView.stages[0].activities.find((activity) => activity.id === 'extension')).toEqual(
+      jasmine.objectContaining({ availability: 'available', lockReasons: [] }),
+    );
 
     const selectedView = buildProjectHubViewModel(project, ASSIGNMENT, {
       ...coreComplete,

@@ -4,10 +4,17 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter, map, startWith } from 'rxjs';
 import { SessionService } from './core/firebase/session.service';
 import { DragonTestingShortcutComponent } from './features/dragon-genetics/project/dragon-testing-shortcut.component';
+import { WiseDragonGuideComponent } from './features/dragon-genetics/wise-dragon/wise-dragon-guide.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, DragonTestingShortcutComponent],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    DragonTestingShortcutComponent,
+    WiseDragonGuideComponent,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
@@ -23,6 +30,15 @@ export class App {
     { initialValue: this.router.url },
   );
   readonly immersive = computed(() => /^\/dragon-genetics\/[^/]+/.test(this.currentUrl()));
+  readonly dragonGenetics = computed(() => /^\/dragon-genetics(?:[/?#]|$)/.test(this.currentUrl()));
+  readonly dragonGeneticsHome = computed(
+    () => this.currentUrl().split(/[?#]/, 1)[0].replace(/\/$/, '') === '/dragon-genetics',
+  );
+  readonly showWiseDragonGuide = computed(
+    () =>
+      this.dragonGenetics() &&
+      this.currentUrl().split(/[?#]/, 1)[0].replace(/\/$/, '') !== '/dragon-genetics/wise-dragon',
+  );
 
   async signIn(): Promise<void> {
     await this.session.signInWithGoogle();

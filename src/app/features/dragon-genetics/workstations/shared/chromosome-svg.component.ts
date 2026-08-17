@@ -21,6 +21,20 @@ export interface ChromosomeLocus {
   marking?: DragonGeneAlleleMarking;
 }
 
+/** What the second drawn chromosome is to the first. Names it for assistive technology. */
+export type ChromosomePairRelationship =
+  | 'sister-chromatids'
+  | 'homologous-pair'
+  | 'gamete-fusion';
+
+export const CHROMOSOME_PAIR_DESCRIPTIONS: Readonly<
+  Record<ChromosomePairRelationship, string>
+> = {
+  'sister-chromatids': 'replicated chromosome with two sister chromatids joined at the centromere',
+  'homologous-pair': 'homologous pair with maternal and paternal chromosomes held together',
+  'gamete-fusion': 'egg and sperm chromosome pair joined in the fertilization model',
+};
+
 export interface ChromosomeSvgModel {
   /** Fraction of the available SVG width occupied by the chromosome, 0..1. */
   length: number;
@@ -83,9 +97,9 @@ export class ChromosomeSvgComponent {
   readonly compact = input(false);
   /** Show a replicated chromosome as two sister chromatids joined at the centromere. */
   readonly replicated = input(false);
-  /** Optional second chromosome model used when two gametes visibly fuse. */
+  /** Optional second chromosome model drawn joined to this one. */
   readonly pairedChromosome = input<ChromosomeSvgModel | null>(null);
-  readonly pairRelationship = input<'sister-chromatids' | 'gamete-fusion'>('sister-chromatids');
+  readonly pairRelationship = input<ChromosomePairRelationship>('sister-chromatids');
   /** Reveal loaded loci in read-only scientific diagrams without making them interactive. */
   readonly showAllLoci = input(false);
   readonly locusSelected = output<string>();
@@ -163,11 +177,9 @@ export class ChromosomeSvgComponent {
           .join('; ')
       : '';
     const form = this.pairedChromosome()
-      ? this.pairRelationship() === 'gamete-fusion'
-        ? 'egg and sperm chromosome pair joined in the fertilization model'
-        : 'replicated chromosome with two sister chromatids joined at the centromere'
+      ? CHROMOSOME_PAIR_DESCRIPTIONS[this.pairRelationship()]
       : this.replicated()
-        ? 'replicated chromosome with two sister chromatids joined at the centromere'
+        ? CHROMOSOME_PAIR_DESCRIPTIONS['sister-chromatids']
         : 'single chromosome';
     return `${model.leftLabel} to ${model.rightLabel} ${form}, ${model.bands.length} bands${active ? `; active locus ${active.label}, allele ${active.symbol ?? 'not loaded'}` : visibleLoci ? `; loci ${visibleLoci}` : ''}.`;
   });

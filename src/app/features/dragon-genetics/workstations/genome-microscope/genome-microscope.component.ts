@@ -35,6 +35,7 @@ import {
   CellChromosomeViewportComponent,
   CellChromosomeViewportItem,
 } from '../shared/cell-chromosome-viewport.component';
+import { CellModelComponent } from '../shared/cell-model.component';
 import {
   chromosomeVisual,
   DRAGON_AUTOSOME_LABELS,
@@ -79,6 +80,7 @@ const EMPTY_ALLELE_COPY: AlleleCopyView = {
   imports: [
     SpecimenViewportComponent,
     CellChromosomeViewportComponent,
+    CellModelComponent,
     ChromosomeSvgComponent,
     DnaReplicationAnimationComponent,
     DnaTranscriptionAnimationComponent,

@@ -1,0 +1,258 @@
+<div
+  class="cell-model"
+  [class.cell-model--simple]="detail() === 'simple'"
+  [class.cell-model--annotated]="annotations().length > 0"
+  [class.cell-model--has-selection]="!!selectedChromosome()"
+  [attr.data-stage]="stage()"
+  [attr.data-focus]="focus()"
+  [style.aspect-ratio]="aspectRatio()"
+  role="group"
+  [attr.aria-label]="summary()"
+>
+  <div class="cell-model__camera" [style.transform]="cameraTransform()">
+  <svg
+    class="cell-model__art"
+    [attr.viewBox]="viewBox()"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <defs>
+      <radialGradient [attr.id]="cytosolId" cx="42%" cy="34%" r="78%">
+        <stop offset="0%" stop-color="var(--cell-cytosol-light)" />
+        <stop offset="100%" stop-color="var(--cell-cytosol-dark)" />
+      </radialGradient>
+      <radialGradient [attr.id]="nucleoplasmId" cx="38%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="var(--cell-nucleoplasm-light)" />
+        <stop offset="100%" stop-color="var(--cell-nucleoplasm-dark)" />
+      </radialGradient>
+    </defs>
+
+    <path class="cell-model__cytosol" [attr.d]="membranePath()" [attr.fill]="'url(#' + cytosolId + ')'" />
+
+    @if (detail() === 'full') {
+      <g class="cell-model__cytoskeleton">
+        <path d="M 30 52 C 60 22 170 20 208 56" />
+        <path d="M 26 100 C 52 138 172 142 212 104" />
+      </g>
+
+      <g class="cell-model__er" aria-hidden="true">
+        @for (ribbon of erRibbons; track ribbon.id) {
+          <path class="cell-model__er-ribbon" [attr.d]="ribbon.path" />
+          @for (ribosome of ribbon.ribosomes; track $index) {
+            <circle
+              class="cell-model__ribosome cell-model__ribosome--bound"
+              [attr.cx]="ribosome.x"
+              [attr.cy]="ribosome.y"
+              r="1.35"
+            />
+          }
+        }
+      </g>
+
+      @for (ribosome of ribosomes; track $index) {
+        <circle class="cell-model__ribosome" [attr.cx]="ribosome.x" [attr.cy]="ribosome.y" r="1.1" />
+      }
+
+      @for (organelle of organelles; track organelle.id) {
+        <g
+          class="cell-model__organelle"
+          [attr.data-organelle]="organelle.kind"
+          [attr.transform]="
+            'translate(' +
+            organelle.x +
+            ',' +
+            organelle.y +
+            ') rotate(' +
+            organelle.rotation +
+            ') scale(' +
+            organelle.scale +
+            ')'
+          "
+        >
+          @switch (organelle.kind) {
+            @case ('mitochondrion') {
+              <rect class="cell-model__mito-body" x="-15" y="-7" width="30" height="14" rx="7" />
+              <rect class="cell-model__mito-matrix" x="-12.4" y="-4.8" width="24.8" height="9.6" rx="4.8" />
+              @for (crista of cristae; track $index) {
+                <path class="cell-model__crista" [attr.d]="crista" />
+              }
+            }
+            @case ('golgi') {
+              @for (lamella of lamellae; track $index) {
+                <path class="cell-model__lamella" [attr.d]="lamella" />
+              }
+              <circle class="cell-model__vesicle" cx="-14" cy="11.5" r="2.4" />
+              <circle class="cell-model__vesicle" cx="-5.5" cy="13.5" r="1.8" />
+              <circle class="cell-model__vesicle" cx="3.5" cy="12" r="2.1" />
+            }
+            @case ('lysosome') {
+              <circle class="cell-model__lysosome" r="6" />
+              <circle class="cell-model__lysosome-grain" cx="-2" cy="-1.5" r="1.1" />
+              <circle class="cell-model__lysosome-grain" cx="2" cy="1" r="1.4" />
+              <circle class="cell-model__lysosome-grain" cx="0.6" cy="-2.8" r="0.9" />
+            }
+            @case ('vacuole') {
+              <ellipse class="cell-model__vacuole" rx="12" ry="9" />
+              <ellipse class="cell-model__vacuole-highlight" cx="-3.5" cy="-3" rx="4.5" ry="3" />
+            }
+            @case ('smooth-er') {
+              <path class="cell-model__smooth-er" d="M -17 -6 C -9 -13 -4 1 4 -6 S 14 -11 19 -5" />
+              <path class="cell-model__smooth-er" d="M -15 3 C -7 -4 -2 10 6 3 S 15 -2 20 4" />
+            }
+            @case ('centrosome') {
+              <circle class="cell-model__pericentriolar" r="10" />
+              <g class="cell-model__centriole">
+                <rect x="-7" y="-2.4" width="13" height="4.8" rx="1.8" />
+                <line x1="-5" y1="0" x2="4" y2="0" />
+              </g>
+              <g class="cell-model__centriole" transform="rotate(92)">
+                <rect x="-7" y="-2.4" width="13" height="4.8" rx="1.8" />
+                <line x1="-5" y1="0" x2="4" y2="0" />
+              </g>
+            }
+          }
+        </g>
+      }
+    }
+
+    @if (equator(); as plate) {
+      <line
+        class="cell-model__equator"
+        [attr.x1]="plate.x"
+        [attr.y1]="plate.top"
+        [attr.x2]="plate.x"
+        [attr.y2]="plate.bottom"
+      />
+    }
+
+    @if (spindleVisible()) {
+      <g class="cell-model__spindle">
+        @for (fibre of spindleFibres(); track fibre.id) {
+          <line
+            class="cell-model__fibre"
+            [attr.x1]="fibre.x1"
+            [attr.y1]="fibre.y1"
+            [attr.x2]="fibre.x2"
+            [attr.y2]="fibre.y2"
+          />
+        }
+        @for (pole of [spindlePoles.a, spindlePoles.b]; track $index) {
+          <g class="cell-model__pole" [attr.transform]="'translate(' + pole.x + ',' + pole.y + ')'">
+            <circle class="cell-model__pericentriolar" r="8" />
+            <rect class="cell-model__centriole-barrel" x="-5" y="-2" width="10" height="4" rx="1.5" />
+            <rect class="cell-model__centriole-barrel" x="-2" y="-5" width="4" height="10" rx="1.5" />
+          </g>
+        }
+      </g>
+    }
+
+    @for (nucleus of nucleusOutlines(); track $index) {
+      <g class="cell-model__nucleus">
+        <path
+          class="cell-model__nucleoplasm"
+          [attr.d]="nucleus.outer"
+          [attr.fill]="'url(#' + nucleoplasmId + ')'"
+        />
+        @if (nucleolusVisible()) {
+          <ellipse
+            class="cell-model__nucleolus"
+            [attr.cx]="nucleolus.cx"
+            [attr.cy]="nucleolus.cy"
+            [attr.rx]="nucleolus.rx"
+            [attr.ry]="nucleolus.ry"
+          />
+        }
+        <path class="cell-model__envelope cell-model__envelope--inner" [attr.d]="nucleus.inner" />
+        <path class="cell-model__envelope" [attr.d]="nucleus.outer" />
+        @for (pore of nucleus.pores; track $index) {
+          <circle class="cell-model__pore" [attr.cx]="pore.x" [attr.cy]="pore.y" r="1.15" />
+        }
+      </g>
+    }
+
+    <path class="cell-model__membrane cell-model__membrane--inner" [attr.d]="membraneInnerPath()" />
+    <path class="cell-model__membrane" [attr.d]="membranePath()" />
+
+    @for (annotation of annotations(); track annotation.id) {
+      <g class="cell-model__annotation">
+        <path class="cell-model__leader" [attr.d]="annotation.leader" />
+        <circle
+          class="cell-model__leader-dot"
+          [attr.cx]="annotation.target.x"
+          [attr.cy]="annotation.target.y"
+          r="1.6"
+        />
+        <text
+          class="cell-model__annotation-text"
+          [attr.x]="annotation.x"
+          [attr.y]="annotation.y"
+          [attr.text-anchor]="annotation.anchor"
+        >
+          {{ annotation.label }}
+        </text>
+      </g>
+    }
+  </svg>
+
+  <div class="cell-model__chromosomes">
+    @for (chromosome of placed(); track chromosome.item.id) {
+      <button
+        type="button"
+        class="chromosome-in-cell cell-model__chromosome"
+        [class.chromosome-in-cell--selected]="chromosome.selected"
+        [class.chromosome-in-cell--recombinant]="chromosome.item.recombinant"
+        [style.left]="chromosome.left"
+        [style.top]="chromosome.top"
+        [style.width]="chromosome.width"
+        [style.height]="chromosome.height"
+        [disabled]="!selectable()"
+        [attr.aria-label]="chromosomeAriaLabel(chromosome.item)"
+        [attr.aria-pressed]="selectable() ? chromosome.selected : null"
+        [attr.data-chromosome]="chromosome.item.id"
+        [attr.data-display-chromosome]="chromosome.item.label"
+        (click)="selectChromosome(chromosome.item.id)"
+      >
+        <span class="chromosome-name" [class.cell-model__name--hidden]="!showChromosomeLabels()">
+          {{ displayShortLabel(chromosome.item) }}
+        </span>
+        <app-chromosome-svg
+          [chromosome]="chromosome.item.model"
+          [pairedChromosome]="chromosome.item.pairedModel ?? null"
+          [pairRelationship]="chromosome.item.pairRelationship ?? 'sister-chromatids'"
+          [placeholder]="chromosome.item.placeholder ?? false"
+          [compact]="true"
+          [replicated]="replicated()"
+          [showAllLoci]="showLoci()"
+          [selectedLocus]="chromosome.selected ? selectedLocus() : null"
+          [interactive]="selectable() && locusSelectable()"
+          (locusSelected)="selectLocus(chromosome.item.id, $event)"
+        />
+        @if (chromosome.item.recombinant) {
+          <span class="recombinant-mark" aria-hidden="true">R</span>
+        }
+      </button>
+    }
+
+      @if (!chromosomes().length) {
+        <p class="cell-model__empty">No chromosomes available</p>
+      }
+    </div>
+
+    @if (nucleusAction(); as action) {
+      @if (nuclei().length === 1) {
+        <button
+          type="button"
+          class="cell-model__nucleus-action"
+          [style.left]="nucleusButtonStyle().left"
+          [style.top]="nucleusButtonStyle().top"
+          [style.width]="nucleusButtonStyle().width"
+          [style.height]="nucleusButtonStyle().height"
+          (click)="focusNucleus()"
+        >
+          <span>{{ action }}</span>
+        </button>
+      }
+    }
+  </div>
+</div>

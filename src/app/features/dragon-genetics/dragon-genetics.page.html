@@ -16,26 +16,29 @@
         </span>
       </div>
 
-      <a class="beam-link beam-link--dragon" routerLink="/dragon-genetics/wise-dragon">
+      <button
+        type="button"
+        class="beam-link beam-link--dragon"
+        aria-controls="wise-dragon-guide"
+        (click)="wiseDragonGuide.show()"
+      >
         <span class="dragon-eye" aria-hidden="true"></span>
         <span><small>Need guidance?</small>Ask the Wise Dragon</span>
-      </a>
+      </button>
     </header>
 
     <section class="great-hall" aria-labelledby="academy-title">
       <div class="great-hall__art" aria-hidden="true"></div>
       <div class="great-hall__shade" aria-hidden="true"></div>
-      <div class="embers" aria-hidden="true">
-        <i></i><i></i><i></i><i></i><i></i><i></i>
-      </div>
+      <div class="embers" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
       <div class="hero-copy">
         <p class="hero-copy__kicker">Great Hall · Dragon Conservation Academy</p>
         <h1 id="academy-title">{{ view.title }}</h1>
         <p class="hero-copy__mission">{{ view.mission }}</p>
         <p class="hero-copy__motto">
-          <span>Observe the trait</span><i aria-hidden="true">◆</i>
-          <span>Test the pattern</span><i aria-hidden="true">◆</i>
+          <span>Observe the trait</span><i aria-hidden="true">◆</i> <span>Test the pattern</span
+          ><i aria-hidden="true">◆</i>
           <span>Protect the dragons</span>
         </p>
       </div>
@@ -100,7 +103,13 @@
             <circle class="astrolabe__bezel" cx="64" cy="64" r="57" />
             <g class="astrolabe__ticks">
               @for (tick of dialTicks; track tick) {
-                <line x1="64" y1="9" x2="64" y2="16" [attr.transform]="'rotate(' + tick + ' 64 64)'" />
+                <line
+                  x1="64"
+                  y1="9"
+                  x2="64"
+                  y2="16"
+                  [attr.transform]="'rotate(' + tick + ' 64 64)'"
+                />
               }
             </g>
             <circle class="astrolabe__track" cx="64" cy="64" r="44" />
@@ -118,7 +127,9 @@
           </svg>
           <strong>{{ view.progressPercent }}%</strong>
         </div>
-        <span>{{ view.completedRequiredCount }} of {{ view.requiredActivityCount }} seals earned</span>
+        <span
+          >{{ view.completedRequiredCount }} of {{ view.requiredActivityCount }} seals earned</span
+        >
       </div>
 
       <a class="enter-academy" href="#academy-grounds">
@@ -135,19 +146,30 @@
       </a>
       <a class="destination-sign destination-sign--vault" href="#evidence-vault">
         <span class="destination-sign__icon" aria-hidden="true">▣</span>
-        <span><strong>Evidence Vault</strong><small>{{ evidenceCount(view) }} records secured</small></span>
+        <span
+          ><strong>Evidence Vault</strong
+          ><small>{{ evidenceCount(view) }} records secured</small></span
+        >
         <i aria-hidden="true">→</i>
       </a>
       <a class="destination-sign destination-sign--forge" href="#saga-paths">
         <span class="destination-sign__icon" aria-hidden="true">♢</span>
-        <span><strong>Saga Forge</strong><small>{{ view.selectedPathId ? 'Path chosen' : 'Choose your final path' }}</small></span>
+        <span
+          ><strong>Saga Forge</strong
+          ><small>{{ view.selectedPathId ? 'Path chosen' : 'Choose your final path' }}</small></span
+        >
         <i aria-hidden="true">→</i>
       </a>
-      <a class="destination-sign destination-sign--council" routerLink="/dragon-genetics/wise-dragon">
+      <button
+        type="button"
+        class="destination-sign destination-sign--council"
+        aria-controls="wise-dragon-guide"
+        (click)="wiseDragonGuide.show()"
+      >
         <span class="destination-sign__icon" aria-hidden="true">◉</span>
         <span><strong>Mentor Chamber</strong><small>Question the Wise Dragon</small></span>
         <i aria-hidden="true">→</i>
-      </a>
+      </button>
     </nav>
 
     <div class="academy-body">
@@ -157,7 +179,7 @@
             <p class="section-heading__kicker">The road through the academy</p>
             <h2 id="trial-map-title">Trial Map</h2>
           </div>
-          <p>Follow the glowing rune for your next quest, or revisit any open investigation.</p>
+          <p>The glowing rune suggests a next quest, but every investigation is open.</p>
         </header>
 
         <ol class="stage-route">
@@ -187,14 +209,11 @@
                     >
                       <i class="status-rune" aria-hidden="true">{{ statusSymbol(activity) }}</i>
                       <div class="activity-marker__copy">
-                        @if (activity.availability === 'available') {
-                          <a
-                            [routerLink]="activity.route"
-                            [attr.aria-current]="activity.isNextAction ? 'step' : null"
-                          >{{ activity.title }}</a>
-                        } @else {
-                          <span>{{ activity.title }}</span>
-                        }
+                        <a
+                          [routerLink]="activity.route"
+                          [attr.aria-current]="activity.isNextAction ? 'step' : null"
+                          >{{ activity.title }}</a
+                        >
                         <small>{{ activity.objective }}</small>
                       </div>
                       <div class="activity-marker__meta">
@@ -240,7 +259,10 @@
           @if (!evidenceCount(view)) {
             <div class="vault-empty">
               <span aria-hidden="true">▱</span>
-              <p><strong>Your vault is ready.</strong> Evidence appears here after you save an investigation.</p>
+              <p>
+                <strong>Your vault is ready.</strong> Evidence appears here after you save an
+                investigation.
+              </p>
             </div>
           }
         </section>
@@ -251,73 +273,128 @@
             <h2 id="council-title">Three questions for strong science</h2>
           </header>
           <ol>
-            <li><span>01</span><p><strong>Observe</strong>Which traits appear, and how often?</p></li>
-            <li><span>02</span><p><strong>Compare</strong>What changes when the sample grows?</p></li>
-            <li><span>03</span><p><strong>Defend</strong>Does your evidence support your claim?</p></li>
+            <li>
+              <span>01</span>
+              <p><strong>Observe</strong>Which traits appear, and how often?</p>
+            </li>
+            <li>
+              <span>02</span>
+              <p><strong>Compare</strong>What changes when the sample grows?</p>
+            </li>
+            <li>
+              <span>03</span>
+              <p><strong>Defend</strong>Does your evidence support your claim?</p>
+            </li>
           </ol>
-          <a routerLink="/dragon-genetics/wise-dragon">
+          <button type="button" aria-controls="wise-dragon-guide" (click)="wiseDragonGuide.show()">
             Visit the Mentor Chamber <span aria-hidden="true">→</span>
-          </a>
+          </button>
         </section>
       </aside>
     </div>
 
-    <section class="saga-forge" id="saga-paths" aria-labelledby="saga-title">
+    <section
+      class="saga-forge"
+      [class.saga-forge--open]="sagaForgeOpen()"
+      id="saga-paths"
+      aria-labelledby="saga-title"
+    >
       <header class="saga-heading">
         <p class="section-heading__kicker">The final branching path</p>
         <h2 id="saga-title">Choose the Saga You Will Forge</h2>
-        <p>Each destination uses the same genetics skills for a different dragon-world challenge.</p>
+        <p>
+          Every saga is open. Preview one when you are ready, then choose the focus that counts in
+          your project progress.
+        </p>
+        <button
+          type="button"
+          class="saga-forge__toggle"
+          aria-controls="saga-destinations"
+          [attr.aria-expanded]="sagaForgeOpen()"
+          (click)="toggleSagaForge()"
+        >
+          {{ sagaForgeOpen() ? 'Close saga forge' : 'Explore saga paths' }}
+          <span aria-hidden="true">{{ sagaForgeOpen() ? '−' : '+' }}</span>
+        </button>
       </header>
 
-      <div class="saga-destinations">
-        @for (path of view.paths; track path.id) {
-          <article
-            class="saga-destination"
-            [class.saga-destination--selected]="path.selected"
-            [attr.data-path]="path.id"
-          >
-            <div class="saga-destination__scene">
-              @switch (path.id) {
-                @case ('dragon-arena') {
-                  <app-dragon-arena-saga-preview [studentId]="hub.studentId()" />
-                }
-                @case ('mini-dragon-show') {
-                  <app-mini-dragon-saga-preview [studentId]="hub.studentId()" />
-                }
-                @default {
-                  <span class="scene-emblem" aria-hidden="true"></span>
-                }
+      @if (sagaForgeOpen()) {
+        <div class="saga-destinations" id="saga-destinations">
+          @for (path of view.paths; track path.id) {
+            <article
+              class="saga-destination"
+              [class.saga-destination--selected]="path.selected"
+              [class.saga-destination--expanded]="expandedSagaPathId() === path.id"
+              [attr.data-path]="path.id"
+            >
+              @if (expandedSagaPathId() === path.id) {
+                <div class="saga-destination__scene" [id]="'saga-preview-' + path.id">
+                  @switch (path.id) {
+                    @case ('dragon-arena') {
+                      @defer (when expandedSagaPathId() === path.id) {
+                        <app-dragon-arena-saga-preview [studentId]="hub.studentId()" />
+                      } @loading {
+                        <span class="saga-preview-loading">Opening the arena…</span>
+                      }
+                    }
+                    @case ('mini-dragon-show') {
+                      @defer (when expandedSagaPathId() === path.id) {
+                        <app-mini-dragon-saga-preview [studentId]="hub.studentId()" />
+                      } @loading {
+                        <span class="saga-preview-loading">Raising the show curtain…</span>
+                      }
+                    }
+                    @default {
+                      <span class="scene-emblem" aria-hidden="true"></span>
+                    }
+                  }
+                </div>
               }
-            </div>
-            <div class="saga-destination__copy">
-              <p>
-                @switch (path.id) {
-                  @case ('dragon-arena') { Battle · Adapt · Prove }
-                  @case ('mini-dragon-show') { Display · Compare · Celebrate }
-                  @default { Restore · Protect · Rebuild }
+              <div class="saga-destination__copy">
+                <p>
+                  @switch (path.id) {
+                    @case ('dragon-arena') {
+                      Battle · Adapt · Prove
+                    }
+                    @case ('mini-dragon-show') {
+                      Display · Compare · Celebrate
+                    }
+                    @default {
+                      Restore · Protect · Rebuild
+                    }
+                  }
+                </p>
+                <h3>{{ path.title }}</h3>
+                @if (path.selected) {
+                  <span class="selected-banner">Your focus</span>
                 }
-              </p>
-              <h3>{{ path.title }}</h3>
-              <span>{{ path.objective }}</span>
-              <small>{{ path.outcomeLabel }}</small>
-              <div class="saga-destination__footer">
-                <span class="saga-progress">{{ path.progressPercent }}% explored</span>
-                <button
-                  type="button"
-                  [value]="path.id"
-                  [attr.aria-pressed]="path.selected"
-                  (click)="selectPath($event)"
-                >
-                  {{ path.selected ? 'Saga chosen' : 'Choose this saga' }}
-                </button>
+                <span>{{ path.objective }}</span>
+                <small>{{ path.outcomeLabel }}</small>
+                <div class="saga-destination__footer">
+                  <span class="saga-progress">{{ path.progressPercent }}% explored</span>
+                  <button
+                    type="button"
+                    class="saga-preview-toggle"
+                    [attr.aria-controls]="'saga-preview-' + path.id"
+                    [attr.aria-expanded]="expandedSagaPathId() === path.id"
+                    (click)="toggleSagaPreview(path.id)"
+                  >
+                    {{ expandedSagaPathId() === path.id ? 'Hide preview' : 'Open preview' }}
+                  </button>
+                  <button
+                    type="button"
+                    [value]="path.id"
+                    [attr.aria-pressed]="path.selected"
+                    (click)="selectPath($event)"
+                  >
+                    {{ path.selected ? 'Saga chosen' : 'Choose this saga' }}
+                  </button>
+                </div>
               </div>
-            </div>
-            @if (path.selected) {
-              <span class="selected-banner">Your path</span>
-            }
-          </article>
-        }
-      </div>
+            </article>
+          }
+        </div>
+      }
     </section>
 
     <footer class="hall-footer">

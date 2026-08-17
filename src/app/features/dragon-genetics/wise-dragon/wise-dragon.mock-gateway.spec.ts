@@ -1,6 +1,5 @@
 import { fakeAsync, tick } from '@angular/core/testing';
 import { MockWiseDragonConversationGateway } from './wise-dragon.mock-gateway';
-import { WISE_DRAGON_NOT_CONNECTED_MESSAGE } from './wise-dragon.mock-gateway';
 import {
   ContinueWiseDragonSessionRequest,
   WiseDragonConversationContext,
@@ -10,7 +9,7 @@ import {
 describe('MockWiseDragonConversationGateway', () => {
   const gateway = new MockWiseDragonConversationGateway();
 
-  it('returns the not-connected message when the layout session starts', fakeAsync(() => {
+  it('starts by asking the student to connect the selected genotype and phenotype', fakeAsync(() => {
     let reply: WiseDragonReply | undefined;
     gateway
       .start({ schemaVersion: 1, sessionId: 'session-1', context: context() })
@@ -20,23 +19,35 @@ describe('MockWiseDragonConversationGateway', () => {
     tick(260);
 
     expect(reply?.specimenAction).toEqual({ type: 'focus-trait', traitId: 'wings' });
-    expect(reply?.message).toBe(WISE_DRAGON_NOT_CONNECTED_MESSAGE);
+    expect(reply?.message).toContain('genotype');
+    expect(reply?.message).toContain('phenotype');
     expect(reply?.continueDefense).toBeTrue();
   }));
 
-  it('returns the same placeholder for every student response', fakeAsync(() => {
+  it('coaches the next missing link in the evidence chain', fakeAsync(() => {
     let reply: WiseDragonReply | undefined;
     gateway.respond(request(['Wings helped.'])).then((value) => {
       reply = value;
     });
     tick(260);
 
-    expect(reply?.emotion).toBe('neutral');
-    expect(reply?.message).toBe(WISE_DRAGON_NOT_CONNECTED_MESSAGE);
+    expect(reply?.emotion).toBe('inquisitive');
+    expect(reply?.message).toContain('genotype');
     expect(reply?.continueDefense).toBeTrue();
   }));
 
-  it('shows a non-evaluative placeholder summary when the preview is ended', fakeAsync(() => {
+  it('answers common genetics questions before returning to the evidence', fakeAsync(() => {
+    let reply: WiseDragonReply | undefined;
+    gateway.respond(request(['What is a phenotype?'])).then((value) => {
+      reply = value;
+    });
+    tick(260);
+
+    expect(reply?.message).toContain('observable');
+    expect(reply?.message).toContain('champion’s trial');
+  }));
+
+  it('shows an advisory evidence summary when the practice defense ends', fakeAsync(() => {
     let reply: WiseDragonReply | undefined;
     gateway
       .finish(
@@ -53,9 +64,9 @@ describe('MockWiseDragonConversationGateway', () => {
 
     expect(reply?.continueDefense).toBeFalse();
     expect(reply?.summary?.reviewStatus).toBe('provisional');
-    expect(reply?.summary?.overview).toBe(WISE_DRAGON_NOT_CONNECTED_MESSAGE);
+    expect(reply?.summary?.overview).toContain('evidence links are supported');
     expect(
-      reply?.summary?.criteria.every((criterion) => criterion.status === 'not-connected'),
+      reply?.summary?.criteria.every((criterion) => criterion.status === 'supported'),
     ).toBeTrue();
   }));
 });

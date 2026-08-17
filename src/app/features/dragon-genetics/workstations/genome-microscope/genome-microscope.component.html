@@ -114,33 +114,30 @@
 
         @case ('cell') {
           <section class="cell-level level-surface" aria-label="Dragon cell">
-            <app-cell-chromosome-viewport
+            <app-cell-model
               [chromosomes]="cellChromosomeCopies()"
               [selectable]="false"
               [showLoci]="false"
-              layout="thumbnail"
+              [showChromosomeLabels]="false"
+              [annotated]="true"
+              nucleusAction="Focus nucleus"
               [ariaLabel]="'Body cell from ' + (loadedDragon()?.name ?? 'the loaded dragon')"
+              (nucleusSelected)="selectLevel('nucleus')"
             />
-            <div class="structure-label cell-label">
-              <b>Cell membrane</b><span>surrounds the living cell</span>
-            </div>
-            <button type="button" class="nucleus-target" (click)="selectLevel('nucleus')">
-              <i aria-hidden="true"></i><span>Focus nucleus</span>
-            </button>
           </section>
         }
 
         @case ('nucleus') {
           <section class="nucleus-level level-surface" aria-label="Cell nucleus">
-            <div class="nucleus-lens">
-              <app-cell-chromosome-viewport
-                [chromosomes]="cellChromosomeCopies()"
-                [selectable]="false"
-                [showLoci]="false"
-                layout="thumbnail"
-                [ariaLabel]="'Nucleus and chromosomes from ' + (loadedDragon()?.name ?? 'the loaded dragon')"
-              />
-            </div>
+            <app-cell-model
+              focus="nucleus"
+              [chromosomes]="cellChromosomeCopies()"
+              [selectable]="false"
+              [showLoci]="false"
+              [ariaLabel]="
+                'Nucleus and chromosomes from ' + (loadedDragon()?.name ?? 'the loaded dragon')
+              "
+            />
             <div class="structure-label nucleus-label">
               <b>Nuclear envelope</b><span>keeps the chromosome set inside the nucleus</span>
             </div>

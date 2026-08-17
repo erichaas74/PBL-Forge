@@ -50,16 +50,26 @@ describe('GenomeMicroscopeComponent', () => {
     expect(microscope.level()).toBe('nucleus');
   });
 
-  it('reuses the Allele Workbench cell and chromosome presentation components', () => {
+  it('reuses the shared cell model and chromosome presentation components', () => {
+    const element = fixture.nativeElement as HTMLElement;
+
     microscope.selectLevel('cell');
     fixture.detectChanges();
-    expect((fixture.nativeElement as HTMLElement).querySelector('app-cell-chromosome-viewport'))
-      .not.toBeNull();
+    expect(element.querySelector('app-cell-model')).not.toBeNull();
+    expect(element.querySelectorAll('app-cell-model [data-organelle]').length).toBeGreaterThan(0);
+    expect(element.querySelectorAll('app-cell-model .chromosome-in-cell').length).toBe(
+      microscope.cellChromosomeCopies().length,
+    );
+
+    microscope.selectLevel('nucleus');
+    fixture.detectChanges();
+    expect(element.querySelector('app-cell-model .cell-model')?.getAttribute('data-focus')).toBe(
+      'nucleus',
+    );
 
     microscope.selectChromosome('Chr 1');
     fixture.detectChanges();
-    expect((fixture.nativeElement as HTMLElement).querySelector('app-cell-chromosome-viewport'))
-      .not.toBeNull();
+    expect(element.querySelector('app-cell-chromosome-viewport')).not.toBeNull();
   });
 
   it('uses the shared chromosome band source without duplicating colors', () => {

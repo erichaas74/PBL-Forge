@@ -1,22 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { ChromosomeSvgComponent, ChromosomeSvgModel } from './chromosome-svg.component';
+import { CellModelChromosome, CellModelComponent } from './cell-model.component';
+import { ChromosomeSvgComponent } from './chromosome-svg.component';
 
 export type CellChromosomeViewportLayout = 'overview' | 'inspect' | 'thumbnail';
 export type ChromosomeForm = 'single' | 'replicated';
 
-/** Presentation data only. Scientific geometry and loci remain in ChromosomeSvgModel. */
-export interface CellChromosomeViewportItem {
-  id: string;
-  label: string;
-  shortLabel?: string;
-  model: ChromosomeSvgModel;
-  /** Optional second model for a visibly combined chromosome pair. */
-  pairedModel?: ChromosomeSvgModel;
-  pairRelationship?: 'sister-chromatids' | 'gamete-fusion';
-  recombinant?: boolean;
-  /** Draws the shared chromosome geometry as a neutral loading outline. */
-  placeholder?: boolean;
-}
+/**
+ * Presentation data only. Scientific geometry and loci remain in ChromosomeSvgModel,
+ * and the cell itself is drawn by the shared `app-cell-model`.
+ */
+export type CellChromosomeViewportItem = CellModelChromosome;
 
 export interface CellChromosomeLocusSelection {
   chromosomeId: string;
@@ -25,7 +18,7 @@ export interface CellChromosomeLocusSelection {
 
 @Component({
   selector: 'app-cell-chromosome-viewport',
-  imports: [ChromosomeSvgComponent],
+  imports: [CellModelComponent, ChromosomeSvgComponent],
   templateUrl: './cell-chromosome-viewport.component.html',
   styleUrl: './cell-chromosome-viewport.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -57,6 +50,7 @@ export class CellChromosomeViewportComponent {
       this.chromosomes()[0] ??
       null,
   );
+  readonly replicated = computed(() => this.chromosomeForm() === 'replicated');
 
   isSelected(item: CellChromosomeViewportItem): boolean {
     return item.id === this.resolvedSelectedChromosome();
@@ -77,18 +71,5 @@ export class CellChromosomeViewportComponent {
   selectLocus(chromosomeId: string, locus: string): void {
     if (!this.selectable() || !this.locusSelectable()) return;
     this.locusSelected.emit({ chromosomeId, locus });
-  }
-
-  chromosomeAriaLabel(item: CellChromosomeViewportItem): string {
-    const state = this.isSelected(item) ? ', selected' : '';
-    const recombinant = item.recombinant ? ', recombinant' : '';
-    const form = item.pairedModel
-      ? item.pairRelationship === 'gamete-fusion'
-        ? ', egg and sperm chromosome pair joined in the fertilization model'
-        : ', two sister chromatids joined at the centromere'
-      : this.chromosomeForm() === 'replicated'
-        ? ', two sister chromatids joined at the centromere'
-        : ', single chromosome';
-    return `${item.label}${form}${recombinant}${state}`;
   }
 }

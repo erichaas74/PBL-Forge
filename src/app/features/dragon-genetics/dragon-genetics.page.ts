@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   ProjectActivityViewModel,
@@ -8,6 +8,7 @@ import {
 import { DragonProjectHubFacade } from './project/dragon-project-hub.facade';
 import { DragonArenaSagaPreviewComponent } from './project/dragon-arena-saga-preview.component';
 import { MiniDragonSagaPreviewComponent } from './project/mini-dragon-saga-preview.component';
+import { WiseDragonGuideService } from './wise-dragon/wise-dragon-guide.service';
 
 /** Radius of the progress dial's arc, in the face's 128-unit viewBox. */
 const DIAL_RADIUS = 44;
@@ -22,7 +23,10 @@ const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS;
 })
 export class DragonGeneticsPage {
   readonly hub = inject(DragonProjectHubFacade);
+  readonly wiseDragonGuide = inject(WiseDragonGuideService);
   readonly viewModel = this.hub.viewModel;
+  readonly sagaForgeOpen = signal(false);
+  readonly expandedSagaPathId = signal<string | null>(null);
 
   /** Engraved marks around the dial's bezel, every 15°. */
   readonly dialTicks = Array.from({ length: 24 }, (_, index) => index * 15);
@@ -47,6 +51,15 @@ export class DragonGeneticsPage {
     this.hub.selectPath(control.value || null);
   }
 
+  toggleSagaForge(): void {
+    this.sagaForgeOpen.update((open) => !open);
+    if (!this.sagaForgeOpen()) this.expandedSagaPathId.set(null);
+  }
+
+  toggleSagaPreview(pathId: string): void {
+    this.expandedSagaPathId.update((current) => (current === pathId ? null : pathId));
+  }
+
   actionLabel(action: ProjectNextAction): string {
     return {
       'needs-revision': 'Revise',
@@ -57,7 +70,6 @@ export class DragonGeneticsPage {
   }
 
   statusLabel(activity: ProjectActivityViewModel): string {
-    if (activity.availability === 'locked' && activity.status === 'not-started') return 'Locked';
     return {
       'not-started': 'Ready',
       'in-progress': 'In progress',
@@ -71,7 +83,6 @@ export class DragonGeneticsPage {
     if (activity.status === 'complete') return '✓';
     if (activity.status === 'needs-revision') return '!';
     if (activity.isNextAction || activity.status === 'in-progress') return '●';
-    if (activity.availability === 'locked') return '–';
     return '○';
   }
 

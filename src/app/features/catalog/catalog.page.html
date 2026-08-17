@@ -7,8 +7,27 @@
       create, and explain—not just click through content.
     </p>
     <a class="primary-action" href="#project-catalog">Browse projects <span>↓</span></a>
-    <a class="test-action" routerLink="/dragon-test-bench">Dragon test bench <span>→</span></a>
-    <a class="test-action" routerLink="/dragon-duel">Dragon duel test <span>→</span></a>
+    <nav class="quick-links" aria-label="Dragon experience shortcuts">
+      <a class="test-action" routerLink="/dragon-test-bench">Dragon test bench <span>→</span></a>
+      <a class="test-action" routerLink="/dragon-duel">Dragon duel test <span>→</span></a>
+      <a
+        class="test-action"
+        data-testid="mini-dragon-show-link"
+        routerLink="/dragon-genetics/companion-show"
+      >
+        Mini Dragon Show <span>→</span>
+      </a>
+      <a
+        class="test-action designer-link"
+        data-testid="parts-lab-link"
+        href="http://localhost:4300/parts-lab"
+        target="_blank"
+        rel="noopener"
+        title="Open the private Dragon Designer app (npm run start:designer)"
+      >
+        Parts Lab <small>Designer</small><span>↗</span>
+      </a>
+    </nav>
   </div>
 
   <aside class="hero-card" aria-label="Learning experience preview">

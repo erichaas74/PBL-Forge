@@ -26,7 +26,9 @@
       <div
         class="shared-meiosis-stage"
         [class.slow-crossing]="slowCrossing()"
+        [class.crossing-over]="crossingOver()"
         [attr.data-phase-index]="phaseIndex()"
+        [attr.data-focus]="stageView().focus"
         [attr.aria-label]="phase().name + ': ' + phase().cue"
       >
         <div class="phase-readout" aria-live="polite">
@@ -34,183 +36,23 @@
           <strong>{{ phase().name }}</strong>
         </div>
 
-        @if (phaseIndex() <= 3) {
-          <section
-            class="meiotic-cell parent-cell"
-            [class.metaphase-one]="phaseIndex() === 3"
-            aria-label="Parent cell chromosome pairs"
-          >
-            <div class="cell-nucleus" aria-hidden="true"></div>
-            @if (phaseIndex() === 3) {
-              <div class="equator-line" aria-hidden="true"><span>CELL EQUATOR</span></div>
-              <div class="centriole centriole-left" aria-hidden="true"><i></i><i></i><b></b></div>
-              <div class="centriole centriole-right" aria-hidden="true"><i></i><i></i><b></b></div>
-              <div class="spindle-fibers fibers-left" aria-hidden="true">
-                @for (pair of pairViews(); track pair.id; let index = $index) {
-                  <i [attr.data-fiber]="index"></i>
-                }
-              </div>
-              <div class="spindle-fibers fibers-right" aria-hidden="true">
-                @for (pair of pairViews(); track pair.id; let index = $index) {
-                  <i [attr.data-fiber]="index"></i>
-                }
-              </div>
-            }
-            <div class="chromosome-pair-rack">
-              @for (pair of pairViews(); track pair.id) {
-                <article
-                  class="chromosome-pair"
-                  [class.paired]="phaseIndex() >= 2"
-                  [class.crossing]="phaseIndex() === 2 && pair.crossed"
-                >
-                  <span>{{ pair.label }}</span>
-                  <div class="homologs">
-                    <app-chromosome-svg
-                      class="homolog homolog-a"
-                      [chromosome]="pair.originalA"
-                      [pairedChromosome]="phaseIndex() >= 2 ? pair.recombinantA : null"
-                      [replicated]="phaseIndex() === 1"
-                      [compact]="true"
-                      [showAllLoci]="true"
-                    />
-                    <app-chromosome-svg
-                      class="homolog homolog-b"
-                      [chromosome]="phaseIndex() >= 2 ? pair.recombinantB : pair.originalB"
-                      [pairedChromosome]="phaseIndex() >= 2 ? pair.originalB : null"
-                      [replicated]="phaseIndex() === 1"
-                      [compact]="true"
-                      [showAllLoci]="true"
-                    />
-                  </div>
-                  @if (phaseIndex() === 2 && pair.crossed) {
-                    <small>CROSSING OVER</small>
-                  }
-                </article>
-              }
-            </div>
-          </section>
-        } @else if (phaseIndex() === 4) {
-          <section class="meiotic-cell parent-cell anaphase-one-cell" aria-label="Anaphase I">
-            <div class="centriole centriole-left" aria-hidden="true"><i></i><i></i><b></b></div>
-            <div class="centriole centriole-right" aria-hidden="true"><i></i><i></i><b></b></div>
-            <div class="spindle-fibers fibers-left pulling" aria-hidden="true">
-              @for (pair of pairViews(); track pair.id; let index = $index) {
-                <i [attr.data-fiber]="index"></i>
-              }
-            </div>
-            <div class="spindle-fibers fibers-right pulling" aria-hidden="true">
-              @for (pair of pairViews(); track pair.id; let index = $index) {
-                <i [attr.data-fiber]="index"></i>
-              }
-            </div>
-            <div class="pole-set pole-set-a">
-              <span>POLE A</span>
-              @for (pair of pairViews(); track pair.id) {
-                <app-chromosome-svg
-                  [chromosome]="pair.originalA"
-                  [pairedChromosome]="pair.recombinantA"
-                  [compact]="true"
-                  [showAllLoci]="true"
-                />
-              }
-            </div>
-            <div class="pole-set pole-set-b">
-              <span>POLE B</span>
-              @for (pair of pairViews(); track pair.id) {
-                <app-chromosome-svg
-                  [chromosome]="pair.recombinantB"
-                  [pairedChromosome]="pair.originalB"
-                  [compact]="true"
-                  [showAllLoci]="true"
-                />
-              }
-            </div>
-          </section>
-        } @else if (phaseIndex() <= 7) {
-          <div
-            class="daughter-cell-grid"
-            [class.metaphase-two]="phaseIndex() === 7"
-            aria-label="Two haploid cells after the first division"
-          >
-            @if (phaseIndex() === 5) {
-              <div class="cytokinesis-furrow" aria-hidden="true"><span>CELL DIVIDING</span></div>
-            }
-            @for (side of [0, 1]; track side) {
-              <section class="meiotic-cell daughter-cell">
-                <span>CELL {{ side + 1 }}</span>
-                @if (phaseIndex() === 7) {
-                  <div class="equator-line" aria-hidden="true"><span>EQUATOR</span></div>
-                  <div class="centriole centriole-top" aria-hidden="true"><i></i><i></i><b></b></div>
-                  <div class="centriole centriole-bottom" aria-hidden="true"><i></i><i></i><b></b></div>
-                  <div class="spindle-fibers vertical-fibers fibers-top" aria-hidden="true">
-                    @for (pair of pairViews(); track pair.id; let index = $index) {
-                      <i [attr.data-fiber]="index"></i>
-                    }
-                  </div>
-                  <div class="spindle-fibers vertical-fibers fibers-bottom" aria-hidden="true">
-                    @for (pair of pairViews(); track pair.id; let index = $index) {
-                      <i [attr.data-fiber]="index"></i>
-                    }
-                  </div>
-                }
-                <div class="daughter-chromosomes">
-                  @for (pair of pairViews(); track pair.id) {
-                    <div class="daughter-chromosome">
-                      <b>{{ pair.label }}</b>
-                      <app-chromosome-svg
-                        [chromosome]="side === 0 ? pair.originalA : pair.recombinantB"
-                        [pairedChromosome]="side === 0 ? pair.recombinantA : pair.originalB"
-                        [compact]="true"
-                        [showAllLoci]="true"
-                      />
-                    </div>
-                  }
-                </div>
-              </section>
-            }
-          </div>
-        } @else {
-          <ol
-            class="anaphase-two-grid gamete-position-grid"
-            aria-label="Four gamete cells forming in a two by two grid"
-          >
-            @for (gamete of run()?.gametes ?? []; track gamete.id; let index = $index) {
-              <li
-                class="forming-gamete-shell"
-                [class.top-daughter]="index < 2"
-                [class.bottom-daughter]="index >= 2"
-                [attr.data-gamete-id]="gamete.id"
-              >
-                <span>FORMING GAMETE {{ gamete.index + 1 }}</span>
-                <div
-                  class="centriole anaphase-two-centriole"
-                  [class.centriole-top]="index < 2"
-                  [class.centriole-bottom]="index >= 2"
-                  aria-hidden="true"
-                ><i></i><i></i><b></b></div>
-                <div
-                  class="spindle-fibers vertical-fibers pulling"
-                  [class.fibers-top]="index < 2"
-                  [class.fibers-bottom]="index >= 2"
-                  aria-hidden="true"
-                >
-                  @for (chromosome of gamete.chromosomes; track chromosome.chromosome; let fiberIndex = $index) {
-                    <i [attr.data-fiber]="fiberIndex"></i>
-                  }
-                </div>
-                <app-cell-chromosome-viewport
-                  class="forming-gamete-cell"
-                  [chromosomes]="chromosomesForGamete(gamete.id)"
-                  [selectedChromosome]="null"
-                  [selectable]="false"
-                  [showLoci]="true"
-                  [ariaLabel]="'Separated chromosomes in forming gamete ' + (gamete.index + 1)"
-                  layout="thumbnail"
-                />
-              </li>
-            }
-          </ol>
-        }
+        <div class="meiosis-cells" [attr.data-cell-count]="stageView().cells.length">
+          @for (cell of stageView().cells; track cell.id) {
+            <figure class="meiosis-cell" [attr.data-cell]="cell.id">
+              <app-cell-model
+                [chromosomes]="cell.chromosomes"
+                [stage]="cell.stage"
+                [focus]="stageView().focus"
+                [selectable]="false"
+                [showLoci]="true"
+                [showChromosomeLabels]="true"
+                [detail]="stageView().cells.length > 1 ? 'simple' : 'full'"
+                [ariaLabel]="cell.label + ' during ' + phase().name"
+              />
+              <figcaption>{{ cell.label }}</figcaption>
+            </figure>
+          }
+        </div>
       </div>
     } @else {
       <ol

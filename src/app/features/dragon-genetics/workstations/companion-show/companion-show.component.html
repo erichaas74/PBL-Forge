@@ -25,6 +25,117 @@
     </dl>
   </header>
 
+  <section class="breed-library" aria-labelledby="breed-library-title">
+    <header class="breed-library__head">
+      <div>
+        <span>SOCIETY BREED LIBRARY</span>
+        <h3 id="breed-library-title">Five lines, five inheritance puzzles</h3>
+      </div>
+      <p>
+        Study a reference dragon, then load its visible traits into your editable standard. The
+        reference is a goal—not a shortcut—so you still have to combine and test those traits in
+        real litters.
+      </p>
+    </header>
+
+    <div class="breed-library__body">
+      <nav class="breed-tabs" aria-label="Mini dragon breed references">
+        @for (breed of breeds; track breed.id) {
+          <button
+            type="button"
+            class="breed-tab"
+            [class.selected]="selectedBreedId() === breed.id"
+            [class.active-standard]="isBreedStandardActive(breed)"
+            [attr.aria-pressed]="selectedBreedId() === breed.id"
+            [attr.data-breed]="breed.id"
+            (click)="selectBreedReference(breed.id)"
+          >
+            <small>{{ breed.difficulty }}</small>
+            <strong>{{ breed.name }}</strong>
+            <span>{{ breed.tagline }}</span>
+            <i>{{ breed.targets.length }} defining traits</i>
+          </button>
+        }
+      </nav>
+
+      <article class="breed-reference" [attr.data-reference-breed]="selectedBreed().id">
+        <div class="breed-reference__model">
+          <app-specimen-viewport
+            [source]="selectedBreedSource()"
+            [ariaLabel]="selectedBreed().name + ' Society reference specimen'"
+            [controls]="true"
+            [framePadding]="1.12"
+          />
+        </div>
+
+        <div class="breed-reference__brief">
+          <header>
+            <span>{{ selectedBreed().difficulty }} BREEDING CHALLENGE</span>
+            <h3>{{ selectedBreed().name }}</h3>
+            <p>{{ selectedBreed().description }}</p>
+          </header>
+
+          <p class="cute-direction">
+            <strong>Character direction</strong>
+            {{ selectedBreed().cuteDirection }}
+          </p>
+
+          <div class="breed-target-list" aria-label="Defining visible traits">
+            @for (target of selectedBreed().targets; track target.geneId) {
+              <span>{{ standardLabel(target) }}</span>
+            }
+          </div>
+
+          <section class="founder-leads" aria-labelledby="founder-leads-title">
+            <header>
+              <span id="founder-leads-title">VISIBLE FOUNDER LEADS</span>
+              <small>Best starting matches in the Society register</small>
+            </header>
+            <div>
+              @for (lead of selectedBreedFounderLeads(); track lead.id) {
+                <span
+                  ><strong>{{ lead.name }}</strong> {{ lead.matched }}/{{ lead.total }}</span
+                >
+              }
+            </div>
+            <p>
+              A visible match can still hide another form. Use several litters to learn what each
+              pairing passes on.
+            </p>
+          </section>
+
+          <details class="breed-strategy">
+            <summary>How to steer this breed's genes</summary>
+            <p>{{ selectedBreed().breedingSummary }}</p>
+            <ul>
+              @for (plan of selectedBreedPlans(); track plan.target.geneId) {
+                <li [attr.data-inheritance]="plan.kind">
+                  <span>{{ plan.kindLabel }}</span>
+                  <strong>{{ plan.geneName }}: {{ plan.formLabel }}</strong>
+                  <p>{{ plan.advice }}</p>
+                </li>
+              }
+            </ul>
+          </details>
+
+          <button
+            type="button"
+            class="load-breed-standard"
+            [class.loaded]="isBreedStandardActive(selectedBreed())"
+            [attr.data-testid]="'load-breed-' + selectedBreed().id"
+            (click)="applyBreedStandard(selectedBreed().id)"
+          >
+            @if (isBreedStandardActive(selectedBreed())) {
+              Breed standard loaded
+            } @else {
+              Use this breed standard
+            }
+          </button>
+        </div>
+      </article>
+    </div>
+  </section>
+
   <div class="workbench">
     <!-- Breed standard ---------------------------------------------------- -->
     <aside class="panel standard-bench" aria-labelledby="standard-title">
@@ -453,9 +564,7 @@
           }
         </ul>
       } @else {
-        <p class="kennel-empty">
-          Send a founder to a parent stand to bring it into your kennel.
-        </p>
+        <p class="kennel-empty">Send a founder to a parent stand to bring it into your kennel.</p>
       }
     </aside>
   </div>
@@ -576,8 +685,8 @@
         <h3 id="rare-pedigree-title">Follow a hidden form through the family</h3>
       </div>
       <p>
-        Choose a recessive trait, compare parents and offspring, then flag the dragons whose
-        family records make them promising breeding candidates.
+        Choose a recessive trait, compare parents and offspring, then flag the dragons whose family
+        records make them promising breeding candidates.
       </p>
     </header>
 
@@ -628,7 +737,10 @@
                         <small>{{ pedigreeParentNames(dragon) }}</small>
                       </div>
                     </header>
-                    <p><span>Visible {{ target.geneName }}</span>{{ pedigreeTraitLabel(dragon) }}</p>
+                    <p>
+                      <span>Visible {{ target.geneName }}</span
+                      >{{ pedigreeTraitLabel(dragon) }}
+                    </p>
 
                     @if (isRareCandidate(dragon.id)) {
                       @if (pedigreeEvidenceFor(dragon); as evidence) {
@@ -656,8 +768,12 @@
                         </button>
                       }
                       @if (isRareCandidate(dragon.id) && isInKennel(dragon.id)) {
-                        <button type="button" (click)="assignToPair('dam', dragon.id)">Parent 1</button>
-                        <button type="button" (click)="assignToPair('sire', dragon.id)">Parent 2</button>
+                        <button type="button" (click)="assignToPair('dam', dragon.id)">
+                          Parent 1
+                        </button>
+                        <button type="button" (click)="assignToPair('sire', dragon.id)">
+                          Parent 2
+                        </button>
                       }
                     </footer>
                   </article>
@@ -884,7 +1000,9 @@
               [disabled]="championshipInProgress()"
               (click)="performChampionshipRoutine()"
             >
-              {{ championshipInProgress() ? 'Performing routine...' : 'Perform championship routine' }}
+              {{
+                championshipInProgress() ? 'Performing routine...' : 'Perform championship routine'
+              }}
             </button>
           }
         </section>
@@ -894,7 +1012,8 @@
             <li [class.met]="check.met">
               <b aria-hidden="true">{{ check.met ? '✓' : '·' }}</b>
               <span
-                ><strong>{{ check.label }}</strong><small>{{ check.detail }}</small></span
+                ><strong>{{ check.label }}</strong
+                ><small>{{ check.detail }}</small></span
               >
             </li>
           }
@@ -965,8 +1084,12 @@
         about how it is inherited?
       </li>
       <li>Which trial results changed when you changed which trait you bred for?</li>
-      <li>What happened to the bloodline reading as you kept breeding your best dragons together?</li>
-      <li>How many litters of evidence would convince you that your breed is inherited reliably?</li>
+      <li>
+        What happened to the bloodline reading as you kept breeding your best dragons together?
+      </li>
+      <li>
+        How many litters of evidence would convince you that your breed is inherited reliably?
+      </li>
     </ul>
   </details>
 </section>

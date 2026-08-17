@@ -39,82 +39,97 @@ describe('MeiosisGameteSelectorComponent', () => {
     expect(fixture.nativeElement.querySelector('.shared-meiosis-stage')).toBeNull();
     expect(fixture.nativeElement.querySelector('.gamete-stage-grid')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.gamete-workbench')).toBeNull();
+    expect(component.stageView().cells).toEqual([]);
   });
 
-  it('uses the shared chromosome model for single and replicated parent chromosomes', () => {
+  it('draws the parent cell with the shared cell model and replicates it at S phase', () => {
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelectorAll('.parent-cell app-chromosome-svg').length).toBe(10);
-    expect(element.querySelectorAll('.parent-cell .chromosome-svg--replicated').length).toBe(0);
+
+    expect(element.querySelectorAll('.meiosis-cell app-cell-model').length).toBe(1);
+    expect(element.querySelectorAll('.meiosis-cell [data-organelle]').length).toBeGreaterThan(0);
+    expect(element.querySelectorAll('.meiosis-cell .chromosome-in-cell').length).toBe(10);
+    expect(element.querySelectorAll('.meiosis-cell .chromosome-svg--replicated').length).toBe(0);
+    expect(element.querySelectorAll('.meiosis-cell [data-band-start]').length).toBeGreaterThan(0);
 
     component.next();
     fixture.detectChanges();
 
-    expect(element.querySelectorAll('.parent-cell .chromosome-svg--replicated').length).toBe(10);
-    expect(element.querySelectorAll('.parent-cell .chromatid--sister').length).toBe(10);
-    expect(element.querySelectorAll('.parent-cell [data-band-start]').length).toBeGreaterThan(0);
+    expect(component.phase().name).toBe('S phase');
+    expect(element.querySelectorAll('.meiosis-cell .chromosome-svg--replicated').length).toBe(10);
+    expect(element.querySelectorAll('.meiosis-cell .chromatid--sister').length).toBe(10);
   });
 
-  it('keeps sisters joined in division I and separates them only during anaphase II', () => {
+  it('zooms from the whole cell to the nucleus for the divisions and back out at the end', () => {
     const element = fixture.nativeElement as HTMLElement;
+    const focus = () => element.querySelector('.shared-meiosis-stage')?.getAttribute('data-focus');
+
+    expect(focus()).toBe('cell');
 
     component.next();
     component.next();
     fixture.detectChanges();
     expect(component.phase().name).toBe('Prophase I');
-    expect(element.querySelectorAll('.chromosome-pair.crossing').length).toBeGreaterThan(0);
+    expect(focus()).toBe('nucleus');
+    expect(element.querySelector('.cell-model')?.getAttribute('data-stage')).toBe('prophase');
+
+    component.finishMeiosis();
+    fixture.detectChanges();
+    expect(element.querySelector('.shared-meiosis-stage')).toBeNull();
+    expect(element.querySelectorAll('.gamete-card').length).toBe(4);
+  });
+
+  it('keeps sisters joined in division I and separates them only during anaphase II', () => {
+    const element = fixture.nativeElement as HTMLElement;
+    const stage = () => element.querySelector('.cell-model')?.getAttribute('data-stage');
+
+    component.next();
+    component.next();
+    fixture.detectChanges();
+    expect(component.phase().name).toBe('Prophase I');
+    expect(element.querySelectorAll('.meiosis-cell .chromosome-in-cell').length).toBe(5);
+    expect(
+      element.querySelector('.meiosis-cell .chromosome-in-cell')?.getAttribute('aria-label'),
+    ).toContain('homologous pair');
 
     component.next();
     fixture.detectChanges();
     expect(component.phase().name).toBe('Metaphase I');
-    expect(element.querySelector('.metaphase-one .equator-line')).not.toBeNull();
-    expect(element.querySelectorAll('.metaphase-one .centriole').length).toBe(2);
-    expect(element.querySelectorAll('.metaphase-one .spindle-fibers > i').length).toBe(10);
+    expect(stage()).toBe('metaphase-i');
+    expect(element.querySelectorAll('.meiosis-cell .chromosome-in-cell').length).toBe(10);
+    expect(element.querySelectorAll('.meiosis-cell .cell-model__fibre').length).toBe(20);
 
     component.next();
     fixture.detectChanges();
     expect(component.phase().name).toBe('Anaphase I');
-    expect(element.querySelectorAll('.pole-set').length).toBe(2);
-    expect(element.querySelectorAll('.anaphase-one-cell .chromatid--sister').length).toBe(10);
-    expect(element.querySelectorAll('.anaphase-one-cell .centriole').length).toBe(2);
-    expect(element.querySelectorAll('.anaphase-one-cell .spindle-fibers.pulling > i').length).toBe(
-      10,
-    );
+    expect(stage()).toBe('anaphase');
+    expect(element.querySelectorAll('.meiosis-cell .chromatid--sister').length).toBe(10);
+    expect(element.querySelectorAll('.meiosis-cell .cell-model__fibre').length).toBe(10);
+    expect(element.querySelector('.cell-model__nucleus')).toBeNull();
 
     component.next();
     fixture.detectChanges();
     expect(component.phase().name).toBe('Telophase I & Cytokinesis');
-    expect(element.querySelectorAll('.daughter-cell').length).toBe(2);
-    expect(element.querySelector('.cytokinesis-furrow')).not.toBeNull();
+    expect(stage()).toBe('telophase');
+    expect(element.querySelectorAll('.meiosis-cell .cell-model__nucleus').length).toBe(2);
 
     component.next();
     component.next();
     fixture.detectChanges();
     expect(component.phase().name).toBe('Metaphase II');
-    expect(element.querySelectorAll('.metaphase-two .equator-line').length).toBe(2);
-    expect(element.querySelectorAll('.metaphase-two .centriole').length).toBe(4);
-    expect(element.querySelectorAll('.metaphase-two .centriole-top').length).toBe(2);
-    expect(element.querySelectorAll('.metaphase-two .centriole-bottom').length).toBe(2);
-    expect(element.querySelectorAll('.metaphase-two .spindle-fibers > i').length).toBe(20);
+    expect(element.querySelectorAll('.meiosis-cell').length).toBe(2);
+    expect(element.querySelectorAll('.meiosis-cell .chromosome-in-cell').length).toBe(10);
+    expect(element.querySelectorAll('.meiosis-cell .chromosome-svg--replicated').length).toBe(10);
 
     component.next();
     fixture.detectChanges();
     expect(component.phase().name).toBe('Anaphase II');
-    const formingIds = [...element.querySelectorAll<HTMLElement>('.forming-gamete-shell')].map(
-      (cell) => cell.dataset['gameteId'],
-    );
-    expect(formingIds.length).toBe(4);
-    expect(element.querySelectorAll('.top-daughter').length).toBe(2);
-    expect(element.querySelectorAll('.bottom-daughter').length).toBe(2);
-    expect(element.querySelectorAll('.anaphase-two-centriole').length).toBe(4);
-    expect(element.querySelectorAll('.vertical-fibers > i').length).toBe(20);
-    expect(element.querySelector('.anaphase-two-grid .chromosome-svg--replicated')).toBeNull();
+    expect(element.querySelectorAll('.meiosis-cell').length).toBe(2);
+    expect(element.querySelectorAll('.meiosis-cell .chromosome-in-cell').length).toBe(20);
+    expect(element.querySelector('.meiosis-cell .chromosome-svg--replicated')).toBeNull();
 
     component.next();
     fixture.detectChanges();
-    const choiceIds = [...element.querySelectorAll<HTMLElement>('.gamete-card')].map(
-      (cell) => cell.dataset['gameteId'],
-    );
-    expect(choiceIds).toEqual(formingIds);
+    expect([...element.querySelectorAll<HTMLElement>('.gamete-card')].length).toBe(4);
   });
 
   it('loads single-chromosome cell models into each of the four gamete outcomes', () => {

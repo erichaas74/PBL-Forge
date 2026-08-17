@@ -212,6 +212,42 @@ describe('CompanionShowComponent', () => {
     fixture.destroy();
   });
 
+  it('loads a published breed as an editable breeding standard without creating a dragon', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    component.applyBreedStandard('imperial-serpent');
+    fixture.detectChanges();
+
+    expect(component.breedName()).toBe('Imperial Serpent Dragon');
+    expect(component.targets().map((target) => target.formId)).toEqual([
+      'horns:straight',
+      'wings:vestigial',
+      'pattern:gold',
+      'muzzle:long',
+      'legs:waddler',
+      'tail:pom',
+      'crest:crown-frill',
+      'frame:long',
+    ]);
+    expect(component.kennel()).toEqual([]);
+    expect(component.selectedBreedPlans().some((plan) => plan.kind === 'splitting')).toBe(true);
+    expect(component.selectedBreedFounderLeads().length).toBe(3);
+
+    const loadButton = fixture.nativeElement.querySelector(
+      '[data-testid="load-breed-imperial-serpent"]',
+    ) as HTMLButtonElement | null;
+    expect(loadButton?.textContent).toContain('Breed standard loaded');
+
+    const saved = JSON.parse(localStorage.getItem(storageKey) ?? '{}') as {
+      breedName?: string;
+      targets?: readonly unknown[];
+    };
+    expect(saved.breedName).toBe('Imperial Serpent Dragon');
+    expect(saved.targets?.length).toBe(8);
+    fixture.destroy();
+  });
+
   it('restores a saved program on reload', () => {
     const first = createComponent();
     const component = first.componentInstance;

@@ -69,10 +69,14 @@ import {
   miniRareTraitCount,
   miniRareTraitTarget,
 } from './mini-dragon.pedigree';
+import { MINI_CHAMPIONSHIP_MOTION, MINI_TRAINING_MOTIONS } from './mini-dragon.training-motions';
 import {
-  MINI_CHAMPIONSHIP_MOTION,
-  MINI_TRAINING_MOTIONS,
-} from './mini-dragon.training-motions';
+  MINI_DRAGON_BREEDS,
+  MiniBreedDefinition,
+  MiniBreedId,
+  miniBreed,
+  miniBreedTargetPlan,
+} from './mini-dragon.breeds';
 import {
   MINI_SHOW_DIVISIONS,
   MINI_TRAINING_LEVEL_MAX,
@@ -132,6 +136,7 @@ export class CompanionShowComponent {
   readonly litterSizes = COMPANION_LITTER_SIZES;
   readonly pairRoles: readonly PairRole[] = ['dam', 'sire'];
   readonly founders = MINI_FOUNDERS;
+  readonly breeds = MINI_DRAGON_BREEDS;
   readonly showDivisions = MINI_SHOW_DIVISIONS;
   readonly trainingSkills = MINI_TRAINING_SKILLS;
   readonly rareTraitTargets = MINI_RARE_TRAIT_TARGETS;
@@ -140,6 +145,7 @@ export class CompanionShowComponent {
   readonly minGenerations = MIN_GENERATIONS;
 
   readonly breedName = signal('');
+  readonly selectedBreedId = signal<MiniBreedId>('puggle');
   readonly targets = signal<readonly BreedStandardTarget[]>([]);
   readonly kennelFounderIds = signal<readonly string[]>([]);
   readonly pairIds = signal<readonly [string | null, string | null]>([null, null]);
@@ -160,9 +166,7 @@ export class CompanionShowComponent {
   readonly registry = signal<readonly RegistryEntry[]>([]);
   readonly activeLitterId = signal<string | null>(null);
   readonly selectedPupId = signal<string | null>(null);
-  readonly statusMessage = signal(
-    'Adopt founders from the Society register to open your kennel.',
-  );
+  readonly statusMessage = signal('Adopt founders from the Society register to open your kennel.');
 
   /**
    * The kennel is derived, never stored: adopted founders plus every pup the
@@ -191,7 +195,8 @@ export class CompanionShowComponent {
       for (const pup of litter.pups) byId.set(pup.id, { ...pup, origin: 'bred' });
     }
     return [...byId.values()].sort(
-      (first, second) => first.generation - second.generation || first.name.localeCompare(second.name),
+      (first, second) =>
+        first.generation - second.generation || first.name.localeCompare(second.name),
     );
   });
   readonly pedigreeGenerations = computed(() => {
@@ -223,6 +228,32 @@ export class CompanionShowComponent {
       .map((target) => standardTargetLabel(target))
       .join(' · '),
   );
+  readonly selectedBreed = computed(() => miniBreed(this.selectedBreedId()));
+  readonly selectedBreedSource = computed(() => {
+    const breed = this.selectedBreed();
+    return specimenSource({
+      id: `breed-reference-${breed.id}`,
+      name: breed.name,
+      genome: breed.exampleGenome,
+    });
+  });
+  readonly selectedBreedPlans = computed(() =>
+    this.selectedBreed().targets.map((target) => miniBreedTargetPlan(target)),
+  );
+  readonly selectedBreedFounderLeads = computed(() => {
+    const targets = this.selectedBreed().targets;
+    return this.founders
+      .map((founder) => ({
+        id: founder.id,
+        name: founder.name,
+        matched: standardMatches(founder.genome, targets).filter((match) => match.matched).length,
+        total: targets.length,
+      }))
+      .sort(
+        (first, second) => second.matched - first.matched || first.name.localeCompare(second.name),
+      )
+      .slice(0, 3);
+  });
 
   readonly dam = computed(() => this.kennelById().get(this.pairIds()[0] ?? '') ?? null);
   readonly sire = computed(() => this.kennelById().get(this.pairIds()[1] ?? '') ?? null);
@@ -281,15 +312,17 @@ export class CompanionShowComponent {
       : [],
   );
   readonly showDivision = computed(() => miniShowDivision(this.showDivisionId()));
-  readonly divisionTargetLabels = computed(() =>
-    this.showDivision()?.targets.map((target) => standardTargetLabel(target)) ?? [],
+  readonly divisionTargetLabels = computed(
+    () => this.showDivision()?.targets.map((target) => standardTargetLabel(target)) ?? [],
   );
   readonly trainingDragon = computed(() => {
     const kennel = this.kennelById();
-    return kennel.get(this.selectedTrainingDragonId() ?? '')
-      ?? kennel.get(this.championId() ?? '')
-      ?? this.kennel()[0]
-      ?? null;
+    return (
+      kennel.get(this.selectedTrainingDragonId() ?? '') ??
+      kennel.get(this.championId() ?? '') ??
+      this.kennel()[0] ??
+      null
+    );
   });
   readonly trainingSource = computed(() => specimenSource(this.trainingDragon()));
   readonly activeTrainingLevels = computed(() => {
@@ -302,10 +335,11 @@ export class CompanionShowComponent {
     const championId = this.championId();
     const divisionId = this.showDivisionId();
     if (!championId || !divisionId) return null;
-    return [...this.showRuns()]
-      .reverse()
-      .find((run) => run.dragonId === championId && run.divisionId === divisionId)
-      ?? null;
+    return (
+      [...this.showRuns()]
+        .reverse()
+        .find((run) => run.dragonId === championId && run.divisionId === divisionId) ?? null
+    );
   });
   readonly canEnterShow = computed(() => Boolean(this.champion() && this.showDivision()));
 
@@ -346,13 +380,16 @@ export class CompanionShowComponent {
         id: 'training',
         label: 'Four learned show skills',
         detail: champion
-          ? `${MINI_TRAINING_SKILLS.filter((skill) =>
-              miniTrainingLevels(champion.id, this.trainingSessions())[skill.id] > 0,
-            ).length} of ${MINI_TRAINING_SKILLS.length} practiced`
+          ? `${
+              MINI_TRAINING_SKILLS.filter(
+                (skill) => miniTrainingLevels(champion.id, this.trainingSessions())[skill.id] > 0,
+              ).length
+            } of ${MINI_TRAINING_SKILLS.length} practiced`
           : 'Choose a representative before checking its training',
         met: champion
-          ? MINI_TRAINING_SKILLS.every((skill) =>
-              miniTrainingLevels(champion.id, this.trainingSessions())[skill.id] > 0)
+          ? MINI_TRAINING_SKILLS.every(
+              (skill) => miniTrainingLevels(champion.id, this.trainingSessions())[skill.id] > 0,
+            )
           : false,
       },
       {
@@ -401,6 +438,27 @@ export class CompanionShowComponent {
   // ---------------------------------------------------------------------------
   // Breed standard.
   // ---------------------------------------------------------------------------
+
+  selectBreedReference(breedId: MiniBreedId): void {
+    this.selectedBreedId.set(breedId);
+  }
+
+  applyBreedStandard(breedId: MiniBreedId): void {
+    const breed = miniBreed(breedId);
+    this.selectedBreedId.set(breedId);
+    this.breedName.set(breed.name);
+    this.targets.set(orderTargets(breed.targets.map((target) => ({ ...target }))));
+    // Previous litter evidence was gathered against a different target set.
+    this.citedLitterIds.set([]);
+    this.statusMessage.set(
+      `${breed.name} standard loaded. Choose founders, breed litters, and test whether the visible traits hold.`,
+    );
+    this.persist();
+  }
+
+  isBreedStandardActive(breed: MiniBreedDefinition): boolean {
+    return this.breedName().trim() === breed.name && sameStandard(this.targets(), breed.targets);
+  }
 
   setBreedName(event: Event): void {
     this.breedName.set((event.target as HTMLInputElement).value.slice(0, 60));
@@ -595,7 +653,9 @@ export class CompanionShowComponent {
 
   pedigreeParentNames(dragon: CompanionDragon): string {
     if (!dragon.parentIds) return 'Society founder';
-    const population = new Map(this.pedigreePopulation().map((candidate) => [candidate.id, candidate]));
+    const population = new Map(
+      this.pedigreePopulation().map((candidate) => [candidate.id, candidate]),
+    );
     return dragon.parentIds.map((id) => population.get(id)?.name ?? 'Unknown').join(' + ');
   }
 
@@ -644,13 +704,18 @@ export class CompanionShowComponent {
 
   async practiceTraining(skillId: MiniTrainingSkillId): Promise<void> {
     const dragon = this.trainingDragon();
-    if (!dragon || this.trainingInProgress() || this.trainingLevel(skillId) >= MINI_TRAINING_LEVEL_MAX) {
+    if (
+      !dragon ||
+      this.trainingInProgress() ||
+      this.trainingLevel(skillId) >= MINI_TRAINING_LEVEL_MAX
+    ) {
       return;
     }
 
-    const sessionNumber = this.trainingSessions().filter(
-      (session) => session.dragonId === dragon.id && session.skillId === skillId,
-    ).length + 1;
+    const sessionNumber =
+      this.trainingSessions().filter(
+        (session) => session.dragonId === dragon.id && session.skillId === skillId,
+      ).length + 1;
     const skill = MINI_TRAINING_SKILLS.find((candidate) => candidate.id === skillId);
     const session: MiniTrainingSessionRecord = {
       id: `${dragon.id}:${skillId}:${sessionNumber}`,
@@ -677,11 +742,7 @@ export class CompanionShowComponent {
     if (!champion || !division) return;
     const levels = miniTrainingLevels(champion.id, this.trainingSessions());
     const judgement = judgeMiniDragon(champion.genome, division, levels);
-    const run = showRunFromJudgement(
-      `show-${this.showRuns().length + 1}`,
-      champion.id,
-      judgement,
-    );
+    const run = showRunFromJudgement(`show-${this.showRuns().length + 1}`, champion.id, judgement);
     this.showRuns.update((runs) => [...runs, run]);
     this.statusMessage.set(
       `${champion.name} earned ${judgement.combinedScore}/100: ${judgement.geneticScore} inherited and ${judgement.trainingScore} trained.`,

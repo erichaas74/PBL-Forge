@@ -90,139 +90,13 @@
   outline: none;
 }
 
+/* The cell itself — membrane, organelles, nucleus, and the chromosomes inside
+   it — is drawn by the shared cell model. This only sizes it in the panel. */
 .cell-membrane {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(3.4rem, 1fr));
-  align-items: center;
-  min-height: 9.5rem;
-  margin-top: 0.3rem;
-  padding: 1.2rem 1.5rem;
-  border: 2px solid var(--cell-edge);
-  border-radius: 48% 52% 46% 54% / 54% 45% 55% 46%;
-  background:
-    radial-gradient(circle at 42% 38%, rgb(255 255 255 / 9%), transparent 12%),
-    radial-gradient(ellipse at center, var(--cell-glow), rgb(18 31 49 / 44%) 68%, transparent 70%);
-  box-shadow:
-    inset 0 0 1.7rem var(--cell-glow),
-    0 0 1.1rem rgb(58 196 215 / 7%);
-}
-
-.cell-membrane::before,
-.cell-membrane::after {
-  position: absolute;
-  border: 1px solid rgb(255 255 255 / 7%);
-  border-radius: 50%;
-  content: '';
-  pointer-events: none;
-}
-
-.cell-membrane::before {
-  inset: 0.4rem 0.65rem;
-}
-
-.cell-membrane::after {
-  top: 18%;
-  left: 14%;
-  width: 0.65rem;
-  height: 0.65rem;
-  background: rgb(255 255 255 / 8%);
-}
-
-.chromosome-in-cell {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  align-items: center;
-  min-width: 0;
-  min-height: 3.25rem;
-  padding: 0.2rem;
-  border: 1px solid transparent;
-  border-radius: 0.55rem;
-  background: transparent;
-  color: rgb(237 232 249 / 72%);
-  cursor: pointer;
-  transition:
-    opacity 160ms ease,
-    transform 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease;
-}
-
-.chromosome-in-cell:nth-child(1) {
-  grid-column: 1 / 3;
-}
-
-.chromosome-in-cell:nth-child(2) {
-  grid-column: 3 / 5;
-}
-
-.chromosome-in-cell:nth-child(3) {
-  grid-column: 5 / 7;
-}
-
-.chromosome-in-cell:nth-child(4) {
-  grid-column: 2 / 4;
-}
-
-.chromosome-in-cell:nth-child(5) {
-  grid-column: 4 / 6;
-}
-
-.chromosome-in-cell:hover:not(:disabled),
-.chromosome-in-cell:focus-visible {
-  border-color: rgb(141 228 236 / 52%);
-  outline: none;
-}
-
-.chromosome-in-cell--selected {
-  z-index: 3;
-  border-color: var(--cell-accent);
-  color: #fff;
-  box-shadow:
-    0 0 0 2px rgb(141 228 236 / 12%),
-    0 0 1rem rgb(141 228 236 / 28%);
-  transform: scale(1.22) translateY(0.08rem);
-}
-
-.cell-chromosome-viewport--inspect .chromosome-in-cell--selected {
-  transform: scale(1.12) translateY(0.08rem);
-}
-
-.cell-chromosome-viewport--has-selection .chromosome-in-cell:not(.chromosome-in-cell--selected) {
-  opacity: 0.58;
-}
-
-.chromosome-in-cell:disabled {
-  cursor: default;
-}
-
-.chromosome-in-cell app-chromosome-svg {
+  display: block;
   width: 100%;
-}
-
-.chromosome-name {
-  color: currentcolor;
-  font-size: var(--text-xs, 0.75rem);
-  font-weight: 900;
-  letter-spacing: 0.06em;
-}
-
-.recombinant-mark {
-  position: absolute;
-  top: 0.18rem;
-  right: 0.18rem;
-  display: grid;
-  width: 1.25rem;
-  height: 1.25rem;
-  place-items: center;
-  border-radius: 50%;
-  background: #8ee2c8;
-  color: #101126;
-  font-size: var(--text-xs, 0.75rem);
-  font-weight: 950;
+  min-width: 0;
+  margin-top: 0.3rem;
 }
 
 .inspection-panel {
@@ -303,15 +177,6 @@
   color: var(--cell-accent);
 }
 
-.empty-cell {
-  grid-column: 1 / -1;
-  align-self: center;
-  margin: 0;
-  color: rgb(235 230 247 / 60%);
-  font-size: var(--text-sm, 0.875rem);
-  text-align: center;
-}
-
 .cell-chromosome-viewport--thumbnail {
   width: 100%;
 }
@@ -323,33 +188,7 @@
 }
 
 .cell-chromosome-viewport--thumbnail .cell-membrane {
-  grid-template-rows: repeat(2, minmax(1.45rem, 1fr));
-  min-height: 5.4rem;
   margin: 0;
-  padding: 0.55rem 0.7rem;
-  border-width: 1px;
-}
-
-.cell-chromosome-viewport--thumbnail .chromosome-in-cell {
-  grid-template-rows: 1fr;
-  min-height: 1.45rem;
-  padding: 0;
-  border: 0;
-}
-
-.cell-chromosome-viewport--thumbnail .chromosome-in-cell--selected {
-  box-shadow: none;
-  transform: scale(1.12);
-}
-
-.cell-chromosome-viewport--thumbnail .chromosome-name {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 @media (max-width: 720px) {
@@ -364,8 +203,3 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .chromosome-in-cell {
-    transition: none;
-  }
-}

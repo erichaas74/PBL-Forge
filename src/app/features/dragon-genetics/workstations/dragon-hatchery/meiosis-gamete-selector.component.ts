@@ -7,18 +7,12 @@ import {
   CellChromosomeViewportComponent,
   CellChromosomeViewportItem,
 } from '../shared/cell-chromosome-viewport.component';
-import {
-  ChromosomeSvgComponent,
-  ChromosomeSvgModel,
-} from '../shared/chromosome-svg.component';
+import { CellModelComponent } from '../shared/cell-model.component';
 import { generateMeiosisRun, gameteAlleleSummary } from './meiosis-gamete.domain';
-import {
-  meiosisChromatidSvgModel,
-  meiosisGameteViewportItems,
-} from './meiosis-gamete.viewport';
+import { MeiosisStageView, meiosisStageView } from './meiosis-cell-stage';
+import { meiosisGameteViewportItems } from './meiosis-gamete.viewport';
 import {
   MEIOSIS_GAMETE_DRAG_TYPE,
-  MeiosisChromosomePair,
   MeiosisGamete,
   MeiosisRun,
   SelectedMeiosisGamete,
@@ -27,16 +21,6 @@ import {
 interface MeiosisPhase {
   name: string;
   cue: string;
-}
-
-interface MeiosisPairView {
-  id: string;
-  label: string;
-  originalA: ChromosomeSvgModel;
-  originalB: ChromosomeSvgModel;
-  recombinantA: ChromosomeSvgModel;
-  recombinantB: ChromosomeSvgModel;
-  crossed: boolean;
 }
 
 interface GameteGeneAnalysis {
@@ -81,7 +65,7 @@ const PHASES: readonly MeiosisPhase[] = [
 
 @Component({
   selector: 'app-meiosis-gamete-selector',
-  imports: [CellChromosomeViewportComponent, ChromosomeSvgComponent],
+  imports: [CellChromosomeViewportComponent, CellModelComponent],
   templateUrl: './meiosis-gamete-selector.component.html',
   styleUrl: './meiosis-gamete-selector.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -113,8 +97,14 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
     const index = this.chosenGameteIndex();
     return index === null ? null : (this.run()?.gametes[index] ?? null);
   });
-  readonly pairViews = computed<readonly MeiosisPairView[]>(() =>
-    (this.run()?.chromosomePairs ?? []).map((pair) => this.pairView(pair)),
+  /** The cells the shared cell model draws for the current phase. */
+  readonly stageView = computed<MeiosisStageView>(() =>
+    meiosisStageView(this.run(), this.phaseIndex()),
+  );
+  readonly crossingOver = computed(
+    () =>
+      this.phaseIndex() === 2 &&
+      (this.run()?.chromosomePairs ?? []).some((pair) => pair.crossoverPosition !== null),
   );
   readonly gameteChromosomeViews = computed<
     ReadonlyMap<string, readonly CellChromosomeViewportItem[]>
@@ -307,18 +297,6 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
     return index;
   }
 
-  private pairView(pair: MeiosisChromosomePair): MeiosisPairView {
-    return {
-      id: pair.chromosome,
-      label: pair.chromosome.replace('Chr ', ''),
-      originalA: meiosisChromatidSvgModel(pair.chromatids[0]),
-      recombinantA: meiosisChromatidSvgModel(pair.chromatids[1]),
-      recombinantB: meiosisChromatidSvgModel(pair.chromatids[2]),
-      originalB: meiosisChromatidSvgModel(pair.chromatids[3]),
-      crossed: pair.crossoverPosition !== null,
-    };
-  }
-
   private setPhase(index: number): void {
     this.phaseIndex.set(index);
     if (this.playing()) this.scheduleAdvance();
@@ -330,15 +308,19 @@ export class MeiosisGameteSelectorComponent implements OnDestroy {
       this.playing.set(false);
       return;
     }
+    // The camera takes 900ms to move and the chromosomes 620ms to travel, so a
+    // phase has to outlast both or the animation reads as a cut.
     const phaseDuration: Partial<Record<number, number>> = {
-      4: 3500,
-      5: 2600,
-      8: 3000,
+      1: 2400,
+      2: 2800,
+      4: 3400,
+      5: 3000,
+      8: 3400,
     };
     const delay =
       this.phaseIndex() === 2 && this.slowCrossing()
-        ? 3200
-        : (phaseDuration[this.phaseIndex()] ?? 1500);
+        ? 4200
+        : (phaseDuration[this.phaseIndex()] ?? 1900);
     this.timer = setTimeout(() => this.setPhase(this.phaseIndex() + 1), delay);
   }
 

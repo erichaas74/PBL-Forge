@@ -2,7 +2,7 @@
   <header class="wise-header">
     <a routerLink="/dragon-genetics/dragon-arena">← Return to the Dragon Arena</a>
     <div>
-      <span class="eyebrow">Berk council chamber · layout preview</span>
+      <span class="eyebrow">Berk council chamber · coaching practice</span>
       <h1>Defend your claim before the Wise Dragon</h1>
       <p>
         Use your champion and its latest arena trial to explain how inherited traits shaped the
@@ -145,7 +145,7 @@
                 <span class="section-kicker">The Sage responds</span>
                 <h2 id="conversation-heading">Defend the chain of evidence</h2>
               </div>
-              <span class="prototype-badge">Not connected</span>
+              <span class="prototype-badge">On-device coach</span>
             </div>
 
             @if (store.requestState() === 'thinking') {
@@ -262,8 +262,7 @@
           <span class="section-kicker">Provisional coaching record</span>
           <h2 id="summary-heading">{{ store.summary()?.title ?? 'Practice-defense summary' }}</h2>
           <p class="summary-notice">
-            This local prototype summary is advisory. It is not a grade and the conversation is not
-            saved.
+            This coaching summary is advisory. It is not a grade and the conversation is not saved.
           </p>
           <div class="criteria-grid">
             @for (criterion of store.summary()?.criteria ?? []; track criterion.criterionId) {

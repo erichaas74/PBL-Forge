@@ -1,9 +1,11 @@
 <div class="arena-preview">
-  <app-arena-viewport
-    appearance="dragon-pit"
-    [ariaLabel]="championName() + ' battling The Arena Warden in the live Dragon Arena'"
-    [controlFrameFactory]="controlFrameFactory"
-  />
+  <div class="arena-preview__stage">
+    <app-arena-viewport
+      appearance="dragon-pit"
+      [ariaLabel]="championName() + ' battling The Arena Warden in the live Dragon Arena'"
+      [controlFrameFactory]="controlFrameFactory"
+    />
+  </div>
 
   <div class="arena-preview__status" aria-live="polite">
     @if (winnerName(); as winner) {

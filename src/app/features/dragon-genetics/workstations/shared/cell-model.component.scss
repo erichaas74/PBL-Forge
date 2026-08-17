@@ -1,0 +1,410 @@
+:host {
+  display: block;
+  min-width: 0;
+  color: var(--cell-viewport-text, #f7f0e5);
+  font-family: var(--font-body, system-ui, sans-serif);
+}
+
+.cell-model {
+  /* Falls back to the older viewport tokens so the hatchery keeps tinting egg
+     and sperm cells without knowing this component replaced the CSS blob. */
+  --cell-accent: var(--cell-viewport-accent, #8de4ec);
+  --cell-edge: var(--cell-viewport-edge, rgb(147 207 222 / 62%));
+  --cell-cytosol-light: rgb(46 100 124 / 55%);
+  --cell-cytosol-dark: rgb(9 26 40 / 82%);
+  --cell-nucleoplasm-light: rgb(158 124 206 / 34%);
+  --cell-nucleoplasm-dark: rgb(41 38 82 / 66%);
+  --cell-organelle: #74cbbc;
+  --cell-organelle-deep: #2c6c68;
+  --cell-golgi: #e0b073;
+  --cell-lysosome: #d98aa8;
+  --cell-envelope: #c3a4e4;
+
+  /* SVG user units, so this scales with the viewBox instead of the root font
+     size. 4.4 units renders at about 13px once the 240-unit cell fills a 700px
+     stage, which is the width the annotated diagram is meant for. */
+  --cell-model-label-size: 4.4px;
+
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 0.9rem;
+  container-type: inline-size;
+}
+
+/* Zoom is a transform on the whole drawing, not a narrower viewBox, so the
+   browser animates the move between the cell and the nucleus. The frame above
+   crops whatever falls outside. */
+.cell-model__camera {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  transition: transform 900ms cubic-bezier(0.4, 0.05, 0.2, 1);
+}
+
+.cell-model__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* ---------- membrane and cytosol ---------- */
+
+.cell-model__membrane {
+  fill: none;
+  stroke: var(--cell-edge);
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 3px rgb(93 205 221 / 22%));
+}
+
+.cell-model__membrane--inner {
+  stroke: rgb(255 255 255 / 16%);
+  stroke-width: 0.7;
+  filter: none;
+}
+
+.cell-model__cytosol {
+  stroke: none;
+}
+
+.cell-model__cytoskeleton path {
+  fill: none;
+  stroke: rgb(255 255 255 / 6%);
+  stroke-width: 0.8;
+}
+
+/* ---------- organelles ---------- */
+
+.cell-model__ribosome {
+  fill: var(--cell-organelle);
+  opacity: 0.42;
+}
+
+.cell-model__ribosome--bound {
+  opacity: 0.72;
+}
+
+.cell-model__er-ribbon {
+  fill: rgb(94 191 190 / 22%);
+  stroke: rgb(146 226 208 / 68%);
+  stroke-width: 0.9;
+}
+
+.cell-model__mito-body {
+  fill: #2f7a72;
+  stroke: #9fe4d2;
+  stroke-width: 0.8;
+}
+
+.cell-model__mito-matrix {
+  fill: #46a292;
+  stroke: none;
+}
+
+.cell-model__crista {
+  fill: none;
+  stroke: #d3f4e7;
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  opacity: 0.72;
+}
+
+.cell-model__lamella {
+  fill: none;
+  stroke: var(--cell-golgi);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.cell-model__vesicle {
+  fill: var(--cell-golgi);
+  opacity: 0.62;
+}
+
+.cell-model__lysosome {
+  fill: var(--cell-lysosome);
+  stroke: #f2c2d3;
+  stroke-width: 0.6;
+  opacity: 0.78;
+}
+
+.cell-model__lysosome-grain {
+  fill: #6d2740;
+  opacity: 0.6;
+}
+
+.cell-model__vacuole {
+  fill: rgb(140 205 226 / 22%);
+  stroke: rgb(163 219 236 / 52%);
+  stroke-width: 0.7;
+}
+
+.cell-model__vacuole-highlight {
+  fill: rgb(255 255 255 / 12%);
+}
+
+.cell-model__smooth-er {
+  fill: none;
+  stroke: var(--cell-organelle-deep);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+
+.cell-model__pericentriolar {
+  fill: rgb(242 201 109 / 12%);
+  stroke: rgb(242 201 109 / 34%);
+  stroke-width: 0.6;
+}
+
+.cell-model__centriole rect,
+.cell-model__centriole-barrel {
+  fill: #f2c96d;
+  stroke: #6b4f1d;
+  stroke-width: 0.5;
+}
+
+.cell-model__centriole line {
+  stroke: #6b4f1d;
+  stroke-width: 0.5;
+}
+
+/* ---------- nucleus ---------- */
+
+.cell-model__nucleoplasm {
+  stroke: none;
+}
+
+.cell-model__envelope {
+  fill: none;
+  stroke: var(--cell-envelope);
+  stroke-width: 1.5;
+}
+
+.cell-model__envelope--inner {
+  stroke: rgb(255 255 255 / 22%);
+  stroke-width: 0.7;
+}
+
+.cell-model__pore {
+  fill: rgb(20 24 46 / 72%);
+  stroke: var(--cell-envelope);
+  stroke-width: 0.6;
+}
+
+.cell-model__nucleolus {
+  fill: rgb(126 92 176 / 62%);
+  stroke: rgb(206 178 238 / 46%);
+  stroke-width: 0.7;
+}
+
+.cell-model[data-stage='prophase'] .cell-model__envelope {
+  stroke-dasharray: 4 3.5;
+  opacity: 0.55;
+}
+
+/* ---------- spindle ---------- */
+
+.cell-model__fibre {
+  stroke: rgb(236 226 255 / 34%);
+  stroke-width: 0.6;
+}
+
+.cell-model__equator {
+  stroke: rgb(242 201 109 / 52%);
+  stroke-width: 0.8;
+  stroke-dasharray: 4 3;
+}
+
+/* ---------- chromosomes ---------- */
+
+.cell-model__chromosomes {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cell-model__chromosome {
+  position: absolute;
+  display: block;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: rgb(237 232 249 / 78%);
+  cursor: pointer;
+  pointer-events: auto;
+  transform-origin: center;
+  transition:
+    left 620ms ease,
+    top 620ms ease,
+    width 620ms ease,
+    height 620ms ease,
+    transform 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease;
+}
+
+.cell-model__chromosome app-chromosome-svg {
+  display: block;
+  width: 100%;
+}
+
+.cell-model__chromosome:hover:not(:disabled),
+.cell-model__chromosome:focus-visible {
+  border-color: rgb(141 228 236 / 62%);
+  outline: none;
+}
+
+.chromosome-in-cell--selected {
+  z-index: 4;
+  border-color: var(--cell-accent);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgb(141 228 236 / 14%);
+  transform: scale(1.16);
+}
+
+.cell-model--has-selection .cell-model__chromosome:not(.chromosome-in-cell--selected) {
+  opacity: 0.6;
+}
+
+.cell-model__chromosome:disabled {
+  cursor: default;
+}
+
+.chromosome-name {
+  position: absolute;
+  bottom: calc(100% + 0.1rem);
+  left: 50%;
+  color: currentcolor;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.recombinant-mark {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  display: grid;
+  width: 1.1rem;
+  height: 1.1rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #8ee2c8;
+  color: #101126;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 950;
+}
+
+.cell-model__empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  color: rgb(235 230 247 / 62%);
+  font-size: var(--text-sm, 0.875rem);
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+/* ---------- nucleus action ---------- */
+
+.cell-model__nucleus-action {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  align-content: end;
+  justify-items: center;
+  padding-bottom: 0.4rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #f4eafb;
+  cursor: zoom-in;
+}
+
+.cell-model__nucleus-action span {
+  padding: 0.28rem 0.6rem;
+  border: 1px solid var(--cell-envelope);
+  border-radius: 0.55rem;
+  background: rgb(12 18 34 / 82%);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 850;
+}
+
+.cell-model__nucleus-action:hover span,
+.cell-model__nucleus-action:focus-visible span {
+  background: rgb(185 139 213 / 26%);
+  outline: none;
+}
+
+/* ---------- labelled diagram ---------- */
+
+.cell-model__leader {
+  fill: none;
+  stroke: rgb(242 201 109 / 55%);
+  stroke-width: 0.5;
+}
+
+.cell-model__leader-dot {
+  fill: #f2c96d;
+}
+
+.cell-model__annotation-text {
+  fill: #f6e6c4;
+  font-family: var(--font-body);
+  font-size: var(--cell-model-label-size);
+  dominant-baseline: middle;
+}
+
+/* ---------- compact cells ---------- */
+
+.cell-model--simple .cell-model__membrane {
+  stroke-width: 1.2;
+}
+
+/* Below this width a chromosome label would have to break the type-scale floor
+   to fit, so it becomes an accessible name only and the mark becomes a dot. */
+@container (max-width: 22rem) {
+  .chromosome-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .recombinant-mark {
+    top: -0.2rem;
+    right: -0.2rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    color: transparent;
+  }
+}
+
+.cell-model__name--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-model__chromosome,
+  .cell-model__camera {
+    transition: none;
+  }
+}

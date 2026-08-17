@@ -80,12 +80,17 @@ h1 em {
   font-size: 1.1rem;
 }
 
+.quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
 .test-action {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  margin-top: 1rem;
-  margin-left: 0.9rem;
   padding: 0.9rem 1.1rem;
   border: 2px solid var(--ink);
   border-radius: 0.75rem;
@@ -98,6 +103,20 @@ h1 em {
 
 .test-action span {
   font-size: 1.1rem;
+}
+
+.test-action small {
+  padding: 0.15rem 0.35rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: white;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.designer-link {
+  border-style: dashed;
 }
 
 .hero-card {

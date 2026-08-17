@@ -1,0 +1,84 @@
+@if (guide.open()) {
+  <aside class="wise-guide" id="wise-dragon-guide" aria-labelledby="wise-guide-title">
+    <header class="wise-guide__header">
+      <div class="wise-guide__portrait" aria-hidden="true">
+        <app-specimen-viewport
+          #wiseViewport
+          [source]="source"
+          [theme]="theme"
+          [transparent]="true"
+          [showGroundShadow]="false"
+          [framePadding]="0.96"
+          [controls]="false"
+          ariaLabel="Wise Dragon Sage"
+        />
+      </div>
+      <div>
+        <span>On-page investigation guide</span>
+        <h2 id="wise-guide-title">Wise Dragon</h2>
+        <p>Ask while you keep working.</p>
+      </div>
+      <button
+        #closeButton
+        type="button"
+        class="wise-guide__close"
+        aria-label="Close Wise Dragon"
+        (click)="closeGuide()"
+      >
+        ×
+      </button>
+    </header>
+
+    <section class="wise-guide__place" aria-label="Current investigation">
+      <span>Here with you in</span>
+      <strong>{{ context().title }}</strong>
+      <p>{{ context().goal }}</p>
+    </section>
+
+    <div #conversation class="wise-guide__conversation" role="log" aria-live="polite">
+      @for (turn of turns(); track turn.id) {
+        <article [class.wise-guide__turn--student]="turn.role === 'student'">
+          <strong>{{ turn.role === 'student' ? 'You' : 'Wise Dragon' }}</strong>
+          <p>{{ turn.message }}</p>
+        </article>
+      }
+    </div>
+
+    <div class="wise-guide__quick" aria-label="Quick questions">
+      @for (item of quickQuestions; track item.id) {
+        <button type="button" (click)="ask(item.question)">{{ item.label }}</button>
+      }
+    </div>
+
+    <form class="wise-guide__ask" (submit)="submitQuestion($event)">
+      <label for="wise-dragon-question">Ask about this page</label>
+      <div>
+        <textarea
+          id="wise-dragon-question"
+          rows="2"
+          maxlength="500"
+          [value]="question()"
+          (input)="updateQuestion($event)"
+          placeholder="What does genotype mean?"
+        ></textarea>
+        <button type="submit" [disabled]="!question().trim()">Ask</button>
+      </div>
+      <small
+        >The guide explains tools and concepts but leaves untested results for you to
+        discover.</small
+      >
+    </form>
+  </aside>
+} @else if (showLauncher()) {
+  <button
+    #launcher
+    class="wise-guide-launcher"
+    type="button"
+    aria-controls="wise-dragon-guide"
+    aria-expanded="false"
+    (click)="openGuide()"
+  >
+    <span class="wise-guide-launcher__eye" aria-hidden="true"></span>
+    <span><small>Questions?</small>Ask the Wise Dragon</span>
+  </button>
+}
