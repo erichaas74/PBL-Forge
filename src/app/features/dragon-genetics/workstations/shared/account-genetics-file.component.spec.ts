@@ -16,21 +16,22 @@ describe('AccountGeneticsFileComponent', () => {
 
   afterEach(() => fixture.destroy());
 
-  it('stays collapsed until opened, then inspects a dragon before activating it', () => {
+  it('stays collapsed until opened, then shuffles a dragon card before activating it', () => {
     const root = fixture.nativeElement as HTMLElement;
     expect(root.querySelector('.file-body')).toBeNull();
 
     root.querySelector<HTMLButtonElement>('.file-handle')!.click();
     fixture.detectChanges();
-    expect(root.querySelectorAll('.account-record').length).toBe(4);
+    expect(root.querySelector('app-dragon-card-deck-selector')).not.toBeNull();
+    expect(root.querySelectorAll('.fanned-deck__slot').length).toBe(4);
 
-    root.querySelector<HTMLButtonElement>('.account-record')!.click();
+    root.querySelector<HTMLElement>('.is-next .fanned-deck__peek')!.click();
     fixture.detectChanges();
     expect(root.querySelector('app-specimen-viewport')).not.toBeNull();
 
-    const selected = component.inspectedRecord()!;
+    const selected = component.activeDeckDragon()!;
     spyOn(component.recordSelected, 'emit');
-    root.querySelector<HTMLButtonElement>('.inspection header button')!.click();
+    root.querySelector<HTMLButtonElement>('.deck-selection button')!.click();
     expect(component.recordSelected.emit).toHaveBeenCalledWith(selected);
   });
 
@@ -41,7 +42,9 @@ describe('AccountGeneticsFileComponent', () => {
 
     expect(component.visibleRecords().length).toBe(2);
     expect(
-      component.visibleRecords().every((record) => record.kind === 'dragon' && record.sex === 'female'),
+      component
+        .visibleRecords()
+        .every((record) => record.kind === 'dragon' && record.sex === 'female'),
     ).toBeTrue();
   });
 });

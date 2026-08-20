@@ -32,6 +32,8 @@ describe('DragonHatcheryBreedingLabComponent', () => {
     expect(inventories.length).toBe(2);
     expect(inventories[0].componentInstance.sexFilter()).toBe('female');
     expect(inventories[1].componentInstance.sexFilter()).toBe('male');
+    expect(inventories.every((inventory) => inventory.componentInstance.open())).toBeTrue();
+    expect(root.querySelectorAll('app-dragon-card-deck-selector').length).toBe(2);
     expect(root.textContent).not.toContain('Chromosomes');
     expect(root.querySelector('.allele-objective')).toBeNull();
   });

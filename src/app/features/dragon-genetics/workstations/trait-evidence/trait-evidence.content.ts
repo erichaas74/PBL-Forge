@@ -1,7 +1,11 @@
 import { cloneAssemblyBlueprint } from '../../../../shared/assembly/domain/assembly-clone';
 import { assaySpecimen } from '../../../../shared/assembly/preview/specimen-assay';
 import { SpecimenTraitReadout } from '../../../../shared/assembly/preview/specimen.models';
-import { createDragonBenchBuild } from '../../simulation/domain/dragon-specimen.profile';
+import {
+  createExpressiveDragonBenchBuild,
+  dragonParentExpressiveProfile,
+} from '../../simulation/domain/dragon-specimen.profile';
+import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
 import { DragonLabGenome, DragonParentProfile } from '../../simulation/domain/dragon-lab.models';
 import {
   DRAGON_PARENTS,
@@ -107,6 +111,7 @@ export const TRAIT_EVIDENCE_DRAGONS: readonly TraitEvidenceDragon[] = [
     ['guard-command'],
     184,
     'DG-TE-001',
+    'female',
   ),
   observationDragon(
     'brine',
@@ -117,6 +122,7 @@ export const TRAIT_EVIDENCE_DRAGONS: readonly TraitEvidenceDragon[] = [
     ['tail-strike-command'],
     226,
     'DG-TE-002',
+    'male',
   ),
   observationDragon(
     'cinder',
@@ -127,12 +133,14 @@ export const TRAIT_EVIDENCE_DRAGONS: readonly TraitEvidenceDragon[] = [
     ['target-touch'],
     198,
     'DG-TE-003',
+    'male',
   ),
 ];
 
 export function availableObservations(
-  _dragon: TraitEvidenceDragon,
+  dragon: TraitEvidenceDragon,
 ): readonly TraitEvidenceObservationDefinition[] {
+  void dragon;
   return TRAIT_EVIDENCE_OBSERVATIONS;
 }
 
@@ -282,6 +290,7 @@ function observationDragon(
   trainedBehaviorIds: readonly LearnedBehaviorId[],
   reflexLatencyMs: number,
   catalogNumber: string,
+  sex: DragonSex,
 ): TraitEvidenceDragon {
   const profile: DragonParentProfile = {
     id,
@@ -291,7 +300,8 @@ function observationDragon(
     accentColor,
     genome,
   };
-  const build = createDragonBenchBuild(id, genome, {
+  const expressiveProfile = dragonParentExpressiveProfile(profile, sex);
+  const build = createExpressiveDragonBenchBuild(id, expressiveProfile, {
     label: name,
     generation: 1,
     identity: { color, accentColor },
@@ -327,6 +337,7 @@ function observationDragon(
   return {
     id,
     name,
+    sex,
     profile,
     source: {
       kind: 'descriptor',
@@ -343,15 +354,6 @@ function observationDragon(
       arenaRating: assay.fitness.overall,
       battleRole,
       stats,
-      traits: [
-        phenotypeLabel(profile, 'horns'),
-        phenotypeLabel(profile, 'wings'),
-        phenotypeLabel(profile, 'scales'),
-        build.fireBreathing ? 'Fire-producing' : 'No fire produced',
-        blueprint.parts.some((part) => part.roles?.includes('tail'))
-          ? 'Segmented battle tail'
-          : 'No battle tail',
-      ],
     },
   };
 }

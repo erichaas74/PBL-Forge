@@ -83,6 +83,14 @@ describe('dragon gene DNA catalog', () => {
     }
   });
 
+  it('punches every receptor out of the molecule that opens it', () => {
+    for (const record of DRAGON_GENE_DNA_CATALOG) {
+      const { traitSignal, traitSocketPath } = record.protein;
+      expect(traitSocketPath.startsWith('M 0 0 H 160 V 120 H 0 Z')).toBeTrue();
+      expect(traitSocketPath.endsWith(traitSignal.path)).toBeTrue();
+    }
+  });
+
   it('keeps every allele copy tied to the protein it translates into', () => {
     for (const record of DRAGON_GENE_DNA_CATALOG) {
       expect(record.alleles[0].protein).toBe(record.protein.form);
@@ -109,16 +117,17 @@ describe('dragon gene DNA catalog', () => {
 
     for (const record of direct) {
       expect(record.protein.activity).toBeNull();
-      expect(record.protein.bodyPath).toBeNull();
-      // A structural or signal protein is itself the molecule the trait reads.
-      expect(record.protein.traitSignal.path).toBe(record.protein.form.shapePath);
+      // A structural or signal protein docks as itself, so the molecule the
+      // trait reads is named for the protein rather than for a product.
+      expect(record.protein.traitSignal.name).toBe(record.protein.name);
+      expect(record.protein.traitSignal.id).toBe(record.protein.proteinId);
+      // It still has a shaped surface; there is just no reaction to run on it.
+      expect(record.protein.bodyPath).toContain('M 0');
     }
   });
 
   it('runs enzymes in both directions and hands each trait one product', () => {
-    const actions = new Set(
-      DRAGON_ENZYME_GENES.map((record) => record.protein.activity?.action),
-    );
+    const actions = new Set(DRAGON_ENZYME_GENES.map((record) => record.protein.activity?.action));
     expect(actions).toEqual(new Set(['build', 'break-down']));
 
     for (const record of DRAGON_ENZYME_GENES) {
@@ -130,9 +139,12 @@ describe('dragon gene DNA catalog', () => {
       expect(activity.products).toContain(activity.traitProduct);
       expect(record.protein.traitSignal).toBe(activity.traitProduct);
       expect(activity.equation).toContain(activity.traitProduct.name);
-      // Both fragments and the joined molecule are cut from one seam.
+      // The two fragments are the halves of the joined molecule, and the joined
+      // molecule is the negative of the active site cut into the enzyme body.
       expect(activity.fragmentA.path).not.toBe(activity.fragmentB.path);
       expect(activity.joined.path).not.toBe(activity.fragmentA.path);
+      expect(activity.fragmentA.path.startsWith('M 0 0 H 80')).toBeTrue();
+      expect(activity.fragmentB.path.startsWith('M 80 0 H 160')).toBeTrue();
     }
   });
 

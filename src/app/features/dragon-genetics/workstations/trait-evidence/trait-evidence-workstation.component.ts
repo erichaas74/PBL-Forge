@@ -11,7 +11,13 @@ import {
 } from '@angular/core';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import { provideDragonSpecimenProfile } from '../../simulation/domain/dragon-specimen.profile';
+import { DragonFlipCardComponent, DragonFlipCardView } from '../shared/dragon-flip-card.component';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
+import { FannedCardDeckComponent, FannedDeckItem } from '../shared/fanned-card-deck.component';
+import {
+  TraitEvidenceCardChromosomeId,
+  buildTraitEvidenceCardGenomeView,
+} from './trait-evidence-card-genetics';
 import {
   DRAGON_FIRE_REFLEX_MOTION,
   DRAGON_LEARNED_BEHAVIOR_MOTIONS,
@@ -44,7 +50,7 @@ import { TraitEvidenceRepository, emptyTraitEvidenceSnapshot } from './trait-evi
 
 @Component({
   selector: 'app-trait-evidence-workstation',
-  imports: [SpecimenViewportComponent],
+  imports: [SpecimenViewportComponent, FannedCardDeckComponent, DragonFlipCardComponent],
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './trait-evidence-workstation.component.html',
   styleUrl: './trait-evidence-workstation.component.scss',
@@ -69,6 +75,34 @@ export class TraitEvidenceWorkstationComponent {
   readonly playing = signal(false);
   readonly reflexActive = signal(false);
   readonly flippedDragonIds = signal<readonly string[]>([]);
+  readonly dragonCardViews = new Map(
+    this.dragons.map((dragon) => [
+      dragon.id,
+      {
+        id: dragon.id,
+        name: dragon.name,
+        title: dragon.profile.title,
+        color: dragon.profile.color,
+        accentColor: dragon.profile.accentColor,
+        source: dragon.source,
+        seriesLabel: dragon.card.seriesLabel,
+        catalogNumber: dragon.card.catalogNumber,
+        arenaRating: dragon.card.arenaRating,
+        battleRole: dragon.card.battleRole,
+        stats: dragon.card.stats,
+      } satisfies DragonFlipCardView,
+    ]),
+  );
+  readonly cardGenomeViews = new Map(
+    this.dragons.map((dragon) => [dragon.id, buildTraitEvidenceCardGenomeView(dragon)]),
+  );
+  readonly selectedCardChromosomeIds = signal<
+    Readonly<Record<string, TraitEvidenceCardChromosomeId>>
+  >(Object.fromEntries(this.dragons.map((dragon) => [dragon.id, 'Chr 1'])));
+  readonly dragonCardLabel = (item: FannedDeckItem): string =>
+    this.dragonCardViews.get(item.id)?.name ?? item.id;
+  readonly dragonCardSubtitle = (item: FannedDeckItem): string =>
+    this.dragonCardViews.get(item.id)?.battleRole ?? '';
 
   readonly selectedDragon = computed(
     () => this.dragons.find((dragon) => dragon.id === this.selectedDragonId()) ?? this.dragons[0],
@@ -125,10 +159,6 @@ export class TraitEvidenceWorkstationComponent {
     });
   }
 
-  selectDragon(event: Event): void {
-    this.setDragon((event.target as HTMLSelectElement).value);
-  }
-
   selectDragonById(id: string): void {
     this.setDragon(id);
   }
@@ -141,6 +171,20 @@ export class TraitEvidenceWorkstationComponent {
 
   isDragonCardFlipped(id: string): boolean {
     return this.flippedDragonIds().includes(id);
+  }
+
+  selectCardChromosome(dragonId: string, chromosomeId: string): void {
+    const view = this.cardGenomeViews.get(dragonId);
+    const chromosome = view?.chromosomes.find((candidate) => candidate.id === chromosomeId);
+    if (!chromosome) return;
+    this.selectedCardChromosomeIds.update((selected) => ({
+      ...selected,
+      [dragonId]: chromosome.id as TraitEvidenceCardChromosomeId,
+    }));
+  }
+
+  selectedCardChromosomeId(dragonId: string): TraitEvidenceCardChromosomeId {
+    return this.selectedCardChromosomeIds()[dragonId] ?? 'Chr 1';
   }
 
   dragonTrialCount(id: string): number {
@@ -201,13 +245,19 @@ export class TraitEvidenceWorkstationComponent {
       const isReflex = observationId === 'fire-reflex';
       const responded = isReflex || dragon.trainedBehaviorIds.includes(observationId);
       if (isReflex) this.reflexActive.set(true);
-      await this.viewport?.playMotion(
+      const motion = this.viewport?.playMotion(
         isReflex
           ? DRAGON_FIRE_REFLEX_MOTION
           : responded
             ? DRAGON_LEARNED_BEHAVIOR_MOTIONS[observationId]
             : DRAGON_NOTICE_MOTION,
       );
+      if (isReflex) {
+        // Keep the shutters readable even when WebGL or motion is unavailable.
+        await Promise.all([motion, pause(900)]);
+      } else {
+        await motion;
+      }
 
       const now = new Date().toISOString();
       const trial: TraitEvidenceTrial = {
@@ -360,4 +410,8 @@ export class TraitEvidenceWorkstationComponent {
 
 function unique<T>(values: readonly T[]): T[] {
   return [...new Set(values)];
+}
+
+function pause(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

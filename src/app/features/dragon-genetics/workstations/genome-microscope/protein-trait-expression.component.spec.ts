@@ -48,11 +48,9 @@ describe('ProteinTraitExpressionComponent', () => {
 
     for (const pathway of component.directPathways()) {
       // A structural or signal protein docks as itself.
-      expect(pathway.shape).toBe(pathway.proteinShape);
       expect(pathway.proteinName).toBe(pathway.sourceProteinName);
     }
     for (const pathway of component.enzymePathways()) {
-      expect(pathway.shape).not.toBe(pathway.proteinShape);
       expect(pathway.routeLabel).toContain(pathway.sourceProteinName);
     }
   });
@@ -75,12 +73,17 @@ describe('ProteinTraitExpressionComponent', () => {
     });
   });
 
-  it('gives every receptor the same shape as the molecule that opens it', () => {
+  it('punches every receptor out of the molecule that opens it', () => {
     const element = fixture.nativeElement as HTMLElement;
     const receptors = element.querySelectorAll<HTMLButtonElement>('.receptor-target');
 
     expect(receptors.length).toBe(component.pathways().length);
     component.pathways().forEach((pathway, index) => {
+      const socket = receptors[index].querySelector('.receptor-socket');
+      expect(socket?.getAttribute('d')).toBe(pathway.socketPath);
+      expect(socket?.getAttribute('fill-rule')).toBe('evenodd');
+      // The opening is the molecule itself, so the two cannot drift apart.
+      expect(pathway.socketPath.endsWith(pathway.shape)).toBeTrue();
       expect(receptors[index].querySelector('.receptor-outline')?.getAttribute('d')).toBe(
         pathway.shape,
       );

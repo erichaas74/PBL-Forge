@@ -1,0 +1,114 @@
+<div
+  class="dragon-card-shell"
+  [class.is-flipped]="flipped()"
+  [class.is-inactive]="!active()"
+  [style.--dragon-color]="card().color"
+  [style.--dragon-accent]="card().accentColor"
+>
+  <div class="dragon-card-scene">
+    <section
+      class="dragon-card dragon-card--front"
+      [attr.aria-hidden]="flipped()"
+      (click)="requestFlip()"
+    >
+      <header>
+        <span>{{ card().seriesLabel }}</span>
+        <strong>{{ card().name }}</strong>
+        @if (card().arenaRating !== null) {
+          <small>★ {{ card().arenaRating }}</small>
+        } @else {
+          <small>{{ genome().sexChromosomes }}</small>
+        }
+      </header>
+      <div class="dragon-card__portrait">
+        @if (renderLive()) {
+          <app-specimen-viewport
+            [source]="card().source"
+            [controls]="false"
+            [showGroundShadow]="false"
+            [transparent]="true"
+            [framePadding]="1.28"
+            [ariaLabel]="card().name + ' live three-dimensional card portrait'"
+          />
+        } @else {
+          <div class="dragon-card__standby" aria-hidden="true">{{ card().name.slice(0, 1) }}</div>
+        }
+      </div>
+      <p class="dragon-card__role">{{ card().battleRole }}</p>
+      @if (card().stats.length) {
+        <dl class="dragon-card__stats">
+          @for (stat of card().stats; track stat.id) {
+            <div>
+              <dt>{{ stat.label }}</dt>
+              <dd>{{ stat.value }}</dd>
+            </div>
+          }
+        </dl>
+      } @else {
+        <p class="dragon-card__record">{{ card().title }}</p>
+      }
+      <footer>
+        <span>{{ card().title }}</span>
+        <b>{{ card().catalogNumber }}</b>
+      </footer>
+    </section>
+
+    <section class="dragon-card dragon-card--back" [attr.aria-hidden]="!flipped()">
+      <header>
+        <span>Genome record</span>
+        <strong>{{ card().name }}</strong>
+        <small>{{ card().catalogNumber }}</small>
+      </header>
+      <div class="dragon-card__cell">
+        <app-cell-model
+          [chromosomes]="genome().chromosomes"
+          [selectedChromosome]="selectedChromosome()"
+          [selectable]="active() && flipped()"
+          [showChromosomeLabels]="false"
+          [showLoci]="true"
+          detail="simple"
+          focus="nucleus"
+          [ariaLabel]="card().name + ' chromosome pairs. Select a pair to read its genes.'"
+          (chromosomeSelected)="selectChromosome($event)"
+        />
+      </div>
+
+      <section class="dragon-card__gene-panel" aria-live="polite">
+        <div class="dragon-card__gene-heading">
+          <div>
+            <small>Selected pair</small>
+            <h3>{{ selectedPairLabel() }}</h3>
+          </div>
+          <b>{{ genome().sexChromosomes }}</b>
+        </div>
+        <div class="dragon-card__gene-list">
+          @for (gene of selectedGenes(); track gene.id) {
+            <article [style.--locus-color]="gene.locusColor">
+              <span class="gene-locus" aria-hidden="true"></span>
+              <div>
+                <small>{{ gene.sampleCode }} · {{ gene.inheritanceLabel }}</small>
+                <strong>{{ gene.name }}</strong>
+                <p>{{ gene.phenotype }}</p>
+              </div>
+              <code>{{ gene.genotype }}</code>
+            </article>
+          }
+        </div>
+      </section>
+      <footer>
+        <span>{{ footerLeft() || card().title }}</span>
+        <b>{{ footerRight() || genome().sexChromosomes }}</b>
+      </footer>
+    </section>
+  </div>
+
+  <button
+    type="button"
+    class="dragon-card__flip"
+    [disabled]="!active()"
+    [attr.aria-pressed]="flipped()"
+    (click)="requestFlip()"
+  >
+    {{ flipped() ? 'Show dragon front' : 'Flip for chromosomes' }}
+  </button>
+</div>

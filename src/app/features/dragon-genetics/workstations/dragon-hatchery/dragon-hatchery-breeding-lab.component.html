@@ -4,8 +4,8 @@
       <span class="eyebrow">DRAGON HATCHERY · BREEDING WORKSPACE</span>
       <h2>Build this clutch from real gametes</h2>
       <p>
-        Choose a female and male account dragon, observe a different five-chromosome meiosis in
-        each parent, then select the egg and sperm that will form every Hatchery egg.
+        Choose a female and male account dragon, observe a different five-chromosome meiosis in each
+        parent, then select the egg and sperm that will form every Hatchery egg.
       </p>
     </div>
     @if (clutch().length) {
@@ -48,6 +48,7 @@
           <app-account-genetics-file
             [studentId]="studentId()"
             [dragonsOnly]="true"
+            [initiallyOpen]="true"
             [sexFilter]="'female'"
             [selectedRecordId]="eggParentId()"
             label="Egg-parent inventory"
@@ -79,6 +80,7 @@
           <app-account-genetics-file
             [studentId]="studentId()"
             [dragonsOnly]="true"
+            [initiallyOpen]="true"
             [sexFilter]="'male'"
             [selectedRecordId]="spermParentId()"
             label="Sperm-parent inventory"
@@ -98,174 +100,206 @@
           </div>
         </header>
         <div class="fertilization-stage">
-        @if (fusionVisible()) {
-        <div
-          class="fertilization-visual"
-          [class.ready]="canFertilize()"
-          [class.fusing]="fertilizationState() === 'fusing'"
-          [class.egg-formed]="fertilizationState() === 'egg'"
-          [attr.data-fertilization-state]="fertilizationState()"
-        >
-          <article class="gamete-cell egg-cell" [class.loaded]="eggSelection()">
-            <span>EGG CELL · SINGLE CHROMOSOMES</span>
-            <app-cell-chromosome-viewport
-              [chromosomes]="eggSelection() ? eggGameteChromosomes() : gameteOutlineChromosomes()"
-              [selectedChromosome]="null"
-              [selectable]="false"
-              [showLoci]="!!eggSelection()"
-              [ariaLabel]="eggSelection() ? 'Selected egg cell chromosomes' : 'Empty egg cell chromosome outlines'"
-              layout="thumbnail"
-            />
-            <small>{{ eggSelection() ? 'Egg genome loaded' : 'Awaiting selected egg' }}</small>
-          </article>
-
-          <div class="fusion-path" aria-hidden="true"><i></i><b>+</b><i></i></div>
-
-          <article class="gamete-cell sperm-cell" [class.loaded]="spermSelection()">
-            <span>SPERM CELL · SINGLE CHROMOSOMES</span>
-            <app-cell-chromosome-viewport
-              [chromosomes]="spermSelection() ? spermGameteChromosomes() : gameteOutlineChromosomes()"
-              [selectedChromosome]="null"
-              [selectable]="false"
-              [showLoci]="!!spermSelection()"
-              [ariaLabel]="spermSelection() ? 'Selected sperm cell chromosomes' : 'Empty sperm cell chromosome outlines'"
-              layout="thumbnail"
-            />
-            <small>{{ spermSelection() ? 'Sperm genome loaded' : 'Awaiting selected sperm' }}</small>
-          </article>
-
-          <article
-            class="fusion-result"
-            [class.visible]="fertilizationState() !== 'loading'"
-            [class.formed-egg]="fertilizationState() === 'egg'"
-            aria-live="polite"
-          >
-            <span>
-              {{ fertilizationState() === 'egg' ? 'FERTILIZED EGG' : 'NUCLEI COMBINING' }}
-            </span>
-            @if (formedEggChromosomes().length) {
-              @if (fertilizationState() === 'egg') {
+          @if (fusionVisible()) {
+            <div
+              class="fertilization-visual"
+              [class.ready]="canFertilize()"
+              [class.fusing]="fertilizationState() === 'fusing'"
+              [class.egg-formed]="fertilizationState() === 'egg'"
+              [attr.data-fertilization-state]="fertilizationState()"
+            >
+              <article class="gamete-cell egg-cell" [class.loaded]="eggSelection()">
+                <span>EGG CELL · SINGLE CHROMOSOMES</span>
                 <app-cell-chromosome-viewport
-                  class="fertilized-egg-viewport"
-                  [chromosomes]="formedEggChromosomes()"
-                  [selectedChromosome]="selectedEggChromosome()"
-                  [selectedLocus]="selectedEggLocus()"
-                  [selectable]="true"
-                  [locusSelectable]="true"
-                  [showLoci]="true"
-                  [allowReplicatedView]="false"
-                  ariaLabel="Interactive paired chromosomes inside the fertilized egg"
-                  layout="inspect"
-                  (chromosomeSelected)="inspectFertilizedChromosome($event)"
-                  (locusSelected)="inspectFertilizedLocus($event)"
-                />
-                @if (fertilizedGeneAnalysis(); as gene) {
-                  <section class="fertilized-gene-analysis" aria-live="polite">
-                    <span>FERTILIZED GENE ANALYSIS</span>
-                    <strong>{{ gene.traitName }} · {{ gene.geneSymbol }}</strong>
-                    <dl>
-                      <div><dt>Chromosome pair</dt><dd>{{ gene.chromosome }}</dd></div>
-                      <div><dt>Egg allele</dt><dd>{{ gene.eggAllele }}</dd></div>
-                      <div><dt>Sperm allele</dt><dd>{{ gene.spermAllele }}</dd></div>
-                      <div><dt>New genotype</dt><dd>{{ gene.eggAllele }}{{ gene.spermAllele }}</dd></div>
-                    </dl>
-                  </section>
-                }
-              } @else {
-                <app-cell-chromosome-viewport
-                  [chromosomes]="formedEggChromosomes()"
+                  [chromosomes]="
+                    eggSelection() ? eggGameteChromosomes() : gameteOutlineChromosomes()
+                  "
                   [selectedChromosome]="null"
                   [selectable]="false"
-                  [showLoci]="true"
-                  ariaLabel="Egg and sperm chromosomes combining into one nucleus"
+                  [showLoci]="!!eggSelection()"
+                  [ariaLabel]="
+                    eggSelection()
+                      ? 'Selected egg cell chromosomes'
+                      : 'Empty egg cell chromosome outlines'
+                  "
                   layout="thumbnail"
                 />
-              }
-            }
-            <strong>{{ fertilizationState() === 'egg' ? 'Diploid egg formed' : 'One nucleus forming' }}</strong>
-          </article>
-        </div>
-        }
+                <small>{{ eggSelection() ? 'Egg genome loaded' : 'Awaiting selected egg' }}</small>
+              </article>
 
-        <!-- Stays in place, hidden, so the fusion above lands exactly where the
+              <div class="fusion-path" aria-hidden="true"><i></i><b>+</b><i></i></div>
+
+              <article class="gamete-cell sperm-cell" [class.loaded]="spermSelection()">
+                <span>SPERM CELL · SINGLE CHROMOSOMES</span>
+                <app-cell-chromosome-viewport
+                  [chromosomes]="
+                    spermSelection() ? spermGameteChromosomes() : gameteOutlineChromosomes()
+                  "
+                  [selectedChromosome]="null"
+                  [selectable]="false"
+                  [showLoci]="!!spermSelection()"
+                  [ariaLabel]="
+                    spermSelection()
+                      ? 'Selected sperm cell chromosomes'
+                      : 'Empty sperm cell chromosome outlines'
+                  "
+                  layout="thumbnail"
+                />
+                <small>{{
+                  spermSelection() ? 'Sperm genome loaded' : 'Awaiting selected sperm'
+                }}</small>
+              </article>
+
+              <article
+                class="fusion-result"
+                [class.visible]="fertilizationState() !== 'loading'"
+                [class.formed-egg]="fertilizationState() === 'egg'"
+                aria-live="polite"
+              >
+                <span>
+                  {{ fertilizationState() === 'egg' ? 'FERTILIZED EGG' : 'NUCLEI COMBINING' }}
+                </span>
+                @if (formedEggChromosomes().length) {
+                  @if (fertilizationState() === 'egg') {
+                    <app-cell-chromosome-viewport
+                      class="fertilized-egg-viewport"
+                      [chromosomes]="formedEggChromosomes()"
+                      [selectedChromosome]="selectedEggChromosome()"
+                      [selectedLocus]="selectedEggLocus()"
+                      [selectable]="true"
+                      [locusSelectable]="true"
+                      [showLoci]="true"
+                      [allowReplicatedView]="false"
+                      ariaLabel="Interactive paired chromosomes inside the fertilized egg"
+                      layout="inspect"
+                      (chromosomeSelected)="inspectFertilizedChromosome($event)"
+                      (locusSelected)="inspectFertilizedLocus($event)"
+                    />
+                    @if (fertilizedGeneAnalysis(); as gene) {
+                      <section class="fertilized-gene-analysis" aria-live="polite">
+                        <span>FERTILIZED GENE ANALYSIS</span>
+                        <strong>{{ gene.traitName }} · {{ gene.geneSymbol }}</strong>
+                        <dl>
+                          <div>
+                            <dt>Chromosome pair</dt>
+                            <dd>{{ gene.chromosome }}</dd>
+                          </div>
+                          <div>
+                            <dt>Egg allele</dt>
+                            <dd>{{ gene.eggAllele }}</dd>
+                          </div>
+                          <div>
+                            <dt>Sperm allele</dt>
+                            <dd>{{ gene.spermAllele }}</dd>
+                          </div>
+                          <div>
+                            <dt>New genotype</dt>
+                            <dd>{{ gene.eggAllele }}{{ gene.spermAllele }}</dd>
+                          </div>
+                        </dl>
+                      </section>
+                    }
+                  } @else {
+                    <app-cell-chromosome-viewport
+                      [chromosomes]="formedEggChromosomes()"
+                      [selectedChromosome]="null"
+                      [selectable]="false"
+                      [showLoci]="true"
+                      ariaLabel="Egg and sperm chromosomes combining into one nucleus"
+                      layout="thumbnail"
+                    />
+                  }
+                }
+                <strong>{{
+                  fertilizationState() === 'egg' ? 'Diploid egg formed' : 'One nucleus forming'
+                }}</strong>
+              </article>
+            </div>
+          }
+
+          <!-- Stays in place, hidden, so the fusion above lands exactly where the
              two selected gametes were rather than somewhere else on the bench. -->
-        <div
-          class="gamete-chambers"
-          [class.handing-over]="fusionVisible()"
-          [attr.aria-hidden]="fusionVisible() ? 'true' : null"
-        >
-          <article
-            class="loaded-gamete-cell egg-gamete-cell"
-            [class.filled]="eggSelection()"
-            (dragover)="allowDrop($event)"
-            (drop)="dropGamete('female', $event)"
+          <div
+            class="gamete-chambers"
+            [class.handing-over]="fusionVisible()"
+            [attr.aria-hidden]="fusionVisible() ? 'true' : null"
           >
-            <span aria-hidden="true">◯</span>
-            <div>
-              <small>SELECTED EGG GAMETE</small>
-              <strong>{{ eggSelection() ? 'Haploid egg cell' : 'Awaiting selected egg' }}</strong>
-            </div>
-            <app-cell-chromosome-viewport
-              [chromosomes]="eggSelection() ? eggGameteChromosomes() : gameteOutlineChromosomes()"
-              [selectedChromosome]="eggSelection() ? inspectedGameteChromosome('female') : null"
-              [selectedLocus]="eggSelection() ? inspectedGameteLocus('female') : null"
-              [selectable]="!!eggSelection()"
-              [locusSelectable]="!!eggSelection()"
-              [showLoci]="!!eggSelection()"
-              [allowReplicatedView]="false"
-              ariaLabel="Analyze the selected egg gamete's single chromosomes"
-              layout="inspect"
-              (chromosomeSelected)="inspectGameteChromosome('female', $event)"
-              (locusSelected)="inspectGameteLocus('female', $event)"
-            />
-            @if (gameteGeneAnalysis('female'); as gene) {
-              <section class="parent-gamete-analysis" aria-live="polite">
-                <span>EGG GENE</span>
-                <strong>{{ gene.traitName }} · {{ gene.geneSymbol }}</strong>
-                <small>
-                  {{ gene.chromosome }} · allele {{ gene.allele }} · {{ gene.dominance }} ·
-                  {{ gene.recombinant ? 'recombined' : 'parental' }} DNA
-                </small>
-              </section>
-            }
-          </article>
-          <div class="fusion" aria-hidden="true"><i></i><b>+</b><i></i></div>
-          <article
-            class="loaded-gamete-cell sperm-gamete-cell"
-            [class.filled]="spermSelection()"
-            (dragover)="allowDrop($event)"
-            (drop)="dropGamete('male', $event)"
-          >
-            <span aria-hidden="true">⌁</span>
-            <div>
-              <small>SELECTED SPERM GAMETE</small>
-              <strong>{{ spermSelection() ? 'Haploid sperm cell' : 'Awaiting selected sperm' }}</strong>
-            </div>
-            <app-cell-chromosome-viewport
-              [chromosomes]="spermSelection() ? spermGameteChromosomes() : gameteOutlineChromosomes()"
-              [selectedChromosome]="spermSelection() ? inspectedGameteChromosome('male') : null"
-              [selectedLocus]="spermSelection() ? inspectedGameteLocus('male') : null"
-              [selectable]="!!spermSelection()"
-              [locusSelectable]="!!spermSelection()"
-              [showLoci]="!!spermSelection()"
-              [allowReplicatedView]="false"
-              ariaLabel="Analyze the selected sperm gamete's single chromosomes"
-              layout="inspect"
-              (chromosomeSelected)="inspectGameteChromosome('male', $event)"
-              (locusSelected)="inspectGameteLocus('male', $event)"
-            />
-            @if (gameteGeneAnalysis('male'); as gene) {
-              <section class="parent-gamete-analysis" aria-live="polite">
-                <span>SPERM GENE</span>
-                <strong>{{ gene.traitName }} · {{ gene.geneSymbol }}</strong>
-                <small>
-                  {{ gene.chromosome }} · allele {{ gene.allele }} · {{ gene.dominance }} ·
-                  {{ gene.recombinant ? 'recombined' : 'parental' }} DNA
-                </small>
-              </section>
-            }
-          </article>
-        </div>
+            <article
+              class="loaded-gamete-cell egg-gamete-cell"
+              [class.filled]="eggSelection()"
+              (dragover)="allowDrop($event)"
+              (drop)="dropGamete('female', $event)"
+            >
+              <span aria-hidden="true">◯</span>
+              <div>
+                <small>SELECTED EGG GAMETE</small>
+                <strong>{{ eggSelection() ? 'Haploid egg cell' : 'Awaiting selected egg' }}</strong>
+              </div>
+              <app-cell-chromosome-viewport
+                [chromosomes]="eggSelection() ? eggGameteChromosomes() : gameteOutlineChromosomes()"
+                [selectedChromosome]="eggSelection() ? inspectedGameteChromosome('female') : null"
+                [selectedLocus]="eggSelection() ? inspectedGameteLocus('female') : null"
+                [selectable]="!!eggSelection()"
+                [locusSelectable]="!!eggSelection()"
+                [showLoci]="!!eggSelection()"
+                [allowReplicatedView]="false"
+                ariaLabel="Analyze the selected egg gamete's single chromosomes"
+                layout="inspect"
+                (chromosomeSelected)="inspectGameteChromosome('female', $event)"
+                (locusSelected)="inspectGameteLocus('female', $event)"
+              />
+              @if (gameteGeneAnalysis('female'); as gene) {
+                <section class="parent-gamete-analysis" aria-live="polite">
+                  <span>EGG GENE</span>
+                  <strong>{{ gene.traitName }} · {{ gene.geneSymbol }}</strong>
+                  <small>
+                    {{ gene.chromosome }} · allele {{ gene.allele }} · {{ gene.dominance }} ·
+                    {{ gene.recombinant ? 'recombined' : 'parental' }} DNA
+                  </small>
+                </section>
+              }
+            </article>
+            <div class="fusion" aria-hidden="true"><i></i><b>+</b><i></i></div>
+            <article
+              class="loaded-gamete-cell sperm-gamete-cell"
+              [class.filled]="spermSelection()"
+              (dragover)="allowDrop($event)"
+              (drop)="dropGamete('male', $event)"
+            >
+              <span aria-hidden="true">⌁</span>
+              <div>
+                <small>SELECTED SPERM GAMETE</small>
+                <strong>{{
+                  spermSelection() ? 'Haploid sperm cell' : 'Awaiting selected sperm'
+                }}</strong>
+              </div>
+              <app-cell-chromosome-viewport
+                [chromosomes]="
+                  spermSelection() ? spermGameteChromosomes() : gameteOutlineChromosomes()
+                "
+                [selectedChromosome]="spermSelection() ? inspectedGameteChromosome('male') : null"
+                [selectedLocus]="spermSelection() ? inspectedGameteLocus('male') : null"
+                [selectable]="!!spermSelection()"
+                [locusSelectable]="!!spermSelection()"
+                [showLoci]="!!spermSelection()"
+                [allowReplicatedView]="false"
+                ariaLabel="Analyze the selected sperm gamete's single chromosomes"
+                layout="inspect"
+                (chromosomeSelected)="inspectGameteChromosome('male', $event)"
+                (locusSelected)="inspectGameteLocus('male', $event)"
+              />
+              @if (gameteGeneAnalysis('male'); as gene) {
+                <section class="parent-gamete-analysis" aria-live="polite">
+                  <span>SPERM GENE</span>
+                  <strong>{{ gene.traitName }} · {{ gene.geneSymbol }}</strong>
+                  <small>
+                    {{ gene.chromosome }} · allele {{ gene.allele }} · {{ gene.dominance }} ·
+                    {{ gene.recombinant ? 'recombined' : 'parental' }} DNA
+                  </small>
+                </section>
+              }
+            </article>
+          </div>
         </div>
 
         <div class="fertilize-status" aria-live="polite">
@@ -277,8 +311,12 @@
               [attr.aria-pressed]="babyDragonRevealed()"
               (click)="revealBabyDragon()"
             >
-              <strong>{{ babyDragonRevealed() ? 'Baby dragon revealed' : 'Show baby dragon' }}</strong>
-              <small>{{ babyDragonRevealed() ? 'The new dragon is below' : 'Open the fertilized egg' }}</small>
+              <strong>{{
+                babyDragonRevealed() ? 'Baby dragon revealed' : 'Show baby dragon'
+              }}</strong>
+              <small>{{
+                babyDragonRevealed() ? 'The new dragon is below' : 'Open the fertilized egg'
+              }}</small>
             </button>
           } @else {
             <strong>
@@ -347,6 +385,5 @@
         <span>Choose one dragon from each parent selector above.</span>
       </section>
     }
-
   </main>
 </section>

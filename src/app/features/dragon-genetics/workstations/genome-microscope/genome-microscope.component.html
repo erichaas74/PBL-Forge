@@ -12,23 +12,17 @@
 
     <div class="header-tools">
       @if (showSpecimenLoader()) {
-        <label class="specimen-loader">
-          <span>Loaded dragon</span>
-          <select
-            [value]="loadedDragonId() ?? ''"
-            [disabled]="!dragons().length"
-            (change)="loadDragonFromSelect($event)"
-          >
-            @if (!dragons().length) {
-              <option value="">No dragon records available</option>
-            }
-            @for (dragon of dragons(); track dragon.id) {
-              <option [value]="dragon.id">
-                {{ dragon.name }} · {{ dragon.sex === 'female' ? 'XX' : 'XY' }}
-              </option>
-            }
-          </select>
-        </label>
+        <button
+          type="button"
+          class="specimen-loader"
+          [disabled]="!dragons().length"
+          [attr.aria-expanded]="dragonDeckOpen()"
+          (click)="dragonDeckOpen.set(!dragonDeckOpen())"
+        >
+          <span>LOADED DRAGON CARD</span>
+          <strong>{{ loadedDragon()?.name ?? 'No dragon records available' }}</strong>
+          <small>{{ dragonDeckOpen() ? 'Close deck' : 'Open deck' }}</small>
+        </button>
       }
       @if (showGuideControl()) {
         <button
@@ -42,6 +36,18 @@
       }
     </div>
   </header>
+
+  @if (showSpecimenLoader() && dragonDeckOpen() && dragons().length) {
+    <section class="microscope-dragon-deck" aria-label="Genome microscope dragon selector">
+      <app-dragon-card-deck-selector
+        [dragons]="dragons()"
+        [selectedDragonId]="loadedDragonId()"
+        [compact]="true"
+        ariaLabel="Choose the dragon specimen loaded into the genome microscope"
+        (dragonSelected)="loadDragon($event.id)"
+      />
+    </section>
+  }
 
   @if (guideOpen()) {
     <aside class="level-guide" aria-label="Current microscope level explanation">
@@ -366,8 +372,15 @@
                 [style.--protein-light]="protein.palette.light"
                 [style.--protein-deep]="protein.palette.deep"
               >
-                <svg viewBox="-90 -50 180 100" role="img" [attr.aria-label]="protein.name + ' folded shape'">
-                  <path class="protein-body" [attr.d]="(activeProteinForm() ?? protein.form).shapePath" />
+                <svg
+                  viewBox="-90 -50 180 100"
+                  role="img"
+                  [attr.aria-label]="protein.name + ' folded shape'"
+                >
+                  <path
+                    class="protein-body"
+                    [attr.d]="(activeProteinForm() ?? protein.form).shapePath"
+                  />
                   <path
                     class="protein-backbone"
                     [attr.d]="(activeProteinForm() ?? protein.form).backbonePath"
@@ -387,9 +400,7 @@
                     </p>
                   }
                   @if (protein.activity; as activity) {
-                    <p class="protein-next">
-                      Works as an enzyme: {{ activity.equation }}
-                    </p>
+                    <p class="protein-next">Works as an enzyme: {{ activity.equation }}</p>
                   } @else {
                     <p class="protein-next">{{ protein.traitContribution }}</p>
                   }
@@ -409,9 +420,7 @@
 
         @case ('enzyme') {
           <section class="enzyme-level level-surface">
-            <app-enzyme-reaction-explorer
-              (reactionCompleted)="recordEnzymeReaction($event)"
-            />
+            <app-enzyme-reaction-explorer (reactionCompleted)="recordEnzymeReaction($event)" />
             <button type="button" class="focus-action" (click)="selectLevel('expression')">
               Test protein shapes in a cell
             </button>

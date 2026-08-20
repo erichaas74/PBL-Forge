@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DRAGON_PARENTS } from '../../simulation/domain/dragon-inheritance';
 import { AccountDragonRecord } from '../shared/account-genetics-library.models';
 import { chromosomeVisual } from '../shared/dragon-chromosome.catalog';
+import { geneDnaRecord } from '../shared/dragon-gene-dna.catalog';
 import { GenomeMicroscopeComponent } from './genome-microscope.component';
 
 const TEST_DRAGONS: readonly AccountDragonRecord[] = DRAGON_PARENTS.slice(0, 2).map(
@@ -35,6 +36,8 @@ describe('GenomeMicroscopeComponent', () => {
     expect(microscope.chromosomePairs().find((pair) => pair.kind === 'sex')?.label).toContain('XX');
 
     const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('app-dragon-card-deck-selector')).not.toBeNull();
+    expect(element.querySelector('.specimen-loader select')).toBeNull();
     expect(element.querySelector('app-specimen-viewport')).not.toBeNull();
     expect(element.querySelector('.genome-microscope')?.getAttribute('data-level')).toBe('dragon');
   });
@@ -72,17 +75,23 @@ describe('GenomeMicroscopeComponent', () => {
     microscope.selectLevel('cell');
     fixture.detectChanges();
     expect(element.querySelector('app-cell-model')).not.toBeNull();
-    expect(element.querySelectorAll('app-cell-model [data-organelle]').length).toBeGreaterThan(0);
-    expect(element.querySelectorAll('app-cell-model .cell-model__annotation-text').length).toBe(0);
-    expect(element.querySelectorAll('app-cell-model .chromosome-in-cell').length).toBe(
+    expect(
+      element.querySelectorAll('.cell-level app-cell-model [data-organelle]').length,
+    ).toBeGreaterThan(0);
+    expect(
+      element.querySelectorAll('.cell-level app-cell-model .cell-model__annotation-text').length,
+    ).toBe(0);
+    expect(element.querySelectorAll('.cell-level app-cell-model .chromosome-in-cell').length).toBe(
       microscope.cellChromosomePairs().length,
     );
 
     microscope.selectLevel('nucleus');
     fixture.detectChanges();
-    expect(element.querySelector('app-cell-model .cell-model')?.getAttribute('data-focus')).toBe(
-      'cell',
-    );
+    expect(
+      element
+        .querySelector('.nucleus-level app-cell-model .cell-model')
+        ?.getAttribute('data-focus'),
+    ).toBe('cell');
     expect(element.querySelectorAll('.nucleus-level .chromosome-in-cell').length).toBe(5);
     expect(element.querySelectorAll('.nucleus-level .chromatid').length).toBe(10);
 
@@ -222,6 +231,32 @@ describe('GenomeMicroscopeComponent', () => {
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('app-protein-trait-expression'),
     ).not.toBeNull();
+  });
+
+  it('shows the protein the selected allele copy codes for, and where it goes next', () => {
+    microscope.selectGene('legs');
+    microscope.selectLevel('protein');
+    fixture.detectChanges();
+
+    const record = geneDnaRecord('legs');
+    const element = fixture.nativeElement as HTMLElement;
+    const card = element.querySelector('.protein-identity');
+
+    expect(microscope.activeProtein()?.proteinId).toBe(record.protein.proteinId);
+    expect(card?.textContent).toContain(record.protein.name);
+    expect(card?.textContent).toContain(record.protein.roleLabel);
+    expect(card?.querySelector('.protein-body')?.getAttribute('d')).toBe(
+      microscope.activeProteinForm()?.shapePath ?? '',
+    );
+
+    // Each allele copy resolves to the protein its own strand translates into.
+    for (const copy of [0, 1] as const) {
+      microscope.selectedAlleleCopy.set(copy);
+      const expected = record.alleles.find(
+        (allele) => allele.sequence.slice(0, 24) === microscope.activeDnaSequence(),
+      );
+      expect(microscope.activeProteinForm()).toBe(expected?.protein ?? record.alleles[0].protein);
+    }
   });
 
   it('emits a reusable evidence selection for an external explanation or question host', () => {

@@ -258,7 +258,6 @@ export class RnaTranslationAnimationComponent implements OnDestroy {
   }
 }
 
-
 function proteinBackbonePath(points: readonly FoldPosition[]): string {
   if (!points.length) return '';
   if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;

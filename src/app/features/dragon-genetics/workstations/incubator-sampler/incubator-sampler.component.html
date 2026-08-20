@@ -78,6 +78,7 @@
           [studentId]="studentId()"
           [dragonsOnly]="true"
           [compact]="true"
+          [initiallyOpen]="true"
           sexFilter="female"
           [selectedRecordId]="originalParentIds()[0]"
           [disabled]="selectionLocked()"
@@ -311,7 +312,11 @@
           >
             <span aria-hidden="true">◆</span>
             {{
-              running() ? 'Hatching…' : batches().length ? 'Run another batch' : 'Stoke the incubator'
+              running()
+                ? 'Hatching…'
+                : batches().length
+                  ? 'Run another batch'
+                  : 'Stoke the incubator'
             }}
           </button>
           <button
@@ -378,6 +383,7 @@
           [studentId]="studentId()"
           [dragonsOnly]="true"
           [compact]="true"
+          [initiallyOpen]="true"
           sexFilter="male"
           [selectedRecordId]="originalParentIds()[1]"
           [disabled]="selectionLocked()"

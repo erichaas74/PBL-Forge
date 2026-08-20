@@ -13,7 +13,7 @@
   >
     <span class="folder-mark" aria-hidden="true"><i></i></span>
     <span class="handle-copy">
-      <small>INVENTORY</small>
+      <small>DRAGON CARD CATALOG</small>
       <strong>{{ inventoryLabel() }}</strong>
       <em>
         @if (activeRecord(); as active) {
@@ -23,7 +23,7 @@
         }
       </em>
     </span>
-    <b aria-hidden="true">{{ open() ? '−' : '+' }}</b>
+    <b aria-hidden="true">{{ open() ? '&minus;' : '+' }}</b>
   </button>
 
   @if (open()) {
@@ -36,7 +36,7 @@
             [attr.aria-pressed]="tab() === 'dragon'"
             (click)="tab.set('dragon')"
           >
-            Dragons <span>{{ snapshot().dragons.length }}</span>
+            Dragon cards <span>{{ snapshot().dragons.length }}</span>
           </button>
           <button
             type="button"
@@ -44,105 +44,113 @@
             [attr.aria-pressed]="tab() === 'chromosome'"
             (click)="tab.set('chromosome')"
           >
-            Chromosomes <span>{{ snapshot().chromosomes.length }}</span>
+            Saved chromosomes <span>{{ snapshot().chromosomes.length }}</span>
           </button>
         </nav>
       }
 
-      <div class="inventory-grid">
-        <div class="record-list" [attr.data-tab]="tab()">
-          @for (record of visibleRecords(); track record.id) {
-            <button
-              type="button"
-              class="account-record"
-              [class.inspected]="inspectedRecordId() === record.id"
-              [class.active-record]="selectedRecordId() === record.id"
-              [attr.aria-pressed]="inspectedRecordId() === record.id"
-              [disabled]="disabled()"
+      @if (tab() === 'dragon' || dragonsOnly()) {
+        @if (visibleDragons().length) {
+          <app-dragon-card-deck-selector
+            class="account-dragon-deck"
+            [dragons]="visibleDragons()"
+            [selectedDragonId]="activeDragonId()"
+            [compact]="compact()"
+            [disabled]="disabled()"
+            [ariaLabel]="inventoryLabel() + ' dragon card deck'"
+            (dragonSelected)="selectDeckDragon($event)"
+          />
+
+          @if (activeDeckDragon(); as dragon) {
+            <article
+              class="deck-selection"
+              [class.active-record]="selectedRecordId() === dragon.id"
+              [attr.draggable]="!disabled() && selectedRecordId() === dragon.id"
+              (dragstart)="startDrag($event, dragon)"
+            >
+              <div>
+                <small>FRONT CARD</small>
+                <strong>{{ dragon.name }}</strong>
+                <span>
+                  {{ dragon.sex === 'female' ? 'Female' : 'Male' }} &middot;
+                  {{ dragonGeneration(dragon) }}
+                </span>
+              </div>
+              <button
+                type="button"
+                [class.current]="selectedRecordId() === dragon.id"
+                [disabled]="disabled()"
+                (click)="use(dragon)"
+              >
+                {{ selectedRecordId() === dragon.id ? 'In use' : 'Use in this lab' }}
+              </button>
+            </article>
+
+            @if (performance(); as stats) {
+              <details class="deck-details">
+                <summary>Moves, traits, and lineage</summary>
+                <p class="ability-list">
+                  <strong>Moves</strong> {{ stats.abilities.join(' &middot; ') }}
+                </p>
+                <div class="trait-list">
+                  @for (trait of traitReadouts(); track trait.id) {
+                    <div>
+                      <strong>{{ trait.name }}</strong>
+                      <span>{{ trait.phenotype }}</span>
+                      <small>{{ trait.genotype }}</small>
+                    </div>
+                  }
+                </div>
+                @if (dragon.parentIds?.length) {
+                  <p class="lineage">
+                    <strong>Parents</strong> {{ dragon.parentIds?.join(' + ') }}
+                  </p>
+                }
+              </details>
+            }
+          }
+        } @else {
+          <p class="empty">No eligible dragon cards yet.</p>
+        }
+      } @else {
+        <div class="inventory-grid">
+          <div class="record-list" data-tab="chromosome">
+            @for (record of visibleRecords(); track record.id) {
+              <button
+                type="button"
+                class="account-record"
+                [class.inspected]="inspectedRecordId() === record.id"
+                [class.active-record]="selectedRecordId() === record.id"
+                [attr.aria-pressed]="inspectedRecordId() === record.id"
+                [disabled]="disabled()"
+                [attr.draggable]="!disabled() && selectedRecordId() === record.id"
+                (click)="inspect(record)"
+                (dragstart)="startDrag($event, record)"
+              >
+                @if (record.kind === 'chromosome') {
+                  <span class="chromosome-record-mark" aria-hidden="true"
+                    ><i></i><i></i><b>{{ record.chromosome.replace('Chr ', '') }}</b></span
+                  >
+                }
+                <span class="record-copy">
+                  <strong>{{ recordTitle(record) }}</strong>
+                  <small>{{ recordDetail(record) }}</small>
+                </span>
+                @if (selectedRecordId() === record.id) {
+                  <span class="active-mark">ACTIVE</span>
+                }
+              </button>
+            } @empty {
+              <p class="empty">No saved chromosome records yet.</p>
+            }
+          </div>
+
+          @if (inspectedRecord(); as record) {
+            <article
+              class="inspection"
               [attr.draggable]="!disabled() && selectedRecordId() === record.id"
-              (click)="inspect(record)"
               (dragstart)="startDrag($event, record)"
             >
-              @if (record.kind === 'dragon') {
-                <span
-                  class="dragon-record-mark"
-                  [style.--record-color]="record.color"
-                  [style.--record-accent]="record.accentColor"
-                  aria-hidden="true"
-                  >{{ record.name.slice(0, 1) }}</span
-                >
-              } @else {
-                <span class="chromosome-record-mark" aria-hidden="true"
-                  ><i></i><i></i><b>{{ record.chromosome.replace('Chr ', '') }}</b></span
-                >
-              }
-              <span class="record-copy">
-                <strong>{{ recordTitle(record) }}</strong>
-                <small>{{ recordDetail(record) }}</small>
-              </span>
-              @if (selectedRecordId() === record.id) {
-                <span class="active-mark">ACTIVE</span>
-              }
-            </button>
-          } @empty {
-            <p class="empty">No eligible dragons yet.</p>
-          }
-        </div>
-
-        @if (inspectedRecord(); as record) {
-          <article
-            class="inspection"
-            [attr.draggable]="!disabled() && selectedRecordId() === record.id"
-            (dragstart)="startDrag($event, record)"
-          >
-            @if (record.kind === 'dragon') {
-              <div class="specimen-frame">
-                <app-specimen-viewport
-                  [source]="specimenSource()"
-                  [controls]="false"
-                  [framePadding]="1.2"
-                  [ariaLabel]="record.name + ' dragon model'"
-                />
-              </div>
-              <header>
-                <div>
-                  <strong>{{ record.name }}</strong>
-                  <span>{{ record.sex === 'female' ? 'Female' : 'Male' }} · {{ dragonGeneration(record) }}</span>
-                </div>
-                <button
-                  type="button"
-                  [class.current]="selectedRecordId() === record.id"
-                  [disabled]="disabled()"
-                  (click)="use(record)"
-                >
-                  {{ selectedRecordId() === record.id ? 'In use' : 'Use in this lab' }}
-                </button>
-              </header>
-
-              @if (performance(); as stats) {
-                <dl class="quick-stats">
-                  <div><dt>Health</dt><dd>{{ stats.health }}</dd></div>
-                  <div><dt>Armor</dt><dd>{{ stats.armor }}%</dd></div>
-                  <div><dt>Moves</dt><dd>{{ stats.abilities.length }}</dd></div>
-                </dl>
-                <details>
-                  <summary>Traits and full stats</summary>
-                  <div class="trait-list">
-                    @for (trait of traitReadouts(); track trait.id) {
-                      <div>
-                        <strong>{{ trait.name }}</strong>
-                        <span>{{ trait.phenotype }}</span>
-                        <small>{{ trait.genotype }}</small>
-                      </div>
-                    }
-                  </div>
-                  <p class="ability-list"><strong>Moves</strong> {{ stats.abilities.join(' · ') }}</p>
-                  @if (record.parentIds?.length) {
-                    <p class="lineage"><strong>Parents</strong> {{ record.parentIds?.join(' + ') }}</p>
-                  }
-                </details>
-              }
-            } @else {
               <header class="chromosome-inspection">
                 <div>
                   <strong>{{ recordTitle(record) }}</strong>
@@ -157,12 +165,12 @@
                   {{ selectedRecordId() === record.id ? 'In use' : 'Use in this lab' }}
                 </button>
               </header>
-            }
-          </article>
-        } @else {
-          <div class="inspection-empty" aria-hidden="true">Select a record</div>
-        }
-      </div>
+            </article>
+          } @else {
+            <div class="inspection-empty" aria-hidden="true">Select a chromosome record</div>
+          }
+        </div>
+      }
     </div>
   }
 </aside>

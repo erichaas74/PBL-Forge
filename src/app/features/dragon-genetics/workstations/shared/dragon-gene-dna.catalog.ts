@@ -8,10 +8,11 @@ import {
 import { translateRna } from '../../../../shared/dna-process-visuals/dna-process.models';
 import { ExpressiveDragonTraitId } from '../../simulation/domain/dragon-expressive-genome';
 import {
-  enzymeBodyPath,
-  enzymeMoleculeGeometry,
+  EnzymeShapeSet,
+  enzymeShapeSet,
   foldedProteinPath,
   residueChainPath,
+  socketPlatePath,
 } from './dragon-protein.geometry';
 
 export type DragonDnaBase = 'A' | 'T' | 'C' | 'G';
@@ -81,16 +82,17 @@ export interface DragonProteinResidue {
 export interface DragonMoleculeShape {
   id: string;
   name: string;
-  /** Closed SVG path in the shared -90 -50 180 100 protein viewBox. */
+  /** Closed SVG path in the shared 0 0 160 120 molecule box. */
   path: string;
 }
 
 /**
  * What an enzyme does in the cell.
  *
- * `fragmentA` and `fragmentB` are cut from `joined` along one shared seam, so a
- * build reaction and a break-down reaction are the same geometry read in
- * opposite directions.
+ * `fragmentA` and `fragmentB` are the two halves of `joined`, cut along one
+ * interlocking connector, and `joined` is itself the exact negative of the
+ * enzyme active site. A build reaction and a break-down reaction are the same
+ * geometry read in opposite directions.
  */
 export interface DragonEnzymeActivity {
   action: DragonEnzymeAction;
@@ -141,8 +143,12 @@ export interface DragonGeneProtein {
   /** Commonest residue group in the reference chain; drives the protein's palette. */
   dominantGroup: AminoAcidGroup;
   palette: AminoAcidGroupPalette;
-  /** Enzyme silhouette, in the wider enzyme space. Null for non-enzymes. */
-  bodyPath: string | null;
+  /**
+   * The protein body with its active site cut into the top edge. Present for
+   * every gene: a structural protein has a shaped surface too, it just has no
+   * reaction to run there.
+   */
+  bodyPath: string;
   activity: DragonEnzymeActivity | null;
   /**
    * The molecule the trait pathway actually reads: an enzyme's product, or the
@@ -150,6 +156,11 @@ export interface DragonGeneProtein {
    * modelled the same way for enzymes and non-enzymes.
    */
   traitSignal: DragonMoleculeShape;
+  /**
+   * A receptor plate with the trait signal punched out of it. Render it with
+   * an evenodd fill rule so the hole shows.
+   */
+  traitSocketPath: string;
   /** Protein translated from allele A. */
   form: DragonProteinForm;
   /** Protein translated from allele B, after the gene's mutation. */
@@ -575,9 +586,16 @@ function buildGeneProtein(
   const seed = seedFor(definition.proteinId);
   const radii = form.residues.map((residue) => aminoAcidGroupRadius(residue.shortName));
   const dominantGroup = dominantResidueGroup(form.residues);
-  const activity = definition.molecules
-    ? buildEnzymeActivity(definition.molecules, radii, seed)
-    : null;
+  const shapes = enzymeShapeSet(radii, seed);
+  const activity = definition.molecules ? buildEnzymeActivity(definition.molecules, shapes) : null;
+  /*
+   * Every gene ends at one molecule the cell can read: an enzyme's product, or
+   * — for a structural or signal protein — the protein itself, which docks as
+   * the key its own residues cut.
+   */
+  const traitSignal: DragonMoleculeShape = activity
+    ? activity.traitProduct
+    : { id: definition.proteinId, name: definition.name, path: shapes.product };
 
   return {
     proteinId: definition.proteinId,
@@ -589,11 +607,15 @@ function buildGeneProtein(
     traitContribution: definition.traitContribution,
     dominantGroup,
     palette: AMINO_ACID_GROUP_PALETTES[dominantGroup],
-    bodyPath: activity ? enzymeBodyPath(radii, seed) : null,
+    bodyPath: shapes.enzyme,
     activity,
-    traitSignal: activity
-      ? activity.traitProduct
-      : { id: definition.proteinId, name: definition.name, path: form.shapePath },
+    traitSignal,
+    /*
+     * The receptor is the exact negative of whichever molecule opens it, so a
+     * released fragment gets a fragment-shaped socket rather than a rough
+     * approximation of one.
+     */
+    traitSocketPath: socketPlatePath(traitSignal.path),
     form,
     variantForm,
   };
@@ -607,24 +629,22 @@ function buildGeneProtein(
 
 function buildEnzymeActivity(
   names: EnzymeMoleculeNames,
-  radii: readonly number[],
-  seed: number,
+  shapes: EnzymeShapeSet,
 ): DragonEnzymeActivity {
-  const geometry = enzymeMoleculeGeometry(radii, seed);
   const fragmentA: DragonMoleculeShape = {
     id: names.fragmentA[0],
     name: names.fragmentA[1],
-    path: geometry.fragmentA,
+    path: shapes.substrateA,
   };
   const fragmentB: DragonMoleculeShape = {
     id: names.fragmentB[0],
     name: names.fragmentB[1],
-    path: geometry.fragmentB,
+    path: shapes.substrateB,
   };
   const joined: DragonMoleculeShape = {
     id: names.joined[0],
     name: names.joined[1],
-    path: geometry.joined,
+    path: shapes.product,
   };
 
   const building = names.action === 'build';

@@ -1,17 +1,32 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
+  NgZone,
   OnDestroy,
   computed,
+  effect,
+  inject,
   input,
   output,
   signal,
+  viewChildren,
 } from '@angular/core';
 import {
   DRAGON_ENZYME_REACTIONS,
   DragonEnzymeMolecule,
   DragonEnzymeReaction,
 } from './dragon-enzyme-reactions.models';
+import {
+  FieldBounds,
+  FieldEntity,
+  FieldSlot,
+  ejectFromSite,
+  pullToSite,
+  respawn,
+  seatInSite,
+  stepField,
+} from './enzyme-cell-field';
 
 export type EnzymeReactionPhase = 'ready' | 'docking' | 'catalyzing' | 'released' | 'rejected';
 
@@ -23,6 +38,34 @@ export interface EnzymeReactionResult {
   readonly productName: string;
   readonly totalBuilt: number;
 }
+
+/** Scene the reaction is drawn in, matching the SVG viewBox. */
+const SCENE: FieldBounds = { width: 900, height: 440, pad: 70 };
+
+/**
+ * Every molecule and every enzyme is drawn at the same scale.
+ *
+ * That equality is what makes the fit legible: a product is not "about the
+ * size of" the active site, it is the same box, so it drops in exactly.
+ */
+const BODY_SCALE = 1.3;
+
+/** Where the catalyst waits. Molecules that dock here land on its active site. */
+const SITE = { x: 450, y: 250 };
+
+/** Bodies in the cell fluid: three of each reactant, two of each product. */
+const FIELD_POPULATION: readonly FieldSlot[] = [
+  'reactant-a',
+  'reactant-a',
+  'reactant-a',
+  'reactant-b',
+  'reactant-b',
+  'reactant-b',
+  'product-a',
+  'product-a',
+  'product-b',
+  'product-b',
+];
 
 let nextEnzymeExplorerId = 0;
 
@@ -66,8 +109,6 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
   readonly outputMolecules = computed<readonly DragonEnzymeMolecule[]>(
     () => this.targetReaction().products,
   );
-  /** The candidate enzyme's cavity, cut from its own body. */
-  readonly activeSiteShapes = computed(() => this.activeReaction().activeSite);
   readonly breakingDown = computed(() => this.targetReaction().action === 'break-down');
 
   readonly selectedEnzymeMatchesTarget = computed(
@@ -84,13 +125,13 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
     }
     switch (this.phase()) {
       case 'docking':
-        return `${this.activeReaction().enzymeCode} is approaching the target molecules.`;
+        return `${this.activeReaction().enzymeCode} is drawing the target molecules into its active site.`;
       case 'catalyzing':
         return 'The active site fits. Bonds are rearranging.';
       case 'released':
         return `${this.activeReaction().enzymeCode} released ${target.traitProduct.name}; the enzyme is unchanged.`;
       case 'rejected':
-        return `${this.activeReaction().enzymeCode} does not fit these molecules. No reaction.`;
+        return `${this.activeReaction().enzymeCode} does not fit these molecules. They bounce away unchanged.`;
       default:
         return 'The selected enzyme is ready to test.';
     }
@@ -98,17 +139,55 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
   readonly reactionRunning = computed(
     () => this.phase() === 'docking' || this.phase() === 'catalyzing',
   );
-  readonly ambientCopies = [0, 1, 2] as const;
+
+  /** Bodies drifting in the cell fluid. Positions are written straight to the DOM. */
+  readonly fieldBodies: readonly FieldEntity[] = FIELD_POPULATION.map((slot, index) =>
+    this.createBody(slot, index),
+  );
+  /** Extra catalyst copies, so the cell does not look like it holds one enzyme. */
+  readonly ambientEnzymes: readonly FieldEntity[] = [0, 1].map((index) =>
+    this.createBody('reactant-a', 100 + index, true),
+  );
+  readonly bodyScale = BODY_SCALE;
+  readonly siteTransform = `translate(${SITE.x} ${SITE.y}) scale(${BODY_SCALE}) translate(-80 -60)`;
 
   readonly instanceId = `enzyme-reaction-${nextEnzymeExplorerId++}`;
   readonly enzymeGradientId = `${this.instanceId}-enzyme-gradient`;
   readonly reactantGradientId = `${this.instanceId}-reactant-gradient`;
   readonly productGradientId = `${this.instanceId}-product-gradient`;
-  readonly enzymeMaskId = `${this.instanceId}-enzyme-mask`;
   readonly shadowId = `${this.instanceId}-shadow`;
   readonly glowId = `${this.instanceId}-glow`;
 
+  private readonly bodyRefs = viewChildren<ElementRef<SVGGElement>>('fieldBody');
+  private readonly ambientRefs = viewChildren<ElementRef<SVGGElement>>('ambientEnzyme');
+  private readonly zone = inject(NgZone);
+
   private timers: ReturnType<typeof setTimeout>[] = [];
+  private frame: number | null = null;
+  private lastPhase: EnzymeReactionPhase = 'ready';
+  private lastFrameTime = 0;
+
+  constructor() {
+    // A new target changes which molecule each body is carrying, so send them
+    // back to the cell wall rather than letting a shape pop in mid-flight.
+    effect(() => {
+      this.targetReaction();
+      this.releaseAllBodies();
+    });
+    this.startLoop();
+  }
+
+  ngOnDestroy(): void {
+    this.clearTimers();
+    if (this.frame !== null) cancelAnimationFrame(this.frame);
+  }
+
+  /** Molecule a body is carrying, or null when this reaction has no such slot. */
+  moleculeFor(slot: FieldSlot): DragonEnzymeMolecule | null {
+    const index = slot.endsWith('-b') ? 1 : 0;
+    const molecules = slot.startsWith('reactant') ? this.inputMolecules() : this.outputMolecules();
+    return molecules[index] ?? null;
+  }
 
   selectReaction(reactionId: string): void {
     if (!this.reactions().some((reaction) => reaction.id === reactionId)) return;
@@ -173,10 +252,6 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
       default:
         return 'Not tested';
     }
-  }
-
-  ngOnDestroy(): void {
-    this.clearTimers();
   }
 
   private completeReaction(): void {
@@ -261,4 +336,162 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
       typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     );
   }
+
+  private createBody(slot: FieldSlot, index: number, enzyme = false): FieldEntity {
+    const spread = enzyme ? 0.7 : 1;
+    return {
+      id: `${slot}-${index}`,
+      slot,
+      state: slot.startsWith('product') ? 'hidden' : 'free',
+      x: SCENE.pad + ((index * 197) % (SCENE.width - SCENE.pad * 2)),
+      y: SCENE.pad + ((index * 131) % (SCENE.height - SCENE.pad * 2)),
+      vx: (((index % 5) - 2) / 2) * spread || 0.8,
+      vy: (((index % 3) - 1) / 1.4) * spread || -0.6,
+      rot: (index * 47) % 360,
+      vrot: enzyme ? 0 : (((index % 4) - 1.5) / 3) * 2,
+      timer: 0,
+    };
+  }
+
+  /**
+   * The animation loop.
+   *
+   * It runs outside Angular and writes transforms straight to the SVG, so sixty
+   * frames a second of molecular drift never triggers change detection. The
+   * reaction's own state stays in signals, and the loop only reacts to it.
+   */
+  private startLoop(): void {
+    if (typeof requestAnimationFrame === 'undefined') return;
+
+    this.zone.runOutsideAngular(() => {
+      const tick = (time: number) => {
+        const step = this.lastFrameTime ? Math.min(3, (time - this.lastFrameTime) / 16.7) : 1;
+        this.lastFrameTime = time;
+        if (!this.prefersReducedMotion()) this.advance(step);
+        this.render();
+        this.frame = requestAnimationFrame(tick);
+      };
+      this.frame = requestAnimationFrame(tick);
+    });
+  }
+
+  private advance(step: number): void {
+    const phase = this.phase();
+    if (phase !== this.lastPhase) {
+      this.onPhaseChanged(phase);
+      this.lastPhase = phase;
+    }
+
+    if (phase === 'docking' || phase === 'catalyzing') {
+      const seat = phase === 'catalyzing';
+      for (const body of this.capturedBodies()) {
+        if (seat) seatInSite(body, SITE.x, SITE.y);
+        else pullToSite(body, SITE.x, SITE.y);
+      }
+    }
+
+    stepField(this.fieldBodies, SCENE, step);
+    stepField(this.ambientEnzymes, SCENE, step);
+  }
+
+  private onPhaseChanged(phase: EnzymeReactionPhase): void {
+    if (phase === 'docking') {
+      this.captureReactants();
+      return;
+    }
+    if (phase === 'released') {
+      this.releaseProducts();
+      return;
+    }
+    if (phase === 'rejected') {
+      // A mismatched site cannot hold them: they scatter, chemically unchanged.
+      for (const body of this.capturedBodies()) {
+        body.state = 'free';
+        body.vx = (body.x < SITE.x ? -1 : 1) * 2.6;
+        body.vy = -1.6;
+        body.vrot = 1.4;
+      }
+    }
+  }
+
+  /** Draws the nearest free molecule of each required slot into the active site. */
+  private captureReactants(): void {
+    const needed: FieldSlot[] = this.inputMolecules().length > 1
+      ? ['reactant-a', 'reactant-b']
+      : ['reactant-a'];
+
+    for (const slot of needed) {
+      const candidates = this.fieldBodies.filter(
+        (body) => body.slot === slot && body.state === 'free',
+      );
+      if (!candidates.length) continue;
+      const nearest = candidates.reduce((closest, body) =>
+        Math.hypot(body.x - SITE.x, body.y - SITE.y) <
+        Math.hypot(closest.x - SITE.x, closest.y - SITE.y)
+          ? body
+          : closest,
+      );
+      nearest.state = 'captured';
+    }
+  }
+
+  /** Hides the spent reactants, throws the products clear, and restocks the cell. */
+  private releaseProducts(): void {
+    for (const body of this.capturedBodies()) {
+      body.state = 'hidden';
+      respawn(body, SCENE);
+    }
+
+    const outputs = this.outputMolecules();
+    outputs.forEach((_, index) => {
+      const slot: FieldSlot = index === 0 ? 'product-a' : 'product-b';
+      const body = this.fieldBodies.find(
+        (candidate) => candidate.slot === slot && candidate.state === 'hidden',
+      );
+      if (!body) return;
+      // One product leaves to the right; a split scatters its two halves apart.
+      const direction = outputs.length > 1 ? (index === 0 ? -1 : 1) : 1;
+      ejectFromSite(body, SITE.x, SITE.y, direction);
+    });
+  }
+
+  private releaseAllBodies(): void {
+    for (const body of this.fieldBodies) {
+      const hidden = body.slot.startsWith('product');
+      body.state = hidden ? 'hidden' : 'free';
+      if (!hidden) respawn(body, SCENE);
+    }
+  }
+
+  private capturedBodies(): readonly FieldEntity[] {
+    return this.fieldBodies.filter((body) => body.state === 'captured');
+  }
+
+  private render(): void {
+    const bodies = this.bodyRefs();
+    this.fieldBodies.forEach((body, index) => {
+      const element = bodies[index]?.nativeElement;
+      if (!element) return;
+      element.setAttribute('transform', bodyTransform(body));
+      element.style.opacity = body.state === 'hidden' ? '0' : '1';
+    });
+
+    const ambient = this.ambientRefs();
+    this.ambientEnzymes.forEach((body, index) => {
+      ambient[index]?.nativeElement.setAttribute('transform', bodyTransform(body, 0.62));
+    });
+  }
+}
+
+/**
+ * Places a body by the centre of its molecule box.
+ *
+ * The trailing shift is what makes docking exact: a molecule sharing the
+ * enzyme's centre, rotation, and scale lands perfectly on its active site.
+ */
+function bodyTransform(body: FieldEntity, scale = BODY_SCALE): string {
+  const x = Math.round(body.x * 10) / 10;
+  const y = Math.round(body.y * 10) / 10;
+  const rot = Math.round(body.rot * 10) / 10;
+  return `translate(${x} ${y}) rotate(${rot}) scale(${scale}) translate(-80 -60)`;
 }

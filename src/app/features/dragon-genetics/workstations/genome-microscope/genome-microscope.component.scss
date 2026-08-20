@@ -89,20 +89,34 @@ select:focus-visible {
   display: grid;
   min-width: min(17rem, 42vw);
   gap: 0.2rem;
-  color: #9db2bb;
-  font-size: var(--text-xs);
-  font-weight: 850;
-}
-
-.specimen-loader select {
-  width: 100%;
-  min-width: 0;
   min-height: 2.55rem;
-  padding: 0.45rem 2.1rem 0.45rem 0.65rem;
+  padding: 0.45rem 0.65rem;
   border: 1px solid rgb(101 200 188 / 34%);
   border-radius: 0.6rem;
   background: #0f303d;
+  color: #9db2bb;
+  font-size: var(--text-xs);
+  font-weight: 850;
+  text-align: left;
+  cursor: pointer;
+}
+
+.specimen-loader strong {
   color: #eef8fa;
+  font-family: var(--font-display);
+}
+
+.specimen-loader small {
+  color: #79d3ca;
+}
+
+.microscope-dragon-deck {
+  width: min(100%, 48rem);
+  margin-inline: auto;
+  padding: 0.7rem;
+  border: 1px solid rgb(242 201 109 / 28%);
+  border-radius: 0.9rem;
+  background: rgb(5 20 29 / 72%);
 }
 
 .guide-toggle,

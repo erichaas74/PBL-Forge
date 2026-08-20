@@ -62,6 +62,8 @@ interface ExpressionPathway {
   palette: AminoAcidGroupPalette;
   /** Silhouette of the docking molecule, generated from the gene's residues. */
   shape: string;
+  /** The receptor: a plate with this molecule punched out of it. */
+  socketPath: string;
   /** Silhouette of the protein itself, shown as the pathway's origin. */
   proteinShape: string;
   phenotype: string;
@@ -171,8 +173,7 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
   dropProtein(event: DragEvent, targetId: ExpressiveDragonTraitId): void {
     event.preventDefault();
     const draggedId = event.dataTransfer?.getData(PROTEIN_DRAG_TYPE) as
-      | ExpressiveDragonTraitId
-      | '';
+      ExpressiveDragonTraitId | '';
     const sourceId = draggedId || this.selectedProteinId();
     if (sourceId) this.testFit(sourceId, targetId);
   }
@@ -283,6 +284,7 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
           traitContribution: protein.traitContribution,
           palette: protein.palette,
           shape: protein.traitSignal.path,
+          socketPath: protein.traitSocketPath,
           proteinShape: protein.form.shapePath,
           phenotype: expressedAllelePairPhenotype(gene, activePair),
         },

@@ -1,4 +1,5 @@
 import { DragonParentProfile } from '../../simulation/domain/dragon-lab.models';
+import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
 import { AssemblyCombatProfile } from '../../../../shared/assembly/combat/assembly-combat.models';
 import { AssemblyAbilityId } from '../../../../shared/assembly/combat/assembly-abilities';
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
@@ -69,6 +70,7 @@ export interface TraitEvidenceSnapshot {
 export interface TraitEvidenceDragon {
   id: string;
   name: string;
+  sex: DragonSex;
   profile: DragonParentProfile;
   source: SpecimenSource;
   combatProfile: AssemblyCombatProfile;
@@ -91,7 +93,6 @@ export interface TraitEvidenceDragonCard {
   arenaRating: number;
   battleRole: string;
   stats: readonly TraitEvidenceDragonCardStat[];
-  traits: readonly string[];
 }
 
 export interface TraitEvidenceObservationDefinition {

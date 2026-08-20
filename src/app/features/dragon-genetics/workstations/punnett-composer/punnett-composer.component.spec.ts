@@ -38,23 +38,33 @@ describe('PunnettComposerComponent', () => {
     expect(composer.parent2Alleles()).toEqual(['w', 'w']);
   });
 
-  it('starts with the universal dragon and chromosome selector', () => {
-    const selector = fixture.debugElement.query(By.directive(DragonChromosomeSelectorComponent))
-      .componentInstance as DragonChromosomeSelectorComponent;
-    const fireDragon = library.recordsFor(studentId).dragons[0];
+  it('starts with separate female and male dragon chromosome selectors', () => {
+    const selectors = fixture.debugElement
+      .queryAll(By.directive(DragonChromosomeSelectorComponent))
+      .map((item) => item.componentInstance as DragonChromosomeSelectorComponent);
+    const fireDragon = library
+      .recordsFor(studentId)
+      .dragons.find((dragon) => dragon.sex === 'female')!;
+    const maleDragon = library
+      .recordsFor(studentId)
+      .dragons.find((dragon) => dragon.sex === 'male')!;
 
-    expect(selector.dragons()).toBe(composer.selectorDragons());
+    expect(selectors.length).toBe(2);
+    expect(selectors[0].dragons().every((dragon) => dragon.sex === 'female')).toBeTrue();
+    expect(selectors[1].dragons().every((dragon) => dragon.sex === 'male')).toBeTrue();
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('app-account-genetics-file'),
     ).toBeNull();
-    expect(selector.cellChromosomes().length).toBe(5);
+    expect(selectors.every((selector) => selector.cellChromosomes().length === 5)).toBeTrue();
 
-    selector.selectDragon(fireDragon);
-    selector.selectChromosome('Chr 2');
+    selectors[0].selectDragon(fireDragon);
+    selectors[1].selectDragon(maleDragon);
+    selectors[0].selectChromosome('Chr 2');
 
     expect(composer.stagedChromosome()).toBe('Chr 2');
     expect(composer.activeTrait().id).toBe('fire');
     expect(composer.parent1()?.id).toBe(fireDragon.id);
+    expect(composer.parent2()?.id).toBe(maleDragon.id);
   });
 
   it('loads a chromosome record only into its sex-matched parent bay', () => {
@@ -70,8 +80,9 @@ describe('PunnettComposerComponent', () => {
   });
 
   it('replaces the fixed locus choices with genes from the selected chromosome', () => {
-    const selector = fixture.debugElement.query(By.directive(DragonChromosomeSelectorComponent))
-      .componentInstance as DragonChromosomeSelectorComponent;
+    const selector = fixture.debugElement.queryAll(
+      By.directive(DragonChromosomeSelectorComponent),
+    )[0].componentInstance as DragonChromosomeSelectorComponent;
 
     selector.selectChromosome('Chr 3');
     fixture.detectChanges();
@@ -96,6 +107,12 @@ describe('PunnettComposerComponent', () => {
     expect(composer.parent2Alleles()).toEqual(['E', 'Y']);
     expect(composer.selectorDragons().map((dragon) => dragon.name)).toEqual([
       'Heterozygous XX cell',
+      'Heterozygous XY cell',
+    ]);
+    expect(composer.femaleSelectorDragons().map((dragon) => dragon.name)).toEqual([
+      'Heterozygous XX cell',
+    ]);
+    expect(composer.maleSelectorDragons().map((dragon) => dragon.name)).toEqual([
       'Heterozygous XY cell',
     ]);
   });

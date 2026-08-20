@@ -28,22 +28,13 @@
         [attr.data-trial]="trialOutcome(reaction)"
         (click)="selectReaction(reaction.id)"
       >
-        <svg class="candidate-shape" viewBox="-152 -104 304 190" aria-hidden="true">
+        <!-- Each candidate advertises the active site its own residues cut. -->
+        <svg class="candidate-shape" viewBox="0 0 160 92" aria-hidden="true">
           <path
             class="candidate-body"
             [attr.d]="reaction.bodyPath"
             [attr.fill]="reaction.palette.main"
             [attr.stroke]="reaction.palette.light"
-          />
-          <path
-            class="candidate-site"
-            [attr.d]="reaction.activeSite[0].path"
-            transform="translate(0 -26) scale(.68)"
-          />
-          <path
-            class="candidate-site"
-            [attr.d]="reaction.activeSite[1].path"
-            transform="translate(0 -26) scale(.68)"
           />
         </svg>
         <span>Candidate {{ reaction.enzymeCode }}</span>
@@ -81,43 +72,33 @@
         {{ targetReaction().actionLabel.toLowerCase() }} {{ targetProductName() }}
       </title>
       <desc [attr.id]="instanceId + '-description'">
-        Target molecules drift through the cell fluid. Students test candidate enzymes. A correctly
-        shaped active site binds the molecules and releases the reaction products; a mismatched
-        active site rejects them without any reaction. The enzyme is unchanged either way.
+        Molecules drift at random through the cell fluid and knock into each other. A correctly
+        shaped active site draws in the ones that match it, rearranges their bonds, and releases the
+        products; a mismatched site cannot hold them and they bounce away unchanged. The enzyme is
+        the same either way.
       </desc>
 
       <defs>
-        <linearGradient [attr.id]="enzymeGradientId" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient [attr.id]="enzymeGradientId" x1="0" y1="0" x2="0" y2="1">
           <stop class="enzyme-stop enzyme-stop--light" offset="0%" />
-          <stop class="enzyme-stop enzyme-stop--middle" offset="48%" />
+          <stop class="enzyme-stop enzyme-stop--middle" offset="45%" />
           <stop class="enzyme-stop enzyme-stop--dark" offset="100%" />
         </linearGradient>
-        <radialGradient [attr.id]="reactantGradientId" cx="32%" cy="25%" r="78%">
+        <linearGradient [attr.id]="reactantGradientId" x1="0" y1="0" x2="0" y2="1">
           <stop class="reactant-stop reactant-stop--light" offset="0%" />
-          <stop class="reactant-stop reactant-stop--middle" offset="42%" />
+          <stop class="reactant-stop reactant-stop--middle" offset="48%" />
           <stop class="reactant-stop reactant-stop--dark" offset="100%" />
-        </radialGradient>
-        <radialGradient [attr.id]="productGradientId" cx="32%" cy="25%" r="78%">
+        </linearGradient>
+        <linearGradient [attr.id]="productGradientId" x1="0" y1="0" x2="0" y2="1">
           <stop class="product-stop product-stop--light" offset="0%" />
-          <stop class="product-stop product-stop--middle" offset="45%" />
+          <stop class="product-stop product-stop--middle" offset="48%" />
           <stop class="product-stop product-stop--dark" offset="100%" />
-        </radialGradient>
-        <!--
-          The mask is applied to the enzyme body, so its coordinates are the
-          body's own local space: centred on the enzyme, with the active site
-          26 units above that centre.
-        -->
-        <mask [attr.id]="enzymeMaskId">
-          <rect x="-450" y="-266" width="900" height="440" fill="white" />
-          @for (shape of activeSiteShapes(); track shape.id) {
-            <path [attr.d]="shape.path" transform="translate(0 -26) scale(.68)" fill="black" />
-          }
-        </mask>
+        </linearGradient>
         <filter [attr.id]="shadowId" x="-50%" y="-50%" width="200%" height="220%">
-          <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#020b12" flood-opacity=".42" />
+          <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#020b12" flood-opacity=".45" />
         </filter>
         <filter [attr.id]="glowId" x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="13" />
+          <feGaussianBlur stdDeviation="15" />
         </filter>
       </defs>
 
@@ -132,78 +113,64 @@
         <circle cx="110" cy="205" r="3" />
       </g>
 
-      <g class="reaction-glow" [attr.filter]="'url(#' + glowId + ')'" aria-hidden="true">
-        <ellipse cx="450" cy="240" rx="112" ry="58" />
-      </g>
-
-      <g class="ambient-molecules" aria-hidden="true">
-        @for (copy of ambientCopies; track copy) {
-          @for (molecule of inputMolecules(); track molecule.id) {
-            <g [attr.class]="'ambient-molecule ambient-' + $index + '-' + copy">
-              <path
-                class="ambient-shape"
-                [attr.d]="molecule.path"
-                [attr.fill]="'url(#' + reactantGradientId + ')'"
-              />
-            </g>
-          }
+      <!-- Spare catalyst copies, so the cell does not look like it holds one enzyme. -->
+      <g class="ambient-enzymes" aria-hidden="true">
+        @for (body of ambientEnzymes; track body.id) {
+          <g #ambientEnzyme class="ambient-enzyme">
+            <path
+              [attr.d]="activeReaction().bodyPath"
+              [attr.fill]="'url(#' + enzymeGradientId + ')'"
+            />
+          </g>
         }
       </g>
 
+      <g class="reaction-glow" [attr.filter]="'url(#' + glowId + ')'" aria-hidden="true">
+        <ellipse cx="450" cy="238" rx="118" ry="62" />
+      </g>
+
       <g class="enzyme-molecule" [attr.filter]="'url(#' + shadowId + ')'" data-molecule="enzyme">
-        <g class="enzyme-shape" transform="translate(450 266)">
+        <!--
+          The body is the lock. Its top edge is the active site, cut from the
+          same contour the target molecules were cut from, so a match seats
+          itself flush and a mismatch visibly cannot.
+        -->
+        <g class="enzyme-shape" [attr.transform]="siteTransform">
           <path
             class="enzyme-body"
             [attr.d]="activeReaction().bodyPath"
             [attr.fill]="'url(#' + enzymeGradientId + ')'"
-            [attr.mask]="'url(#' + enzymeMaskId + ')'"
           />
-          @for (shape of activeSiteShapes(); track shape.id) {
-            <path
-              class="active-site-outline"
-              [attr.d]="shape.path"
-              transform="translate(0 -26) scale(.68)"
-            />
-          }
+          <path class="active-site-outline" [attr.d]="activeReaction().activeSitePath" />
         </g>
-        <text x="450" y="296" text-anchor="middle">{{ activeReaction().enzymeCode }}</text>
-        <text class="enzyme-note" x="450" y="316" text-anchor="middle">
+        <text x="450" y="330" text-anchor="middle">{{ activeReaction().enzymeCode }}</text>
+        <text class="enzyme-note" x="450" y="350" text-anchor="middle">
           enzyme remains unchanged
         </text>
       </g>
 
-      @for (molecule of inputMolecules(); track molecule.id) {
-        <g [attr.class]="'substrate substrate-' + $index" [attr.data-molecule]="'reactant'">
-          <path
-            class="molecule-shadow"
-            [attr.d]="molecule.path"
-            transform="translate(5 7)"
-            aria-hidden="true"
-          />
-          <path
-            class="molecule-shape"
-            [attr.d]="molecule.path"
-            [attr.fill]="'url(#' + reactantGradientId + ')'"
-          />
-        </g>
-      }
-
-      @for (molecule of outputMolecules(); track molecule.id) {
-        <g [attr.class]="'reaction-product product-' + $index" [attr.data-molecule]="'product'">
-          <ellipse class="product-halo" rx="68" ry="61" />
-          <path
-            class="molecule-shadow"
-            [attr.d]="molecule.path"
-            transform="translate(5 7)"
-            aria-hidden="true"
-          />
-          <path
-            class="molecule-shape"
-            [attr.d]="molecule.path"
-            [attr.fill]="'url(#' + productGradientId + ')'"
-          />
-        </g>
-      }
+      <g class="field-bodies">
+        @for (body of fieldBodies; track body.id) {
+          <g
+            #fieldBody
+            class="field-body"
+            [attr.data-slot]="body.slot"
+            [attr.data-molecule]="body.slot.startsWith('reactant') ? 'reactant' : 'product'"
+          >
+            @if (moleculeFor(body.slot); as molecule) {
+              <path
+                class="molecule-shape"
+                [attr.d]="molecule.path"
+                [attr.fill]="
+                  body.slot.startsWith('reactant')
+                    ? 'url(#' + reactantGradientId + ')'
+                    : 'url(#' + productGradientId + ')'
+                "
+              />
+            }
+          </g>
+        }
+      </g>
 
       <g class="molecule-labels" aria-hidden="true">
         @for (molecule of inputMolecules(); track molecule.id) {

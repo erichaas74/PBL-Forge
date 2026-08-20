@@ -37,6 +37,7 @@ import {
 } from '../shared/cell-chromosome-viewport.component';
 import { CellModelComponent } from '../shared/cell-model.component';
 import { DRAGON_AUTOSOME_LABELS } from '../shared/dragon-chromosome.catalog';
+import { DragonCardDeckSelectorComponent } from '../shared/dragon-card-deck-selector.component';
 import {
   buildDragonChromosomePairs,
   chromosomePairViewportItems,
@@ -93,6 +94,7 @@ const EMPTY_ALLELE_COPY: AlleleCopyView = {
     DnaRnaBaseExplorerComponent,
     EnzymeReactionExplorerComponent,
     ProteinTraitExpressionComponent,
+    DragonCardDeckSelectorComponent,
   ],
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './genome-microscope.component.html',
@@ -122,6 +124,7 @@ export class GenomeMicroscopeComponent {
   readonly selectedGeneId = signal<string | null>(null);
   readonly selectedAlleleCopy = signal<0 | 1>(0);
   readonly guideOpen = signal(false);
+  readonly dragonDeckOpen = signal(true);
   readonly visitedLevels = signal<readonly GenomeMicroscopeLevel[]>(['dragon']);
   readonly enzymeResult = signal<EnzymeReactionResult | null>(null);
 
@@ -201,8 +204,14 @@ export class GenomeMicroscopeComponent {
     if (!gene) return null;
     const record = geneDnaRecord(gene.id);
     const sequence = this.activeDnaSequence();
+    /*
+     * Both sides go through `dnaSequence` before comparison. It caps a strand
+     * at 24 bases, so an insertion allele would never match its own 25-base
+     * record if only one side were normalised.
+     */
     const marking =
-      record.alleles.find((allele) => allele.sequence === sequence) ?? record.alleles[0];
+      record.alleles.find((allele) => dnaSequence(allele.sequence).join('') === sequence) ??
+      record.alleles[0];
     return marking.protein;
   });
 
@@ -255,10 +264,6 @@ export class GenomeMicroscopeComponent {
     this.selectedGeneId.set(null);
     this.selectedAlleleCopy.set(0);
     this.selectLevel('dragon');
-  }
-
-  loadDragonFromSelect(event: Event): void {
-    this.loadDragon((event.target as HTMLSelectElement).value);
   }
 
   selectLevel(level: GenomeMicroscopeLevel): void {

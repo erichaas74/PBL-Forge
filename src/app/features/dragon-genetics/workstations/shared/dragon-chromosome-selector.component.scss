@@ -4,264 +4,68 @@
 }
 
 .dragon-chromosome-selector {
-  --selector-line: #385461;
+  --selector-line: #6d5527;
   overflow: hidden;
   border: 1px solid var(--selector-line);
   border-radius: 1rem;
   background:
-    radial-gradient(circle at 72% 45%, rgb(94 181 232 / 10%), transparent 28rem),
-    linear-gradient(155deg, rgb(12 38 50 / 98%), rgb(6 24 33 / 98%));
+    radial-gradient(circle at 72% 45%, rgb(231 184 76 / 10%), transparent 28rem),
+    linear-gradient(155deg, rgb(20 31 35 / 98%), rgb(8 21 27 / 98%));
   color: white;
   box-shadow: 0 18px 50px rgb(0 0 0 / 22%);
 }
 
-button {
-  font: inherit;
-}
-
-.selector-header,
-.nucleus-browser > header {
+.selector-header {
   display: flex;
+  min-height: 3.25rem;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-}
-
-.selector-header {
-  min-height: 3.25rem;
   padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--selector-line);
   background: rgb(255 255 255 / 3%);
 }
 
-.selector-header div,
-.nucleus-browser > header div {
+.selector-header div {
   display: grid;
   gap: 0.1rem;
 }
 
-.selector-header small,
-.nucleus-browser > header small {
-  color: var(--simulation-accent, #5eb5e8);
+.selector-header small {
+  color: #e7b84c;
   font-size: 0.75rem;
   font-weight: 950;
   letter-spacing: 0.11em;
 }
 
-.selector-header strong,
-.nucleus-browser > header strong {
+.selector-header strong {
   font-family: var(--font-display);
   font-size: 0.9rem;
 }
 
-.selector-header > span,
-.nucleus-browser > header > span {
-  color: #a9bdc5;
+.selector-header > span {
+  color: #c8b98f;
   font-size: 0.75rem;
   font-weight: 800;
 }
 
-.selector-layout {
-  display: grid;
-  grid-template-columns: minmax(12rem, 0.72fr) minmax(11rem, 0.65fr) minmax(27rem, 2fr);
-  min-height: 18rem;
-}
-
-.dragon-list {
-  display: grid;
-  align-content: start;
-  gap: 0.4rem;
-  max-height: 20rem;
-  overflow: auto;
-  padding: 0.65rem;
-  border-right: 1px solid var(--selector-line);
-}
-
-.dragon-list > p {
-  color: #91a9b2;
-  font-size: 0.8rem;
-}
-
-.dragon-option {
-  display: grid;
-  grid-template-columns: 2.35rem minmax(0, 1fr);
-  gap: 0.55rem;
-  align-items: center;
-  min-height: 3.4rem;
-  padding: 0.42rem;
-  border: 1px solid #34515e;
-  border-radius: 0.65rem;
-  background: #0a2935;
-  color: white;
-  text-align: left;
-  cursor: pointer;
-}
-
-.dragon-option i {
-  display: grid;
-  width: 2.15rem;
-  height: 2.15rem;
-  place-items: center;
-  border: 2px solid var(--dragon-accent);
-  border-radius: 50%;
-  background: var(--dragon-color);
-  color: white;
-  font-style: normal;
-  font-weight: 950;
-}
-
-.dragon-option span {
-  display: grid;
-  min-width: 0;
-}
-
-.dragon-option strong,
-.dragon-option small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dragon-option strong {
-  font-size: 0.82rem;
-}
-
-.dragon-option small {
-  color: #8da7b1;
-  font-size: 0.75rem;
-}
-
-.dragon-option:hover,
-.dragon-option.active,
-.chromosome-list button:hover,
-.chromosome-list button.active {
-  border-color: var(--simulation-accent, #5eb5e8);
-  background: color-mix(in srgb, var(--simulation-accent, #5eb5e8) 14%, #0a2935);
-}
-
-.dragon-preview {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  min-width: 0;
-  border-right: 1px solid var(--selector-line);
-  background: radial-gradient(circle at 50% 50%, rgb(104 188 217 / 13%), transparent 70%);
-}
-
-.dragon-preview app-specimen-viewport {
+app-fanned-card-deck {
+  --deck-card-height: 36.8rem;
   display: block;
-  min-height: 13rem;
+  padding: 0.8rem 0.5rem 0.65rem;
 }
 
-.dragon-preview footer {
-  display: grid;
-  padding: 0.45rem 0.65rem;
-  border-top: 1px solid rgb(56 84 97 / 70%);
-}
-
-.dragon-preview footer strong {
-  font-family: var(--font-display);
-  font-size: 0.82rem;
-}
-
-.dragon-preview footer span {
-  color: #8da7b1;
-  font-size: 0.75rem;
-}
-
-.nucleus-browser {
-  display: grid;
-  grid-template-rows: auto minmax(10rem, 1fr) auto;
-  min-width: 0;
-}
-
-.nucleus-browser > header {
-  padding: 0.5rem 0.65rem;
-  border-bottom: 1px solid rgb(56 84 97 / 70%);
-}
-
-.nucleus-stage {
-  display: grid;
-  height: 18rem;
-  overflow: hidden;
-  place-items: center;
-  background: radial-gradient(circle at 50% 50%, rgb(104 188 217 / 10%), transparent 65%);
-}
-
-.nucleus-stage app-cell-model {
-  display: block;
-  width: min(100%, 34rem);
-  height: auto;
-}
-
-.chromosome-list {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.35rem;
-  padding: 0.45rem;
-  border-top: 1px solid rgb(56 84 97 / 70%);
-}
-
-.chromosome-list button {
-  display: grid;
-  min-width: 0;
-  min-height: 2.6rem;
-  padding: 0.3rem;
-  border: 1px solid #34515e;
-  border-radius: 0.5rem;
-  background: #0a2935;
-  color: white;
-  cursor: pointer;
-}
-
-.chromosome-list strong {
-  font-family: var(--font-display);
-  font-size: 0.82rem;
-}
-
-.chromosome-list span {
-  overflow: hidden;
-  color: #8da7b1;
-  font-size: 0.75rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+app-fanned-card-deck.compact {
+  --deck-card-height: 31rem;
 }
 
 .is-disabled {
   opacity: 0.68;
 }
 
-button:focus-visible {
-  outline: 2px solid #f1d47c;
-  outline-offset: 2px;
-}
-
-@media (max-width: 960px) {
-  .selector-layout {
-    grid-template-columns: minmax(12rem, 0.75fr) minmax(24rem, 2fr);
-  }
-
-  .dragon-preview {
-    display: none;
-  }
-}
-
-@media (max-width: 680px) {
-  .selector-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .dragon-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-height: none;
-    border-right: 0;
-    border-bottom: 1px solid var(--selector-line);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition: none !important;
+@media (max-width: 560px) {
+  .selector-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

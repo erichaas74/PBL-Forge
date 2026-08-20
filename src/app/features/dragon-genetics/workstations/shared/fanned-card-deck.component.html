@@ -1,0 +1,60 @@
+<section
+  class="fanned-deck"
+  [class.is-dragging]="dragging()"
+  [class.is-disabled]="disabled()"
+  [style.--deck-drag-x.px]="dragX()"
+  [attr.aria-label]="ariaLabel()"
+  tabindex="0"
+  (keydown)="handleDeckKeydown($event)"
+  (pointerdown)="handlePointerDown($event)"
+  (pointermove)="handlePointerMove($event)"
+  (pointerup)="handlePointerEnd($event)"
+  (pointercancel)="handlePointerCancel()"
+>
+  <div class="fanned-deck__stage">
+    @for (item of items(); track item.id) {
+      @let cardPosition = position(item);
+      <article
+        class="fanned-deck__slot"
+        [class.is-active]="cardPosition === 0"
+        [class.is-next]="cardPosition === 1"
+        [class.is-previous]="cardPosition === -1"
+        [class.is-later]="cardPosition > 1"
+        [class.is-earlier]="cardPosition < -1"
+        [style.--deck-depth]="cardPosition < 0 ? -cardPosition : cardPosition"
+        [style.z-index]="stackOrder(item)"
+        [attr.role]="cardPosition === 0 ? null : 'button'"
+        [attr.tabindex]="cardPosition === 1 || cardPosition === -1 ? 0 : null"
+        [attr.aria-label]="
+          cardPosition === 0 ? null : 'Bring ' + labelFor()(item) + ' to the front of the deck'
+        "
+        (click)="activate(item)"
+        (keydown)="handleSlotKeydown($event, item)"
+      >
+        <div class="fanned-deck__card" [attr.aria-hidden]="cardPosition === 0 ? null : 'true'">
+          <ng-container
+            [ngTemplateOutlet]="cardTemplate()"
+            [ngTemplateOutletContext]="templateContext(item)"
+          />
+        </div>
+        @if (cardPosition !== 0) {
+          <span
+            class="fanned-deck__peek"
+            aria-hidden="true"
+            (click)="activate(item); $event.stopPropagation()"
+          >
+            <strong>{{ labelFor()(item) }}</strong>
+            @if (subtitleFor()(item); as subtitle) {
+              <small>{{ subtitle }}</small>
+            }
+          </span>
+        }
+      </article>
+    } @empty {
+      <p class="fanned-deck__empty">No dragon cards are available.</p>
+    }
+  </div>
+  @if (items().length > 1) {
+    <p class="fanned-deck__hint">Drag, swipe, or select an exposed card to shuffle the deck.</p>
+  }
+</section>

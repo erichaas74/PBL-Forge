@@ -42,10 +42,7 @@ import {
   DragonChromosomeSelection,
   DragonChromosomeSelectorComponent,
 } from '../shared/dragon-chromosome-selector.component';
-import {
-  ChromosomeSvgComponent,
-  ChromosomeSvgModel,
-} from '../shared/chromosome-svg.component';
+import { ChromosomeSvgComponent, ChromosomeSvgModel } from '../shared/chromosome-svg.component';
 import {
   createEmptyPunnettSnapshot,
   PendingPunnettGamete,
@@ -109,15 +106,19 @@ export class PunnettComposerComponent {
   readonly selectorDragons = computed<readonly AccountDragonRecord[]>(() =>
     this.snapshot().mode === 'test' ? this.testDragons : this.accountSnapshot().dragons,
   );
+  readonly femaleSelectorDragons = computed(() =>
+    this.selectorDragons().filter((dragon) => dragon.sex === 'female'),
+  );
+  readonly maleSelectorDragons = computed(() =>
+    this.selectorDragons().filter((dragon) => dragon.sex === 'male'),
+  );
   readonly parent1 = computed<AccountDragonRecord | null>(() =>
     this.snapshot().mode === 'test'
       ? TEST_FEMALE
       : this.accountParentById(this.snapshot().parent1Id),
   );
   readonly parent2 = computed<AccountDragonRecord | null>(() =>
-    this.snapshot().mode === 'test'
-      ? TEST_MALE
-      : this.accountParentById(this.snapshot().parent2Id),
+    this.snapshot().mode === 'test' ? TEST_MALE : this.accountParentById(this.snapshot().parent2Id),
   );
   readonly activeTrait = computed<ExpressiveDragonTraitDefinition>(
     () => this.traits.find((trait) => trait.id === this.snapshot().traitId) ?? this.traits[0],
@@ -233,11 +234,17 @@ export class PunnettComposerComponent {
     this.recordMessage.set('');
   }
 
-  selectSelectorDragon(dragon: AccountDragonRecord): void {
+  selectSelectorDragon(side: PunnettParentSide, dragon: AccountDragonRecord): void {
     this.stagedChromosome.set(null);
     if (this.snapshot().mode === 'parents') {
-      this.loadAccountRecord(dragon, dragon.sex === 'female' ? 'parent1' : 'parent2');
+      this.loadAccountRecord(dragon, side);
     }
+  }
+
+  useFirstAvailableParent(side: PunnettParentSide): void {
+    const dragon =
+      side === 'parent1' ? this.femaleSelectorDragons()[0] : this.maleSelectorDragons()[0];
+    if (dragon) this.selectSelectorDragon(side, dragon);
   }
 
   selectSelectorChromosome(selection: DragonChromosomeSelection): void {

@@ -5,9 +5,8 @@ import {
   input,
   linkedSignal,
   output,
+  signal,
 } from '@angular/core';
-import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
-import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import {
   dragonParentCanvasSource,
   dragonParentExpressiveProfile,
@@ -20,22 +19,21 @@ import {
   AlleleVaultGene,
 } from '../allele-workbench/allele-vault.models';
 import { AccountDragonRecord } from './account-genetics-library.models';
-import { CellModelComponent } from './cell-model.component';
+import { DragonCardChromosomeId, buildDragonCardGenomeView } from './dragon-card-genome';
+import { DragonFlipCardComponent, DragonFlipCardView } from './dragon-flip-card.component';
 import { DRAGON_AUTOSOME_LABELS } from './dragon-chromosome.catalog';
 import { buildDragonChromosomePairs, chromosomePairViewportItems } from './dragon-chromosome-pairs';
+import { FannedCardDeckComponent, FannedDeckItem } from './fanned-card-deck.component';
 
 export interface DragonChromosomeSelection {
   dragon: AccountDragonRecord;
   chromosome: AlleleVaultGene['chromosome'];
 }
 
-/**
- * Workstation-neutral specimen picker. It keeps dragon identity, the complete
- * homologous chromosome set, and chromosome selection on one shared surface.
- */
+/** Shared physical card deck for choosing one dragon and one chromosome pair. */
 @Component({
   selector: 'app-dragon-chromosome-selector',
-  imports: [SpecimenViewportComponent, CellModelComponent],
+  imports: [FannedCardDeckComponent, DragonFlipCardComponent],
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './dragon-chromosome-selector.component.html',
   styleUrl: './dragon-chromosome-selector.component.scss',
@@ -49,6 +47,7 @@ export class DragonChromosomeSelectorComponent {
   readonly initialChromosome = input<AlleleVaultGene['chromosome']>('Chr 1');
   readonly label = input('Dragon and chromosome selector');
   readonly disabled = input(false);
+  readonly compact = input(false);
 
   readonly dragonSelected = output<AccountDragonRecord>();
   readonly chromosomeSelected = output<DragonChromosomeSelection>();
@@ -57,16 +56,40 @@ export class DragonChromosomeSelectorComponent {
     () => this.initialDragonId() ?? this.dragons()[0]?.id ?? null,
   );
   readonly selectedChromosomeId = linkedSignal(() => this.initialChromosome());
+  readonly flippedDragonIds = signal<readonly string[]>([]);
   readonly selectedDragon = computed(
     () =>
       this.dragons().find((dragon) => dragon.id === this.selectedDragonId()) ??
       this.dragons()[0] ??
       null,
   );
-  readonly specimenSource = computed<SpecimenSource | null>(() => {
-    const dragon = this.selectedDragon();
-    return dragon ? dragonParentCanvasSource(dragon, dragon.sex) : null;
-  });
+  readonly cardViews = computed(
+    () =>
+      new Map(
+        this.dragons().map((dragon) => [
+          dragon.id,
+          {
+            id: dragon.id,
+            name: dragon.name,
+            title: dragon.title,
+            color: dragon.color,
+            accentColor: dragon.accentColor,
+            source: dragonParentCanvasSource(dragon, dragon.sex),
+            seriesLabel: 'GENETICS SPECIMEN',
+            catalogNumber: `GEN ${dragon.generation ?? 0}`,
+            arenaRating: null,
+            battleRole: `${dragon.sex === 'female' ? 'Female' : 'Male'} genome · ${dragon.sex === 'female' ? 'XX' : 'XY'}`,
+            stats: [],
+          } satisfies DragonFlipCardView,
+        ]),
+      ),
+  );
+  readonly cardGenomeViews = computed(
+    () =>
+      new Map(
+        this.dragons().map((dragon) => [dragon.id, buildDragonCardGenomeView(dragon, dragon.sex)]),
+      ),
+  );
   readonly chromosomePairs = computed(() => {
     const dragon = this.selectedDragon();
     if (!dragon) return [];
@@ -90,11 +113,31 @@ export class DragonChromosomeSelectorComponent {
     const chromosome = this.selectedChromosome();
     return chromosome ? this.genes().filter((gene) => gene.chromosome === chromosome.id).length : 0;
   });
+  readonly cardLabel = (item: FannedDeckItem): string =>
+    this.cardViews().get(item.id)?.name ?? item.id;
+  readonly cardSubtitle = (item: FannedDeckItem): string =>
+    this.cardViews().get(item.id)?.battleRole ?? '';
 
   selectDragon(dragon: AccountDragonRecord): void {
     if (this.disabled() || !this.dragons().some((candidate) => candidate.id === dragon.id)) return;
     this.selectedDragonId.set(dragon.id);
     this.dragonSelected.emit(dragon);
+  }
+
+  toggleCard(dragonId: string): void {
+    this.flippedDragonIds.update((ids) =>
+      ids.includes(dragonId)
+        ? ids.filter((candidate) => candidate !== dragonId)
+        : [...ids, dragonId],
+    );
+  }
+
+  isCardFlipped(dragonId: string): boolean {
+    return this.flippedDragonIds().includes(dragonId);
+  }
+
+  selectedCardChromosome(): DragonCardChromosomeId {
+    return this.selectedChromosomeId();
   }
 
   selectChromosome(chromosome: string): void {

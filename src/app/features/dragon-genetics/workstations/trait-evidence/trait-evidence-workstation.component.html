@@ -22,115 +22,37 @@
       <p>Flip a card to inspect its recorded traits. Select any dragon to investigate.</p>
     </header>
 
-    <div class="dragon-card-catalog">
-      @for (dragon of dragons; track dragon.id) {
-        <article
-          class="dragon-card-slot"
-          [class.selected]="selectedDragonId() === dragon.id"
-          [style.--dragon-color]="dragon.profile.color"
-          [style.--dragon-accent]="dragon.profile.accentColor"
-        >
-          <div class="dragon-card-scene" [class.flipped]="isDragonCardFlipped(dragon.id)">
-            <section
-              class="dragon-card dragon-card--front"
-              [attr.aria-hidden]="isDragonCardFlipped(dragon.id)"
-            >
-              <header>
-                <span>{{ dragon.card.seriesLabel }}</span>
-                <strong>{{ dragon.name }}</strong>
-                <small>★ {{ dragon.card.arenaRating }}</small>
-              </header>
-              <div class="dragon-card__portrait" aria-hidden="true">
-                <svg viewBox="0 0 220 132" focusable="false">
-                  <path
-                    class="portrait-wing"
-                    d="M88 76C54 30 20 29 14 42c25 5 39 21 47 49M126 72c25-38 57-39 78-25-23 5-38 21-48 47"
-                  />
-                  <path
-                    class="portrait-body"
-                    d="M55 90c16-36 61-48 91-21 16 14 24 35 53 29-24 20-53 15-70 4-24 24-66 19-74-12Z"
-                  />
-                  <path class="portrait-head" d="m83 64 17-36 13 21 18-25 4 42Z" />
-                  <circle class="portrait-eye" cx="113" cy="57" r="4" />
-                  <path class="portrait-tail" d="M59 90C35 107 24 110 6 103c25 25 59 20 83 3" />
-                </svg>
-              </div>
-              <p class="dragon-card__role">{{ dragon.card.battleRole }}</p>
-              <dl class="dragon-card__stats">
-                @for (stat of dragon.card.stats; track stat.id) {
-                  <div>
-                    <dt>{{ stat.label }}</dt>
-                    <dd>{{ stat.value }}</dd>
-                  </div>
-                }
-              </dl>
-              <footer>
-                <span>{{ dragon.profile.title }}</span>
-                <b>{{ dragon.card.catalogNumber }}</b>
-              </footer>
-            </section>
+    <app-fanned-card-deck
+      [items]="dragons"
+      [activeId]="selectedDragonId()"
+      [cardTemplate]="traitDragonCard"
+      [labelFor]="dragonCardLabel"
+      [subtitleFor]="dragonCardSubtitle"
+      ariaLabel="Academy field dragon deck"
+      (activeItemChange)="selectDragonById($event.id)"
+    />
 
-            <section
-              class="dragon-card dragon-card--back"
-              [attr.aria-hidden]="!isDragonCardFlipped(dragon.id)"
-            >
-              <header>
-                <span>Field record</span>
-                <strong>{{ dragon.name }}</strong>
-                <small>{{ dragon.card.catalogNumber }}</small>
-              </header>
-              <h3>Recorded traits</h3>
-              <ul>
-                @for (trait of dragon.card.traits; track trait) {
-                  <li>{{ trait }}</li>
-                }
-              </ul>
-              <dl class="dragon-card__collection">
-                <div>
-                  <dt>Trials</dt>
-                  <dd>{{ dragonTrialCount(dragon.id) }}</dd>
-                </div>
-                <div>
-                  <dt>Supported claims</dt>
-                  <dd>{{ dragonSupportedClaimCount(dragon.id) }}</dd>
-                </div>
-              </dl>
-              <p>Card stats come from the same arena model used to test this dragon.</p>
-            </section>
-          </div>
-
-          <div class="dragon-card-actions">
-            <button
-              type="button"
-              [attr.aria-pressed]="isDragonCardFlipped(dragon.id)"
-              (click)="toggleDragonCard(dragon.id)"
-            >
-              {{ isDragonCardFlipped(dragon.id) ? 'Show front' : 'Flip card' }}
-            </button>
-            <button
-              type="button"
-              class="select-card"
-              [attr.aria-pressed]="selectedDragonId() === dragon.id"
-              (click)="selectDragonById(dragon.id)"
-            >
-              {{ selectedDragonId() === dragon.id ? 'Investigating' : 'Investigate' }}
-              {{ dragon.name }}
-            </button>
-          </div>
-        </article>
+    <ng-template #traitDragonCard let-dragon let-active="active" let-renderLive="renderLive">
+      @if (dragonCardViews.get(dragon.id); as cardView) {
+        @if (cardGenomeViews.get(dragon.id); as genomeView) {
+          <app-dragon-flip-card
+            [card]="cardView"
+            [genome]="genomeView"
+            [selectedChromosome]="selectedCardChromosomeId(dragon.id)"
+            [flipped]="isDragonCardFlipped(dragon.id)"
+            [active]="active"
+            [renderLive]="renderLive"
+            [footerLeft]="dragonTrialCount(dragon.id) + ' trials'"
+            [footerRight]="dragonSupportedClaimCount(dragon.id) + ' supported claims'"
+            (flipRequested)="toggleDragonCard(dragon.id)"
+            (chromosomeSelected)="selectCardChromosome(dragon.id, $event)"
+          />
+        }
       }
-    </div>
+    </ng-template>
   </section>
 
   <div class="instrument-bar">
-    <label>
-      Dragon
-      <select [value]="selectedDragonId()" (change)="selectDragon($event)">
-        @for (dragon of dragons; track dragon.id) {
-          <option [value]="dragon.id">{{ dragon.name }}</option>
-        }
-      </select>
-    </label>
     <label>
       Investigation
       <select [value]="selectedObservationId()" (change)="selectObservationFromEvent($event)">

@@ -4,21 +4,16 @@ import {
   computed,
   inject,
   input,
+  linkedSignal,
   output,
-  signal,
 } from '@angular/core';
-import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
 import {
   DRAGON_TRAITS,
   genotypeLabel,
   showsDominantPhenotype,
 } from '../../simulation/domain/dragon-inheritance';
-import {
-  createDragonBenchBuild,
-  dragonParentCanvasSource,
-  provideDragonSpecimenProfile,
-} from '../../simulation/domain/dragon-specimen.profile';
+import { provideDragonSpecimenProfile } from '../../simulation/domain/dragon-specimen.profile';
 import {
   ACCOUNT_GENETICS_RECORD_DRAG_TYPE,
   AccountDragonRecord,
@@ -26,10 +21,12 @@ import {
   accountGeneticsDragPayload,
 } from './account-genetics-library.models';
 import { AccountGeneticsLibraryService } from './account-genetics-library.service';
+import { accountDragonPerformance, dragonGeneration } from './dragon-account-card';
+import { DragonCardDeckSelectorComponent } from './dragon-card-deck-selector.component';
 
 @Component({
   selector: 'app-account-genetics-file',
-  imports: [SpecimenViewportComponent],
+  imports: [DragonCardDeckSelectorComponent],
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './account-genetics-file.component.html',
   styleUrl: './account-genetics-file.component.scss',
@@ -42,15 +39,16 @@ export class AccountGeneticsFileComponent {
   readonly selectedRecordId = input<string | null>(null);
   readonly dragonsOnly = input(false);
   readonly compact = input(false);
+  readonly initiallyOpen = input(false);
   readonly disabled = input(false);
   readonly label = input<string | null>(null);
   readonly sexFilter = input<DragonSex | null>(null);
   readonly eligibleDragonIds = input<readonly string[] | null>(null);
   readonly recordSelected = output<AccountGeneticsRecord>();
 
-  readonly open = signal(false);
-  readonly tab = signal<AccountGeneticsRecord['kind']>('dragon');
-  readonly inspectedRecordId = signal<string | null>(null);
+  readonly open = linkedSignal(() => this.initiallyOpen());
+  readonly tab = linkedSignal<AccountGeneticsRecord['kind']>(() => 'dragon');
+  readonly inspectedRecordId = linkedSignal<string | null>(() => this.selectedRecordId());
   readonly snapshot = computed(() => this.library.recordsFor(this.studentId()));
   readonly visibleRecords = computed<readonly AccountGeneticsRecord[]>(() => {
     if (!this.dragonsOnly() && this.tab() === 'chromosome') return this.snapshot().chromosomes;
@@ -58,18 +56,39 @@ export class AccountGeneticsFileComponent {
     const eligibleIds = this.eligibleDragonIds();
     const sex = this.sexFilter();
     return this.snapshot().dragons.filter(
-      (dragon) =>
-        (!sex || dragon.sex === sex) &&
-        (!eligibleIds || eligibleIds.includes(dragon.id)),
+      (dragon) => (!sex || dragon.sex === sex) && (!eligibleIds || eligibleIds.includes(dragon.id)),
     );
   });
+  readonly visibleDragons = computed<readonly AccountDragonRecord[]>(() =>
+    this.visibleRecords().filter(
+      (record): record is AccountDragonRecord => record.kind === 'dragon',
+    ),
+  );
+  readonly activeDragonId = computed(() => {
+    const dragons = this.visibleDragons();
+    const inspectedId = this.inspectedRecordId();
+    if (inspectedId && dragons.some((dragon) => dragon.id === inspectedId)) return inspectedId;
+    const selectedId = this.selectedRecordId();
+    if (selectedId && dragons.some((dragon) => dragon.id === selectedId)) return selectedId;
+    return dragons[0]?.id ?? '';
+  });
+  readonly activeDeckDragon = computed(
+    () =>
+      this.visibleDragons().find((dragon) => dragon.id === this.activeDragonId()) ??
+      this.visibleDragons()[0] ??
+      null,
+  );
   readonly inspectedRecord = computed(() => {
     const id = this.inspectedRecordId();
-    return id ? this.visibleRecords().find((record) => record.id === id) ?? null : null;
+    return id ? (this.visibleRecords().find((record) => record.id === id) ?? null) : null;
   });
   readonly inspectedDragon = computed(() => {
     const record = this.inspectedRecord();
-    return record?.kind === 'dragon' ? record : null;
+    return record?.kind === 'dragon'
+      ? record
+      : this.tab() === 'dragon'
+        ? this.activeDeckDragon()
+        : null;
   });
   readonly activeRecord = computed(() => {
     const id = this.selectedRecordId();
@@ -89,10 +108,6 @@ export class AccountGeneticsFileComponent {
           ? 'Dragon inventory'
           : 'Genetics inventory'),
   );
-  readonly specimenSource = computed(() => {
-    const dragon = this.inspectedDragon();
-    return dragon ? dragonParentCanvasSource(dragon, dragon.sex) : null;
-  });
   readonly traitReadouts = computed(() => {
     const dragon = this.inspectedDragon();
     if (!dragon) return [];
@@ -107,23 +122,13 @@ export class AccountGeneticsFileComponent {
   });
   readonly performance = computed(() => {
     const dragon = this.inspectedDragon();
-    if (!dragon) return null;
-    const build = createDragonBenchBuild(dragon.id, dragon.genome, {
-      label: dragon.name,
-      generation: dragon.generation ?? 0,
-      identity: { color: dragon.color, accentColor: dragon.accentColor },
-    });
-    const parts = Object.values(build.combatProfile.parts);
-    const abilities = new Set(build.combatProfile.abilityIds);
-    if (build.fireBreathing) abilities.add('fire-breath');
-    return {
-      health: parts.reduce((total, part) => total + part.maxHealth, 0),
-      armor: Math.round(
-        (parts.reduce((total, part) => total + part.armor, 0) / Math.max(parts.length, 1)) * 100,
-      ),
-      abilities: [...abilities].map((ability) => this.abilityLabel(ability)),
-    };
+    return dragon ? accountDragonPerformance(dragon) : null;
   });
+
+  selectDeckDragon(dragon: AccountDragonRecord): void {
+    if (this.disabled()) return;
+    this.inspectedRecordId.set(dragon.id);
+  }
 
   inspect(record: AccountGeneticsRecord): void {
     if (!this.disabled()) this.inspectedRecordId.set(record.id);
@@ -158,13 +163,6 @@ export class AccountGeneticsFileComponent {
   }
 
   dragonGeneration(dragon: AccountDragonRecord): string {
-    return `Generation ${dragon.generation ?? (dragon.source === 'foundation' ? 0 : 1)}`;
-  }
-
-  private abilityLabel(value: string): string {
-    return value
-      .split('-')
-      .map((word) => word.slice(0, 1).toUpperCase() + word.slice(1))
-      .join(' ');
+    return dragonGeneration(dragon);
   }
 }

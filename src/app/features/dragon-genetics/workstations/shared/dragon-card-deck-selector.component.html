@@ -1,0 +1,30 @@
+<app-fanned-card-deck
+  [class.compact]="compact()"
+  [items]="dragons()"
+  [activeId]="activeId()"
+  [cardTemplate]="dragonCard"
+  [labelFor]="labelFor"
+  [subtitleFor]="subtitleFor"
+  [disabled]="disabled()"
+  [ariaLabel]="ariaLabel()"
+  (activeItemChange)="selectDragon($event)"
+/>
+
+<ng-template #dragonCard let-dragon let-active="active" let-renderLive="renderLive">
+  @if (cardViews().get(dragon.id); as card) {
+    @if (genomeViews().get(dragon.id); as genome) {
+      <app-dragon-flip-card
+        [card]="card"
+        [genome]="genome"
+        [active]="active && !disabled()"
+        [renderLive]="renderLive"
+        [flipped]="flippedDragonId() === dragon.id"
+        [selectedChromosome]="selectedChromosome(dragon.id)"
+        [footerLeft]="dragon.source === 'foundation' ? 'Foundation dragon' : 'Student dragon'"
+        [footerRight]="dragon.sex === 'female' ? 'XX' : 'XY'"
+        (flipRequested)="toggleCard(dragon.id)"
+        (chromosomeSelected)="selectChromosome(dragon.id, $event)"
+      />
+    }
+  }
+</ng-template>

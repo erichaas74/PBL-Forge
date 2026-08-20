@@ -9,14 +9,17 @@ PBL Forge artwork, names, iconography, proportions, and card layout rather than 
 game's logo or exact trade dress.
 
 The student's cards live in a persistent **Dragon Deck**. A card catalog shows collected cards,
-undiscovered silhouettes, filters, saved lineages, and where each dragon came from. This is a later
-cross-workstation feature; Trait Evidence is the first visual pilot.
+undiscovered silhouettes, filters, saved lineages, and where each dragon came from. Trait Evidence
+established the visual language; the same selector now reads the Account Genetics Library anywhere
+a workstation chooses a whole dragon.
 
 ## Non-negotiable data rules
 
 - A card references one canonical dragon identity. It does not contain a second hard-coded genome.
-- Portraits use a thumbnail from the shared assembly renderer or a deterministic representation of
-  that same dragon build.
+- Portraits use the live shared assembly renderer for visible workstation cards. A future catalog
+  may use renderer-captured thumbnails for offscreen pages, but never a separate decorative dragon.
+- Chromosomes and gene readouts resolve through the shared cell model, chromosome-pair builder,
+  allele catalog, and expressive phenotype rules; cards do not carry their own locus truth.
 - Phenotype labels come from the expressive-genome and shared phenotype sources.
 - Battle statistics come from `assaySpecimen` and the shared combat profile used by the arena.
 - Parentage comes from hatchery/incubator records. Discovery labels come from the Genetics Notebook.
@@ -51,7 +54,7 @@ the card record.
 ### Front
 
 - Dragon name and original academy series mark
-- Real dragon portrait or renderer-derived thumbnail
+- Live three-dimensional dragon canvas for each visible workstation card
 - Battle role derived from available abilities
 - Arena rating with its model/context clearly named
 - Power, durability, protection, and versatility from the shared assay
@@ -59,19 +62,27 @@ the card record.
 
 ### Back
 
-- Observable traits and unlocked Genetics Notebook discoveries
+- Shared cell/nucleus view with selectable homologous chromosome pairs
+- Gene, genotype, inheritance pattern, and expressed trait readout for the selected chromosome
 - Parentage and generation
 - Sex chromosome model where scientifically relevant
 - Tests completed, supported claims, and workstation discoveries
 - Acquisition story and date
 - Link or action to open the full dragon record
 
-Unknown genes, allele labels, or outcomes remain hidden until the student has legitimately unlocked
-them. Flipping a card must never leak an investigation answer.
+Gene visibility follows the host investigation. A complete specimen record such as Trait Evidence
+may expose the full readout; discovery workstations must still hide locked genes or outcomes.
+Flipping a card must never leak an answer that its host investigation expects the student to infer.
 
 ## Deck and catalog experience
 
 - Grid and binder views with search, trait, lineage, generation, and source filters
+- Workstation selection uses the shared physical-deck navigator: one centered active card, a more
+  visible angled next card, a smaller previous-card peek, and deeper cards stacked behind.
+- Selecting an exposed card, using Left/Right Arrow, or swiping at least the shared gesture
+  threshold brings that card forward with the same semantic selection event.
+- The deck wraps naturally across roughly 2–10 cards and narrows its cards and offsets before an
+  angled neighbor can create viewport overflow.
 - Front/back flip with a visible button, keyboard support, and reduced-motion fallback
 - Favorite and reorder controls; no drag-only interactions
 - Empty slots may communicate collection scope but should not pressure students with purchases or
@@ -82,10 +93,10 @@ them. Flipping a card must never leak an investigation answer.
 ## Suggested rollout order
 
 1. **Trait Evidence pilot:** flippable specimen cards with assay-derived stats and evidence counts.
-2. **Hatchery and Incubator:** award a card when a persistent dragon record is created; show parent
-   cards during selection.
-3. **Allele Workbench and Punnett Composer:** use compact cards only for selecting already-owned
-   dragons or parents. Keep chromosomes and evidence as the dominant scientific surface.
+2. **Hatchery and Incubator:** show parent cards during selection and award a card when a persistent
+   dragon record is created.
+3. **Genome Microscope and Punnett Composer:** use compact cards for selecting already-owned dragons
+   and expose the same clickable chromosome back. Keep the scientific model as the dominant surface.
 4. **Arena:** choose combatants from the deck and update battle-history readouts without changing
    the underlying genome.
 5. **Pedigree and companion workstations:** link cards to lineage nodes and show-specific records.
@@ -93,10 +104,17 @@ them. Flipping a card must never leak an investigation answer.
 
 ## Shared component plan
 
-Build one reusable `DragonCardComponent` and one `DragonDeckComponent`. The card accepts a resolved,
-read-only view model and emits semantic actions such as select, flip, favorite, and open record. It
-must not know which workstation hosts it. Use CSS custom properties for cosmetic editions and keep
-the scientific content DOM-identical across editions.
+Use one reusable card face and one deck navigator. The card accepts a resolved, read-only view model
+and emits semantic actions such as select, flip, favorite, and open record. It must not know which
+workstation hosts it. Use CSS custom properties for cosmetic editions and keep the scientific
+content DOM-identical across editions.
+
+The shared implementation is split into `DragonFlipCardComponent` for the canonical live
+dragon/genome faces, `FannedCardDeckComponent` for layout, click, keyboard, and swipe navigation,
+and `DragonCardDeckSelectorComponent` for resolving Account Genetics Library records into those two
+views. Trait Evidence, Punnett Composer, Genome Microscope, Dragon Hatchery, Incubator Sampler,
+Blood Compatibility, Protein Rescue, Island Diversity intake, and Arena account selection consume
+these shared pieces rather than carrying their own card or carousel behavior.
 
 Before the wider rollout, add contract tests proving that Hatchery, Test Bench, Arena, and the card
 resolver report the same phenotype and combat values for the same dragon record.
@@ -107,6 +125,7 @@ resolver report the same phenotype and combat values for the same dragon record.
 - Flip state is announced with `aria-pressed`; hidden faces are removed from the accessibility tree.
 - Every card action has a native button and visible focus state.
 - Reduced motion changes faces immediately without a 3D rotation.
-- Catalog virtualization or pagination begins before large student decks create dozens of WebGL
-  contexts. Prefer stored renderer thumbnails in catalog grids and mount a live renderer only in a
-  selected-card detail view.
+- Small workstation decks mount a live renderer in every visible card. Larger binder/catalog views
+  must paginate or virtualize before they create dozens of WebGL contexts, and should suspend
+  offscreen canvases. Renderer-captured thumbnails are acceptable only for those offscreen catalog
+  pages and must come from the same canonical dragon build.

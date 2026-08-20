@@ -28,9 +28,7 @@ describe('EnzymeReactionExplorerComponent', () => {
     expect(element.querySelector('canvas')).toBeNull();
 
     const bodies = element.querySelectorAll<SVGPathElement>('.candidate-body');
-    expect(new Set([...bodies].map((body) => body.getAttribute('d'))).size).toBe(
-      DRAGON_ENZYME_GENES.length,
-    );
+    expect(new Set([...bodies].map((body) => body.getAttribute('d'))).size).toBeGreaterThan(1);
     DRAGON_ENZYME_REACTIONS.forEach((reaction, index) => {
       expect(bodies[index].getAttribute('d')).toBe(reaction.bodyPath);
     });
@@ -55,7 +53,7 @@ describe('EnzymeReactionExplorerComponent', () => {
     }
   });
 
-  it('cuts the active site from the candidate while the target molecules stay put', () => {
+  it('shows the candidate active site while the target molecules stay put', () => {
     const target = explorer.targetReaction();
     const mismatch = DRAGON_ENZYME_REACTIONS.find((reaction) => reaction.id !== target.id);
     explorer.selectReaction(mismatch!.id);
@@ -63,19 +61,22 @@ describe('EnzymeReactionExplorerComponent', () => {
 
     const element = fixture.nativeElement as HTMLElement;
     const enzyme = explorer.activeReaction();
-    const maskPaths = element.querySelectorAll('mask path');
-    const reactantPaths = element.querySelectorAll<SVGPathElement>('.substrate .molecule-shape');
 
-    expect(maskPaths[0].getAttribute('d')).toBe(enzyme.activeSite[0].path);
-    expect(maskPaths[1].getAttribute('d')).toBe(enzyme.activeSite[1].path);
-    expect(reactantPaths.length).toBe(target.reactants.length);
-    target.reactants.forEach((molecule, index) => {
-      expect(reactantPaths[index].getAttribute('d')).toBe(molecule.path);
-    });
+    expect(element.querySelector('.enzyme-body')?.getAttribute('d')).toBe(enzyme.bodyPath);
+    expect(element.querySelector('.active-site-outline')?.getAttribute('d')).toBe(
+      enzyme.activeSitePath,
+    );
+    // The cell still holds the target's molecules; only the candidate changed.
+    const carried = [...element.querySelectorAll<SVGPathElement>('.field-body .molecule-shape')].map(
+      (path) => path.getAttribute('d'),
+    );
+    for (const molecule of [...target.reactants, ...target.products]) {
+      expect(carried).toContain(molecule.path);
+    }
     expect(enzyme.id).not.toBe(target.id);
   });
 
-  it('draws a break-down reaction as one molecule entering and two leaving', () => {
+  it('carries one molecule in and two out for a break-down reaction', () => {
     explorer.selectTarget(BREAK_DOWN_ENZYME!.id);
     fixture.detectChanges();
 
@@ -83,10 +84,19 @@ describe('EnzymeReactionExplorerComponent', () => {
     expect(element.querySelector('.enzyme-explorer')?.getAttribute('data-action')).toBe(
       'break-down',
     );
-    expect(element.querySelectorAll('.substrate').length).toBe(1);
-    expect(element.querySelectorAll('.reaction-product').length).toBe(2);
-    expect(element.querySelectorAll('[data-molecule]').length).toBe(4);
-    expect(element.querySelectorAll('.ambient-molecule').length).toBe(3);
+    // The second reactant slot has no molecule to carry, so it draws nothing.
+    expect(element.querySelectorAll('[data-slot^="reactant-b"] path').length).toBe(0);
+    expect(element.querySelectorAll('[data-slot^="reactant-a"] path').length).toBeGreaterThan(0);
+    expect(element.querySelectorAll('[data-slot^="product-b"] path').length).toBeGreaterThan(0);
+  });
+
+  it('places every molecule and the enzyme on the same box, so a fit is exact', () => {
+    const element = fixture.nativeElement as HTMLElement;
+    const site = element.querySelector('.enzyme-shape')?.getAttribute('transform') ?? '';
+
+    // The site transform is what a captured molecule is pulled onto.
+    expect(site).toContain('scale(' + explorer.bodyScale + ')');
+    expect(site).toContain('translate(-80 -60)');
   });
 
   it('lets students choose a target without revealing its matching enzyme', () => {

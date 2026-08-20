@@ -33,12 +33,57 @@
       </button>
     </nav>
 
-    <app-dragon-chromosome-selector
-      [dragons]="selectorDragons()"
-      [label]="snapshot().mode === 'parents' ? 'Parent dragon and chromosome selector' : 'Heterozygous test cell and chromosome selector'"
-      (dragonSelected)="selectSelectorDragon($event)"
-      (chromosomeSelected)="selectSelectorChromosome($event)"
-    />
+    <section class="parent-card-selectors" aria-label="Female and male parent card selectors">
+      <article>
+        <header><small>PARENT 1 · XX</small><strong>Female dragon</strong></header>
+        <app-dragon-chromosome-selector
+          [dragons]="femaleSelectorDragons()"
+          [initialDragonId]="parent1()?.id ?? femaleSelectorDragons()[0]?.id ?? null"
+          [compact]="true"
+          [label]="
+            snapshot().mode === 'parents'
+              ? 'Female parent and chromosome selector'
+              : 'Heterozygous XX test cell'
+          "
+          (dragonSelected)="selectSelectorDragon('parent1', $event)"
+          (chromosomeSelected)="selectSelectorChromosome($event)"
+        />
+        @if (snapshot().mode === 'parents' && !parent1() && femaleSelectorDragons().length) {
+          <button
+            type="button"
+            class="use-parent-card"
+            (click)="useFirstAvailableParent('parent1')"
+          >
+            Use {{ femaleSelectorDragons()[0].name }} as female parent
+          </button>
+        }
+      </article>
+
+      <article>
+        <header><small>PARENT 2 · XY</small><strong>Male dragon</strong></header>
+        <app-dragon-chromosome-selector
+          [dragons]="maleSelectorDragons()"
+          [initialDragonId]="parent2()?.id ?? maleSelectorDragons()[0]?.id ?? null"
+          [compact]="true"
+          [label]="
+            snapshot().mode === 'parents'
+              ? 'Male parent and chromosome selector'
+              : 'Heterozygous XY test cell'
+          "
+          (dragonSelected)="selectSelectorDragon('parent2', $event)"
+          (chromosomeSelected)="selectSelectorChromosome($event)"
+        />
+        @if (snapshot().mode === 'parents' && !parent2() && maleSelectorDragons().length) {
+          <button
+            type="button"
+            class="use-parent-card"
+            (click)="useFirstAvailableParent('parent2')"
+          >
+            Use {{ maleSelectorDragons()[0].name }} as male parent
+          </button>
+        }
+      </article>
+    </section>
 
     <main class="composer-surface">
       <header class="gene-console">
@@ -56,7 +101,8 @@
               [style.--gene-color]="gene.locusColor"
               (click)="selectTrait(gene.id)"
             >
-              <i aria-hidden="true"></i><span>{{ gene.sampleCode }}</span>{{ gene.name }}
+              <i aria-hidden="true"></i><span>{{ gene.sampleCode }}</span
+              >{{ gene.name }}
             </button>
           }
         </div>
@@ -115,7 +161,9 @@
                       [compact]="true"
                     />
                   }
-                  <small>Copy {{ index + 1 }}</small><strong>{{ allele }}</strong><i>→</i>
+                  <small>Copy {{ index + 1 }}</small
+                  ><strong>{{ allele }}</strong
+                  ><i>→</i>
                 </button>
               }
             </div>
@@ -186,7 +234,9 @@
                       [compact]="true"
                     />
                   }
-                  <small>Copy {{ index + 1 }}</small><strong>{{ allele }}</strong><i>→</i>
+                  <small>Copy {{ index + 1 }}</small
+                  ><strong>{{ allele }}</strong
+                  ><i>→</i>
                 </button>
               }
             </div>

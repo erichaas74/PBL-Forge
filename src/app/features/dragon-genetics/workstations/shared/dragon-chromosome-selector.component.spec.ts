@@ -26,10 +26,12 @@ describe('DragonChromosomeSelectorComponent', () => {
     expect(selector.selectedDragon()).toBe(selector.dragons()[0]);
     expect(selector.cellChromosomes().length).toBe(5);
     expect(selector.cellChromosomes().every((item) => item.pairedModel)).toBeTrue();
-    expect(element.querySelectorAll('.dragon-option').length).toBe(selector.dragons().length);
-    expect(element.querySelectorAll('.nucleus-stage .chromosome-in-cell').length).toBe(5);
-    expect(element.querySelectorAll('.nucleus-stage .chromatid').length).toBe(10);
-    expect(element.querySelectorAll('.chromosome-list button').length).toBe(5);
+    expect(element.querySelectorAll('.fanned-deck__slot').length).toBe(selector.dragons().length);
+    expect(element.querySelectorAll('.is-active .chromosome-in-cell').length).toBe(5);
+    expect(element.querySelectorAll('.is-active .chromatid').length).toBe(10);
+    expect(element.querySelector('.is-next .fanned-deck__peek')?.textContent).toContain(
+      selector.dragons()[1].name,
+    );
   });
 
   it('updates the rendered sex chromosomes when another dragon is selected', () => {
@@ -59,9 +61,26 @@ describe('DragonChromosomeSelectorComponent', () => {
     expect(selector.selectedChromosome()?.id).toBe('Chr 3');
     expect(selector.selectedGeneCount()).toBe(3);
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector(
-        '.nucleus-stage [data-chromosome="Chr 3"]',
-      )?.classList,
+      (fixture.nativeElement as HTMLElement).querySelector('.is-active [data-chromosome="Chr 3"]')
+        ?.classList,
     ).toContain('chromosome-in-cell--selected');
+  });
+
+  it('keeps flip state on the active card while exposing the chromosome cell', () => {
+    const dragon = selector.selectedDragon()!;
+
+    selector.toggleCard(dragon.id);
+    fixture.detectChanges();
+
+    expect(selector.isCardFlipped(dragon.id)).toBeTrue();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.is-active app-dragon-flip-card')
+        ?.classList,
+    ).not.toBeNull();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '.is-active .dragon-card-shell.is-flipped',
+      ),
+    ).not.toBeNull();
   });
 });

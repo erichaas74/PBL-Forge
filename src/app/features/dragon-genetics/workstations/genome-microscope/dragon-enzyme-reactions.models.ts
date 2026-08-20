@@ -37,11 +37,13 @@ export interface DragonEnzymeReaction {
   /** The released molecule this gene's trait depends on. */
   readonly traitProduct: DragonEnzymeMolecule;
   /**
-   * The two interlocking shapes that define the cavity. Both a build and a
-   * break-down enzyme carve the same cavity, because the joined molecule is
-   * exactly the two fragments tiled together.
+   * The shape of the cavity in the enzyme's top edge.
+   *
+   * It is the joined molecule's own outline, because the body and the molecule
+   * were cut from one contour. Build and break-down enzymes share one cavity:
+   * the two fragments tiled together are exactly the joined molecule.
    */
-  readonly activeSite: readonly [DragonEnzymeMolecule, DragonEnzymeMolecule];
+  readonly activeSitePath: string;
   /** Enzyme silhouette generated from the residue chain. */
   readonly bodyPath: string;
   readonly equation: string;
@@ -56,7 +58,7 @@ export const DRAGON_ENZYME_REACTIONS: readonly DragonEnzymeReaction[] = DRAGON_E
   (record): DragonEnzymeReaction => {
     const { protein } = record;
     const activity = protein.activity;
-    if (!activity || !protein.bodyPath) {
+    if (!activity) {
       throw new Error(`Dragon gene ${record.geneId} is listed as an enzyme without an activity.`);
     }
 
@@ -72,7 +74,7 @@ export const DRAGON_ENZYME_REACTIONS: readonly DragonEnzymeReaction[] = DRAGON_E
       reactants: activity.reactants,
       products: activity.products,
       traitProduct: activity.traitProduct,
-      activeSite: [activity.fragmentA, activity.fragmentB],
+      activeSitePath: activity.joined.path,
       bodyPath: protein.bodyPath,
       equation: activity.equation,
       palette: protein.palette,

@@ -1,91 +1,49 @@
 <section
   class="dragon-chromosome-selector"
   [class.is-disabled]="disabled()"
+  [class.is-compact]="compact()"
   [attr.aria-label]="label()"
 >
   <header class="selector-header">
     <div>
-      <small>SPECIMEN LIBRARY</small><strong>{{ label() }}</strong>
+      <small>SPECIMEN CARD DECK</small><strong>{{ label() }}</strong>
     </div>
     @if (selectedDragon(); as dragon) {
-      <span>{{ dragon.name }} · {{ dragon.sex === 'female' ? 'XX' : 'XY' }}</span>
+      <span>
+        {{ dragon.name }} · {{ dragon.sex === 'female' ? 'XX' : 'XY' }} ·
+        {{ selectedChromosome().label }}
+      </span>
     }
   </header>
 
-  <div class="selector-layout">
-    <nav class="dragon-list" aria-label="Choose a dragon">
-      @for (dragon of dragons(); track dragon.id) {
-        <button
-          type="button"
-          class="dragon-option"
-          [class.active]="selectedDragon().id === dragon.id"
-          [attr.aria-pressed]="selectedDragon().id === dragon.id"
-          [disabled]="disabled()"
-          [style.--dragon-color]="dragon.color"
-          [style.--dragon-accent]="dragon.accentColor"
-          (click)="selectDragon(dragon)"
-        >
-          <i aria-hidden="true">{{ dragon.name.slice(0, 1) }}</i>
-          <span
-            ><strong>{{ dragon.name }}</strong
-            ><small>{{ dragon.sex === 'female' ? 'XX' : 'XY' }} · {{ dragon.title }}</small></span
-          >
-        </button>
-      } @empty {
-        <p>No dragons available.</p>
-      }
-    </nav>
+  <app-fanned-card-deck
+    [class.compact]="compact()"
+    [items]="dragons()"
+    [activeId]="selectedDragon().id"
+    [cardTemplate]="selectorCard"
+    [labelFor]="cardLabel"
+    [subtitleFor]="cardSubtitle"
+    [disabled]="disabled()"
+    [ariaLabel]="label()"
+    (activeItemChange)="selectDragon($event)"
+  />
 
-    @if (selectedDragon(); as dragon) {
-      <article class="dragon-preview" [attr.aria-label]="dragon.name + ' specimen'">
-        <app-specimen-viewport
-          [source]="specimenSource()"
-          [controls]="false"
-          [framePadding]="1.16"
-          [ariaLabel]="dragon.name + ' dragon model'"
+  <ng-template #selectorCard let-dragon let-active="active" let-renderLive="renderLive">
+    @if (cardViews().get(dragon.id); as cardView) {
+      @if (cardGenomeViews().get(dragon.id); as genomeView) {
+        <app-dragon-flip-card
+          [card]="cardView"
+          [genome]="genomeView"
+          [selectedChromosome]="selectedCardChromosome()"
+          [flipped]="isCardFlipped(dragon.id)"
+          [active]="active && !disabled()"
+          [renderLive]="renderLive"
+          [footerLeft]="selectedGeneCount() + ' genes on selected pair'"
+          [footerRight]="genomeView.sexChromosomes"
+          (flipRequested)="toggleCard(dragon.id)"
+          (chromosomeSelected)="selectChromosome($event)"
         />
-        <footer>
-          <strong>{{ dragon.name }}</strong
-          ><span>{{ dragon.title }}</span>
-        </footer>
-      </article>
-
-      <article class="nucleus-browser">
-        <header>
-          <div>
-            <small>SHARED CELL · NUCLEUS VIEW</small
-            ><strong>{{ selectedChromosome().label }}</strong>
-          </div>
-          <span>{{ selectedGeneCount() }} gene{{ selectedGeneCount() === 1 ? '' : 's' }}</span>
-        </header>
-        <div class="nucleus-stage">
-          <app-cell-model
-            [chromosomes]="cellChromosomes()"
-            [selectedChromosome]="selectedChromosome().id"
-            [selectable]="!disabled()"
-            [showLoci]="true"
-            [showChromosomeLabels]="true"
-            focus="nucleus"
-            detail="full"
-            [ariaLabel]="dragon.name + ' cell nucleus and chromosome pairs'"
-            (chromosomeSelected)="selectChromosome($event)"
-          />
-        </div>
-        <nav class="chromosome-list" aria-label="Choose a chromosome pair">
-          @for (chromosome of cellChromosomes(); track chromosome.id) {
-            <button
-              type="button"
-              [class.active]="selectedChromosome().id === chromosome.id"
-              [attr.aria-pressed]="selectedChromosome().id === chromosome.id"
-              [disabled]="disabled()"
-              (click)="selectChromosome(chromosome.id)"
-            >
-              <strong>{{ chromosome.shortLabel }}</strong
-              ><span>{{ chromosome.label }}</span>
-            </button>
-          }
-        </nav>
-      </article>
+      }
     }
-  </div>
+  </ng-template>
 </section>

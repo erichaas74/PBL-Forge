@@ -57,9 +57,13 @@
               small one is the folded protein, the large one is the molecule that
               actually docks. For a structural protein they are the same shape.
             -->
-            <svg class="token-shape" viewBox="-90 -50 180 100" aria-hidden="true">
-              <path class="protein-origin" [attr.d]="pathway.proteinShape" />
+            <svg class="token-shape" viewBox="0 0 160 120" aria-hidden="true">
               <path class="protein-signal" [attr.d]="pathway.shape" />
+              <path
+                class="protein-origin"
+                [attr.d]="pathway.proteinShape"
+                transform="translate(26 92) scale(.22)"
+              />
             </svg>
             <span>{{ pathway.proteinName }}</span>
             <small>{{ isActivated(pathway.id) ? 'Docked' : pathway.roleLabel }}</small>
@@ -115,7 +119,17 @@
               (dragover)="allowDrop($event)"
               (drop)="dropProtein($event, pathway.id)"
             >
-              <svg viewBox="-90 -50 180 100" aria-hidden="true">
+              <!--
+                The receptor is a plate with this molecule punched straight out
+                of it, so the opening is the exact negative of the key that
+                opens it — the same relationship the enzyme bench models.
+              -->
+              <svg viewBox="0 0 160 120" aria-hidden="true">
+                <path
+                  class="receptor-socket"
+                  [attr.d]="pathway.socketPath"
+                  fill-rule="evenodd"
+                />
                 <path class="receptor-outline" [attr.d]="pathway.shape" />
                 @if (isActivated(pathway.id)) {
                   <path class="receptor-fill" [attr.d]="pathway.shape" />

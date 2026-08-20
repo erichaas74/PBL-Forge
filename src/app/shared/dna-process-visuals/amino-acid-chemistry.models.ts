@@ -7,12 +7,7 @@
  * a different way in the next.
  */
 export type AminoAcidGroup =
-  | 'hydrophobic'
-  | 'polar'
-  | 'positive'
-  | 'negative'
-  | 'aromatic'
-  | 'special';
+  'hydrophobic' | 'polar' | 'positive' | 'negative' | 'aromatic' | 'special';
 
 export interface AminoAcidGroupPalette {
   /** Body fill for a residue bead. */
