@@ -78,44 +78,75 @@ const BARCODE_BASE_COUNT = 6;
  * Chromosome location and student-facing sample codes remain owned by the gene catalog.
  */
 export const DRAGON_GENE_DNA_CATALOG: readonly DragonGeneDnaRecord[] = [
-  defineGene('wings', '#ff6d68', 'ATGCCGTAACGA', {
-    type: 'substitution', index: 4, referenceBase: 'C', variantBase: 'T',
+  defineGene('wings', '#ff6d68', 'ATGCCGTACCGAGCTACCGGATCA', {
+    type: 'substitution',
+    index: 4,
+    referenceBase: 'C',
+    variantBase: 'T',
   }),
-  defineGene('tail', '#49a8ff', 'TGCATACGGTCA', {
-    type: 'deletion', index: 3, referenceBase: 'A',
+  defineGene('tail', '#49a8ff', 'TGCATACGGTCAGACCTTGGACCA', {
+    type: 'deletion',
+    index: 3,
+    referenceBase: 'A',
   }),
-  defineGene('legs', '#67d790', 'GCATGACCTTGA', {
-    type: 'insertion', index: 5, variantBase: 'C',
+  defineGene('legs', '#67d790', 'GCATGGCCTTGGACTGGCCAAGTT', {
+    type: 'insertion',
+    index: 5,
+    variantBase: 'C',
   }),
-  defineGene('fire', '#ff6d68', 'CATGACTGGCAT', {
-    type: 'insertion', index: 2, variantBase: 'T',
+  defineGene('fire', '#ff6d68', 'CATGACTGGCATGGATTCCAGACT', {
+    type: 'insertion',
+    index: 2,
+    variantBase: 'T',
   }),
-  defineGene('horns', '#49a8ff', 'AGTCGATCCGTA', {
-    type: 'substitution', index: 1, referenceBase: 'G', variantBase: 'A',
+  defineGene('horns', '#49a8ff', 'AGTCGATCCGTAAACGGCTCTCCA', {
+    type: 'substitution',
+    index: 1,
+    referenceBase: 'G',
+    variantBase: 'A',
   }),
-  defineGene('claws', '#67d790', 'TCGAGTACCTGA', {
-    type: 'deletion', index: 4, referenceBase: 'G',
+  defineGene('claws', '#67d790', 'TCGAGTACCTGGCCTGAAGGCACT', {
+    type: 'deletion',
+    index: 4,
+    referenceBase: 'G',
   }),
-  defineGene('scales', '#ff6d68', 'GCTACGATTCGA', {
-    type: 'deletion', index: 2, referenceBase: 'T',
+  defineGene('scales', '#ff6d68', 'GCTACGATTCGAGTTCCAGACGGC', {
+    type: 'deletion',
+    index: 2,
+    referenceBase: 'T',
   }),
-  defineGene('body-color', '#49a8ff', 'CAGTGCATAGCT', {
-    type: 'substitution', index: 3, referenceBase: 'T', variantBase: 'C',
+  defineGene('body-color', '#49a8ff', 'CAGTGCATAGCTAACTGCCCTGGA', {
+    type: 'substitution',
+    index: 3,
+    referenceBase: 'T',
+    variantBase: 'C',
   }),
-  defineGene('crest', '#67d790', 'ATCGGATCTGCA', {
-    type: 'insertion', index: 4, variantBase: 'A',
+  defineGene('crest', '#67d790', 'ATCGGATCTGCAGGAACTCCAGTT', {
+    type: 'insertion',
+    index: 4,
+    variantBase: 'A',
   }),
-  defineGene('glow', '#ff6d68', 'TGACCTGAGCTA', {
-    type: 'substitution', index: 2, referenceBase: 'A', variantBase: 'G',
+  defineGene('glow', '#ff6d68', 'TCACCTGAGCTACCTGACGGATTC', {
+    type: 'substitution',
+    index: 2,
+    referenceBase: 'A',
+    variantBase: 'G',
   }),
-  defineGene('fangs', '#49a8ff', 'GACTGCTAACGT', {
-    type: 'insertion', index: 3, variantBase: 'T',
+  defineGene('fangs', '#49a8ff', 'GACTGCTACCGTACTGGCCCAGAA', {
+    type: 'insertion',
+    index: 3,
+    variantBase: 'T',
   }),
-  defineGene('spikes', '#67d790', 'CTGACGTATCGA', {
-    type: 'deletion', index: 5, referenceBase: 'G',
+  defineGene('spikes', '#67d790', 'CTGACGTATCGAGACCCTTTCGGA', {
+    type: 'deletion',
+    index: 5,
+    referenceBase: 'G',
   }),
-  defineGene('eye-color', '#b996d6', 'ACGTTCGAGTCA', {
-    type: 'substitution', index: 4, referenceBase: 'T', variantBase: 'C',
+  defineGene('eye-color', '#b996d6', 'ACGTTCGAGTCAGGCACTCAACCT', {
+    type: 'substitution',
+    index: 4,
+    referenceBase: 'T',
+    variantBase: 'C',
   }),
 ];
 
@@ -217,7 +248,9 @@ function assertMutationMatchesReference(
   geneId: ExpressiveDragonTraitId,
 ): void {
   if (mutation.index < 0 || mutation.index >= BARCODE_BASE_COUNT) {
-    throw new Error(`Mutation for dragon gene ${geneId} must be visible in its chromosome barcode.`);
+    throw new Error(
+      `Mutation for dragon gene ${geneId} must be visible in its chromosome barcode.`,
+    );
   }
   if ('referenceBase' in mutation && sequence[mutation.index] !== mutation.referenceBase) {
     throw new Error(`Mutation for dragon gene ${geneId} does not match its reference sequence.`);

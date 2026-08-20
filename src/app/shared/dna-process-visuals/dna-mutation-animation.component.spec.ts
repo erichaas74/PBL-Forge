@@ -23,6 +23,14 @@ describe('DnaMutationAnimationComponent', () => {
     expect(component.result().length).toBe(component.bases().length + 1);
   }));
 
+  it('keeps keyed connectors on starting, incoming, and result pairs', () => {
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('.original-ladder .connector-bottom')).not.toBeNull();
+    expect(element.querySelector('.incoming-pair .connector-top')).not.toBeNull();
+    expect(element.querySelector('.result-ladder .connector-bottom')).not.toBeNull();
+  });
+
   it('only completes mismatch repair with the complementary base', fakeAsync(() => {
     fixture.componentRef.setInput('mode', 'repair');
     fixture.detectChanges();

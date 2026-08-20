@@ -1,3 +1,7 @@
+@use './nucleotide-connectors' as nucleotide;
+
+@include nucleotide.nucleotide-connectors;
+
 :host {
   display: grid;
   gap: 0.7rem;
@@ -25,10 +29,10 @@
   top: 1.2rem;
 }
 .strand.upper {
-  top: 10.8rem;
+  top: 7.9rem;
 }
 .strand.lower {
-  bottom: 10.8rem;
+  bottom: 7.9rem;
 }
 .strand.bottom {
   bottom: 1.2rem;
@@ -44,6 +48,15 @@
   opacity: 0.2;
   background: linear-gradient(#8bdddf, var(--new-rail));
   transition: opacity 0.4s;
+}
+.strand.new {
+  transition: opacity 0.25s ease;
+}
+.replication-stage:not(.unzip-complete) .strand.new {
+  opacity: 0;
+}
+.replication-stage:not(.unzip-complete) .strand.original .rail {
+  opacity: 0;
 }
 .strand.new.complete .rail {
   opacity: 1;
@@ -69,15 +82,44 @@
   font-size: 1rem;
   box-shadow: 0 0.3rem 0.5rem rgb(36 59 104 / 18%);
 }
+.strand.original .base-row b {
+  transition: transform 0.36s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.replication-stage:not(.unzip-complete) .strand.original.top .base-row b:not(.open) {
+  transform: translateY(10.65rem);
+}
+.replication-stage:not(.unzip-complete) .strand.original.bottom .base-row b:not(.open) {
+  transform: translateY(-10.65rem);
+}
+.strand.original .base-row b::before {
+  position: absolute;
+  left: 50%;
+  z-index: -1;
+  width: calc(100% + clamp(0.2rem, 1.5vw, 1.1rem));
+  height: 0.62rem;
+  background: linear-gradient(180deg, var(--stone), var(--old-rail));
+  content: '';
+  opacity: 0;
+  transform: translateX(-50%);
+}
+.replication-stage:not(.unzip-complete) .strand.original .base-row b::before {
+  opacity: 1;
+}
+.strand.original.top .base-row b::before {
+  top: -0.72rem;
+}
+.strand.original.bottom .base-row b::before {
+  bottom: -0.72rem;
+}
 .strand.new .base-row b {
   opacity: 0;
-  transform: translateY(-1.5rem);
+  transform: translateY(1.5rem);
   transition:
     opacity 0.3s,
     transform 0.45s cubic-bezier(0.2, 0.9, 0.25, 1);
 }
 .strand.lower .base-row b {
-  transform: translateY(1.5rem);
+  transform: translateY(-1.5rem);
 }
 .strand.new .base-row b.visible {
   opacity: 1;
@@ -107,9 +149,56 @@
   border-radius: 50%;
   background: rgb(231 240 255 / 95%);
   color: #235bc7;
-  transform: translateX(-50%);
-  transition: left 0.46s ease;
+  opacity: 0;
+  transform: translateX(-50%) scale(0.82);
+  transition:
+    left 0.46s ease,
+    opacity 0.28s ease,
+    transform 0.28s ease;
   box-shadow: 0 0.5rem 1.5rem rgb(35 91 199 / 16%);
+}
+.polymerase.visible {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+.unzip-enzyme {
+  position: absolute;
+  z-index: 5;
+  top: calc(50% - 2.6rem);
+  display: grid;
+  width: 5.2rem;
+  height: 5.2rem;
+  place-items: center;
+  border: 3px solid #f0a927;
+  border-radius: 46% 54% 52% 48%;
+  background: #fff3c9;
+  color: #7a4a08;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) scale(0.82) rotate(-6deg);
+  transition:
+    left 0.22s linear,
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  box-shadow: 0 0.5rem 1.2rem rgb(122 74 8 / 20%);
+}
+.unzip-enzyme.visible {
+  opacity: 1;
+  transform: translateX(-50%) scale(1) rotate(-6deg);
+}
+.unzip-enzyme strong,
+.unzip-enzyme span {
+  grid-area: 1 / 1;
+  text-align: center;
+}
+.unzip-enzyme strong {
+  transform: translateY(-0.45rem);
+  font-size: var(--text-sm);
+}
+.unzip-enzyme span {
+  transform: translateY(0.65rem);
+  font-size: var(--text-xs);
+  font-weight: 800;
 }
 .polymerase strong,
 .polymerase span {
@@ -172,7 +261,7 @@
   flex: 1;
   accent-color: var(--sea);
 }
-.animation-controls > span {
+.animation-controls > output {
   color: var(--muted);
   font-size: var(--text-sm);
   font-weight: 750;
@@ -212,10 +301,10 @@
     font-size: var(--text-base);
   }
   .strand.upper {
-    top: 8.8rem;
+    top: 5.95rem;
   }
   .strand.lower {
-    bottom: 8.8rem;
+    bottom: 5.95rem;
   }
   .molecule-label {
     display: none;
@@ -224,6 +313,17 @@
     width: 4rem;
     height: 4rem;
     top: calc(50% - 2rem);
+  }
+  .unzip-enzyme {
+    top: calc(50% - 2rem);
+    width: 4rem;
+    height: 4rem;
+  }
+  .replication-stage:not(.unzip-complete) .strand.original.top .base-row b:not(.open) {
+    transform: translateY(8.65rem);
+  }
+  .replication-stage:not(.unzip-complete) .strand.original.bottom .base-row b:not(.open) {
+    transform: translateY(-8.65rem);
   }
 }
 @media (prefers-reduced-motion: reduce) {

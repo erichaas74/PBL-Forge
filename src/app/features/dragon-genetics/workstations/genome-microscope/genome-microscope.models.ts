@@ -6,10 +6,15 @@ export const GENOME_MICROSCOPE_LEVELS = [
   'nucleus',
   'chromosome-set',
   'chromosome',
+  'chromatin',
   'gene',
   'dna',
   'allele',
+  'rna',
+  'base-chemistry',
   'protein',
+  'enzyme',
+  'expression',
 ] as const;
 
 export type GenomeMicroscopeLevel = (typeof GENOME_MICROSCOPE_LEVELS)[number];
@@ -38,6 +43,8 @@ export interface GenomeMicroscopeEvidence {
   chromosome: string;
   geneId: string | null;
   alleleCopy: 0 | 1;
+  enzymeId?: string;
+  productId?: string;
 }
 
 export const GENOME_MICROSCOPE_LEVEL_DEFINITIONS: readonly GenomeMicroscopeLevelDefinition[] = [
@@ -73,8 +80,7 @@ export const GENOME_MICROSCOPE_LEVEL_DEFINITIONS: readonly GenomeMicroscopeLevel
     label: 'Chromosome pairs',
     shortLabel: 'Pairs',
     scale: 'genome',
-    explanation:
-      'A body cell has homologous chromosome pairs: one copy from each parent.',
+    explanation: 'A body cell has homologous chromosome pairs: one copy from each parent.',
     relationship:
       'Each pair carries the same genes at matching loci, but the two copies may carry different alleles.',
   },
@@ -85,6 +91,16 @@ export const GENOME_MICROSCOPE_LEVEL_DEFINITIONS: readonly GenomeMicroscopeLevel
     scale: 'genome',
     explanation: 'A chromosome is one long DNA molecule packaged with proteins.',
     relationship: 'The selected chromosome contains many genes arranged along its DNA.',
+  },
+  {
+    id: 'chromatin',
+    label: 'Chromosome unpacking',
+    shortLabel: 'Unpack',
+    scale: 'molecular',
+    explanation:
+      'A chromosome is one continuous DNA molecule repeatedly folded around proteins and compressed into chromatin.',
+    relationship:
+      'Unpack the selected chromosome through chromatin fibers and nucleosomes until its thin DNA double helix is exposed.',
   },
   {
     id: 'gene',
@@ -115,13 +131,53 @@ export const GENOME_MICROSCOPE_LEVEL_DEFINITIONS: readonly GenomeMicroscopeLevel
       'Selecting either homolog reveals the allele sequence carried by that chromosome copy.',
   },
   {
+    id: 'rna',
+    label: 'Messenger RNA',
+    shortLabel: 'RNA',
+    scale: 'molecular',
+    explanation:
+      'A cell can transcribe the coding information in DNA into a temporary messenger RNA copy.',
+    relationship:
+      "The selected allele's base order is preserved in mRNA, with uracil replacing thymine.",
+  },
+  {
+    id: 'base-chemistry',
+    label: 'Base molecules',
+    shortLabel: 'Base atoms',
+    scale: 'atomic',
+    explanation:
+      'Each DNA or RNA base is a molecule made from carbon, nitrogen, oxygen, and hydrogen atoms joined by covalent bonds.',
+    relationship:
+      'DNA uses A, T, C, and G; RNA uses A, U, C, and G. Their ring shapes and bonding sites allow complementary pairing.',
+  },
+  {
     id: 'protein',
     label: 'Protein product',
     shortLabel: 'Protein',
     scale: 'molecular',
     explanation:
-      'Cells can transcribe gene information into RNA and read RNA codons to assemble a protein chain.',
+      'A ribosome reads messenger RNA three bases at a time while tRNA delivers matching amino acids.',
     relationship:
       "The allele's DNA sequence can influence the protein product and, through cell activity, the organism.",
+  },
+  {
+    id: 'enzyme',
+    label: 'Enzyme reactions',
+    shortLabel: 'Enzymes',
+    scale: 'molecular',
+    explanation:
+      'Some proteins act as enzymes. Their active-site shapes bind particular substrates and help chemical reactions occur without using up the enzyme.',
+    relationship:
+      'Compare fictional dragon-cell enzymes, activate their catalysts, and observe which molecular products they build.',
+  },
+  {
+    id: 'expression',
+    label: 'Trait expression',
+    shortLabel: 'Expression',
+    scale: 'cell to organism',
+    explanation:
+      'A protein can interact with a shape-specific cellular target and change cell activity. Those cellular effects can contribute to an observable trait.',
+    relationship:
+      'Test protein shapes against cell receptors and observe how a molecular interaction changes the rendered dragon.',
   },
 ];

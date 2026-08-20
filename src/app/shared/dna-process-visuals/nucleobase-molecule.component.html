@@ -1,0 +1,43 @@
+<figure
+  class="nucleobase-molecule"
+  [class.compact]="compact()"
+  [attr.data-base]="base()"
+  [attr.aria-label]="ariaLabel()"
+  role="img"
+>
+  <svg viewBox="0 0 260 220" aria-hidden="true">
+    <g class="bond-layer">
+      @for (line of bondLines(); track line.id) {
+        <line
+          [attr.x1]="line.x1"
+          [attr.y1]="line.y1"
+          [attr.x2]="line.x2"
+          [attr.y2]="line.y2"
+          [class.double-bond]="line.order === 2"
+        />
+      }
+    </g>
+    <g class="atom-layer">
+      @for (atom of definition().atoms; track atom.id) {
+        <g
+          class="atom"
+          [attr.data-element]="atom.element"
+          [attr.transform]="'translate(' + atom.x + ' ' + atom.y + ')'"
+        >
+          <circle r="13" />
+          <text text-anchor="middle" dominant-baseline="central">{{ atom.label }}</text>
+        </g>
+      }
+    </g>
+  </svg>
+
+  @if (showCaption()) {
+    <figcaption>
+      <span class="base-symbol">{{ definition().symbol }}</span>
+      <span
+        ><b>{{ definition().name }}</b
+        ><small>{{ definition().formula }} · {{ definition().family }}</small></span
+      >
+    </figcaption>
+  }
+</figure>

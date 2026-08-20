@@ -1,3 +1,7 @@
+@use '../../../../shared/dna-process-visuals/nucleotide-connectors' as nucleotide;
+
+@include nucleotide.nucleotide-connectors;
+
 :host {
   display: block;
   width: 100%;
@@ -54,7 +58,6 @@ select:focus-visible {
 .microscope-title small,
 .relationship-readout small,
 .molecular-header small,
-.chromosome-set-level > header small,
 .dragon-identification small,
 .protein-chain header small {
   color: #79d3ca;
@@ -288,8 +291,7 @@ select:focus-visible {
   border: 1px solid rgb(255 255 255 / 9%);
   border-radius: 1rem;
   background:
-    radial-gradient(circle at 50% 46%, rgb(101 200 188 / 9%), transparent 46%),
-    rgb(5 20 29 / 64%);
+    radial-gradient(circle at 50% 46%, rgb(101 200 188 / 9%), transparent 46%), rgb(5 20 29 / 64%);
 }
 
 .dragon-level {
@@ -347,49 +349,22 @@ select:focus-visible {
 }
 
 .cell-level,
-.nucleus-level {
+.nucleus-level,
+.chromosome-set-level {
   place-items: center;
 }
 
-/* The cell is 3:2, so its width also sets its height. Kept narrow enough that
-   the whole diagram, leader labels included, fits the stage without scrolling. */
+/* With annotation gutters removed, the cell can fill the stage and keep every
+   aligned chromosome pair large enough to select directly in the nucleus. */
 .cell-level app-cell-model,
-.nucleus-level app-cell-model {
+.nucleus-level app-cell-model,
+.chromosome-set-level app-cell-model {
   --cell-viewport-accent: var(--microscope-accent);
   --cell-viewport-edge: rgb(101 200 188 / 62%);
-  width: min(64rem, 100%);
+  width: min(72rem, 100%);
   min-width: 0;
 }
 
-.nucleus-level app-cell-model {
-  width: min(52rem, 100%);
-}
-
-.structure-label {
-  position: absolute;
-  display: grid;
-  gap: 0.05rem;
-  padding: 0.45rem 0.6rem;
-  border-left: 3px solid var(--microscope-gold);
-  background: rgb(5 20 29 / 88%);
-  color: #eef8fa;
-}
-
-.structure-label span {
-  color: #92aab4;
-  font-size: var(--text-xs);
-}
-
-.nucleus-label {
-  right: 1.5rem;
-  bottom: 1.5rem;
-}
-
-.chromosome-set-level {
-  align-content: center;
-}
-
-.chromosome-set-level > header,
 .molecular-header,
 .protein-chain header {
   display: flex;
@@ -398,68 +373,47 @@ select:focus-visible {
   gap: 0.75rem;
 }
 
-.chromosome-set-level > header {
-  justify-content: flex-start;
-}
-
-.chromosome-set-level > header strong,
 .molecular-header strong,
 .protein-chain header strong {
   font-family: var(--font-display);
   font-size: var(--text-lg);
 }
 
-.chromosome-pair-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.55rem;
-  min-width: 0;
-}
-
-.chromosome-pair {
-  display: grid;
-  min-width: 0;
-  gap: 0.55rem;
-  padding: 0.7rem 0.55rem;
-  border: 1px solid rgb(255 255 255 / 11%);
-  border-radius: 0.75rem;
-  background: rgb(10 35 45 / 82%);
-  color: #eaf4f6;
-  cursor: zoom-in;
-}
-
-.chromosome-pair:hover,
-.chromosome-pair.active {
-  border-color: var(--microscope-accent);
-  background: rgb(22 62 72 / 88%);
-}
-
-.chromosome-pair.sex-pair {
-  border-style: dashed;
-}
-
-.chromosome-pair > span {
-  font-size: var(--text-sm);
-  font-weight: 900;
-}
-
-.chromosome-pair > div {
-  display: grid;
-  gap: 0.15rem;
-}
-
-.chromosome-pair > small {
-  color: #78929d;
-  font-size: var(--text-xs);
-}
-
 .chromosome-level,
+.chromatin-level,
 .gene-level {
   align-content: start;
 }
 
+.chromosome-level .focus-action,
+.chromatin-level .focus-action {
+  justify-self: center;
+}
+
+.chromatin-level app-chromosome-unraveling {
+  display: block;
+  min-width: 0;
+}
+
+.enzyme-level {
+  align-content: start;
+}
+
+.enzyme-level app-enzyme-reaction-explorer {
+  display: block;
+  min-width: 0;
+}
+
+.enzyme-level .focus-action {
+  justify-self: center;
+}
+
 .chromosome-level app-cell-chromosome-viewport,
 .gene-level app-cell-chromosome-viewport {
+  --cell-viewport-cell-min: 22rem;
+  --cell-viewport-cell-size: 1.25fr;
+  --cell-viewport-detail-min: 17rem;
+  --cell-viewport-detail-size: 0.75fr;
   width: 100%;
   min-width: 0;
 }
@@ -506,7 +460,10 @@ select:focus-visible {
 }
 
 .dna-level,
-.protein-level {
+.rna-level,
+.base-chemistry-level,
+.protein-level,
+.expression-level {
   min-height: 0;
 }
 
@@ -528,10 +485,49 @@ select:focus-visible {
 }
 
 .dna-level app-dna-replication-animation,
-.protein-level app-dna-transcription-animation {
+.rna-level app-dna-transcription-animation,
+.protein-level app-rna-translation-animation {
   display: block;
   min-width: 0;
   color: #172735;
+}
+
+.rna-level .focus-action {
+  justify-self: center;
+}
+
+.protein-level .focus-action {
+  justify-self: center;
+}
+
+.base-chemistry-level .focus-action {
+  justify-self: center;
+}
+
+.base-chemistry-level app-dna-rna-base-explorer {
+  display: block;
+  min-width: 0;
+}
+
+.expression-level {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.expression-level app-protein-trait-expression {
+  display: block;
+  min-width: 0;
+}
+
+.protein-boundary {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 4px solid var(--microscope-violet);
+  background: rgb(185 139 213 / 10%);
+  color: #b7c7cd;
+  font-size: var(--text-sm);
+  line-height: 1.5;
 }
 
 .allele-level {
@@ -585,8 +581,9 @@ select:focus-visible {
 }
 
 .base-sequence {
+  --base-connector-surface: #0c2935;
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-columns: repeat(24, minmax(0, 1fr));
   gap: 0.25rem;
   min-width: 0;
 }
@@ -734,10 +731,6 @@ select:focus-visible {
     max-width: none;
     text-align: left;
   }
-
-  .chromosome-pair-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 760px) {
@@ -779,10 +772,6 @@ select:focus-visible {
     --viewport-min-height: 20rem;
   }
 
-  .chromosome-pair-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .molecular-header {
     align-items: flex-start;
     flex-direction: column;
@@ -799,7 +788,6 @@ select:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .chromosome-pair-grid,
   .gene-picker {
     grid-template-columns: minmax(0, 1fr);
   }

@@ -1,0 +1,151 @@
+<section
+  class="expression-lab"
+  aria-label="Enzyme-product receptor and dragon trait expression model"
+>
+  <header class="expression-heading">
+    <div>
+      <small>SCIENTIFIC GOAL</small>
+      <strong>Determine which enzyme-built product activates each cell receptor.</strong>
+    </div>
+    <div class="expression-progress" role="status">
+      <b>{{ activatedCount() }}/{{ pathways().length }}</b>
+      <span>{{ allActivated() ? 'traits expressed' : 'cell pathways activated' }}</span>
+    </div>
+  </header>
+
+  <div class="expression-zones">
+    <section class="protein-bank" aria-labelledby="protein-bank-title">
+      <header>
+        <small>ENZYME PRODUCTS</small>
+        <strong id="protein-bank-title">Molecule bank</strong>
+        <span>Select or drag any available product.</span>
+      </header>
+
+      <div class="protein-list">
+        @for (pathway of pathways(); track pathway.id) {
+          <button
+            type="button"
+            class="protein-token"
+            [class.selected]="selectedProteinId() === pathway.id"
+            [class.docked]="isActivated(pathway.id)"
+            [attr.data-code]="pathway.code"
+            [attr.data-product]="pathway.productId"
+            [attr.draggable]="!isActivated(pathway.id)"
+            [disabled]="isActivated(pathway.id)"
+            [attr.aria-pressed]="selectedProteinId() === pathway.id"
+            [attr.aria-label]="
+              isActivated(pathway.id)
+                ? pathway.proteinName + ', docked'
+                : pathway.proteinName + ', select or drag to test a receptor'
+            "
+            (click)="selectProtein(pathway.id)"
+            (dragstart)="startDrag($event, pathway.id)"
+          >
+            <svg viewBox="-90 -50 180 100" aria-hidden="true">
+              <path [attr.d]="pathway.shape" />
+              <path class="protein-fold" d="M-22 0 C-7 -12 7 12 22 0" />
+            </svg>
+            <span>{{ pathway.proteinName }}</span>
+            <small>{{ isActivated(pathway.id) ? 'Docked' : 'Available' }}</small>
+          </button>
+        }
+      </div>
+    </section>
+
+    <section
+      class="cell-zone"
+      [class.cell-pulsing]="pulseTargetId()"
+      aria-labelledby="cell-zone-title"
+    >
+      <header>
+        <small>CELL SIGNALING MODEL</small>
+        <strong id="cell-zone-title">Shape-specific receptors</strong>
+        <span>Matching geometry snaps into the receptor; a mismatch is rejected.</span>
+      </header>
+
+      <div class="cell-membrane">
+        <div class="cell-nucleus" aria-hidden="true"><span></span></div>
+        <div class="signal-rings" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="receptor-grid" role="group" aria-label="Cell membrane receptor targets">
+          @for (pathway of pathways(); track pathway.id) {
+            <button
+              type="button"
+              class="receptor-target"
+              [class.activated]="isActivated(pathway.id)"
+              [class.pulsing]="pulseTargetId() === pathway.id"
+              [class.mismatch]="mismatchTargetId() === pathway.id"
+              [attr.data-code]="pathway.code"
+              [attr.data-product]="pathway.productId"
+              [attr.aria-label]="
+                isActivated(pathway.id)
+                  ? 'Receptor ' +
+                    pathway.code +
+                    ', occupied; Trait ' +
+                    pathway.code +
+                    ' expressed as ' +
+                    pathway.phenotype
+                  : 'Test selected protein against receptor ' + pathway.code
+              "
+              (click)="testSelectedProtein(pathway.id)"
+              (dragover)="allowDrop($event)"
+              (drop)="dropProtein($event, pathway.id)"
+            >
+              <svg viewBox="-90 -50 180 100" aria-hidden="true">
+                <path class="receptor-outline" [attr.d]="pathway.shape" />
+                @if (isActivated(pathway.id)) {
+                  <path class="receptor-fill" [attr.d]="pathway.shape" />
+                  <path class="receptor-fold" d="M-22 0 C-7 -12 7 12 22 0" />
+                }
+              </svg>
+              <span>Receptor {{ pathway.code }}</span>
+              <small>{{ isActivated(pathway.id) ? 'Activated' : 'Open target' }}</small>
+            </button>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="dragon-expression" aria-labelledby="dragon-expression-title">
+      <header>
+        <small>ORGANISM RESPONSE</small>
+        <strong id="dragon-expression-title">Dragon traits</strong>
+        <span>{{
+          allActivated() ? 'Fully expressed comparison' : 'Neutral base + activated traits'
+        }}</span>
+      </header>
+
+      <app-specimen-viewport
+        [source]="dragonSource()"
+        [ariaLabel]="
+          'Dragon expression model with ' +
+          activatedCount() +
+          ' of ' +
+          pathways().length +
+          ' tested traits expressed'
+        "
+        [controls]="true"
+        [framePadding]="1.38"
+      />
+
+      <div class="trait-results" aria-label="Observed trait evidence">
+        @for (pathway of pathways(); track pathway.id) {
+          <div [class.expressed]="isActivated(pathway.id)">
+            <b>Trait {{ pathway.code }}</b>
+            @if (isActivated(pathway.id)) {
+              <span>{{ pathway.phenotype }}</span>
+            } @else {
+              <span>Not yet observed</span>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+
+  <footer class="expression-readout">
+    <output aria-live="polite">{{ statusMessage() }}</output>
+    <button type="button" (click)="reset()" [disabled]="activatedCount() === 0">
+      Reset expression model
+    </button>
+  </footer>
+</section>

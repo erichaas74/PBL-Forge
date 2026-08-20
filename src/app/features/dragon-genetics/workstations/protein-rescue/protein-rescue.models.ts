@@ -1,7 +1,9 @@
 import {
+  RnaTranslationStep,
   complementaryDna,
   dnaSequence,
   transcribedRna,
+  translateRna,
 } from '../../../../shared/dna-process-visuals/dna-process.models';
 import { AccountDragonRecord } from '../shared/account-genetics-library.models';
 
@@ -21,12 +23,7 @@ export interface ProteinRescueGeneSample {
   mrna: string;
 }
 
-export interface ProteinTranslationStep {
-  codon: string;
-  aminoAcid: string;
-  shortName: string;
-  stop: boolean;
-}
+export type ProteinTranslationStep = RnaTranslationStep;
 
 export interface ProteinTranslationResult {
   codons: readonly string[];
@@ -143,15 +140,6 @@ const FOUNDATION_GENOTYPES: Readonly<Record<string, DracaseGenotype>> = {
   quartz: 'Dd',
 };
 
-const CODON_TABLE: Readonly<Record<string, Omit<ProteinTranslationStep, 'codon'>>> = {
-  AUG: { aminoAcid: 'Methionine', shortName: 'Met', stop: false },
-  UUU: { aminoAcid: 'Phenylalanine', shortName: 'Phe', stop: false },
-  GGC: { aminoAcid: 'Glycine', shortName: 'Gly', stop: false },
-  AAA: { aminoAcid: 'Lysine', shortName: 'Lys', stop: false },
-  CCU: { aminoAcid: 'Proline', shortName: 'Pro', stop: false },
-  UAG: { aminoAcid: 'Stop', shortName: 'STOP', stop: true },
-};
-
 export function proteinRescuePatientFor(dragon: AccountDragonRecord): ProteinRescuePatient {
   const genotype = FOUNDATION_GENOTYPES[dragon.id] ?? generatedGenotype(dragon.id);
   const alleleKinds = genotypeAlleles(genotype);
@@ -195,22 +183,10 @@ export function proteinRescuePatientFor(dragon: AccountDragonRecord): ProteinRes
 }
 
 export function translateMessengerRna(mrna: string): ProteinTranslationResult {
-  const normalized = mrna.toUpperCase().replace(/[^AUCG]/g, '');
-  const codons = normalized.match(/.{1,3}/g)?.filter((codon) => codon.length === 3) ?? [];
-  const steps: ProteinTranslationStep[] = [];
-  for (const codon of codons) {
-    const mapped = CODON_TABLE[codon] ?? { aminoAcid: 'Unknown', shortName: '?', stop: false };
-    steps.push({ codon, ...mapped });
-    if (mapped.stop) break;
-  }
-  const aminoAcids = steps.filter((step) => !step.stop).map((step) => step.aminoAcid);
-  const stoppedEarly = steps.some((step) => step.stop);
+  const translation = translateRna(mrna);
   return {
-    codons,
-    steps,
-    aminoAcids,
-    stoppedEarly,
-    enzymeWorks: !stoppedEarly && aminoAcids.length === 5,
+    ...translation,
+    enzymeWorks: !translation.stoppedEarly && translation.aminoAcids.length === 5,
   };
 }
 

@@ -8,7 +8,7 @@
 
 Students investigate the connected information model:
 
-`dragon → cell → nucleus → chromosome pairs → one chromosome → gene → DNA → allele → protein`
+`dragon → cell → nucleus → chromosome pairs → one chromosome → gene → DNA → allele → protein → enzyme reaction`
 
 The visual begins with a dragon loaded from the student's account genetics library. Students may
 zoom one level at a time or select any visible structure. The model keeps chromosome, gene, DNA,
@@ -18,21 +18,27 @@ allele, and protein distinct instead of collapsing them into one object.
 
 1. **Scientific goal:** Connect one loaded dragon to the nested biological structures and
    information that produce it: organism, cell, nucleus, chromosome pair, chromosome, gene, DNA,
-   allele, and protein product.
+   allele, protein product, and protein-driven enzyme reaction.
 2. **Manipulable evidence:** Students may load any available account dragon, move directly among
    magnification levels, select chromosomes and loci, and choose either allele copy from the loaded
-   dragon. The same actions remain available in any scientifically valid order.
+   dragon. At the enzyme level they may choose any target molecule, test four anonymous catalyst
+   candidates in any order, switch automatic testing on or off, repeat trials, and inspect their
+   accumulated results.
 3. **Observable consequence:** The live dragon, shared cell/chromosome viewport, gene focus, DNA
-   sequence, allele copies, mRNA, and protein-chain model all update from the selected specimen and
-   locus. Moving between levels preserves the selection so containment remains visible.
+   sequence, allele copies, mRNA, protein-chain model, substrate docking, catalytic glow, and
+   released product all update from the selected specimen, locus, or enzyme. Moving between levels
+   preserves the selection so containment remains visible.
 4. **Student-built record:** The component emits a reusable evidence trail containing the loaded
-   dragon, selected level, chromosome, gene, and allele copy. A host may persist that trail or attach
-   a separate question or explanation without putting a question dock inside the workstation.
+   dragon, selected level, chromosome, gene, allele copy, and any completed enzyme/product reaction.
+   A host may persist that trail or attach a separate question or explanation without putting a
+   question dock inside the workstation.
 5. **Shared sources:** Account dragons come from `AccountGeneticsLibraryService`; dragon phenotype
    uses `SpecimenViewportComponent`; cell and chromosome views use
    `CellChromosomeViewportComponent` and the shared chromosome catalog; gene and allele records use
    the Allele Workbench catalog; DNA and transcription use the shared DNA-process models and
-   `DnaTranscriptionAnimationComponent`.
+   `DnaTranscriptionAnimationComponent`. Fictional model enzyme definitions come from the reusable
+   `dragon-enzyme-reactions.models.ts` catalog and are clearly identified as simplified dragon-cell
+   models rather than real named pathways.
 
 ## Code-driven model
 
@@ -45,23 +51,30 @@ allele, and protein distinct instead of collapsing them into one object.
 - Full chromosome bands, centromeres, lengths, and locus positions come from the same catalog used
   by Allele Workbench.
 - Genes and allele DNA sequences come from the shared workstation catalogs.
+- The enzyme explorer uses code-driven, addressable SVG molecules. The selected target supplies the
+  substrates and product while each candidate supplies a different active-site shape, so students
+  must test rather than read the enzyme-product mapping.
+- Reaction animation is deterministic, repeatable, and resolves immediately when reduced motion is
+  requested.
 
 The uploaded cell and chromosome-set illustrations are composition references only. No raster
 image is used by the workstation.
 
 ## Current implementation
 
-| Concern                               | Source                                                                                                                                                                                                                                                                |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dedicated workstation                 | [`workstations/genome-microscope/genome-microscope.component.ts`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.component.ts)                                                                                               |
-| Interactive template                  | [`genome-microscope.component.html`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.component.html)                                                                                                                          |
-| Responsive presentation               | [`genome-microscope.component.scss`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.component.scss)                                                                                                                          |
-| Zoom and chromosome-pair models       | [`genome-microscope.models.ts`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.models.ts)                                                                                                                                    |
-| Shared chromosome geometry and colors | [`workstations/shared/dragon-chromosome.catalog.ts`](../../src/app/features/dragon-genetics/workstations/shared/dragon-chromosome.catalog.ts)                                                                                                                         |
-| Reusable chromosome SVG               | [`workstations/shared/chromosome-svg.component.ts`](../../src/app/features/dragon-genetics/workstations/shared/chromosome-svg.component.ts)                                                                                                                           |
-| Shared gene and allele records        | [`workstations/allele-workbench/allele-vault.models.ts`](../../src/app/features/dragon-genetics/workstations/allele-workbench/allele-vault.models.ts)                                                                                                                 |
-| Shared allele DNA                     | [`workstations/shared/dragon-gene-dna.catalog.ts`](../../src/app/features/dragon-genetics/workstations/shared/dragon-gene-dna.catalog.ts)                                                                                                                             |
-| Routed open-workstation host          | [`adaptive/dragon-simulation-experience.page.ts`](../../src/app/features/dragon-genetics/adaptive/dragon-simulation-experience.page.ts)                                                                                                                               |
+| Concern                               | Source                                                                                                                                                                  |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dedicated workstation                 | [`workstations/genome-microscope/genome-microscope.component.ts`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.component.ts) |
+| Interactive template                  | [`genome-microscope.component.html`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.component.html)                            |
+| Responsive presentation               | [`genome-microscope.component.scss`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.component.scss)                            |
+| Zoom and chromosome-pair models       | [`genome-microscope.models.ts`](../../src/app/features/dragon-genetics/workstations/genome-microscope/genome-microscope.models.ts)                                      |
+| Enzyme reaction explorer              | [`enzyme-reaction-explorer.component.ts`](../../src/app/features/dragon-genetics/workstations/genome-microscope/enzyme-reaction-explorer.component.ts)                  |
+| Model enzyme and product catalog      | [`dragon-enzyme-reactions.models.ts`](../../src/app/features/dragon-genetics/workstations/genome-microscope/dragon-enzyme-reactions.models.ts)                          |
+| Shared chromosome geometry and colors | [`workstations/shared/dragon-chromosome.catalog.ts`](../../src/app/features/dragon-genetics/workstations/shared/dragon-chromosome.catalog.ts)                           |
+| Reusable chromosome SVG               | [`workstations/shared/chromosome-svg.component.ts`](../../src/app/features/dragon-genetics/workstations/shared/chromosome-svg.component.ts)                             |
+| Shared gene and allele records        | [`workstations/allele-workbench/allele-vault.models.ts`](../../src/app/features/dragon-genetics/workstations/allele-workbench/allele-vault.models.ts)                   |
+| Shared allele DNA                     | [`workstations/shared/dragon-gene-dna.catalog.ts`](../../src/app/features/dragon-genetics/workstations/shared/dragon-gene-dna.catalog.ts)                               |
+| Routed open-workstation host          | [`adaptive/dragon-simulation-experience.page.ts`](../../src/app/features/dragon-genetics/adaptive/dragon-simulation-experience.page.ts)                                 |
 
 ## Interaction behavior
 
@@ -70,6 +83,12 @@ image is used by the workstation.
 - Selecting a chromosome pair opens both homologs, explicitly labeled by parental origin.
 - Selecting a gene locus focuses the gene region on the DNA model.
 - The allele level compares the two code-driven reference DNA sequences.
+- The enzyme level allows any target molecule and candidate enzyme to be selected and rerun without
+  a prescribed order. Candidate cards record `Not tested`, `No match`, or `Built the target` only
+  after the student runs that pairing.
+- Turning automatic testing off leaves the substrates unreacted; turning it on repeatedly tests the
+  selected candidate. Only a shape-specific match docks, releases the target product, and leaves an
+  unchanged reusable enzyme.
 - Selecting a scientific object emits reusable evidence state that an external explanation or
   assessment host may observe without adding a question dock to the workstation.
 
@@ -80,9 +99,9 @@ image is used by the workstation.
 - `initialLevel` lets an explanation open at a relevant scale without locking the other levels.
 - `showSpecimenLoader` and `showGuideControl` allow a compact embedded view while keeping the full
   routed workstation open-ended.
-- `evidenceChanged` reports the current dragon, level, chromosome, gene, and allele copy. A
-  separate assessment may listen to that event; the microscope itself does not render answer
-  choices or correctness feedback.
+- `evidenceChanged` reports the current dragon, level, chromosome, gene, allele copy, and completed
+  enzyme/product IDs when relevant. A separate assessment may listen to that event; the microscope
+  itself does not render answer choices or correctness feedback.
 
 ## Acceptance targets
 
@@ -94,5 +113,9 @@ image is used by the workstation.
 - Chromosome colors never drift from Allele Workbench because both use the same catalog objects.
 - DNA base pairing does not imply that one base pair is an allele.
 - Reduced-motion mode shows the same final state without animated scaling.
+- A mismatched candidate forms no product; the matching enzyme is unchanged, releases the selected
+  target product, and may be run again.
+- Target counts and candidate trial results remain visible while students compare pairings in one
+  session.
 - Keyboard users can operate the dragon loader, zoom controls, level map, chromosomes, genes, and
-  allele copies.
+  allele copies, enzyme selection, catalyst control, and reaction trigger.

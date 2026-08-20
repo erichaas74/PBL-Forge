@@ -20,7 +20,10 @@ describe('dragon gene DNA catalog', () => {
 
   it('keeps sequence, mutation, barcode bases, and base colors aligned', () => {
     const complements: Readonly<Record<DragonDnaBase, DragonDnaBase>> = {
-      A: 'T', T: 'A', C: 'G', G: 'C',
+      A: 'T',
+      T: 'A',
+      C: 'G',
+      G: 'C',
     };
 
     for (const record of DRAGON_GENE_DNA_CATALOG) {
@@ -38,6 +41,17 @@ describe('dragon gene DNA catalog', () => {
         expect(pair.topColor).toBe(DRAGON_DNA_BASE_COLORS[pair.topBase]);
         expect(pair.bottomColor).toBe(DRAGON_DNA_BASE_COLORS[pair.bottomBase]);
       }
+    }
+  });
+
+  it('gives every reference gene eight complete amino-acid codons', () => {
+    const stopCodons = new Set(['TAA', 'TAG', 'TGA']);
+
+    for (const record of DRAGON_GENE_DNA_CATALOG) {
+      expect(record.alleleASequence.length).toBe(24);
+      const codons = record.alleleASequence.match(/.{3}/g) ?? [];
+      expect(codons.length).toBe(8);
+      expect(codons.some((codon) => stopCodons.has(codon))).toBeFalse();
     }
   });
 

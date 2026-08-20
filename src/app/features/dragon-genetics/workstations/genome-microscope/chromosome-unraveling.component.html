@@ -1,0 +1,428 @@
+<section
+  class="unraveling-visualization"
+  [attr.data-stage]="currentStage().id"
+  aria-label="Interactive chromosome unpacking visualization"
+>
+  <header class="stage-readout">
+    <div>
+      <small>{{ chromosomeLabel() }} · SAME DNA MATERIAL</small>
+      <strong>{{ currentStage().label }}</strong>
+    </div>
+    <p>{{ currentStage().description }}</p>
+    <output aria-live="polite">{{ currentStage().packing }}</output>
+  </header>
+
+  <div class="molecular-viewport">
+    <svg
+      class="unraveling-svg"
+      viewBox="0 0 800 340"
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      [attr.aria-labelledby]="instanceId + '-title ' + instanceId + '-description'"
+    >
+      <title [attr.id]="instanceId + '-title'">{{ currentStage().label }}</title>
+      <desc [attr.id]="instanceId + '-description'">
+        Five aligned views show the same two chromosome structures progressively unpacking from
+        condensed chromatids into chromatin, nucleosomes, and thin DNA double helices.
+      </desc>
+
+      <defs>
+        <linearGradient [attr.id]="rodGradientId" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#342968" />
+          <stop offset="18%" stop-color="#7665c4" />
+          <stop offset="48%" stop-color="#c9c1ff" />
+          <stop offset="72%" stop-color="#7665c4" />
+          <stop offset="100%" stop-color="#2a2457" />
+        </linearGradient>
+        <linearGradient [attr.id]="fiberGradientId" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#3a6ed8" />
+          <stop offset="42%" stop-color="#9e8df3" />
+          <stop offset="70%" stop-color="#6844b7" />
+          <stop offset="100%" stop-color="#244e9a" />
+        </linearGradient>
+        <radialGradient [attr.id]="beadGradientId" cx="35%" cy="28%" r="72%">
+          <stop offset="0%" stop-color="#e1ddff" />
+          <stop offset="34%" stop-color="#9e8cef" />
+          <stop offset="78%" stop-color="#5d49ae" />
+          <stop offset="100%" stop-color="#302668" />
+        </radialGradient>
+        <radialGradient [attr.id]="histoneInnerGradientId" cx="32%" cy="25%" r="78%">
+          <stop offset="0%" stop-color="#dfffff" />
+          <stop offset="38%" stop-color="#65c7d7" />
+          <stop offset="76%" stop-color="#277aa5" />
+          <stop offset="100%" stop-color="#17446f" />
+        </radialGradient>
+        <radialGradient [attr.id]="packedParticleGradientId" cx="34%" cy="26%" r="74%">
+          <stop offset="0%" stop-color="#dad5ff" />
+          <stop offset="28%" stop-color="#9c8be8" />
+          <stop offset="72%" stop-color="#56409c" />
+          <stop offset="100%" stop-color="#291f61" />
+        </radialGradient>
+        <linearGradient [attr.id]="scaffoldGradientId" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#173b78" />
+          <stop offset="48%" stop-color="#54bfd0" />
+          <stop offset="100%" stop-color="#24316f" />
+        </linearGradient>
+        <linearGradient [attr.id]="dnaBlueGradientId" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#174c9b" />
+          <stop offset="42%" stop-color="#56b7ff" />
+          <stop offset="70%" stop-color="#2a79d8" />
+          <stop offset="100%" stop-color="#143f8c" />
+        </linearGradient>
+        <linearGradient [attr.id]="dnaPurpleGradientId" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#4c238f" />
+          <stop offset="42%" stop-color="#bd7cf2" />
+          <stop offset="70%" stop-color="#8545c2" />
+          <stop offset="100%" stop-color="#392075" />
+        </linearGradient>
+        <linearGradient [attr.id]="depthGradientId" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#bbbbbb" />
+          <stop offset="12%" stop-color="#ffffff" />
+          <stop offset="88%" stop-color="#ffffff" />
+          <stop offset="100%" stop-color="#bbbbbb" />
+        </linearGradient>
+        <pattern
+          [attr.id]="chromatinPatternId"
+          width="18"
+          height="22"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(-12)"
+        >
+          <path
+            d="M-4 5 C2 -1 7 13 13 7 S24 15 29 8"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="2"
+            opacity="0.32"
+          />
+          <path
+            d="M-4 15 C2 9 7 23 13 17 S24 25 29 18"
+            fill="none"
+            stroke="#251c57"
+            stroke-width="2"
+            opacity="0.38"
+          />
+        </pattern>
+        <mask [attr.id]="depthMaskId">
+          <rect width="800" height="340" [attr.fill]="'url(#' + depthGradientId + ')'" />
+        </mask>
+        <clipPath [attr.id]="leftRodClipId"><path [attr.d]="leftRodPath" /></clipPath>
+        <clipPath [attr.id]="rightRodClipId"><path [attr.d]="rightRodPath" /></clipPath>
+        <filter [attr.id]="shadowId" x="-50%" y="-30%" width="200%" height="180%">
+          <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#1b1d48" flood-opacity="0.3" />
+        </filter>
+        <filter [attr.id]="glowId" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      <g
+        class="unravel-frame frame-condensed"
+        [class.active]="stageIndex() === 0"
+        data-frame="1"
+        [attr.aria-hidden]="stageIndex() !== 0"
+      >
+        <g [attr.filter]="'url(#' + shadowId + ')'">
+          <path class="rod-depth" [attr.d]="leftRodPath" transform="translate(7 5)" />
+          <path class="rod-depth" [attr.d]="rightRodPath" transform="translate(7 5)" />
+          <path
+            class="chromosome-rod"
+            [attr.d]="leftRodPath"
+            [attr.fill]="'url(#' + rodGradientId + ')'"
+          />
+          <path
+            class="chromosome-rod"
+            [attr.d]="rightRodPath"
+            [attr.fill]="'url(#' + rodGradientId + ')'"
+          />
+          <rect
+            x="196"
+            y="12"
+            width="108"
+            height="316"
+            [attr.clip-path]="'url(#' + leftRodClipId + ')'"
+            [attr.fill]="'url(#' + chromatinPatternId + ')'"
+          />
+          <rect
+            x="496"
+            y="12"
+            width="108"
+            height="316"
+            [attr.clip-path]="'url(#' + rightRodClipId + ')'"
+            [attr.fill]="'url(#' + chromatinPatternId + ')'"
+          />
+          <g class="packed-chromatin" [attr.clip-path]="'url(#' + leftRodClipId + ')'">
+            @for (particle of packedChromatinParticles[0]; track particle.id) {
+              <circle
+                class="packed-particle"
+                [attr.data-depth]="particle.depth"
+                [attr.cx]="particle.x"
+                [attr.cy]="particle.y"
+                [attr.r]="particle.radius"
+                [attr.fill]="'url(#' + packedParticleGradientId + ')'"
+              />
+            }
+          </g>
+          <g class="packed-chromatin" [attr.clip-path]="'url(#' + rightRodClipId + ')'">
+            @for (particle of packedChromatinParticles[1]; track particle.id) {
+              <circle
+                class="packed-particle"
+                [attr.data-depth]="particle.depth"
+                [attr.cx]="particle.x"
+                [attr.cy]="particle.y"
+                [attr.r]="particle.radius"
+                [attr.fill]="'url(#' + packedParticleGradientId + ')'"
+              />
+            }
+          </g>
+          <path
+            class="rod-highlight"
+            d="M 226 42 C 218 102 238 130 229 153 C 221 178 238 214 227 292"
+          />
+          <path
+            class="rod-highlight"
+            d="M 526 42 C 518 102 538 130 529 153 C 521 178 538 214 527 292"
+          />
+          <ellipse class="centromere-band" cx="250" cy="170" rx="25" ry="11" />
+          <ellipse class="centromere-band" cx="550" cy="170" rx="25" ry="11" />
+        </g>
+      </g>
+
+      <g
+        class="unravel-frame frame-fiber"
+        [class.active]="stageIndex() === 1"
+        data-frame="2"
+        [attr.aria-hidden]="stageIndex() !== 1"
+        [attr.mask]="'url(#' + depthMaskId + ')'"
+      >
+        @for (path of fiberPaths; track $index) {
+          <path class="fiber-shadow" [attr.d]="path" />
+          <path
+            class="chromatin-fiber"
+            [attr.d]="path"
+            [attr.stroke]="'url(#' + fiberGradientId + ')'"
+          />
+          <path class="fiber-highlight" [attr.d]="path" />
+        }
+        @for (units of fiberUnits; track $index) {
+          @for (unit of units; track unit.id) {
+            <g
+              class="fiber-unit"
+              [attr.data-depth]="unit.depth"
+              [attr.transform]="
+                'translate(' + unit.x + ' ' + unit.y + ') rotate(' + unit.rotation + ')'
+              "
+            >
+              <ellipse class="fiber-unit-shadow" cx="2" cy="3" rx="22" ry="7" />
+              <ellipse
+                class="fiber-unit-shell"
+                rx="21"
+                ry="6.4"
+                [attr.fill]="'url(#' + packedParticleGradientId + ')'"
+              />
+              <path class="fiber-unit-groove" d="M-18 0 C-8 -5 7 5 18 0" />
+              <ellipse class="fiber-unit-shine" cx="-7" cy="-2" rx="7" ry="1.8" />
+            </g>
+          }
+        }
+      </g>
+
+      <g
+        class="unravel-frame frame-loops"
+        [class.active]="stageIndex() === 2"
+        data-frame="3"
+        [attr.aria-hidden]="stageIndex() !== 2"
+        [attr.mask]="'url(#' + depthMaskId + ')'"
+      >
+        @for (path of scaffoldPaths; track $index) {
+          <path class="scaffold-shadow" [attr.d]="path" />
+          <path
+            class="protein-scaffold"
+            [attr.d]="path"
+            [attr.stroke]="'url(#' + scaffoldGradientId + ')'"
+          />
+        }
+        @for (domain of loopDomains; track domain.id) {
+          <g class="loop-domain" [attr.data-loop-domain]="domain.id">
+            <path class="loop-shadow" [attr.d]="domain.path" />
+            <path
+              class="chromatin-loop"
+              [attr.d]="domain.path"
+              [attr.stroke]="'url(#' + fiberGradientId + ')'"
+            />
+            <path class="loop-texture" [attr.d]="domain.path" />
+            <path class="loop-highlight" [attr.d]="domain.path" />
+            <rect
+              class="scaffold-anchor"
+              [attr.x]="domain.anchorX - 13"
+              [attr.y]="domain.anchorY - 4"
+              width="26"
+              height="8"
+              rx="4"
+            />
+            <circle
+              class="scaffold-anchor-core"
+              [attr.cx]="domain.anchorX"
+              [attr.cy]="domain.anchorY"
+              r="2.8"
+            />
+          </g>
+        }
+      </g>
+
+      <g
+        class="unravel-frame frame-nucleosomes"
+        [class.active]="stageIndex() === 3"
+        data-frame="4"
+        [attr.aria-hidden]="stageIndex() !== 3"
+      >
+        @for (path of nucleosomeLinkers; track $index) {
+          <path class="linker-shadow" [attr.d]="path" />
+          <path class="linker-dna linker-dna--blue" [attr.d]="path" transform="translate(-2 0)" />
+          <path class="linker-dna linker-dna--purple" [attr.d]="path" transform="translate(2 0)" />
+        }
+        @for (bead of nucleosomes; track bead.id) {
+          <g
+            class="nucleosome"
+            [attr.data-nucleosome]="bead.id"
+            [attr.transform]="
+              'translate(' + bead.x + ' ' + bead.y + ') rotate(' + bead.rotation + ')'
+            "
+          >
+            <ellipse class="bead-shadow" cx="3" cy="5" rx="25" ry="17" />
+            <ellipse
+              class="histone-core"
+              rx="22"
+              ry="16"
+              [attr.fill]="'url(#' + beadGradientId + ')'"
+            />
+            <circle
+              class="histone-lobe"
+              cx="-8"
+              cy="-5"
+              r="7.5"
+              [attr.fill]="'url(#' + histoneInnerGradientId + ')'"
+            />
+            <circle
+              class="histone-lobe"
+              cx="7"
+              cy="-5"
+              r="7"
+              [attr.fill]="'url(#' + histoneInnerGradientId + ')'"
+            />
+            <circle
+              class="histone-lobe"
+              cx="-7"
+              cy="6"
+              r="7"
+              [attr.fill]="'url(#' + histoneInnerGradientId + ')'"
+            />
+            <circle
+              class="histone-lobe"
+              cx="8"
+              cy="6"
+              r="7.5"
+              [attr.fill]="'url(#' + histoneInnerGradientId + ')'"
+            />
+            <circle class="histone-center" r="4.8" />
+            <ellipse class="histone-highlight" cx="-9" cy="-8" rx="6" ry="2.5" />
+            <path class="wrapped-dna wrapped-dna--back" d="M-29 -8 C-15 -24 17 -23 29 -8" />
+            <path
+              class="wrapped-dna wrapped-dna--blue"
+              d="M-31 -5 C-20 -20 23 -18 30 -2 C35 10 9 20 -15 14"
+            />
+            <path class="wrapped-dna wrapped-dna--purple" d="M-28 7 C-12 -7 18 -2 29 10" />
+          </g>
+        }
+      </g>
+
+      <g
+        class="unravel-frame frame-dna"
+        [class.active]="stageIndex() === 4"
+        data-frame="5"
+        [attr.aria-hidden]="stageIndex() !== 4"
+      >
+        @for (rung of helixRungs(); track rung.id) {
+          <g class="base-pair" [style.opacity]="rung.depth">
+            <line
+              class="base-half"
+              [attr.data-base]="rung.firstBase"
+              [attr.x1]="rung.x1"
+              [attr.x2]="rung.midpoint"
+              [attr.y1]="rung.y"
+              [attr.y2]="rung.y"
+            />
+            <line
+              class="base-half"
+              [attr.data-base]="rung.secondBase"
+              [attr.x1]="rung.midpoint"
+              [attr.x2]="rung.x2"
+              [attr.y1]="rung.y"
+              [attr.y2]="rung.y"
+            />
+            @for (offset of rung.bondOffsets; track offset) {
+              <circle
+                class="base-bond"
+                [attr.cx]="rung.midpoint"
+                [attr.cy]="rung.y + offset"
+                r="1.15"
+              />
+            }
+          </g>
+        }
+        @for (backbone of helixBackbones; track backbone.id) {
+          <path class="dna-backbone-shadow" [attr.d]="backbone.first" />
+          <path class="dna-backbone-shadow" [attr.d]="backbone.second" />
+          <path
+            class="dna-backbone dna-backbone--blue"
+            [attr.d]="backbone.first"
+            [attr.stroke]="'url(#' + dnaBlueGradientId + ')'"
+          />
+          <path
+            class="dna-backbone dna-backbone--purple"
+            [attr.d]="backbone.second"
+            [attr.stroke]="'url(#' + dnaPurpleGradientId + ')'"
+          />
+          <path class="dna-backbone-highlight" [attr.d]="backbone.first" />
+          <path class="dna-backbone-highlight" [attr.d]="backbone.second" />
+        }
+        @for (phosphate of helixPhosphates; track phosphate.id) {
+          <circle
+            class="dna-phosphate"
+            [class.dna-phosphate--blue]="phosphate.strand === 'blue'"
+            [class.dna-phosphate--purple]="phosphate.strand === 'purple'"
+            [style.opacity]="phosphate.depth"
+            [attr.cx]="phosphate.x"
+            [attr.cy]="phosphate.y"
+            r="2.8"
+          />
+        }
+      </g>
+    </svg>
+  </div>
+
+  <div class="unravel-controls">
+    <button type="button" class="play-control" (click)="toggleAnimation()">
+      {{
+        playing() ? 'Pause unpacking' : stageIndex() === 4 ? 'Replay unpacking' : 'Play unpacking'
+      }}
+    </button>
+    <div class="stage-buttons" role="group" aria-label="Chromosome unpacking stages">
+      @for (stage of stages; track stage.id; let index = $index) {
+        <button
+          type="button"
+          [class.active]="stageIndex() === index"
+          [attr.aria-pressed]="stageIndex() === index"
+          (click)="selectStage(index)"
+        >
+          <i aria-hidden="true">{{ index + 1 }}</i>
+          <span>{{ stage.shortLabel }}</span>
+        </button>
+      }
+    </div>
+  </div>
+</section>

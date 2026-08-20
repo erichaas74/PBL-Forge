@@ -1,3 +1,7 @@
+@use './nucleotide-connectors' as nucleotide;
+
+@include nucleotide.nucleotide-connectors;
+
 :host {
   display: grid;
   gap: 0.7rem;
@@ -29,6 +33,10 @@
 .mrna-strand {
   z-index: 2;
   top: 11.7rem;
+  transition: opacity 0.25s ease;
+}
+.transcription-stage:not(.unzip-complete) .mrna-strand {
+  opacity: 0;
 }
 .dna-strand > i,
 .mrna-strand > i {
@@ -37,6 +45,9 @@
   border-radius: 0;
   background: linear-gradient(180deg, var(--stone), var(--sea));
   box-shadow: 0 0.25rem 0.5rem rgb(36 59 104 / 20%);
+}
+.transcription-stage:not(.unzip-complete) .dna-strand > i {
+  opacity: 0;
 }
 .mrna-strand > i {
   width: calc(var(--rna-progress, 1) * 100%);
@@ -63,6 +74,35 @@
   color: white;
   font-size: 1rem;
   box-shadow: 0 0.3rem 0.5rem rgb(36 59 104 / 18%);
+}
+.dna-strand b {
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.transcription-stage:not(.unzip-complete) .dna-strand.coding b:not(.open) {
+  transform: translateY(6.55rem);
+}
+.transcription-stage:not(.unzip-complete) .dna-strand.template b:not(.open) {
+  transform: translateY(-6.55rem);
+}
+.dna-strand b::before {
+  position: absolute;
+  left: 50%;
+  z-index: -1;
+  width: calc(100% + clamp(0.2rem, 1.5vw, 1rem));
+  height: 0.62rem;
+  background: linear-gradient(180deg, var(--stone), var(--sea));
+  content: '';
+  opacity: 0;
+  transform: translateX(-50%);
+}
+.transcription-stage:not(.unzip-complete) .dna-strand b::before {
+  opacity: 1;
+}
+.dna-strand.coding b::before {
+  top: -0.72rem;
+}
+.dna-strand.template b::before {
+  bottom: -0.72rem;
 }
 .mrna-strand b {
   opacity: 0;
@@ -103,11 +143,58 @@
   border-radius: 48%;
   background: #7b57d1;
   color: white;
-  transform: translateX(-50%);
-  transition: left 0.62s ease;
+  opacity: 0;
+  transform: translateX(-50%) scale(0.82);
+  transition:
+    left 0.3s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease;
   box-shadow:
     inset 0 0 0 1.2rem #a98ae9,
     0 0.5rem 1.5rem rgb(71 48 128 / 22%);
+}
+.rna-polymerase.visible {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+.dna-opener {
+  position: absolute;
+  z-index: 5;
+  top: calc(50% - 2.7rem);
+  display: grid;
+  width: 5.4rem;
+  height: 5.4rem;
+  place-items: center;
+  border: 3px solid #7b57d1;
+  border-radius: 48%;
+  background: #eee8ff;
+  color: #503291;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) scale(0.82);
+  transition:
+    left 0.28s linear,
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  box-shadow: 0 0.5rem 1.2rem rgb(71 48 128 / 20%);
+}
+.dna-opener.visible {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+.dna-opener strong,
+.dna-opener span {
+  grid-area: 1 / 1;
+  text-align: center;
+}
+.dna-opener strong {
+  transform: translateY(-0.5rem);
+  font-size: var(--text-xs);
+}
+.dna-opener span {
+  transform: translateY(0.75rem);
+  font-size: var(--text-xs);
+  font-weight: 800;
 }
 .rna-polymerase strong,
 .rna-polymerase span {
@@ -135,6 +222,11 @@
   border-radius: 0.8rem;
   background: rgb(252 239 250 / 95%);
   color: #8e3f9d;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.uracil-note.visible {
+  opacity: 1;
 }
 .uracil-note > b {
   display: grid;
@@ -180,7 +272,7 @@
   flex: 1;
   accent-color: #7b57d1;
 }
-.animation-controls > span {
+.animation-controls > output {
   color: var(--muted);
   font-size: var(--text-sm);
   font-weight: 750;
@@ -224,6 +316,17 @@
     width: 4rem;
     height: 4.8rem;
     top: calc(50% - 2.4rem);
+  }
+  .dna-opener {
+    top: calc(50% - 2.15rem);
+    width: 4.3rem;
+    height: 4.3rem;
+  }
+  .transcription-stage:not(.unzip-complete) .dna-strand.coding b:not(.open) {
+    transform: translateY(5.75rem);
+  }
+  .transcription-stage:not(.unzip-complete) .dna-strand.template b:not(.open) {
+    transform: translateY(-5.75rem);
   }
   .uracil-note {
     right: 2%;

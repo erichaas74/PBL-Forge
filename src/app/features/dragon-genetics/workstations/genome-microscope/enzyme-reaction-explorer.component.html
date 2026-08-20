@@ -1,0 +1,274 @@
+<section
+  class="enzyme-explorer"
+  [attr.data-reaction]="activeReaction().id"
+  [attr.data-target]="targetReaction().id"
+  [attr.data-phase]="phase()"
+  aria-label="Interactive dragon enzyme reaction model"
+>
+  <header class="enzyme-readout">
+    <div>
+      <small>SIMPLIFIED DRAGON-CELL MODEL · {{ activeReaction().enzymeCode }}</small>
+      <strong>Target: {{ targetReaction().product.name }}</strong>
+    </div>
+    <p>Selected candidate: {{ activeReaction().enzymeCode }}</p>
+    <output aria-live="polite">{{ trialStatus() }}</output>
+  </header>
+
+  <div class="enzyme-bank" role="group" aria-label="Choose a model enzyme">
+    @for (reaction of reactions; track reaction.id) {
+      <button
+        type="button"
+        [class.active]="reaction.id === activeReaction().id"
+        [attr.aria-pressed]="reaction.id === activeReaction().id"
+        [attr.data-enzyme]="reaction.id"
+        [attr.data-trial]="trialOutcome(reaction)"
+        (click)="selectReaction(reaction.id)"
+      >
+        <span>Candidate {{ reaction.enzymeCode }}</span>
+        <small>{{ trialLabel(reaction) }}</small>
+      </button>
+    }
+  </div>
+
+  <div class="reaction-equation" aria-label="Selected enzyme reaction">
+    <span data-equation-substrate="a">{{ targetReaction().substrateA.name }}</span>
+    <b aria-hidden="true">+</b>
+    <span data-equation-substrate="b">{{ targetReaction().substrateB.name }}</span>
+    <b aria-hidden="true">→</b>
+    <span data-equation-product>{{ targetReaction().product.name }}</span>
+  </div>
+
+  <div class="reaction-viewport">
+    <svg
+      class="reaction-svg"
+      viewBox="0 0 900 420"
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      [attr.aria-labelledby]="instanceId + '-title ' + instanceId + '-description'"
+    >
+      <title [attr.id]="instanceId + '-title'">
+        Candidate {{ activeReaction().enzymeCode }} testing whether it can build
+        {{ targetReaction().product.name }}
+      </title>
+      <desc [attr.id]="instanceId + '-description'">
+        Target substrate copies drift through the cell fluid. Students test candidate enzymes. A
+        correctly shaped active site binds the substrates and releases the target product; a
+        mismatched active site rejects them without forming a product.
+      </desc>
+
+      <defs>
+        <linearGradient [attr.id]="enzymeGradientId" x1="0" y1="0" x2="1" y2="1">
+          <stop class="enzyme-stop enzyme-stop--light" offset="0%" />
+          <stop class="enzyme-stop enzyme-stop--middle" offset="48%" />
+          <stop class="enzyme-stop enzyme-stop--dark" offset="100%" />
+        </linearGradient>
+        <radialGradient [attr.id]="substrateAGradientId" cx="32%" cy="25%" r="78%">
+          <stop class="substrate-a-stop substrate-a-stop--light" offset="0%" />
+          <stop class="substrate-a-stop substrate-a-stop--middle" offset="42%" />
+          <stop class="substrate-a-stop substrate-a-stop--dark" offset="100%" />
+        </radialGradient>
+        <radialGradient [attr.id]="substrateBGradientId" cx="32%" cy="25%" r="78%">
+          <stop class="substrate-b-stop substrate-b-stop--light" offset="0%" />
+          <stop class="substrate-b-stop substrate-b-stop--middle" offset="42%" />
+          <stop class="substrate-b-stop substrate-b-stop--dark" offset="100%" />
+        </radialGradient>
+        <radialGradient [attr.id]="productGradientId" cx="32%" cy="25%" r="78%">
+          <stop class="product-stop product-stop--light" offset="0%" />
+          <stop class="product-stop product-stop--middle" offset="45%" />
+          <stop class="product-stop product-stop--dark" offset="100%" />
+        </radialGradient>
+        <mask [attr.id]="enzymeMaskId">
+          <rect width="900" height="420" fill="white" />
+          <path
+            [attr.d]="activeReaction().substrateA.path"
+            transform="translate(402 196) scale(.45)"
+            fill="black"
+          />
+          <path
+            [attr.d]="activeReaction().substrateB.path"
+            transform="translate(498 196) scale(.45)"
+            fill="black"
+          />
+        </mask>
+        <filter [attr.id]="shadowId" x="-50%" y="-50%" width="200%" height="220%">
+          <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#020b12" flood-opacity=".42" />
+        </filter>
+        <filter [attr.id]="glowId" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="13" />
+        </filter>
+      </defs>
+
+      <rect class="cell-fluid" x="0" y="0" width="900" height="420" rx="24" />
+      <g class="cell-particles" aria-hidden="true">
+        <circle cx="84" cy="82" r="6" />
+        <circle cx="164" cy="360" r="4" />
+        <circle cx="246" cy="92" r="5" />
+        <circle cx="692" cy="78" r="4" />
+        <circle cx="804" cy="324" r="6" />
+        <circle cx="742" cy="235" r="3" />
+        <circle cx="110" cy="205" r="3" />
+      </g>
+
+      <g class="reaction-glow" [attr.filter]="'url(#' + glowId + ')'" aria-hidden="true">
+        <ellipse cx="450" cy="218" rx="105" ry="58" />
+      </g>
+
+      <g class="enzyme-molecule" [attr.filter]="'url(#' + shadowId + ')'" data-molecule="enzyme">
+        <path
+          class="enzyme-shadow"
+          d="M325 230 H350 V205 H372 V218 H386 V192 H418 V218 H432 V198 H468 V218 H482 V192 H514 V218 H528 V205 H550 V230 H575 V300 C575 317 558 328 538 328 H362 C342 328 325 317 325 300 Z"
+          transform="translate(4 6)"
+        />
+        <path
+          class="enzyme-body"
+          d="M325 230 H350 V205 H372 V218 H386 V192 H418 V218 H432 V198 H468 V218 H482 V192 H514 V218 H528 V205 H550 V230 H575 V300 C575 317 558 328 538 328 H362 C342 328 325 317 325 300 Z"
+          [attr.fill]="'url(#' + enzymeGradientId + ')'"
+          [attr.mask]="'url(#' + enzymeMaskId + ')'"
+        />
+        <path class="enzyme-highlight" d="M345 244 V292 C345 305 355 312 370 312 H420" />
+        <path
+          class="active-site-outline"
+          [attr.d]="activeReaction().substrateA.path"
+          transform="translate(402 196) scale(.49)"
+        />
+        <path
+          class="active-site-outline"
+          [attr.d]="activeReaction().substrateB.path"
+          transform="translate(498 196) scale(.49)"
+        />
+        <text x="450" y="272" text-anchor="middle">{{ activeReaction().enzymeCode }}</text>
+        <text class="enzyme-note" x="450" y="292" text-anchor="middle">
+          enzyme remains unchanged
+        </text>
+      </g>
+
+      <g class="ambient-molecules" aria-hidden="true">
+        @for (copy of ambientCopies; track copy) {
+          <g [attr.class]="'ambient-molecule ambient-a ambient-a-' + copy">
+            <path
+              class="ambient-shadow"
+              [attr.d]="targetReaction().substrateA.path"
+              transform="translate(4 6)"
+            />
+            <path
+              class="ambient-shape"
+              [attr.d]="targetReaction().substrateA.path"
+              [attr.fill]="'url(#' + substrateAGradientId + ')'"
+            />
+          </g>
+          <g [attr.class]="'ambient-molecule ambient-b ambient-b-' + copy">
+            <path
+              class="ambient-shadow"
+              [attr.d]="targetReaction().substrateB.path"
+              transform="translate(4 6)"
+            />
+            <path
+              class="ambient-shape"
+              [attr.d]="targetReaction().substrateB.path"
+              [attr.fill]="'url(#' + substrateBGradientId + ')'"
+            />
+          </g>
+        }
+      </g>
+
+      <g class="substrate substrate-a" data-molecule="substrate-a">
+        <path
+          class="molecule-shadow"
+          [attr.d]="targetReaction().substrateA.path"
+          transform="translate(5 7)"
+        />
+        <path
+          class="molecule-shape"
+          [attr.d]="targetReaction().substrateA.path"
+          [attr.fill]="'url(#' + substrateAGradientId + ')'"
+        />
+        <path class="molecule-shine" d="M-17 -20 C-7 -30 7 -30 18 -21" />
+      </g>
+      <g class="substrate substrate-b" data-molecule="substrate-b">
+        <path
+          class="molecule-shadow"
+          [attr.d]="targetReaction().substrateB.path"
+          transform="translate(5 7)"
+        />
+        <path
+          class="molecule-shape"
+          [attr.d]="targetReaction().substrateB.path"
+          [attr.fill]="'url(#' + substrateBGradientId + ')'"
+        />
+        <path class="molecule-shine" d="M-17 -20 C-7 -30 7 -30 18 -21" />
+      </g>
+
+      <g class="reaction-product" data-molecule="product">
+        <ellipse class="product-halo" rx="68" ry="61" />
+        <path
+          class="molecule-shadow"
+          [attr.d]="targetReaction().product.path"
+          transform="translate(5 7)"
+        />
+        <path
+          class="molecule-shape"
+          [attr.d]="targetReaction().product.path"
+          [attr.fill]="'url(#' + productGradientId + ')'"
+        />
+        <path class="product-bond" d="M-22 0 C-7 -12 7 12 22 0" />
+        <path class="molecule-shine" d="M-18 -23 C-6 -34 8 -32 20 -22" />
+      </g>
+
+      <g class="molecule-labels" aria-hidden="true">
+        <text class="substrate-a-label" x="154" y="341" text-anchor="middle">
+          {{ targetReaction().substrateA.name }}
+        </text>
+        <text class="substrate-b-label" x="746" y="341" text-anchor="middle">
+          {{ targetReaction().substrateB.name }}
+        </text>
+        <text class="product-label" x="733" y="181" text-anchor="middle">
+          {{ targetReaction().product.name }}
+        </text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="reaction-controls">
+    <button
+      type="button"
+      class="catalyst-toggle"
+      [class.active]="catalystActive()"
+      [attr.aria-pressed]="catalystActive()"
+      (click)="toggleCatalyst()"
+    >
+      Automatic testing {{ catalystActive() ? 'active' : 'inactive' }}
+    </button>
+    <button
+      type="button"
+      class="run-reaction"
+      [disabled]="catalystActive() || reactionRunning()"
+      (click)="runReaction()"
+    >
+      Test selected enzyme
+    </button>
+    <output aria-live="polite">
+      {{ targetReaction().product.name }} built: {{ currentProductCount() }}
+    </output>
+  </div>
+
+  <section class="product-tray" aria-label="Choose a target molecule">
+    <header>
+      <small>TARGET MOLECULES</small>
+      <strong>Choose a molecule to build</strong>
+    </header>
+    <div>
+      @for (reaction of reactions; track reaction.id) {
+        <button
+          type="button"
+          [class.active]="reaction.id === targetReaction().id"
+          [attr.aria-pressed]="reaction.id === targetReaction().id"
+          [attr.data-product]="reaction.product.id"
+          (click)="selectTarget(reaction.id)"
+        >
+          <span>{{ reaction.product.name }}</span>
+          <b>{{ productCount(reaction) }}</b>
+        </button>
+      }
+    </div>
+  </section>
+</section>

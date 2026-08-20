@@ -29,8 +29,9 @@ describe('DragonDnaRepairLabComponent', () => {
 
     expect(lab.chromosomeSpecimens().length).toBe(8);
     expect(lab.availableSpecimens()[0].detail).toContain('3 released genes');
-    expect(lab.comparisonCase()?.reference.length).toBe(36);
-    expect(lab.comparisonCase()?.sample.length).toBe(36);
+    expect(lab.availableSpecimens()[0].detail).toContain('72 modeled bases');
+    expect(lab.comparisonCase()?.reference.length).toBe(72);
+    expect(lab.comparisonCase()?.sample.length).toBe(72);
   });
 
   it('persists comparison evidence and an edited working sequence for the student', () => {

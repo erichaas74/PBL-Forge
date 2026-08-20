@@ -77,7 +77,7 @@
       >
         @for (column of alignment(); track $index) {
           <span
-            class="base"
+            class="base nucleotide-base connector-bottom"
             [class.gap]="column.referenceBase === null"
             [class.different]="column.kind !== 'match'"
             [attr.data-base]="column.referenceBase"
@@ -111,7 +111,7 @@
         @for (column of alignment(); track $index) {
           <button
             type="button"
-            class="base"
+            class="base nucleotide-base connector-bottom"
             [class.gap]="column.comparisonBase === null"
             [class.different]="column.kind !== 'match'"
             [class.selected]="selectedColumn() === $index"
@@ -151,33 +151,45 @@
             @for (cell of snapshot.cells; track $index) {
               <div class="animated-pair" [class.focus-pair]="cell.focus">
                 @if (!cell.focus) {
-                  <span class="nucleotide top" [attr.data-base]="cell.base">
+                  <span
+                    class="nucleotide nucleotide-base connector-bottom top"
+                    [attr.data-base]="cell.base"
+                  >
                     {{ baseLabel(cell.base) }}
                   </span>
                   <i></i>
-                  <span class="nucleotide bottom" [attr.data-base]="complementBase(cell.base)">
+                  <span
+                    class="nucleotide nucleotide-base connector-top bottom"
+                    [attr.data-base]="complementBase(cell.base)"
+                  >
                     {{ baseLabel(complementBase(cell.base)) }}
                   </span>
                 } @else {
                   <div class="old-pair">
-                    <span class="nucleotide top" [attr.data-base]="snapshot.beforeBase">
+                    <span
+                      class="nucleotide nucleotide-base connector-bottom top"
+                      [attr.data-base]="snapshot.beforeBase"
+                    >
                       {{ baseLabel(snapshot.beforeBase) }}
                     </span>
                     <i></i>
                     <span
-                      class="nucleotide bottom"
+                      class="nucleotide nucleotide-base connector-top bottom"
                       [attr.data-base]="complementBase(snapshot.beforeBase)"
                     >
                       {{ baseLabel(complementBase(snapshot.beforeBase)) }}
                     </span>
                   </div>
                   <div class="new-pair">
-                    <span class="nucleotide top" [attr.data-base]="snapshot.afterBase">
+                    <span
+                      class="nucleotide nucleotide-base connector-bottom top"
+                      [attr.data-base]="snapshot.afterBase"
+                    >
                       {{ baseLabel(snapshot.afterBase) }}
                     </span>
                     <i></i>
                     <span
-                      class="nucleotide bottom"
+                      class="nucleotide nucleotide-base connector-top bottom"
                       [attr.data-base]="complementBase(snapshot.afterBase)"
                     >
                       {{ baseLabel(complementBase(snapshot.afterBase)) }}
@@ -257,6 +269,7 @@
               @for (base of bases; track base) {
                 <button
                   type="button"
+                  class="nucleotide-base connector-bottom"
                   [attr.data-base]="base"
                   [class.active]="selectedBase() === base"
                   [attr.aria-pressed]="selectedBase() === base"
@@ -308,6 +321,7 @@
               @for (base of bases; track base) {
                 <button
                   type="button"
+                  class="nucleotide-base connector-bottom"
                   [attr.data-base]="base"
                   [class.active]="selectedBase() === base"
                   [attr.aria-pressed]="selectedBase() === base"

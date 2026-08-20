@@ -115,11 +115,10 @@
         @case ('cell') {
           <section class="cell-level level-surface" aria-label="Dragon cell">
             <app-cell-model
-              [chromosomes]="cellChromosomeCopies()"
+              [chromosomes]="cellChromosomePairs()"
               [selectable]="false"
               [showLoci]="false"
               [showChromosomeLabels]="false"
-              [annotated]="true"
               nucleusAction="Focus nucleus"
               [ariaLabel]="'Body cell from ' + (loadedDragon()?.name ?? 'the loaded dragon')"
               (nucleusSelected)="selectLevel('nucleus')"
@@ -130,90 +129,109 @@
         @case ('nucleus') {
           <section class="nucleus-level level-surface" aria-label="Cell nucleus">
             <app-cell-model
-              focus="nucleus"
-              [chromosomes]="cellChromosomeCopies()"
-              [selectable]="false"
-              [showLoci]="false"
+              class="chromosome-cell-overview"
+              focus="cell"
+              [chromosomes]="cellChromosomePairs()"
+              [selectable]="true"
+              [showLoci]="true"
+              [showChromosomeLabels]="true"
+              [selectedChromosome]="null"
               [ariaLabel]="
-                'Nucleus and chromosomes from ' + (loadedDragon()?.name ?? 'the loaded dragon')
+                'Cell and aligned chromosome pairs from ' +
+                (loadedDragon()?.name ?? 'the loaded dragon')
               "
+              (chromosomeSelected)="openGeneFromChromosome($event)"
             />
-            <div class="structure-label nucleus-label">
-              <b>Nuclear envelope</b><span>keeps the chromosome set inside the nucleus</span>
-            </div>
           </section>
         }
 
         @case ('chromosome-set') {
-          <section class="chromosome-set-level level-surface" aria-label="Homologous chromosome pairs">
-            <header>
-              <small>{{ chromosomePairs().length }} PAIRS IN THIS MODEL</small>
-              <strong>Select any homologous pair</strong>
-            </header>
-            <div class="chromosome-pair-grid">
-              @for (pair of chromosomePairs(); track pair.id) {
-                <button
-                  type="button"
-                  class="chromosome-pair"
-                  [class.active]="selectedChromosome() === pair.id"
-                  [class.sex-pair]="pair.kind === 'sex'"
-                  (click)="selectChromosome(pair.id)"
-                >
-                  <span>{{ pair.label }}</span>
-                  <div>
-                    <app-chromosome-svg [chromosome]="pair.maternal" [compact]="true" [showAllLoci]="true" />
-                    <app-chromosome-svg [chromosome]="pair.paternal" [compact]="true" [showAllLoci]="true" />
-                  </div>
-                  <small>copy A + copy B</small>
-                </button>
-              }
-            </div>
+          <section
+            class="chromosome-set-level level-surface"
+            aria-label="Homologous chromosome pairs"
+          >
+            <app-cell-model
+              class="chromosome-cell-overview"
+              focus="cell"
+              [chromosomes]="cellChromosomePairs()"
+              [selectable]="true"
+              [showLoci]="true"
+              [showChromosomeLabels]="true"
+              [selectedChromosome]="null"
+              [ariaLabel]="
+                chromosomePairs().length +
+                ' aligned homologous chromosome pairs inside the loaded dragon cell nucleus'
+              "
+              (chromosomeSelected)="openGeneFromChromosome($event)"
+            />
           </section>
         }
 
         @case ('chromosome') {
           <section class="chromosome-level level-surface">
             <app-cell-chromosome-viewport
-              [chromosomes]="activeChromosomeCopies()"
-              [selectedChromosome]="selectedChromosomeCopyId()"
+              [chromosomes]="cellChromosomePairs()"
+              [selectedChromosome]="selectedChromosome()"
               [selectedLocus]="activeGene()?.sampleCode ?? null"
               [showLoci]="true"
               [selectable]="true"
               [locusSelectable]="true"
               layout="inspect"
               [ariaLabel]="activePair().label + ' from the loaded dragon'"
-              (chromosomeSelected)="selectChromosomeCopy($event)"
+              (chromosomeSelected)="openGeneFromChromosome($event)"
               (locusSelected)="selectGeneByLocus($event)"
             />
             @if (genesForSelectedChromosome().length) {
               <div class="gene-picker" role="group" aria-label="Genes on selected chromosome">
                 @for (gene of genesForSelectedChromosome(); track gene.id) {
                   <button type="button" (click)="selectGene(gene.id)">
-                    <b>{{ gene.sampleCode }}</b><span>{{ gene.locus }}</span>
+                    <b>{{ gene.sampleCode }}</b
+                    ><span>{{ gene.locus }}</span>
                   </button>
                 }
               </div>
+              <button type="button" class="focus-action" (click)="selectLevel('chromatin')">
+                Unpack this chromosome into DNA
+              </button>
             } @else {
               <p class="catalog-note">No gene records are released for this chromosome pair.</p>
             }
           </section>
         }
 
+        @case ('chromatin') {
+          <section class="chromatin-level level-surface">
+            <app-chromosome-unraveling
+              [sequence]="activeDnaSequence()"
+              [chromosomeLabel]="activePair().label"
+            />
+            <button type="button" class="focus-action" (click)="selectLevel('gene')">
+              Find genes along this DNA
+            </button>
+          </section>
+        }
+
         @case ('gene') {
           <section class="gene-level level-surface">
             <app-cell-chromosome-viewport
-              [chromosomes]="activeChromosomeCopies()"
-              [selectedChromosome]="selectedChromosomeCopyId()"
+              [chromosomes]="cellChromosomePairs()"
+              [selectedChromosome]="selectedChromosome()"
               [selectedLocus]="activeGene()?.sampleCode ?? null"
               [showLoci]="true"
               [selectable]="true"
               [locusSelectable]="true"
               layout="inspect"
-              [ariaLabel]="'Gene locus ' + (activeGene()?.sampleCode ?? '') + ' on ' + selectedChromosome()"
-              (chromosomeSelected)="selectChromosomeCopy($event)"
+              [ariaLabel]="
+                'Gene locus ' + (activeGene()?.sampleCode ?? '') + ' on ' + selectedChromosome()
+              "
+              (chromosomeSelected)="openGeneFromChromosome($event)"
               (locusSelected)="selectGeneByLocus($event)"
             />
-            <div class="gene-picker gene-picker--focused" role="group" aria-label="Choose a gene region">
+            <div
+              class="gene-picker gene-picker--focused"
+              role="group"
+              aria-label="Choose a gene region"
+            >
               @for (gene of genesForSelectedChromosome(); track gene.id) {
                 <button
                   type="button"
@@ -221,7 +239,8 @@
                   [attr.aria-pressed]="activeGene()?.id === gene.id"
                   (click)="selectGene(gene.id)"
                 >
-                  <b>{{ gene.sampleCode }}</b><span>{{ gene.locus }}</span>
+                  <b>{{ gene.sampleCode }}</b
+                  ><span>{{ gene.locus }}</span>
                 </button>
               }
             </div>
@@ -272,21 +291,51 @@
                   </header>
                   <div class="base-sequence">
                     @for (base of copy.sequence; track $index) {
-                      <i [attr.data-base]="base">{{ base }}</i>
+                      <i class="nucleotide-base connector-bottom" [attr.data-base]="base">{{
+                        base
+                      }}</i>
                     }
                   </div>
                   <small>
                     {{
-                      copy.fromLoadedDragon
-                        ? 'carried by this dragon'
-                        : 'released reference allele'
+                      copy.fromLoadedDragon ? 'carried by this dragon' : 'released reference allele'
                     }}
                   </small>
                 </button>
               }
             </div>
+            <button type="button" class="focus-action" (click)="selectLevel('rna')">
+              Transcribe this allele into mRNA
+            </button>
+          </section>
+        }
+
+        @case ('rna') {
+          <section class="rna-level level-surface">
+            <header class="molecular-header">
+              <div>
+                <small>{{
+                  activeAlleleCopy().allele?.sampleCode ?? activeGene()?.sampleCode
+                }}</small>
+                <strong>DNA → messenger RNA</strong>
+              </div>
+              <code>{{ activeRnaSequence() }}</code>
+            </header>
+            <app-dna-transcription-animation [sequence]="activeDnaSequence()" />
+            <button type="button" class="focus-action" (click)="selectLevel('base-chemistry')">
+              Inspect DNA and RNA base molecules
+            </button>
+          </section>
+        }
+
+        @case ('base-chemistry') {
+          <section class="base-chemistry-level level-surface">
+            <app-dna-rna-base-explorer
+              [dnaSequence]="activeDnaSequence()"
+              [rnaSequence]="activeRnaSequence()"
+            />
             <button type="button" class="focus-action" (click)="selectLevel('protein')">
-              Follow this allele toward a protein
+              Follow mRNA bases to the ribosome
             </button>
           </section>
         }
@@ -295,27 +344,42 @@
           <section class="protein-level level-surface">
             <header class="molecular-header">
               <div>
-                <small>{{ activeAlleleCopy().allele?.sampleCode ?? activeGene()?.sampleCode }}</small>
-                <strong>DNA → mRNA → protein</strong>
+                <small>{{
+                  activeAlleleCopy().allele?.sampleCode ?? activeGene()?.sampleCode
+                }}</small>
+                <strong>Messenger RNA → protein</strong>
               </div>
               <code>{{ activeRnaSequence() }}</code>
             </header>
-            <app-dna-transcription-animation [sequence]="activeDnaSequence()" />
-            <section class="protein-chain" aria-label="Codons connected to an amino acid chain">
-              <header><small>RIBOSOME READOUT</small><strong>Codons build an amino acid chain</strong></header>
-              <div class="codon-chain">
-                @for (item of proteinCodons(); track item.id) {
-                  <span>
-                    <b>{{ item.aminoAcidLabel }}</b>
-                    <small>{{ item.codon }}</small>
-                  </span>
-                }
-              </div>
-              <p>
-                This model keeps the connection visible without claiming that one allele always
-                produces one visible trait by itself.
-              </p>
-            </section>
+            <app-rna-translation-animation [sequence]="activeRnaSequence()" />
+            <p class="protein-boundary">
+              A protein can contribute to a trait through cell activity; one allele does not always
+              determine a visible trait by itself.
+            </p>
+            <button type="button" class="focus-action" (click)="selectLevel('enzyme')">
+              Explore proteins working as enzymes
+            </button>
+          </section>
+        }
+
+        @case ('enzyme') {
+          <section class="enzyme-level level-surface">
+            <app-enzyme-reaction-explorer
+              (reactionCompleted)="recordEnzymeReaction($event)"
+            />
+            <button type="button" class="focus-action" (click)="selectLevel('expression')">
+              Test protein shapes in a cell
+            </button>
+          </section>
+        }
+
+        @case ('expression') {
+          <section class="expression-level level-surface">
+            <app-protein-trait-expression
+              [dragon]="loadedDragon()"
+              [genes]="genes()"
+              [alleles]="alleles()"
+            />
           </section>
         }
       }

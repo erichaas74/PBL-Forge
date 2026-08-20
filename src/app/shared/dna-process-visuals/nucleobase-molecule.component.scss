@@ -1,0 +1,121 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.nucleobase-molecule {
+  --base-accent: #58a66d;
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.nucleobase-molecule[data-base='T'] {
+  --base-accent: #c76065;
+}
+.nucleobase-molecule[data-base='C'] {
+  --base-accent: #5885c4;
+}
+.nucleobase-molecule[data-base='G'] {
+  --base-accent: #c8943e;
+}
+.nucleobase-molecule[data-base='U'] {
+  --base-accent: #a875c4;
+}
+
+svg {
+  width: 100%;
+  max-height: 21rem;
+  overflow: visible;
+  filter: drop-shadow(0 8px 16px rgb(0 0 0 / 18%));
+}
+
+.bond-layer line {
+  stroke: #d4e1e5;
+  stroke-linecap: round;
+  stroke-width: 3.2;
+}
+
+.bond-layer line.double-bond {
+  stroke-width: 2.35;
+}
+
+.atom circle {
+  fill: #506169;
+  stroke: #dce8eb;
+  stroke-width: 1.5;
+}
+
+.atom[data-element='N'] circle {
+  fill: #315f9e;
+  stroke: #a8cbf6;
+}
+
+.atom[data-element='O'] circle {
+  fill: #a23e42;
+  stroke: #f0a3a6;
+}
+
+.atom text {
+  fill: #fff;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  pointer-events: none;
+}
+
+figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.base-symbol {
+  display: grid;
+  width: 2.25rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 2px solid color-mix(in srgb, var(--base-accent), white 20%);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--base-accent), transparent 18%);
+  color: #fff;
+  font-weight: 950;
+}
+
+figcaption > span:last-child {
+  display: grid;
+  gap: 0.02rem;
+}
+
+figcaption b {
+  color: #f5fafb;
+  font-size: var(--text-sm);
+}
+
+figcaption small {
+  color: #91a7af;
+  font-size: var(--text-xs);
+  text-transform: capitalize;
+}
+
+.compact svg {
+  max-height: 7.25rem;
+}
+
+.compact figcaption {
+  gap: 0.3rem;
+}
+
+.compact .base-symbol {
+  width: 1.8rem;
+}
+
+.compact figcaption b {
+  font-size: var(--text-xs);
+}
+
+.compact figcaption small {
+  display: none;
+}

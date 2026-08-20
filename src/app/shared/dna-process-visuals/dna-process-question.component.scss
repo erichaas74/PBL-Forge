@@ -1,3 +1,7 @@
+@use './nucleotide-connectors' as nucleotide;
+
+@include nucleotide.nucleotide-connectors;
+
 :host {
   display: block;
 }

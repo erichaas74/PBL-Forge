@@ -1,8 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import {
-  DragonGeneAlleleMarking,
-  DragonGeneBarcodeMutationType,
-} from './dragon-gene-dna.catalog';
+import { DragonGeneAlleleMarking, DragonGeneBarcodeMutationType } from './dragon-gene-dna.catalog';
 
 export interface ChromosomeBand {
   start: number;
@@ -22,14 +19,9 @@ export interface ChromosomeLocus {
 }
 
 /** What the second drawn chromosome is to the first. Names it for assistive technology. */
-export type ChromosomePairRelationship =
-  | 'sister-chromatids'
-  | 'homologous-pair'
-  | 'gamete-fusion';
+export type ChromosomePairRelationship = 'sister-chromatids' | 'homologous-pair' | 'gamete-fusion';
 
-export const CHROMOSOME_PAIR_DESCRIPTIONS: Readonly<
-  Record<ChromosomePairRelationship, string>
-> = {
+export const CHROMOSOME_PAIR_DESCRIPTIONS: Readonly<Record<ChromosomePairRelationship, string>> = {
   'sister-chromatids': 'replicated chromosome with two sister chromatids joined at the centromere',
   'homologous-pair': 'homologous pair with maternal and paternal chromosomes held together',
   'gamete-fusion': 'egg and sperm chromosome pair joined in the fertilization model',
@@ -53,7 +45,7 @@ interface RenderBand extends ChromosomeBand {
 interface RenderLocus extends ChromosomeLocus {
   x: number;
   active: boolean;
-  hasAllele: boolean;
+  muted: boolean;
   barcodeVariant: ChromosomeBarcodeVariant;
   barcode: readonly RenderBarcodeStripe[];
 }
@@ -244,15 +236,15 @@ export class ChromosomeSvgComponent {
       }),
       loci: model.loci.map((locus) => {
         const bandColor =
-          model.bands.find(
-            (band) => band.start <= locus.position && band.end >= locus.position,
-          )?.color ?? '#888888';
+          model.bands.find((band) => band.start <= locus.position && band.end >= locus.position)
+            ?.color ?? '#888888';
         const barcodeVariant = locus.marking?.mutationType ?? 'unloaded';
+        const active = locus.label === this.selectedLocus();
         return {
           ...locus,
           x: this.modelX(model, locus.position),
-          active: primary && locus.label === this.selectedLocus(),
-          hasAllele: Boolean(locus.symbol),
+          active,
+          muted: Boolean(this.selectedLocus()) && !active,
           barcodeVariant,
           barcode: this.generateBarcode(locus.marking, bandColor),
         };

@@ -2,7 +2,11 @@
   class="chromosome-svg"
   [class.chromosome-svg--placeholder]="placeholder()"
   [class.chromosome-svg--replicated]="replicated() || !!pairedChromosome()"
-  [attr.viewBox]="compact() ? (replicated() || pairedChromosome() ? '0 0 100 32' : '0 6 100 20') : '0 0 100 44'"
+  [class.chromosome-svg--has-selected-locus]="!!selectedLocus()"
+  [attr.data-selected-locus]="selectedLocus()"
+  [attr.viewBox]="
+    compact() ? (replicated() || pairedChromosome() ? '0 0 100 32' : '0 6 100 20') : '0 0 100 44'
+  "
   preserveAspectRatio="xMidYMid meet"
   role="img"
   [attr.aria-label]="summary()"
@@ -155,6 +159,7 @@
           <g
             class="gene-locus"
             [class.gene-locus--active]="locus.active"
+            [class.gene-locus--muted]="locus.muted"
             [class.gene-locus--visible]="showAllLoci()"
             [class.gene-locus--interactive]="chromatid.primary && interactive()"
             [attr.data-locus]="chromatid.primary ? locus.label : null"
@@ -177,7 +182,7 @@
               [attr.transform]="'translate(' + locus.x + ',10)'"
               [attr.data-barcode-variant]="locus.barcodeVariant"
             >
-              @if (locus.hasAllele) {
+              @if (locus.active) {
                 <rect class="barcode-highlight" x="-5" y="-1.5" width="10" height="15" rx="1.5" />
               }
               @for (stripe of locus.barcode; track $index) {
@@ -211,13 +216,7 @@
   }
 
   @if (replicated() || pairedChromosome()) {
-    <circle
-      class="centromere-joint"
-      [attr.cx]="centromereX()"
-      cy="16"
-      r="2.4"
-      aria-hidden="true"
-    />
+    <circle class="centromere-joint" [attr.cx]="centromereX()" cy="16" r="2.4" aria-hidden="true" />
   }
 
   @if (!compact()) {

@@ -1,9 +1,14 @@
+@use '../../../../shared/dna-process-visuals/nucleotide-connectors' as nucleotide;
+
+@include nucleotide.nucleotide-connectors;
+
 :host {
   display: block;
   width: 100%;
 }
 
 .sequence-analysis {
+  --base-connector-surface: #f3f7fc;
   --dna-blue: #2367ef;
   --dna-ink: #122241;
   --dna-muted: #65748d;
@@ -362,6 +367,7 @@ button.base {
 }
 
 .dna-animation {
+  --base-connector-surface: #142742;
   position: relative;
   display: grid;
   min-height: 13rem;

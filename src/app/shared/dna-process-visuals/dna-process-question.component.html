@@ -6,12 +6,12 @@
   </header>
 
   <div class="base-legend" aria-label="Nucleotide color key">
-    <span><b data-base="A">A</b>Adenine</span>
-    <span><b data-base="T">T</b>Thymine</span>
-    <span><b data-base="C">C</b>Cytosine</span>
-    <span><b data-base="G">G</b>Guanine</span>
+    <span><b class="nucleotide-base connector-bottom" data-base="A">A</b>Adenine</span>
+    <span><b class="nucleotide-base connector-bottom" data-base="T">T</b>Thymine</span>
+    <span><b class="nucleotide-base connector-bottom" data-base="C">C</b>Cytosine</span>
+    <span><b class="nucleotide-base connector-bottom" data-base="G">G</b>Guanine</span>
     @if (question().mode === 'transcription') {
-      <span><b data-base="U">U</b>Uracil in RNA</span>
+      <span><b class="nucleotide-base connector-bottom" data-base="U">U</b>Uracil in RNA</span>
     }
   </div>
 

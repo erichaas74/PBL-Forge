@@ -10,15 +10,15 @@ import {
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import {
+  RnaTranslationStep,
   dnaSequence,
   transcribedRna,
+  translateRna,
 } from '../../../../shared/dna-process-visuals/dna-process.models';
 import { DnaReplicationAnimationComponent } from '../../../../shared/dna-process-visuals/dna-replication-animation.component';
 import { DnaTranscriptionAnimationComponent } from '../../../../shared/dna-process-visuals/dna-transcription-animation.component';
-import {
-  DRAGON_TRAITS,
-  genotypeLabel,
-} from '../../simulation/domain/dragon-inheritance';
+import { RnaTranslationAnimationComponent } from '../../../../shared/dna-process-visuals/rna-translation-animation.component';
+import { DRAGON_TRAITS, genotypeLabel } from '../../simulation/domain/dragon-inheritance';
 import {
   dragonParentSource,
   provideDragonSpecimenProfile,
@@ -36,11 +36,8 @@ import {
   CellChromosomeViewportItem,
 } from '../shared/cell-chromosome-viewport.component';
 import { CellModelComponent } from '../shared/cell-model.component';
-import {
-  chromosomeVisual,
-  DRAGON_AUTOSOME_LABELS,
-} from '../shared/dragon-chromosome.catalog';
-import { ChromosomeSvgComponent, ChromosomeSvgModel } from '../shared/chromosome-svg.component';
+import { chromosomeVisual, DRAGON_AUTOSOME_LABELS } from '../shared/dragon-chromosome.catalog';
+import { ChromosomeSvgModel } from '../shared/chromosome-svg.component';
 import { geneAlleleMarking, geneDnaRecord } from '../shared/dragon-gene-dna.catalog';
 import {
   GENOME_MICROSCOPE_LEVEL_DEFINITIONS,
@@ -50,6 +47,13 @@ import {
   GenomeMicroscopeLevel,
   GenomeMicroscopeSex,
 } from './genome-microscope.models';
+import { DnaRnaBaseExplorerComponent } from './dna-rna-base-explorer.component';
+import { ChromosomeUnravelingComponent } from './chromosome-unraveling.component';
+import {
+  EnzymeReactionExplorerComponent,
+  EnzymeReactionResult,
+} from './enzyme-reaction-explorer.component';
+import { ProteinTraitExpressionComponent } from './protein-trait-expression.component';
 
 interface AlleleCopyView {
   copy: 0 | 1;
@@ -58,12 +62,6 @@ interface AlleleCopyView {
   allele: AlleleVaultAllele | null;
   sequence: readonly string[];
   fromLoadedDragon: boolean;
-}
-
-interface ProteinCodon {
-  id: string;
-  codon: string;
-  aminoAcidLabel: string;
 }
 
 const EMPTY_ALLELE_COPY: AlleleCopyView = {
@@ -81,9 +79,13 @@ const EMPTY_ALLELE_COPY: AlleleCopyView = {
     SpecimenViewportComponent,
     CellChromosomeViewportComponent,
     CellModelComponent,
-    ChromosomeSvgComponent,
+    ChromosomeUnravelingComponent,
     DnaReplicationAnimationComponent,
     DnaTranscriptionAnimationComponent,
+    RnaTranslationAnimationComponent,
+    DnaRnaBaseExplorerComponent,
+    EnzymeReactionExplorerComponent,
+    ProteinTraitExpressionComponent,
   ],
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './genome-microscope.component.html',
@@ -105,9 +107,7 @@ export class GenomeMicroscopeComponent {
   readonly levels = GENOME_MICROSCOPE_LEVEL_DEFINITIONS;
   readonly level = linkedSignal<GenomeMicroscopeLevel>(() => {
     const requested = this.initialLevel();
-    return this.isMolecularLevel(requested) && !this.genes().length
-      ? 'chromosome-set'
-      : requested;
+    return this.isMolecularLevel(requested) && !this.genes().length ? 'chromosome-set' : requested;
   });
   readonly loadedDragonId = linkedSignal<string | null>(() => this.dragons()[0]?.id ?? null);
   readonly selectedChromosome = signal('Chr 1');
@@ -115,6 +115,7 @@ export class GenomeMicroscopeComponent {
   readonly selectedAlleleCopy = signal<0 | 1>(0);
   readonly guideOpen = signal(false);
   readonly visitedLevels = signal<readonly GenomeMicroscopeLevel[]>(['dragon']);
+  readonly enzymeResult = signal<EnzymeReactionResult | null>(null);
 
   readonly loadedDragon = computed(
     () => this.dragons().find((dragon) => dragon.id === this.loadedDragonId()) ?? null,
@@ -123,9 +124,7 @@ export class GenomeMicroscopeComponent {
     const dragon = this.loadedDragon();
     return dragon ? dragonParentSource(dragon) : null;
   });
-  readonly specimenSex = computed<GenomeMicroscopeSex>(
-    () => this.loadedDragon()?.sex ?? 'female',
-  );
+  readonly specimenSex = computed<GenomeMicroscopeSex>(() => this.loadedDragon()?.sex ?? 'female');
 
   readonly chromosomePairs = computed<readonly GenomeMicroscopeChromosomePair[]>(() => [
     ...this.autosomeChromosomes().map((chromosome) => this.buildPair(chromosome)),
@@ -155,9 +154,7 @@ export class GenomeMicroscopeComponent {
   readonly alleleCopies = computed<readonly AlleleCopyView[]>(() => this.buildAlleleCopies());
   readonly activeAlleleCopy = computed(
     () =>
-      this.alleleCopies()[this.selectedAlleleCopy()] ??
-      this.alleleCopies()[0] ??
-      EMPTY_ALLELE_COPY,
+      this.alleleCopies()[this.selectedAlleleCopy()] ?? this.alleleCopies()[0] ?? EMPTY_ALLELE_COPY,
   );
   readonly activeDnaSequence = computed(() => {
     const sequence = this.activeAlleleCopy().sequence.join('');
@@ -167,52 +164,24 @@ export class GenomeMicroscopeComponent {
     const sequence = this.activeDnaSequence();
     return sequence ? transcribedRna(dnaSequence(sequence)).join('') : '';
   });
-  readonly proteinCodons = computed<readonly ProteinCodon[]>(() => {
-    const rna = this.activeRnaSequence();
-    const codons = rna.match(/.{1,3}/g)?.filter((codon) => codon.length === 3) ?? [];
-    return codons.map((codon, index) => ({
-      id: `${index}:${codon}`,
-      codon,
-      aminoAcidLabel: `AA ${index + 1}`,
-    }));
-  });
-
-  readonly cellChromosomeCopies = computed<readonly CellChromosomeViewportItem[]>(() =>
-    this.chromosomePairs().flatMap((pair) => [
-      {
-        id: `${pair.id}:0`,
-        label: `${pair.label}, inherited copy A`,
-        shortLabel: `${this.chromosomeNumber(pair.id)}A`,
-        model: pair.maternal,
-      },
-      {
-        id: `${pair.id}:1`,
-        label: `${pair.label}, inherited copy B`,
-        shortLabel: `${this.chromosomeNumber(pair.id)}B`,
-        model: pair.paternal,
-      },
-    ]),
+  readonly proteinCodons = computed<readonly RnaTranslationStep[]>(
+    () => translateRna(this.activeRnaSequence()).steps,
   );
-  readonly activeChromosomeCopies = computed<readonly CellChromosomeViewportItem[]>(() => {
-    const pair = this.activePair();
-    if (!pair) return [];
-    return [
-      {
-        id: `${pair.id}:0`,
-        label: `${pair.label}, inherited copy A`,
-        shortLabel: 'Copy A',
-        model: pair.maternal,
-      },
-      {
-        id: `${pair.id}:1`,
-        label: `${pair.label}, inherited copy B`,
-        shortLabel: 'Copy B',
-        model: pair.paternal,
-      },
-    ];
-  });
-  readonly selectedChromosomeCopyId = computed(
-    () => `${this.selectedChromosome()}:${this.selectedAlleleCopy()}`,
+
+  /**
+   * The nucleus presents homologs as five aligned pairs instead of ten loose
+   * chromosome copies. The same pair models feed the nucleus, chromosome-set,
+   * chromosome, and gene magnifications so a selection stays spatially stable.
+   */
+  readonly cellChromosomePairs = computed<readonly CellChromosomeViewportItem[]>(() =>
+    this.chromosomePairs().map((pair) => ({
+      id: pair.id,
+      label: pair.label,
+      shortLabel: this.chromosomeNumber(pair.id),
+      model: pair.maternal,
+      pairedModel: pair.paternal,
+      pairRelationship: 'homologous-pair',
+    })),
   );
 
   readonly currentLevelIndex = computed(() => GENOME_MICROSCOPE_LEVELS.indexOf(this.level()));
@@ -242,6 +211,7 @@ export class GenomeMicroscopeComponent {
       this.selectedChromosome(),
       gene?.sampleCode,
       copy.label,
+      this.level() === 'enzyme' ? this.enzymeResult()?.productName : null,
     ]
       .filter(Boolean)
       .join(' · ');
@@ -264,9 +234,7 @@ export class GenomeMicroscopeComponent {
     if (!this.levelAvailable(level)) return;
     if (this.isMolecularLevel(level)) this.ensureMolecularSelection();
     this.level.set(level);
-    this.visitedLevels.update((levels) =>
-      levels.includes(level) ? levels : [...levels, level],
-    );
+    this.visitedLevels.update((levels) => (levels.includes(level) ? levels : [...levels, level]));
     this.emitSelection(level);
   }
 
@@ -287,13 +255,12 @@ export class GenomeMicroscopeComponent {
     this.selectLevel('chromosome');
   }
 
-  selectChromosomeCopy(chromosomeCopyId: string): void {
-    const split = chromosomeCopyId.lastIndexOf(':');
-    const chromosome = split >= 0 ? chromosomeCopyId.slice(0, split) : chromosomeCopyId;
-    const copy = split >= 0 && chromosomeCopyId.slice(split + 1) === '1' ? 1 : 0;
+  openGeneFromChromosome(chromosome: string): void {
     this.selectedChromosome.set(chromosome);
-    this.selectedAlleleCopy.set(copy);
-    this.emitSelection(this.level());
+    this.selectedAlleleCopy.set(0);
+    const firstGene = this.genes().find((gene) => gene.chromosome === chromosome) ?? null;
+    this.selectedGeneId.set(firstGene?.id ?? null);
+    this.selectLevel(firstGene ? 'gene' : 'chromosome');
   }
 
   selectGene(geneId: string): void {
@@ -305,8 +272,9 @@ export class GenomeMicroscopeComponent {
   }
 
   selectGeneByLocus(selection: CellChromosomeLocusSelection): void {
-    const gene = this.genesForSelectedChromosome().find(
-      (candidate) => candidate.sampleCode === selection.locus,
+    const gene = this.genes().find(
+      (candidate) =>
+        candidate.chromosome === selection.chromosomeId && candidate.sampleCode === selection.locus,
     );
     if (gene) this.selectGene(gene.id);
   }
@@ -314,6 +282,14 @@ export class GenomeMicroscopeComponent {
   selectAlleleCopy(copy: 0 | 1): void {
     this.selectedAlleleCopy.set(copy);
     this.selectLevel('allele');
+  }
+
+  recordEnzymeReaction(result: EnzymeReactionResult): void {
+    this.enzymeResult.set(result);
+    // Product formation is evidence inside the current level, not a request to
+    // advance an outer adaptive question. Keeping those signals separate lets
+    // the automatic catalyst continue through repeated reaction cycles.
+    this.emitEvidence('enzyme');
   }
 
   chromosomeNumber(chromosome: string): string {
@@ -370,15 +346,16 @@ export class GenomeMicroscopeComponent {
           (candidate) => candidate.geneId === gene.id && candidate.symbol === symbol,
         );
         const alleleIndex = allele ? gene.alleleIds.indexOf(allele.id) : -1;
+        // Older dragon records carry only the four core teaching genotypes.
+        // Every released locus still has a canonical DNA identity, so show its
+        // reference barcode when that dragon has no stored allele for the gene.
+        const barcodeAlleleIndex: 0 | 1 = alleleIndex === 1 ? 1 : 0;
         return {
           position: visual.locusPositions[index] ?? 0.5,
           label: gene.sampleCode,
           color: geneDnaRecord(gene.id).locusColor,
           symbol,
-          marking:
-            alleleIndex === 0 || alleleIndex === 1
-              ? geneAlleleMarking(gene.id, alleleIndex)
-              : undefined,
+          marking: geneAlleleMarking(gene.id, barcodeAlleleIndex),
         };
       }),
     };
@@ -424,7 +401,17 @@ export class GenomeMicroscopeComponent {
   }
 
   private isMolecularLevel(level: GenomeMicroscopeLevel): boolean {
-    return ['gene', 'dna', 'allele', 'protein'].includes(level);
+    return [
+      'chromatin',
+      'gene',
+      'dna',
+      'allele',
+      'rna',
+      'base-chemistry',
+      'protein',
+      'enzyme',
+      'expression',
+    ].includes(level);
   }
 
   private emitSelection(level: GenomeMicroscopeLevel): void {
@@ -434,18 +421,33 @@ export class GenomeMicroscopeComponent {
       nucleus: 'cell',
       'chromosome-set': 'chromosome',
       chromosome: 'chromosome',
+      chromatin: 'chromosome',
       gene: 'gene',
       dna: 'gene',
       allele: 'allele',
+      rna: 'allele',
+      'base-chemistry': 'allele',
       protein: 'allele',
+      enzyme: 'allele',
+      expression: 'trait',
     };
     this.modelSelected.emit(nodeByLevel[level] ?? level);
+    this.emitEvidence(level);
+  }
+
+  private emitEvidence(level: GenomeMicroscopeLevel): void {
     this.evidenceChanged.emit({
       level,
       dragonId: this.loadedDragonId(),
       chromosome: this.selectedChromosome(),
       geneId: this.activeGene()?.id ?? null,
       alleleCopy: this.selectedAlleleCopy(),
+      ...(level === 'enzyme' && this.enzymeResult()
+        ? {
+            enzymeId: this.enzymeResult()?.enzymeId,
+            productId: this.enzymeResult()?.productId,
+          }
+        : {}),
     });
   }
 }

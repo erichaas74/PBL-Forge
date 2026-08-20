@@ -1,0 +1,172 @@
+<section class="base-explorer" aria-label="DNA and RNA base molecule explorer">
+  <header class="explorer-heading">
+    <div>
+      <small>MOLECULAR COMPARISON</small>
+      <strong>DNA and RNA are built from related—but not identical—bases.</strong>
+      <span>Select any base to inspect its atoms, rings, and covalent bonds.</span>
+    </div>
+    <div class="view-switcher" role="group" aria-label="Choose nucleic acid view">
+      <button
+        type="button"
+        [class.active]="view() === 'compare'"
+        [attr.aria-pressed]="view() === 'compare'"
+        (click)="setView('compare')"
+      >
+        Compare
+      </button>
+      <button
+        type="button"
+        [class.active]="view() === 'dna'"
+        [attr.aria-pressed]="view() === 'dna'"
+        (click)="setView('dna')"
+      >
+        DNA
+      </button>
+      <button
+        type="button"
+        [class.active]="view() === 'rna'"
+        [attr.aria-pressed]="view() === 'rna'"
+        (click)="setView('rna')"
+      >
+        RNA
+      </button>
+    </div>
+  </header>
+
+  <div class="base-workspace" [attr.data-view]="view()">
+    @if (view() !== 'rna') {
+      <section class="acid-panel dna-panel" aria-labelledby="dna-bases-title">
+        <header>
+          <div>
+            <small>DOUBLE-STRANDED MODEL</small><strong id="dna-bases-title">DNA bases</strong>
+          </div>
+          <span>A · T · C · G</span>
+        </header>
+
+        <div class="catalog-grid" role="group" aria-label="DNA nucleobases">
+          @for (base of dnaBases; track base) {
+            <button
+              type="button"
+              [class.active]="selectedBase() === base && selectedContext() === 'DNA'"
+              [attr.aria-pressed]="selectedBase() === base && selectedContext() === 'DNA'"
+              [attr.aria-label]="'Inspect ' + definition(base).name + ' in DNA'"
+              (click)="selectBase(base, 'DNA')"
+            >
+              <app-nucleobase-molecule [base]="base" [compact]="true" />
+            </button>
+          }
+        </div>
+
+        <div class="strand-card" aria-label="A sample DNA double strand from the selected gene">
+          <small>GENE SAMPLE · TWO COMPLEMENTARY STRANDS</small>
+          <div class="dna-ladder">
+            @for (base of dnaSample(); track $index) {
+              <button type="button" [attr.data-base]="base" (click)="selectBase(base, 'DNA')">
+                {{ base }}
+              </button>
+              <i [class.three]="base === 'C' || base === 'G'" aria-hidden="true"></i>
+              <button
+                type="button"
+                [attr.data-base]="dnaComplement()[$index]"
+                (click)="selectBase(dnaComplement()[$index], 'DNA')"
+              >
+                {{ dnaComplement()[$index] }}
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+    }
+
+    <section class="molecule-inspector" aria-labelledby="molecule-inspector-title">
+      <header>
+        <div>
+          <small>SELECTED MOLECULE · {{ selectedContext() }}</small>
+          <strong id="molecule-inspector-title">{{ selectedDefinition().name }}</strong>
+        </div>
+        <code>{{ selectedDefinition().formula }}</code>
+      </header>
+
+      <app-nucleobase-molecule [base]="selectedBase()" [showCaption]="false" />
+
+      <div class="molecule-facts">
+        <div>
+          <small>SHAPE FAMILY</small><b>{{ selectedDefinition().family }}</b
+          ><span
+            >{{ selectedDefinition().ringCount }}
+            {{ selectedDefinition().ringCount === 1 ? 'ring' : 'fused rings' }}</span
+          >
+        </div>
+        <div>
+          <small>FOUND IN</small><b>{{ selectedDefinition().occursIn.join(' + ') }}</b
+          ><span>{{ selectedDefinition().distinction }}</span>
+        </div>
+      </div>
+
+      <div class="pairing-model" [attr.data-bonds]="selectedDefinition().hydrogenBondCount">
+        <span [attr.data-base]="selectedBase()">{{ selectedBase() }}</span>
+        <i aria-hidden="true"></i>
+        <span [attr.data-base]="selectedPair()">{{ selectedPair() }}</span>
+        <p>
+          <b>{{ selectedDefinition().hydrogenBondCount }} hydrogen bonds</b>
+          <small
+            >Dashed lines join complementary bases; they are not the covalent bonds inside each
+            base.</small
+          >
+        </p>
+      </div>
+
+      <div class="atom-key" aria-label="Molecule diagram legend">
+        <span data-element="C"><i></i><b>C</b> carbon</span>
+        <span data-element="N"><i></i><b>N</b> nitrogen</span>
+        <span data-element="O"><i></i><b>O</b> oxygen</span>
+        <span class="bond-key"><i></i>single bond</span>
+        <span class="double-key"><i></i>double bond</span>
+      </div>
+    </section>
+
+    @if (view() !== 'dna') {
+      <section class="acid-panel rna-panel" aria-labelledby="rna-bases-title">
+        <header>
+          <div>
+            <small>SINGLE-STRANDED MODEL</small><strong id="rna-bases-title">RNA bases</strong>
+          </div>
+          <span>A · U · C · G</span>
+        </header>
+
+        <div class="catalog-grid" role="group" aria-label="RNA nucleobases">
+          @for (base of rnaBases; track base) {
+            <button
+              type="button"
+              [class.active]="selectedBase() === base && selectedContext() === 'RNA'"
+              [attr.aria-pressed]="selectedBase() === base && selectedContext() === 'RNA'"
+              [attr.aria-label]="'Inspect ' + definition(base).name + ' in RNA'"
+              (click)="selectBase(base, 'RNA')"
+            >
+              <app-nucleobase-molecule [base]="base" [compact]="true" />
+            </button>
+          }
+        </div>
+
+        <div class="strand-card" aria-label="A sample messenger RNA strand from the selected gene">
+          <small>mRNA SAMPLE · ONE STRAND</small>
+          <div class="rna-strand">
+            @for (base of rnaSample(); track $index) {
+              <button type="button" [attr.data-base]="base" (click)="selectBase(base, 'RNA')">
+                {{ base }}
+              </button>
+            }
+          </div>
+          <p>
+            <b>U replaces T.</b> Ribose sugar also has one more oxygen-bearing hydroxyl group than
+            deoxyribose.
+          </p>
+        </div>
+      </section>
+    }
+  </div>
+
+  <footer class="explorer-readout">
+    <output aria-live="polite">{{ observation() }}</output>
+  </footer>
+</section>

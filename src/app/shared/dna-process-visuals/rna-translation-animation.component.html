@@ -1,0 +1,172 @@
+<section class="translation-instrument" aria-label="Messenger RNA translation instrument">
+  <header class="instrument-readout">
+    <span class="phase-badge" [attr.data-phase]="phase()">{{ phaseLabel() }}</span>
+    <span>{{ protein().length }} amino acids</span>
+    <output aria-live="polite">{{ status() }}</output>
+  </header>
+
+  <div
+    class="translation-stage"
+    [attr.data-phase]="phase()"
+    [style.--phase-duration]="phaseDuration()"
+  >
+    <div class="edge-fade" aria-hidden="true"></div>
+
+    <section
+      class="protein-product"
+      [class.releasing]="phase() === 'released'"
+      [attr.aria-label]="'Growing amino acid chain. ' + foldLabel()"
+    >
+      <header>
+        <small>GROWING POLYPEPTIDE AND EARLY FOLD</small>
+        <output aria-live="polite">{{ foldLabel() }}</output>
+      </header>
+      <div class="folding-field" [style.--fold-amount]="foldAmount()">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path class="backbone-shadow" [attr.d]="backbonePath()" />
+          <path class="peptide-backbone" [attr.d]="backbonePath()" />
+          @if (hydrophobicInteraction(); as interaction) {
+            <line
+              class="side-chain-interaction"
+              [attr.x1]="interaction.x1"
+              [attr.y1]="interaction.y1"
+              [attr.x2]="interaction.x2"
+              [attr.y2]="interaction.y2"
+            />
+          }
+        </svg>
+
+        @for (residue of foldedProtein(); track $index) {
+          <span
+            class="amino-residue"
+            [attr.data-shape]="residue.shape"
+            [attr.data-group]="residue.group"
+            [attr.data-side-chain]="residue.sideChain"
+            [attr.aria-label]="
+              residue.aminoAcid + ', ' + residue.groupLabel + ' side chain, residue ' + ($index + 1)
+            "
+            [style.left.%]="residue.x"
+            [style.top.%]="residue.y"
+            [class.newest]="$last && activeAminoAcidAttached()"
+          >
+            <i class="amino-core" aria-hidden="true">C&alpha;</i>
+            <i class="side-chain-marker" aria-hidden="true">{{ residue.sideChain }}</i>
+            <b>{{ residue.shortName }}</b>
+            <small>{{ residue.aminoAcid }}</small>
+          </span>
+        } @empty {
+          <em class="empty-chain">The first amino acid will emerge through the peptide tunnel.</em>
+        }
+
+        @if (hydrophobicInteraction()) {
+          <span class="interaction-label">hydrophobic attraction</span>
+        }
+      </div>
+    </section>
+
+    <section class="translation-machine" aria-label="Ribosome, transfer RNA, and messenger RNA">
+      <div class="large-subunit" aria-hidden="true">
+        <strong>LARGE RIBOSOME SUBUNIT</strong>
+        <span class="ribosome-rna rna-fold-one"></span>
+        <span class="ribosome-rna rna-fold-two"></span>
+        <span class="ribosome-rna rna-fold-three"></span>
+        <span class="peptide-tunnel">PEPTIDE EXIT TUNNEL</span>
+        <span class="site-pocket exit-site"><b>E</b><small>exit</small></span>
+        <span class="site-pocket peptide-site"><b>P</b><small>chain</small></span>
+        <span class="site-pocket active-site"><b>A</b><small>arrival</small></span>
+      </div>
+
+      @if (activeStep(); as active) {
+        <div class="transfer-zone" [class.release-zone]="active.stop">
+          @if (active.stop) {
+            <div class="release-factor">
+              <b>RF</b>
+              <span>release factor</span>
+            </div>
+          } @else {
+            <div class="trna">
+              <span
+                class="amino-payload"
+                [attr.data-shape]="aminoAcidShape(active.shortName)"
+                [attr.data-group]="aminoAcidVisual(active.shortName).group"
+                [attr.data-side-chain]="aminoAcidVisual(active.shortName).sideChain"
+              >
+                <b>{{ active.shortName }}</b>
+                <small>{{ aminoAcidVisual(active.shortName).sideChain }}</small>
+              </span>
+              <span class="trna-cup" aria-hidden="true"></span>
+              <span class="trna-body">
+                <i class="acceptor-stem" aria-hidden="true"></i>
+                <i class="trna-loop trna-loop-left" aria-hidden="true"></i>
+                <i class="trna-loop trna-loop-right" aria-hidden="true"></i>
+                <b>tRNA</b>
+              </span>
+              <code class="anticodon" [attr.aria-label]="'Anticodon ' + anticodon(active.codon)">
+                @for (base of anticodon(active.codon).split(''); track $index) {
+                  <i class="nucleotide-base connector-bottom" [attr.data-base]="base">{{ base }}</i>
+                }
+              </code>
+            </div>
+          }
+        </div>
+      }
+
+      <section class="mrna-viewport" aria-label="Messenger RNA codons">
+        <header><b>5′</b><span>mRNA moving through the ribosome</span><b>3′</b></header>
+        <div class="mrna-rail" aria-hidden="true"></div>
+        <div class="mrna-track" [style.--track-offset]="trackOffset()">
+          @for (step of steps(); track $index) {
+            <button
+              type="button"
+              [class.active]="$index === activeIndex() && !complete()"
+              [class.read]="$index < progress()"
+              [class.stop]="step.stop"
+              [attr.aria-pressed]="$index < progress()"
+              [attr.aria-label]="'Position ribosome at codon ' + ($index + 1) + ', ' + step.codon"
+              (click)="chooseCodon($index)"
+            >
+              <span class="codon-bases">
+                @for (base of step.codon.split(''); track $index) {
+                  <i class="nucleotide-base connector-top" [attr.data-base]="base">{{ base }}</i>
+                }
+              </span>
+              <small>{{ step.stop ? 'STOP' : step.shortName }}</small>
+            </button>
+          }
+        </div>
+      </section>
+
+      <div class="active-window" aria-hidden="true"><span>ACTIVE CODON</span></div>
+      <div class="small-subunit" aria-hidden="true"><strong>SMALL RIBOSOME SUBUNIT</strong></div>
+    </section>
+  </div>
+
+  <div class="translation-controls">
+    <button type="button" class="primary-control" (click)="togglePlay()">
+      {{
+        playing() ? 'Pause translation' : complete() ? 'Replay translation' : 'Start translation'
+      }}
+    </button>
+    <button type="button" class="speed-control" (click)="cycleSpeed()">
+      Speed: {{ speed() }}×
+    </button>
+    <label>
+      Ribosome position
+      <input
+        type="range"
+        min="0"
+        [max]="steps().length"
+        step="1"
+        [value]="progress()"
+        (input)="setProgress($any($event.target).value)"
+      />
+    </label>
+    <span>{{ progress() }}/{{ steps().length }} codons read</span>
+  </div>
+
+  <p class="process-caption">
+    <strong>RNA becomes a sequence guide:</strong> the strand advances 5′ to 3′, one codon at a
+    time. A matching tRNA docks and its amino acid joins the chain. This model ends after codon 8; a
+    stop codon, when present, recruits a release factor.
+  </p>
+</section>

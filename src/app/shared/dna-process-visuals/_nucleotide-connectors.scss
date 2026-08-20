@@ -1,0 +1,98 @@
+@mixin nucleotide-connectors {
+  .nucleotide-base {
+    position: relative;
+    overflow: visible;
+  }
+
+  .nucleotide-base::after {
+    position: absolute;
+    left: 50%;
+    z-index: 2;
+    display: block;
+    pointer-events: none;
+    content: '';
+  }
+
+  /* A uses a rounded tab that fits the rounded T/U socket. */
+  .nucleotide-base[data-base='A']::after {
+    width: min(48%, 0.9rem);
+    aspect-ratio: 1;
+    border: 2px solid rgb(20 35 65 / 22%);
+    border-radius: 50%;
+    background: inherit;
+  }
+
+  .nucleotide-base.connector-bottom[data-base='A']::after {
+    bottom: -0.42rem;
+    transform: translateX(-50%);
+  }
+
+  .nucleotide-base.connector-top[data-base='A']::after {
+    top: -0.42rem;
+    transform: translateX(-50%);
+  }
+
+  .nucleotide-base:is([data-base='T'], [data-base='U'])::after {
+    width: min(48%, 0.9rem);
+    height: 0.48rem;
+    background: var(--base-connector-surface, #f3f7fa);
+  }
+
+  .nucleotide-base.connector-bottom:is([data-base='T'], [data-base='U'])::after {
+    bottom: -1px;
+    border: 2px solid rgb(20 35 65 / 24%);
+    border-bottom: 0;
+    border-radius: 0.9rem 0.9rem 0 0;
+    transform: translateX(-50%);
+  }
+
+  .nucleotide-base.connector-top:is([data-base='T'], [data-base='U'])::after {
+    top: -1px;
+    border: 2px solid rgb(20 35 65 / 24%);
+    border-top: 0;
+    border-radius: 0 0 0.9rem 0.9rem;
+    transform: translateX(-50%);
+  }
+
+  /* C uses a T-shaped tab that fits the angular G socket. */
+  .nucleotide-base:is([data-base='C'], [data-base='G'])::after {
+    width: min(70%, 1.2rem);
+    height: 0.58rem;
+    clip-path: polygon(38% 0, 62% 0, 62% 42%, 100% 42%, 100% 100%, 0 100%, 0 42%, 38% 42%);
+  }
+
+  .nucleotide-base[data-base='C']::after {
+    background: inherit;
+    filter: drop-shadow(0 1px 0 rgb(20 35 65 / 28%));
+  }
+
+  .nucleotide-base.connector-bottom[data-base='C']::after {
+    bottom: -0.52rem;
+    transform: translateX(-50%);
+  }
+
+  .nucleotide-base.connector-top[data-base='C']::after {
+    top: -0.52rem;
+    transform: translateX(-50%) rotate(180deg);
+  }
+
+  .nucleotide-base[data-base='G']::after {
+    background: var(--base-connector-surface, #f3f7fa);
+    filter: drop-shadow(0 -1px 0 rgb(20 35 65 / 26%));
+  }
+
+  /*
+   * G is the recessed partner of C, so its cutout must be mirrored relative
+   * to a C tab drawn on the same edge. The previous orientation made the
+   * narrow neck and wide head oppose one another instead of nesting.
+   */
+  .nucleotide-base.connector-bottom[data-base='G']::after {
+    bottom: -1px;
+    transform: translateX(-50%) rotate(180deg);
+  }
+
+  .nucleotide-base.connector-top[data-base='G']::after {
+    top: -1px;
+    transform: translateX(-50%);
+  }
+}

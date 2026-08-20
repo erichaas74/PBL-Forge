@@ -17,7 +17,7 @@
       <i class="rail top"></i>
       <div class="base-row top-row">
         @for (base of bases(); track $index) {
-          <b [attr.data-base]="base">{{ base }}</b>
+          <b class="nucleotide-base connector-bottom" [attr.data-base]="base">{{ base }}</b>
         }
       </div>
       <div class="pair-lines">
@@ -28,6 +28,7 @@
       <div class="base-row bottom-row">
         @for (base of complement(); track $index) {
           <b
+            class="nucleotide-base connector-top"
             [attr.data-base]="displayedRepairBase($index)"
             [class.mismatch]="$index === targetIndex() && phase() < 2"
             [class.lifting]="$index === targetIndex() && phase() === 1"
@@ -52,7 +53,12 @@
       <i class="rail top"></i>
       <div class="base-row top-row">
         @for (base of bases(); track $index) {
-          <b [attr.data-base]="base" [class.target]="$index === targetIndex()">{{ base }}</b>
+          <b
+            class="nucleotide-base connector-bottom"
+            [attr.data-base]="base"
+            [class.target]="$index === targetIndex()"
+            >{{ base }}</b
+          >
         }
       </div>
       <div class="pair-lines">
@@ -62,7 +68,12 @@
       </div>
       <div class="base-row bottom-row">
         @for (base of complement(); track $index) {
-          <b [attr.data-base]="base" [class.target]="$index === targetIndex()">{{ base }}</b>
+          <b
+            class="nucleotide-base connector-top"
+            [attr.data-base]="base"
+            [class.target]="$index === targetIndex()"
+            >{{ base }}</b
+          >
         }
       </div>
       <i class="rail bottom"></i>
@@ -71,18 +82,26 @@
     @if (mode() === 'insertion') {
       <div class="incoming-pair" [class.dropping]="phase() === 1">
         <span>incoming pair</span>
-        <b [attr.data-base]="mutationBase()">{{ mutationBase() }}</b>
-        <i></i>
-        <b [attr.data-base]="resultComplement()[targetIndex()]">{{
-          resultComplement()[targetIndex()]
+        <b class="nucleotide-base connector-bottom" [attr.data-base]="mutationBase()">{{
+          mutationBase()
         }}</b>
+        <i></i>
+        <b
+          class="nucleotide-base connector-top"
+          [attr.data-base]="resultComplement()[targetIndex()]"
+          >{{ resultComplement()[targetIndex()] }}</b
+        >
       </div>
     } @else {
       <div class="leaving-pair" [class.lifting]="phase() === 1">
         <span>{{ mode() === 'deletion' ? 'pair removed' : 'old pair removed' }}</span>
-        <b [attr.data-base]="bases()[targetIndex()]">{{ bases()[targetIndex()] }}</b>
+        <b class="nucleotide-base connector-bottom" [attr.data-base]="bases()[targetIndex()]">{{
+          bases()[targetIndex()]
+        }}</b>
         <i></i>
-        <b [attr.data-base]="complement()[targetIndex()]">{{ complement()[targetIndex()] }}</b>
+        <b class="nucleotide-base connector-top" [attr.data-base]="complement()[targetIndex()]">{{
+          complement()[targetIndex()]
+        }}</b>
       </div>
     }
 
@@ -92,6 +111,7 @@
       <div class="base-row top-row">
         @for (base of result(); track $index) {
           <b
+            class="nucleotide-base connector-bottom"
             [attr.data-base]="base"
             [class.changed]="$index === targetIndex() && mode() !== 'deletion'"
             >{{ base }}</b
@@ -106,6 +126,7 @@
       <div class="base-row bottom-row">
         @for (base of resultComplement(); track $index) {
           <b
+            class="nucleotide-base connector-top"
             [attr.data-base]="base"
             [class.changed]="$index === targetIndex() && mode() !== 'deletion'"
             >{{ base }}</b
@@ -127,6 +148,7 @@
       @for (base of basesToChoose; track base) {
         <button
           type="button"
+          class="nucleotide-base connector-bottom"
           [attr.data-base]="base"
           [class.selected]="repairChoice() === base"
           [attr.aria-label]="'Use base ' + base + ' for the repair'"

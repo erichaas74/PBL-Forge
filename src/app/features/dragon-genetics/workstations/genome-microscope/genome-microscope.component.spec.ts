@@ -50,6 +50,22 @@ describe('GenomeMicroscopeComponent', () => {
     expect(microscope.level()).toBe('nucleus');
   });
 
+  it('adds an interactive chromosome-unpacking level between chromosome and gene', () => {
+    microscope.selectChromosome('Chr 1');
+    expect(microscope.level()).toBe('chromosome');
+
+    microscope.zoomIn();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(microscope.level()).toBe('chromatin');
+    expect(element.querySelector('app-chromosome-unraveling')).not.toBeNull();
+    expect(element.querySelectorAll('.unravel-frame').length).toBe(5);
+
+    microscope.zoomIn();
+    expect(microscope.level()).toBe('gene');
+  });
+
   it('reuses the shared cell model and chromosome presentation components', () => {
     const element = fixture.nativeElement as HTMLElement;
 
@@ -57,25 +73,87 @@ describe('GenomeMicroscopeComponent', () => {
     fixture.detectChanges();
     expect(element.querySelector('app-cell-model')).not.toBeNull();
     expect(element.querySelectorAll('app-cell-model [data-organelle]').length).toBeGreaterThan(0);
+    expect(element.querySelectorAll('app-cell-model .cell-model__annotation-text').length).toBe(0);
     expect(element.querySelectorAll('app-cell-model .chromosome-in-cell').length).toBe(
-      microscope.cellChromosomeCopies().length,
+      microscope.cellChromosomePairs().length,
     );
 
     microscope.selectLevel('nucleus');
     fixture.detectChanges();
     expect(element.querySelector('app-cell-model .cell-model')?.getAttribute('data-focus')).toBe(
-      'nucleus',
+      'cell',
     );
+    expect(element.querySelectorAll('.nucleus-level .chromosome-in-cell').length).toBe(5);
+    expect(element.querySelectorAll('.nucleus-level .chromatid').length).toBe(10);
 
     microscope.selectChromosome('Chr 1');
     fixture.detectChanges();
     expect(element.querySelector('app-cell-chromosome-viewport')).not.toBeNull();
   });
 
+  it('opens a chromosome from the nucleus directly into a linked cell and gene view', () => {
+    microscope.selectLevel('nucleus');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const chromosome = element.querySelector<HTMLButtonElement>(
+      '.nucleus-level .chromosome-in-cell[data-chromosome="Chr 2"]',
+    );
+    expect(chromosome).not.toBeNull();
+    chromosome?.click();
+    fixture.detectChanges();
+
+    expect(microscope.level()).toBe('gene');
+    expect(microscope.selectedChromosome()).toBe('Chr 2');
+    expect(microscope.activeGene()?.chromosome).toBe('Chr 2');
+    expect(element.querySelector('.gene-level .cell-panel app-cell-model')).not.toBeNull();
+    expect(
+      element.querySelector('.gene-level .inspection-panel app-chromosome-svg'),
+    ).not.toBeNull();
+  });
+
+  it('updates the chromosome barcode emphasis when a gene button is selected', () => {
+    microscope.selectLevel('gene');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const genes = microscope.genesForSelectedChromosome();
+    const buttons = element.querySelectorAll<HTMLButtonElement>('.gene-level .gene-picker button');
+    expect(buttons.length).toBe(genes.length);
+
+    buttons[1].click();
+    fixture.detectChanges();
+
+    expect(microscope.activeGene()?.id).toBe(genes[1].id);
+    const chromosome = element.querySelector<SVGSVGElement>(
+      '.gene-level .inspection-panel .chromosome-svg',
+    );
+    expect(chromosome?.dataset['selectedLocus']).toBe(genes[1].sampleCode);
+    expect(chromosome?.querySelector(`[data-locus="${genes[1].sampleCode}"]`)?.classList).toContain(
+      'gene-locus--active',
+    );
+    expect(chromosome?.querySelectorAll('.gene-locus--muted').length).toBeGreaterThan(0);
+    expect(chromosome?.querySelectorAll('.barcode-highlight').length).toBe(2);
+  });
+
   it('uses the shared chromosome band source without duplicating colors', () => {
     const pair = microscope.chromosomePairs()[0];
     expect(pair.maternal.bands).toBe(chromosomeVisual('Chr 1').bands);
     expect(pair.paternal.bands).toBe(chromosomeVisual('Chr 1').bands);
+  });
+
+  it('gives every released gene locus a colored DNA barcode', () => {
+    for (const pair of microscope.chromosomePairs()) {
+      for (const chromosome of [pair.maternal, pair.paternal]) {
+        for (const locus of chromosome.loci) {
+          expect(locus.marking)
+            .withContext(`${pair.id} ${locus.label} should have a barcode`)
+            .toBeDefined();
+          expect(locus.marking?.barcode.length).toBeGreaterThanOrEqual(5);
+          expect(locus.marking?.barcode.every((stripe) => Boolean(stripe.topColor))).toBeTrue();
+        }
+      }
+    }
   });
 
   it('derives XX or XY from the loaded dragon record', () => {
@@ -88,7 +166,7 @@ describe('GenomeMicroscopeComponent', () => {
     expect(sexPair?.paternal.length).toBe(chromosomeVisual('Chr Y').length);
   });
 
-  it('opens a selected chromosome, gene, DNA, allele, and protein from shared records', () => {
+  it('opens a selected chromosome, gene, DNA, allele, RNA, base chemistry, protein, enzyme, and expression model from shared records', () => {
     microscope.selectChromosome('Chr 2');
     expect(microscope.level()).toBe('chromosome');
     expect(microscope.genesForSelectedChromosome().length).toBe(3);
@@ -98,18 +176,49 @@ describe('GenomeMicroscopeComponent', () => {
     expect(microscope.level()).toBe('gene');
     expect(microscope.activeGene()?.sampleCode).toBe(gene.sampleCode);
     expect(microscope.activeAlleles().length).toBe(2);
+    expect(microscope.activeAlleles()[0].modelSequence.length).toBe(24);
 
     microscope.selectLevel('dna');
     expect(microscope.activeDnaSequence().length).toBeGreaterThan(0);
     microscope.selectAlleleCopy(1);
     expect(microscope.level()).toBe('allele');
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.base-sequence .nucleotide-base'),
+    ).not.toBeNull();
+    microscope.selectAlleleCopy(0);
+    microscope.selectLevel('rna');
+    expect(microscope.activeRnaSequence()).toContain('U');
+    microscope.selectLevel('base-chemistry');
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('app-dna-rna-base-explorer'),
+    ).not.toBeNull();
     microscope.selectLevel('protein');
-    expect(microscope.proteinCodons().length).toBeGreaterThan(0);
+    expect(microscope.proteinCodons().length).toBe(8);
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('app-rna-translation-animation'),
+    ).not.toBeNull();
+
+    microscope.selectLevel('enzyme');
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('app-enzyme-reaction-explorer'),
+    ).not.toBeNull();
+
+    microscope.selectLevel('expression');
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('app-protein-trait-expression'),
+    ).not.toBeNull();
   });
 
   it('emits a reusable evidence selection for an external explanation or question host', () => {
     const evidence: unknown[] = [];
+    const modelSelections: string[] = [];
     fixture.componentRef.instance.evidenceChanged.subscribe((event) => evidence.push(event));
+    fixture.componentRef.instance.modelSelected.subscribe((nodeId) => modelSelections.push(nodeId));
 
     microscope.selectGene('wings');
     expect(evidence).toContain(
@@ -120,5 +229,20 @@ describe('GenomeMicroscopeComponent', () => {
         geneId: 'wings',
       }),
     );
+
+    microscope.recordEnzymeReaction({
+      enzymeId: 'ember-synthase',
+      productId: 'ember-fuel',
+      productName: 'Ember-fuel vesicle',
+      totalBuilt: 1,
+    });
+    expect(evidence).toContain(
+      jasmine.objectContaining({
+        level: 'enzyme',
+        enzymeId: 'ember-synthase',
+        productId: 'ember-fuel',
+      }),
+    );
+    expect(modelSelections).not.toContain('allele');
   });
 });
