@@ -20,6 +20,8 @@ export interface AlleleVaultGene {
   inheritance: ExpressiveDragonTraitDefinition['inheritance'];
   locus: string;
   icon: string;
+  /** Canonical color shared by this gene's locus in every chromosome view. */
+  locusColor: string;
   dominantPhenotype: string;
   recessivePhenotype: string;
   heterozygousPhenotype?: string;
@@ -77,18 +79,15 @@ export interface AlleleClaimFeedback {
 }
 
 interface VaultGeneMetadata {
-  id: Exclude<ExpressiveDragonTraitId, 'eye-color'>;
+  id: ExpressiveDragonTraitId;
   locus: string;
   icon: string;
 }
 
 /**
- * The teacher's initial catalog is exactly twelve autosomal loci: three on
- * each of chromosomes 1-4. Trait science comes from EXPRESSIVE_DRAGON_TRAITS;
+ * The teacher's initial catalog contains the twelve autosomal loci plus the
+ * shared X-linked locus. Trait science comes from EXPRESSIVE_DRAGON_TRAITS;
  * this table owns only instrument-specific locus labels and icons.
- *
- * Eye glow remains an expressive Chr X trait, but is intentionally not placed
- * on an autosome. It can be released as a separate sex-linked investigation.
  */
 const VAULT_GENE_METADATA: readonly VaultGeneMetadata[] = [
   { id: 'wings', locus: 'WNG-04', icon: 'W' },
@@ -103,6 +102,7 @@ const VAULT_GENE_METADATA: readonly VaultGeneMetadata[] = [
   { id: 'glow', locus: 'GLO-05', icon: 'N' },
   { id: 'fangs', locus: 'FNG-13', icon: 'G' },
   { id: 'spikes', locus: 'SPK-22', icon: 'P' },
+  { id: 'eye-color', locus: 'EYE-07', icon: 'E' },
 ];
 
 export const ALLELE_VAULT_GENES: readonly AlleleVaultGene[] = VAULT_GENE_METADATA.map(
@@ -122,6 +122,7 @@ export const ALLELE_VAULT_GENES: readonly AlleleVaultGene[] = VAULT_GENE_METADAT
       inheritance: trait.inheritance,
       locus: metadata.locus,
       icon: metadata.icon,
+      locusColor: geneDnaRecord(trait.id).locusColor,
       dominantPhenotype: trait.dominantPhenotype,
       recessivePhenotype: trait.recessivePhenotype,
       heterozygousPhenotype: trait.heterozygousPhenotype,
@@ -136,13 +137,26 @@ export const ALLELE_VAULT_ALLELES: readonly AlleleVaultAllele[] = ALLELE_VAULT_G
 
 /**
  * Normalizes persisted teacher catalogs after the original mock catalog put
- * eye color on chromosome 1. Unknown IDs are dropped and the former `eyes`
- * slot becomes the real chromosome-1 leg-arrangement locus.
+ * eye color on chromosome 1. Unknown IDs are dropped, the former `eyes` slot
+ * becomes the real chromosome-1 leg-arrangement locus, and the former complete
+ * twelve-gene default gains the newly released X-linked locus.
  */
 export function normalizeAlleleVaultGeneIds(geneIds: readonly string[]): string[] {
   const valid = new Set(ALLELE_VAULT_GENES.map((gene) => gene.id));
   const normalized = geneIds.map((geneId) => (geneId === 'eyes' ? 'legs' : geneId));
-  return [...new Set(normalized.filter((geneId) => valid.has(geneId as ExpressiveDragonTraitId)))];
+  const released = [
+    ...new Set(normalized.filter((geneId) => valid.has(geneId as ExpressiveDragonTraitId))),
+  ];
+  const formerDefault = VAULT_GENE_METADATA.filter((gene) => gene.id !== 'eye-color').map(
+    (gene) => gene.id,
+  );
+  if (
+    released.length === formerDefault.length &&
+    formerDefault.every((geneId) => released.includes(geneId))
+  ) {
+    released.push('eye-color');
+  }
+  return released;
 }
 
 export function expressedAllelePairPhenotype(

@@ -1,0 +1,459 @@
+/*
+ * Shared Viking Academy skin for every Dragon Genetics workstation.
+ *
+ * This lives globally because the workstation route hosts several encapsulated Angular
+ * components. The shell owns atmosphere and materials; component styles continue to own
+ * scientific color, geometry, and interaction state.
+ */
+
+.viking-workstation {
+  --viking-ink: #23190f;
+  --viking-parchment: #f0dfb7;
+  --viking-parchment-deep: #d3b77a;
+  --viking-cream: #fff2d1;
+  --viking-timber: #4b2d1a;
+  --viking-timber-dark: #1b100a;
+  --viking-iron: #1b272d;
+  --viking-iron-light: #425058;
+  --viking-brass: #d7a94d;
+  --viking-brass-light: #ffe1a0;
+  --viking-ember: #ed6b2e;
+  --viking-rune: #62c7bd;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  color: var(--viking-cream);
+  background:
+    linear-gradient(180deg, rgb(2 7 10 / 38%), rgb(3 8 11 / 88%)),
+    radial-gradient(circle at 13% 12%, rgb(237 107 46 / 12%), transparent 30rem),
+    radial-gradient(circle at 86% 8%, rgb(98 199 189 / 9%), transparent 34rem),
+    url('/assets/dragon-genetics/great-hall-home-v2.png') center top / cover fixed,
+    #071016 !important;
+}
+
+.viking-workstation::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(90deg, rgb(255 225 171 / 2%) 0 1px, transparent 1px 6.25rem),
+    linear-gradient(90deg, rgb(0 0 0 / 35%), transparent 13% 87%, rgb(0 0 0 / 35%));
+  content: '';
+}
+
+/* Great Hall beam shared by adaptive and dedicated workstation routes. */
+.viking-workstation .experience-header,
+.viking-workstation > .page-header,
+.viking-workstation > .page-bar {
+  position: relative;
+  z-index: 20;
+  min-height: 5rem;
+  padding: 0.65rem clamp(0.75rem, 2vw, 1.5rem) !important;
+  border: 1px solid #160d08 !important;
+  border-bottom: 0.32rem solid #0d0906 !important;
+  border-radius: 0.35rem !important;
+  background:
+    repeating-linear-gradient(179deg, rgb(255 224 174 / 5%) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(181deg, rgb(0 0 0 / 13%) 0 2px, transparent 2px 17px),
+    radial-gradient(130% 100% at 20% 0%, rgb(255 209 142 / 9%), transparent 55%),
+    linear-gradient(170deg, #58351f, #2b190e) !important;
+  box-shadow:
+    inset 0 -1px rgb(255 220 160 / 16%),
+    inset 0 1px rgb(255 255 255 / 7%),
+    0 0.75rem 1.8rem rgb(0 0 0 / 48%) !important;
+  color: var(--viking-cream) !important;
+}
+
+.viking-workstation .experience-header {
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto auto auto !important;
+}
+
+.viking-workstation .academy-crest {
+  display: grid;
+  width: 2.55rem;
+  aspect-ratio: 0.84;
+  place-items: center;
+  border: 2px solid #6d4b15;
+  border-radius: 48% 48% 55% 55% / 35% 35% 68% 68%;
+  background: linear-gradient(
+    112deg,
+    #765116 0%,
+    #bd8c31 18%,
+    #f2dc91 34%,
+    #a87622 52%,
+    #e5c26c 72%,
+    #8a5e19 100%
+  );
+  box-shadow:
+    inset 0 0 0 2px rgb(255 239 178 / 25%),
+    0 0.3rem 0.7rem rgb(0 0 0 / 45%);
+  color: #24180b;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 900;
+  text-shadow: 0 1px rgb(255 241 190 / 35%);
+}
+
+.viking-workstation :is(.experience-header, .page-header, .page-bar) :is(h1, strong) {
+  color: #fff6df !important;
+  text-shadow: 0 0.18rem 0.5rem rgb(0 0 0 / 65%);
+}
+
+.viking-workstation :is(.experience-header, .page-header, .page-bar) :is(span, small) {
+  color: #d6bd8c !important;
+}
+
+.viking-workstation :is(.experience-header, .page-header, .page-bar) .exit,
+.viking-workstation > :is(.page-header, .page-bar) > a:first-child {
+  border: 1px solid #6f7475 !important;
+  background:
+    radial-gradient(circle 5px at 18% 23%, rgb(255 255 255 / 6%), transparent 100%),
+    linear-gradient(155deg, var(--viking-iron-light), var(--viking-iron) 62%, #111a1f) !important;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 38%),
+    0 0.25rem 0.55rem rgb(0 0 0 / 42%);
+  color: var(--viking-brass-light) !important;
+}
+
+/* The scientific goal reads as the assignment scroll pinned inside the hall. */
+.viking-workstation :is(
+    .instrument-header,
+    .lab-intro,
+    .workstation-head,
+    .lab-header,
+    .lab-head,
+    .microscope-header,
+    .station-intro,
+    .goal-line,
+    .show-head
+  ) {
+  position: relative;
+  border: 1px solid #765222 !important;
+  border-radius: 1rem 0.38rem 0.85rem 0.45rem !important;
+  background:
+    repeating-linear-gradient(92deg, rgb(105 75 40 / 4%) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(4deg, rgb(105 75 40 / 3%) 0 1px, transparent 1px 9px),
+    radial-gradient(90% 80% at 18% 8%, rgb(255 255 244 / 70%), transparent 64%),
+    linear-gradient(148deg, var(--viking-parchment), var(--viking-parchment-deep)) !important;
+  box-shadow:
+    inset 0 0 2.6rem rgb(105 72 32 / 12%),
+    0 0.65rem 1.6rem rgb(0 0 0 / 34%) !important;
+  color: var(--viking-ink) !important;
+}
+
+.viking-workstation :is(
+    .instrument-header,
+    .lab-intro,
+    .workstation-head,
+    .lab-header,
+    .lab-head,
+    .microscope-header,
+    .station-intro,
+    .goal-line,
+    .show-head
+  ) :is(h1, h2, h3, strong) {
+  color: var(--viking-ink) !important;
+  text-shadow: none !important;
+}
+
+.viking-workstation :is(
+    .instrument-header,
+    .lab-intro,
+    .workstation-head,
+    .lab-header,
+    .lab-head,
+    .microscope-header,
+    .station-intro,
+    .goal-line,
+    .show-head
+  ) :is(p, span, small, dt) {
+  color: #624b2e !important;
+}
+
+.viking-workstation :is(
+    .instrument-header,
+    .lab-intro,
+    .workstation-head,
+    .lab-header,
+    .lab-head,
+    .microscope-header,
+    .station-intro,
+    .goal-line,
+    .show-head
+  ) :is(.eyebrow, div > span:first-child, div > small:first-child) {
+  color: #835019 !important;
+}
+
+.viking-workstation :is(
+    .instrument-header,
+    .lab-intro,
+    .workstation-head,
+    .lab-header,
+    .lab-head,
+    .microscope-header,
+    .station-intro,
+    .goal-line,
+    .show-head
+  ) :is(.placement-status, .live-status, .station-actions > span) {
+  color: #624b2e !important;
+}
+
+.viking-workstation :is(
+    .instrument-header,
+    .lab-intro,
+    .workstation-head,
+    .lab-header,
+    .lab-head,
+    .microscope-header,
+    .station-intro,
+    .goal-line,
+    .show-head
+  ) :is(.readout, .program-readout, .base-legend, aside) {
+  border-color: rgb(112 77 34 / 55%) !important;
+  background: rgb(255 247 221 / 42%) !important;
+  box-shadow: inset 0 1px rgb(255 255 255 / 35%) !important;
+}
+
+.viking-workstation :is(
+    .instrument-header,
+    .lab-intro,
+    .workstation-head,
+    .lab-header,
+    .lab-head,
+    .microscope-header,
+    .station-intro,
+    .goal-line,
+    .show-head
+  ) button {
+  border-color: #765222 !important;
+  background: linear-gradient(165deg, #56351f, #2c1a0f) !important;
+  color: #fff2d1 !important;
+}
+
+/* Reusable built surfaces: forged iron with a warm timber reflection. */
+.viking-workstation :is(
+    .composer-mode,
+    .dragon-chromosome-selector,
+    .composer-surface,
+    .evidence-inspector,
+    .allele-vault,
+    .comparison-tray,
+    .operation-console,
+    .sample-loader,
+    .parent-setup,
+    .meiosis-workspace,
+    .clutch-workspace,
+    .breed-library,
+    .patient-bay,
+    .healing-chamber,
+    .archipelago,
+    .frequency-panel,
+    .pedigree-model,
+    .case-archive,
+    .observation-stage,
+    .evidence-board,
+    .cross-record,
+    .nucleus-browser,
+    .dragon-preview,
+    .question-dock,
+    .guide-panel,
+    .model-guide
+  ) {
+  border-color: rgb(215 169 77 / 46%) !important;
+  background:
+    radial-gradient(circle 6px at 18% 23%, rgb(255 255 255 / 5%), transparent 100%),
+    radial-gradient(circle 8px at 62% 74%, rgb(0 0 0 / 22%), transparent 100%),
+    linear-gradient(155deg, #354249, #1b272d 62%, #111a1f) !important;
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 5%),
+    inset 0 -1px rgb(0 0 0 / 55%),
+    0 0.65rem 1.7rem rgb(0 0 0 / 28%);
+}
+
+/* Catch common workstation structures without touching SVG/canvas evidence surfaces. */
+.viking-workstation :is(section, article, aside, nav)[class$='-panel'],
+.viking-workstation :is(section, article, aside, nav)[class$='-console'],
+.viking-workstation :is(section, article, aside, nav)[class$='-bay'],
+.viking-workstation :is(section, article, aside, nav)[class$='-tray'],
+.viking-workstation :is(section, article, aside, nav)[class$='-bank'],
+.viking-workstation :is(section, article, aside, nav)[class$='-browser'],
+.viking-workstation :is(section, article, aside, nav)[class$='-library'],
+.viking-workstation :is(section, article, aside, nav)[class$='-record'] {
+  border-color: rgb(215 169 77 / 38%) !important;
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 4%),
+    0 0.45rem 1.2rem rgb(0 0 0 / 22%);
+}
+
+/* Timber control rails and section headers. */
+.viking-workstation :is(
+    .selector-header,
+    .loader-toolbar,
+    .instrument-bar,
+    .phase-rail,
+    .breed-library__head,
+    .panel-head,
+    .station-toolbar
+  ) {
+  border-color: rgb(215 169 77 / 34%) !important;
+  background:
+    repeating-linear-gradient(179deg, rgb(255 224 174 / 4%) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(181deg, rgb(0 0 0 / 11%) 0 2px, transparent 2px 17px),
+    linear-gradient(170deg, #4b2d1a, #24150c) !important;
+  color: var(--viking-cream) !important;
+}
+
+.viking-workstation :is(
+    .selector-header,
+    .loader-toolbar,
+    .instrument-bar,
+    .phase-rail,
+    .breed-library__head,
+    .panel-head,
+    .station-toolbar
+  ) :is(h2, h3, strong) {
+  color: #fff2d1 !important;
+}
+
+.viking-workstation :is(
+    .selector-header,
+    .loader-toolbar,
+    .instrument-bar,
+    .phase-rail,
+    .breed-library__head,
+    .panel-head,
+    .station-toolbar
+  ) :is(span, small, p) {
+  color: #d7c5a0 !important;
+}
+
+/* Controls retain their state colors but now feel forged instead of plastic. */
+.viking-workstation button,
+.viking-workstation select,
+.viking-workstation input,
+.viking-workstation textarea {
+  border-color: rgb(215 169 77 / 42%) !important;
+}
+
+.viking-workstation button:not(:disabled) {
+  box-shadow: inset 0 1px rgb(255 255 255 / 5%);
+}
+
+.viking-workstation button:not(:disabled):hover {
+  border-color: var(--viking-brass-light) !important;
+}
+
+.viking-workstation :is(select, input, textarea) {
+  background-color: #17242a !important;
+  color: #fff2d1 !important;
+}
+
+.viking-workstation :is(.active, [aria-pressed='true']) {
+  --viking-active-ring: rgb(255 225 160 / 24%);
+}
+
+.viking-workstation button:is(.active, [aria-pressed='true']) {
+  border-color: var(--viking-brass-light) !important;
+  box-shadow:
+    inset 0 0 0 1px var(--viking-active-ring),
+    0 0 0 2px rgb(215 169 77 / 10%);
+}
+
+.viking-workstation :is(.eyebrow, .panel-code, [class$='-code']) {
+  color: var(--viking-brass-light) !important;
+}
+
+.viking-workstation :is(.save-cross, .continue, .quest-action, .new-family) {
+  border: 1px solid #f0c66b !important;
+  background: linear-gradient(155deg, #a83d16, #64220c) !important;
+  color: #fff4d8 !important;
+  box-shadow:
+    inset 0 1px rgb(255 235 190 / 18%),
+    0 0.35rem 0.85rem rgb(0 0 0 / 35%);
+}
+
+.viking-workstation .completion-screen {
+  margin-top: 1rem;
+  padding: clamp(1.5rem, 5vw, 4rem);
+  border: 1px solid #765222;
+  border-radius: 1.2rem 0.4rem 1rem 0.5rem;
+  background:
+    repeating-linear-gradient(92deg, rgb(105 75 40 / 4%) 0 1px, transparent 1px 5px),
+    radial-gradient(90% 80% at 18% 8%, rgb(255 255 244 / 70%), transparent 64%),
+    linear-gradient(148deg, var(--viking-parchment), var(--viking-parchment-deep));
+  color: var(--viking-ink);
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 42%);
+}
+
+.viking-workstation .completion-screen :is(h2, p) {
+  color: var(--viking-ink) !important;
+}
+
+.viking-workstation .bench-page__head {
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid #765222;
+  border-radius: 1rem 0.38rem 0.85rem 0.45rem;
+  background:
+    repeating-linear-gradient(92deg, rgb(105 75 40 / 4%) 0 1px, transparent 1px 5px),
+    radial-gradient(90% 80% at 18% 8%, rgb(255 255 244 / 70%), transparent 64%),
+    linear-gradient(148deg, var(--viking-parchment), var(--viking-parchment-deep));
+  box-shadow: 0 0.65rem 1.6rem rgb(0 0 0 / 34%);
+  color: var(--viking-ink);
+}
+
+.viking-workstation .bench-page__head :is(h1, p, span, small) {
+  color: var(--viking-ink) !important;
+}
+
+.viking-workstation :is(.bench-page__genome, .mini-panel) {
+  border-color: rgb(215 169 77 / 46%) !important;
+  background:
+    radial-gradient(circle 6px at 18% 23%, rgb(255 255 255 / 5%), transparent 100%),
+    linear-gradient(155deg, #354249, #1b272d 62%, #111a1f) !important;
+  box-shadow: 0 0.65rem 1.7rem rgb(0 0 0 / 28%);
+  color: var(--viking-cream) !important;
+}
+
+.viking-workstation :is(.bench-page__genome, .mini-panel) :is(h2, h3, h4, legend, p) {
+  color: var(--viking-cream) !important;
+}
+
+.viking-workstation .bench-page__genome .gene {
+  border-color: #a77a3d !important;
+  background:
+    repeating-linear-gradient(92deg, rgb(105 75 40 / 3%) 0 1px, transparent 1px 5px),
+    linear-gradient(148deg, #f7ecd2, #dbc28c) !important;
+  color: var(--viking-ink) !important;
+}
+
+.viking-workstation .bench-page__genome .gene :is(legend, p, small) {
+  color: var(--viking-ink) !important;
+}
+
+.viking-workstation .bench-page__genome .sex-model :is(h2, h3, strong, p, span) {
+  color: var(--viking-cream) !important;
+}
+
+@media (max-width: 720px) {
+  .viking-workstation .experience-header {
+    grid-template-columns: auto auto minmax(0, 1fr) auto !important;
+  }
+
+  .viking-workstation .academy-crest {
+    width: 2.2rem;
+  }
+
+  .viking-workstation > :is(.page-header, .page-bar) {
+    min-height: 4.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viking-workstation *,
+  .viking-workstation *::before,
+  .viking-workstation *::after {
+    scroll-behavior: auto !important;
+  }
+}

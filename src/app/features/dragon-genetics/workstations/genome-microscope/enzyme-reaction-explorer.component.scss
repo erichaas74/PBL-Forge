@@ -3,77 +3,27 @@
   min-width: 0;
 }
 
+/*
+ * The enzyme tones arrive as inline custom properties bound from the protein's
+ * residue chemistry, so a candidate's color is decided by its amino acids
+ * rather than by a per-reaction block in this file. Reactant and product tones
+ * stay fixed on purpose: "what went in" and "what came out" should read the
+ * same way in every reaction a student runs.
+ */
 .enzyme-explorer {
   --enzyme-light: #ffb0de;
   --enzyme-middle: #db4f9c;
   --enzyme-dark: #712460;
-  --substrate-a-light: #a5ecff;
-  --substrate-a-middle: #2ca5dd;
-  --substrate-a-dark: #17649a;
-  --substrate-b-light: #ffe7a3;
-  --substrate-b-middle: #edae38;
-  --substrate-b-dark: #9a5c18;
-  --product-light: #d8c5ff;
-  --product-middle: #8c67df;
-  --product-dark: #4a2b93;
+  --reactant-light: #a5ecff;
+  --reactant-middle: #2ca5dd;
+  --reactant-dark: #17649a;
+  --product-light: #ffe7a3;
+  --product-middle: #edae38;
+  --product-dark: #8a5310;
   display: grid;
   min-width: 0;
   gap: 0.8rem;
   padding-bottom: 5rem;
-}
-
-.enzyme-explorer[data-reaction='scale-chromatase'] {
-  --enzyme-light: #b7f0e3;
-  --enzyme-middle: #39a98f;
-  --enzyme-dark: #17685a;
-}
-
-.enzyme-explorer[data-target='scale-chromatase'] {
-  --substrate-a-light: #f8efff;
-  --substrate-a-middle: #b984dc;
-  --substrate-a-dark: #704698;
-  --substrate-b-light: #ffe1a5;
-  --substrate-b-middle: #dd842e;
-  --substrate-b-dark: #8a451e;
-  --product-light: #a7f4ff;
-  --product-middle: #3caed1;
-  --product-dark: #235d9a;
-}
-
-.enzyme-explorer[data-reaction='horn-matrix-ligase'] {
-  --enzyme-light: #ffe5a1;
-  --enzyme-middle: #dc9841;
-  --enzyme-dark: #8b4d1e;
-}
-
-.enzyme-explorer[data-target='horn-matrix-ligase'] {
-  --substrate-a-light: #ffd1ae;
-  --substrate-a-middle: #d9794a;
-  --substrate-a-dark: #88402e;
-  --substrate-b-light: #fff19a;
-  --substrate-b-middle: #d6b82d;
-  --substrate-b-dark: #877016;
-  --product-light: #ffdbb8;
-  --product-middle: #ba724a;
-  --product-dark: #683b2e;
-}
-
-.enzyme-explorer[data-reaction='wing-membrane-synthase'] {
-  --enzyme-light: #bcd8ff;
-  --enzyme-middle: #638edc;
-  --enzyme-dark: #314b95;
-}
-
-.enzyme-explorer[data-target='wing-membrane-synthase'] {
-  --substrate-a-light: #c9fff1;
-  --substrate-a-middle: #50bfa0;
-  --substrate-a-dark: #26715e;
-  --substrate-b-light: #ffd7ee;
-  --substrate-b-middle: #d665a4;
-  --substrate-b-dark: #843a6a;
-  --product-light: #bcecff;
-  --product-middle: #61a9dc;
-  --product-dark: #3a6b9d;
 }
 
 .enzyme-readout {
@@ -93,7 +43,8 @@
 }
 
 .enzyme-readout small,
-.product-tray small {
+.product-tray small,
+.protein-provenance small {
   color: #74d9df;
   font-size: var(--text-xs);
   font-weight: 800;
@@ -101,7 +52,8 @@
 }
 
 .enzyme-readout strong,
-.product-tray strong {
+.product-tray strong,
+.protein-provenance strong {
   color: #f9f4e9;
   font-family: var(--font-display);
   font-size: var(--text-lg);
@@ -121,7 +73,7 @@
 
 .enzyme-bank {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
   gap: 0.45rem;
 }
 
@@ -138,7 +90,7 @@
 .enzyme-bank button {
   display: grid;
   gap: 0.18rem;
-  padding: 0.65rem;
+  padding: 0.5rem 0.55rem;
   text-align: left;
 }
 
@@ -149,6 +101,24 @@
   border-color: #78d8e1;
   background: rgb(60 174 184 / 13%);
   color: #fff;
+}
+
+/* Each candidate advertises its own generated body and active-site cavity. */
+.candidate-shape {
+  display: block;
+  width: 100%;
+  height: 3.4rem;
+}
+
+.candidate-body {
+  stroke-linejoin: round;
+  stroke-width: 5;
+}
+
+.candidate-site {
+  fill: #07202b;
+  stroke: rgb(255 255 255 / 55%);
+  stroke-width: 3;
 }
 
 .enzyme-bank button[data-trial='match'] small {
@@ -192,8 +162,12 @@
   background: rgb(255 255 255 / 7%);
 }
 
-.reaction-equation [data-equation-product] {
-  color: #fff0b8;
+.reaction-equation [data-equation-role='reactant'] {
+  color: var(--reactant-light);
+}
+
+.reaction-equation [data-equation-role='product'] {
+  color: var(--product-light);
 }
 
 .reaction-equation b {
@@ -226,23 +200,14 @@
 .enzyme-stop--dark {
   stop-color: var(--enzyme-dark);
 }
-.substrate-a-stop--light {
-  stop-color: var(--substrate-a-light);
+.reactant-stop--light {
+  stop-color: var(--reactant-light);
 }
-.substrate-a-stop--middle {
-  stop-color: var(--substrate-a-middle);
+.reactant-stop--middle {
+  stop-color: var(--reactant-middle);
 }
-.substrate-a-stop--dark {
-  stop-color: var(--substrate-a-dark);
-}
-.substrate-b-stop--light {
-  stop-color: var(--substrate-b-light);
-}
-.substrate-b-stop--middle {
-  stop-color: var(--substrate-b-middle);
-}
-.substrate-b-stop--dark {
-  stop-color: var(--substrate-b-dark);
+.reactant-stop--dark {
+  stop-color: var(--reactant-dark);
 }
 .product-stop--light {
   stop-color: var(--product-light);
@@ -254,7 +219,6 @@
   stop-color: var(--product-dark);
 }
 
-.enzyme-shadow,
 .molecule-shadow {
   fill: #020b12;
   opacity: 0.45;
@@ -266,13 +230,6 @@
   stroke-width: 3;
 }
 
-.enzyme-highlight {
-  fill: none;
-  stroke: rgb(255 255 255 / 42%);
-  stroke-linecap: round;
-  stroke-width: 7;
-}
-
 .active-site-outline {
   fill: none;
   stroke: #f8e7af;
@@ -282,14 +239,9 @@
 }
 
 .ambient-molecule {
-  opacity: 0.28;
+  opacity: 0.55;
   transform-box: view-box;
   transform-origin: 0 0;
-}
-
-.ambient-shadow {
-  fill: #020b12;
-  opacity: 0.5;
 }
 
 .ambient-shape {
@@ -298,27 +250,27 @@
   stroke-width: 2;
 }
 
-.ambient-a-0 {
+.ambient-0-0 {
   animation: drift-a-0 7.4s linear infinite alternate;
 }
 
-.ambient-a-1 {
+.ambient-0-1 {
   animation: drift-a-1 9.2s linear infinite alternate;
 }
 
-.ambient-a-2 {
+.ambient-0-2 {
   animation: drift-a-2 8.1s linear infinite alternate;
 }
 
-.ambient-b-0 {
+.ambient-1-0 {
   animation: drift-b-0 8.8s linear infinite alternate;
 }
 
-.ambient-b-1 {
+.ambient-1-1 {
   animation: drift-b-1 7.8s linear infinite alternate;
 }
 
-.ambient-b-2 {
+.ambient-1-2 {
   animation: drift-b-2 9.6s linear infinite alternate;
 }
 
@@ -345,19 +297,19 @@
     opacity 140ms ease;
 }
 
-.substrate-a {
-  transform: translate(154px, 246px) rotate(-9deg) scale(0.72);
+.substrate-0 {
+  transform: translate(176px, 252px) rotate(-9deg) scale(0.72);
 }
 
-.substrate-b {
-  transform: translate(746px, 246px) rotate(10deg) scale(0.72);
+.substrate-1 {
+  transform: translate(724px, 252px) rotate(10deg) scale(0.72);
 }
 
-.enzyme-explorer[data-phase='ready'] .substrate-a {
+.enzyme-explorer[data-phase='ready'] .substrate-0 {
   animation: roam-substrate-a 2.8s ease-in-out infinite alternate;
 }
 
-.enzyme-explorer[data-phase='ready'] .substrate-b {
+.enzyme-explorer[data-phase='ready'] .substrate-1 {
   animation: roam-substrate-b 3.2s ease-in-out infinite alternate;
 }
 
@@ -367,28 +319,14 @@
   stroke-width: 2.5;
 }
 
-.molecule-shine {
-  fill: none;
-  stroke: rgb(255 255 255 / 62%);
-  stroke-linecap: round;
-  stroke-width: 5;
-}
-
 .reaction-product {
   opacity: 0;
-  transform: translate(450px, 160px) scale(0.2);
+  transform: translate(450px, 240px) scale(0.2);
 }
 
 .product-halo {
-  fill: var(--product-middle);
-  opacity: 0.2;
-}
-
-.product-bond {
-  fill: none;
-  stroke: #fff7d4;
-  stroke-linecap: round;
-  stroke-width: 4;
+  fill: var(--product-light);
+  opacity: 0.16;
 }
 
 .reaction-glow {
@@ -397,24 +335,24 @@
   transition: opacity 260ms ease;
 }
 
-.enzyme-explorer[data-phase='docking'] .substrate-a,
-.enzyme-explorer[data-phase='catalyzing'] .substrate-a,
-.enzyme-explorer[data-phase='released'] .substrate-a {
-  transform: translate(402px, 196px) scale(0.45);
+/*
+ * Every reactant converges on the same point. The two fragments of a build
+ * reaction interlock exactly there, and a break-down reaction sends its single
+ * joined molecule to the same cavity, which is why one active site serves both
+ * directions.
+ */
+.enzyme-explorer[data-phase='docking'] .substrate,
+.enzyme-explorer[data-phase='catalyzing'] .substrate,
+.enzyme-explorer[data-phase='released'] .substrate {
+  transform: translate(450px, 240px) scale(0.68);
 }
 
-.enzyme-explorer[data-phase='docking'] .substrate-b,
-.enzyme-explorer[data-phase='catalyzing'] .substrate-b,
-.enzyme-explorer[data-phase='released'] .substrate-b {
-  transform: translate(498px, 196px) scale(0.45);
+.enzyme-explorer[data-phase='rejected'] .substrate-0 {
+  transform: translate(300px, 186px) rotate(-14deg) scale(0.72);
 }
 
-.enzyme-explorer[data-phase='rejected'] .substrate-a {
-  transform: translate(286px, 184px) rotate(-14deg) scale(0.72);
-}
-
-.enzyme-explorer[data-phase='rejected'] .substrate-b {
-  transform: translate(614px, 184px) rotate(14deg) scale(0.72);
+.enzyme-explorer[data-phase='rejected'] .substrate-1 {
+  transform: translate(600px, 186px) rotate(14deg) scale(0.72);
 }
 
 .enzyme-explorer[data-phase='rejected'] .active-site-outline {
@@ -427,7 +365,7 @@
 
 .enzyme-explorer[data-phase='catalyzing'] .reaction-product {
   opacity: 0.82;
-  transform: translate(450px, 170px) scale(0.72);
+  transform: translate(450px, 238px) scale(0.68);
 }
 
 .enzyme-explorer[data-phase='released'] .substrate {
@@ -436,26 +374,57 @@
 
 .enzyme-explorer[data-phase='released'] .reaction-product {
   opacity: 1;
-  transform: translate(733px, 111px) rotate(8deg);
+}
+
+/* One product leaves to the right; a split sends its two fragments both ways. */
+.enzyme-explorer[data-phase='released'] .product-0 {
+  transform: translate(712px, 126px) rotate(8deg) scale(0.9);
+}
+
+.enzyme-explorer[data-action='break-down'][data-phase='released'] .product-0 {
+  transform: translate(190px, 126px) rotate(-8deg) scale(0.9);
+}
+
+.enzyme-explorer[data-phase='released'] .product-1 {
+  transform: translate(712px, 126px) rotate(8deg) scale(0.9);
 }
 
 .molecule-labels text {
   fill: #bfd3d9;
   font-size: 15px;
   font-weight: 700;
+  transform-box: view-box;
+  transform-origin: 0 0;
   transition: opacity 220ms ease;
+}
+
+.reactant-label-0 {
+  transform: translate(176px, 348px);
+}
+
+.reactant-label-1 {
+  transform: translate(724px, 348px);
 }
 
 .product-label {
   opacity: 0;
 }
 
-.enzyme-explorer[data-phase='docking'] .substrate-a-label,
-.enzyme-explorer[data-phase='docking'] .substrate-b-label,
-.enzyme-explorer[data-phase='catalyzing'] .substrate-a-label,
-.enzyme-explorer[data-phase='catalyzing'] .substrate-b-label,
-.enzyme-explorer[data-phase='released'] .substrate-a-label,
-.enzyme-explorer[data-phase='released'] .substrate-b-label {
+.product-label-0 {
+  transform: translate(712px, 56px);
+}
+
+.enzyme-explorer[data-action='break-down'] .product-label-0 {
+  transform: translate(190px, 56px);
+}
+
+.product-label-1 {
+  transform: translate(712px, 56px);
+}
+
+.enzyme-explorer[data-phase='docking'] .reactant-label,
+.enzyme-explorer[data-phase='catalyzing'] .reactant-label,
+.enzyme-explorer[data-phase='released'] .reactant-label {
   opacity: 0;
 }
 
@@ -503,6 +472,97 @@
   text-align: right;
 }
 
+/* The chain of evidence back to the gene that coded for this enzyme. */
+.protein-provenance {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgb(120 216 225 / 22%);
+  border-radius: 0.8rem;
+  background: #0a2330;
+}
+
+.protein-provenance header {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.protein-provenance header span {
+  color: #b7cbd2;
+  font-size: var(--text-sm);
+}
+
+.protein-provenance dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  margin: 0;
+  gap: 0.5rem;
+}
+
+.protein-provenance dl div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.protein-provenance dt {
+  color: #74d9df;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.protein-provenance dd {
+  margin: 0;
+  color: #e6f2f4;
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.04em;
+}
+
+.residue-strip {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  gap: 0.3rem;
+  list-style: none;
+}
+
+.residue-strip li {
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+  padding: 0.28rem 0.4rem;
+  border: 1px solid var(--residue-color);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--residue-color) 22%, transparent);
+}
+
+.residue-strip b {
+  color: #e9f5f7;
+  font-size: var(--text-xs);
+}
+
+.residue-strip span {
+  color: var(--residue-color);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.trait-link {
+  margin: 0;
+  color: #cfe0e5;
+  font-size: var(--text-sm);
+}
+
+.trait-link b {
+  color: #f7df9e;
+}
+
 .product-tray {
   display: grid;
   grid-template-columns: minmax(13rem, auto) minmax(0, 1fr);
@@ -518,7 +578,7 @@
 
 .product-tray > div {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
   gap: 0.4rem;
 }
 
@@ -529,6 +589,20 @@
   gap: 0.5rem;
   padding: 0.55rem 0.65rem;
   text-align: left;
+}
+
+.product-tray button em {
+  display: block;
+  color: #74d9df;
+  font-size: var(--text-xs);
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.product-tray button[data-action='break-down'] em {
+  color: #efbd9c;
 }
 
 .product-tray b {
@@ -543,19 +617,19 @@
 
 @keyframes roam-substrate-a {
   from {
-    transform: translate(140px, 252px) rotate(-12deg) scale(0.72);
+    transform: translate(162px, 258px) rotate(-12deg) scale(0.72);
   }
   to {
-    transform: translate(186px, 214px) rotate(5deg) scale(0.72);
+    transform: translate(208px, 220px) rotate(5deg) scale(0.72);
   }
 }
 
 @keyframes roam-substrate-b {
   from {
-    transform: translate(758px, 252px) rotate(13deg) scale(0.72);
+    transform: translate(736px, 258px) rotate(13deg) scale(0.72);
   }
   to {
-    transform: translate(704px, 216px) rotate(-5deg) scale(0.72);
+    transform: translate(682px, 222px) rotate(-5deg) scale(0.72);
   }
 }
 
@@ -570,10 +644,10 @@
 
 @keyframes drift-a-1 {
   from {
-    transform: translate(116px, 358px) rotate(18deg) scale(0.26);
+    transform: translate(116px, 368px) rotate(18deg) scale(0.26);
   }
   to {
-    transform: translate(320px, 322px) rotate(-28deg) scale(0.26);
+    transform: translate(320px, 332px) rotate(-28deg) scale(0.26);
   }
 }
 
@@ -588,10 +662,10 @@
 
 @keyframes drift-b-0 {
   from {
-    transform: translate(786px, 336px) rotate(12deg) scale(0.27);
+    transform: translate(786px, 346px) rotate(12deg) scale(0.27);
   }
   to {
-    transform: translate(612px, 304px) rotate(-26deg) scale(0.27);
+    transform: translate(612px, 314px) rotate(-26deg) scale(0.27);
   }
 }
 
@@ -624,16 +698,9 @@
     max-width: none;
     text-align: left;
   }
-
-  .enzyme-bank,
-  .product-tray > div {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 600px) {
-  .enzyme-bank,
-  .product-tray > div,
   .reaction-controls {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -658,27 +725,27 @@
     transition: none;
   }
 
-  .ambient-a-0 {
+  .ambient-0-0 {
     transform: translate(82px, 78px) scale(0.3);
   }
 
-  .ambient-a-1 {
-    transform: translate(116px, 358px) scale(0.26);
+  .ambient-0-1 {
+    transform: translate(116px, 368px) scale(0.26);
   }
 
-  .ambient-a-2 {
+  .ambient-0-2 {
     transform: translate(684px, 76px) scale(0.24);
   }
 
-  .ambient-b-0 {
-    transform: translate(786px, 336px) scale(0.27);
+  .ambient-1-0 {
+    transform: translate(786px, 346px) scale(0.27);
   }
 
-  .ambient-b-1 {
+  .ambient-1-1 {
     transform: translate(720px, 92px) scale(0.24);
   }
 
-  .ambient-b-2 {
+  .ambient-1-2 {
     transform: translate(94px, 174px) scale(0.25);
   }
 }

@@ -1,30 +1,33 @@
 import { DragonParentProfile } from '../../simulation/domain/dragon-lab.models';
+import { AssemblyCombatProfile } from '../../../../shared/assembly/combat/assembly-combat.models';
+import { AssemblyAbilityId } from '../../../../shared/assembly/combat/assembly-abilities';
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
 
-export const TRAIT_EVIDENCE_SCHEMA_VERSION = 1;
+export const TRAIT_EVIDENCE_SCHEMA_VERSION = 2;
 
 export type TraitEvidenceObservationId =
   | 'wings'
   | 'horns'
   | 'scales'
+  | 'tail'
   | 'fire'
-  | 'bell-bow'
-  | 'target-touch'
-  | 'wait-release'
-  | 'soot-mark';
+  | 'fire-reflex'
+  | 'guard-command'
+  | 'tail-strike-command'
+  | 'target-touch';
 
-export type LearnedBehaviorId = 'bell-bow' | 'target-touch' | 'wait-release';
+export type LearnedBehaviorId = 'guard-command' | 'tail-strike-command' | 'target-touch';
+export type TrialObservationId = LearnedBehaviorId | 'fire-reflex';
 
-export type TraitEvidenceClassification =
-  'inherited' | 'learned' | 'environmental' | 'insufficient';
+export type TraitEvidenceClassification = 'inherited' | 'innate' | 'learned' | 'insufficient';
 
 export type TraitEvidenceKind =
   | 'live-observation'
   | 'cue-trial'
+  | 'reflex-trial'
   | 'hatch-record'
   | 'family-record'
-  | 'training-record'
-  | 'environment-record';
+  | 'training-record';
 
 export interface TraitEvidenceRecord {
   id: string;
@@ -37,9 +40,11 @@ export interface TraitEvidenceRecord {
 export interface TraitEvidenceTrial {
   id: string;
   specimenId: string;
-  behaviorId: LearnedBehaviorId;
+  observationId: TrialObservationId;
+  kind: 'command' | 'reflex';
   responded: boolean;
   result: string;
+  reactionTimeMs?: number;
   testedAtIso: string;
 }
 
@@ -66,15 +71,35 @@ export interface TraitEvidenceDragon {
   name: string;
   profile: DragonParentProfile;
   source: SpecimenSource;
+  combatProfile: AssemblyCombatProfile;
+  fireBreathing: boolean;
+  horned: boolean;
   trainedBehaviorIds: readonly LearnedBehaviorId[];
-  hasSootMark: boolean;
+  reflexLatencyMs: number;
+  card: TraitEvidenceDragonCard;
+}
+
+export interface TraitEvidenceDragonCardStat {
+  id: 'power' | 'guard' | 'vitality' | 'versatility';
+  label: string;
+  value: number;
+}
+
+export interface TraitEvidenceDragonCard {
+  catalogNumber: string;
+  seriesLabel: string;
+  arenaRating: number;
+  battleRole: string;
+  stats: readonly TraitEvidenceDragonCardStat[];
+  traits: readonly string[];
 }
 
 export interface TraitEvidenceObservationDefinition {
   id: TraitEvidenceObservationId;
   label: string;
-  kind: 'appearance' | 'ability' | 'behavior' | 'environment';
+  kind: 'appearance' | 'ability' | 'reflex' | 'command';
   expectedClassification: Exclude<TraitEvidenceClassification, 'insufficient'>;
   focusTraitId: string | null;
-  cueLabel?: string;
+  actionLabel?: string;
+  ability?: AssemblyAbilityId;
 }

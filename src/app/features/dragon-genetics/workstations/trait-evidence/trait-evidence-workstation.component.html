@@ -2,12 +2,125 @@
   <header class="goal-line">
     <div>
       <span>Scientific goal</span>
-      <h1 id="trait-lab-title">Inherited or developed during life?</h1>
+      <h1 id="trait-lab-title">What makes a dragon ready to fight: inheritance or experience?</h1>
+      <p>
+        Compare body structures, protective reflexes, and command responses. Build a claim when the
+        evidence is strong enough.
+      </p>
     </div>
     <output [class.complete]="status() === 'complete'">
-      {{ status() === 'complete' ? 'Evidence board complete' : supportedCount() + ' supported' }}
+      {{ status() === 'complete' ? 'Field report complete' : supportedCount() + ' supported' }}
     </output>
   </header>
+
+  <section class="field-deck" aria-labelledby="field-deck-title">
+    <header>
+      <div>
+        <span>Academy field deck</span>
+        <h2 id="field-deck-title">Choose a dragon specimen</h2>
+      </div>
+      <p>Flip a card to inspect its recorded traits. Select any dragon to investigate.</p>
+    </header>
+
+    <div class="dragon-card-catalog">
+      @for (dragon of dragons; track dragon.id) {
+        <article
+          class="dragon-card-slot"
+          [class.selected]="selectedDragonId() === dragon.id"
+          [style.--dragon-color]="dragon.profile.color"
+          [style.--dragon-accent]="dragon.profile.accentColor"
+        >
+          <div class="dragon-card-scene" [class.flipped]="isDragonCardFlipped(dragon.id)">
+            <section
+              class="dragon-card dragon-card--front"
+              [attr.aria-hidden]="isDragonCardFlipped(dragon.id)"
+            >
+              <header>
+                <span>{{ dragon.card.seriesLabel }}</span>
+                <strong>{{ dragon.name }}</strong>
+                <small>★ {{ dragon.card.arenaRating }}</small>
+              </header>
+              <div class="dragon-card__portrait" aria-hidden="true">
+                <svg viewBox="0 0 220 132" focusable="false">
+                  <path
+                    class="portrait-wing"
+                    d="M88 76C54 30 20 29 14 42c25 5 39 21 47 49M126 72c25-38 57-39 78-25-23 5-38 21-48 47"
+                  />
+                  <path
+                    class="portrait-body"
+                    d="M55 90c16-36 61-48 91-21 16 14 24 35 53 29-24 20-53 15-70 4-24 24-66 19-74-12Z"
+                  />
+                  <path class="portrait-head" d="m83 64 17-36 13 21 18-25 4 42Z" />
+                  <circle class="portrait-eye" cx="113" cy="57" r="4" />
+                  <path class="portrait-tail" d="M59 90C35 107 24 110 6 103c25 25 59 20 83 3" />
+                </svg>
+              </div>
+              <p class="dragon-card__role">{{ dragon.card.battleRole }}</p>
+              <dl class="dragon-card__stats">
+                @for (stat of dragon.card.stats; track stat.id) {
+                  <div>
+                    <dt>{{ stat.label }}</dt>
+                    <dd>{{ stat.value }}</dd>
+                  </div>
+                }
+              </dl>
+              <footer>
+                <span>{{ dragon.profile.title }}</span>
+                <b>{{ dragon.card.catalogNumber }}</b>
+              </footer>
+            </section>
+
+            <section
+              class="dragon-card dragon-card--back"
+              [attr.aria-hidden]="!isDragonCardFlipped(dragon.id)"
+            >
+              <header>
+                <span>Field record</span>
+                <strong>{{ dragon.name }}</strong>
+                <small>{{ dragon.card.catalogNumber }}</small>
+              </header>
+              <h3>Recorded traits</h3>
+              <ul>
+                @for (trait of dragon.card.traits; track trait) {
+                  <li>{{ trait }}</li>
+                }
+              </ul>
+              <dl class="dragon-card__collection">
+                <div>
+                  <dt>Trials</dt>
+                  <dd>{{ dragonTrialCount(dragon.id) }}</dd>
+                </div>
+                <div>
+                  <dt>Supported claims</dt>
+                  <dd>{{ dragonSupportedClaimCount(dragon.id) }}</dd>
+                </div>
+              </dl>
+              <p>Card stats come from the same arena model used to test this dragon.</p>
+            </section>
+          </div>
+
+          <div class="dragon-card-actions">
+            <button
+              type="button"
+              [attr.aria-pressed]="isDragonCardFlipped(dragon.id)"
+              (click)="toggleDragonCard(dragon.id)"
+            >
+              {{ isDragonCardFlipped(dragon.id) ? 'Show front' : 'Flip card' }}
+            </button>
+            <button
+              type="button"
+              class="select-card"
+              [attr.aria-pressed]="selectedDragonId() === dragon.id"
+              (click)="selectDragonById(dragon.id)"
+            >
+              {{ selectedDragonId() === dragon.id ? 'Investigating' : 'Investigate' }}
+              {{ dragon.name }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  </section>
 
   <div class="instrument-bar">
     <label>
@@ -19,7 +132,7 @@
       </select>
     </label>
     <label>
-      Observe
+      Investigation
       <select [value]="selectedObservationId()" (change)="selectObservationFromEvent($event)">
         @for (observation of observations(); track observation.id) {
           <option [value]="observation.id">{{ observation.label }}</option>
@@ -33,24 +146,68 @@
       #viewport
       [source]="selectedDragon().source"
       [focusedTraitId]="focusedTraitId()"
-      [ariaLabel]="selectedDragon().name + ' observation model'"
+      [ariaLabel]="selectedDragon().name + ' fighting-trait observation model'"
       [controlsPlacement]="'below'"
       (partSelected)="selectRenderedPart($event)"
     />
 
     <aside class="active-readout" aria-live="polite">
-      <small>{{ selectedObservation().kind }}</small>
+      <small>{{ observationKindLabel() }}</small>
       <h2>{{ selectedObservation().label }}</h2>
       <p>{{ resultText() }}</p>
-      @if (selectedObservation().cueLabel; as cueLabel) {
-        <button type="button" [disabled]="playing()" (click)="testBehavior()">
-          {{ playing() ? 'Observing…' : cueLabel }}
+
+      @if (selectedObservationId() === 'fire-reflex') {
+        <figure
+          class="reflex-monitor"
+          [class.triggered]="reflexActive()"
+          [style.--dragon-color]="selectedDragon().profile.color"
+        >
+          <svg viewBox="0 0 240 150" role="img" aria-labelledby="reflex-title reflex-desc">
+            <title id="reflex-title">Dragon fire-defense reflex monitor</title>
+            <desc id="reflex-desc">
+              A close-up model showing the eyelids and nostril covers closing during a flame flash.
+            </desc>
+            <defs>
+              <linearGradient id="reflex-head" x1="0" x2="1">
+                <stop offset="0" [attr.stop-color]="selectedDragon().profile.color" />
+                <stop offset="1" [attr.stop-color]="selectedDragon().profile.accentColor" />
+              </linearGradient>
+            </defs>
+            <path
+              class="reflex-head"
+              d="M32 99C38 42 82 20 149 35c39 9 62 34 58 71-36 21-121 25-175-7Z"
+            />
+            <path
+              class="reflex-brow"
+              d="M58 62c22-17 51-17 71 0-24-7-46-6-71 0Zm87 7c19-9 38-7 52 7-20-4-34-2-52-7Z"
+            />
+            <ellipse class="reflex-eye" cx="91" cy="76" rx="19" ry="12" />
+            <circle class="reflex-pupil" cx="96" cy="76" r="5" />
+            <path class="reflex-eyelid" d="M69 76q22-22 44 0-22 9-44 0Z" />
+            <ellipse class="reflex-nostril" cx="167" cy="96" rx="8" ry="5" />
+            <ellipse class="reflex-nostril" cx="190" cy="94" rx="8" ry="5" />
+            <path
+              class="nostril-cover"
+              d="M156 89q12-10 22 4l-2 9q-11-6-20-13Zm23 2q12-10 22 2l-2 9q-11-5-20-11Z"
+            />
+            <path class="flame-flash" d="M18 73c-15-20 8-31 6-49 23 21 24 42-6 49Z" />
+          </svg>
+          <figcaption>
+            <span>Eyes</span><b>{{ reflexActive() ? 'closed' : 'open' }}</b> <span>Nostrils</span
+            ><b>{{ reflexActive() ? 'closed' : 'open' }}</b>
+          </figcaption>
+        </figure>
+      }
+
+      @if (selectedObservation().actionLabel; as actionLabel) {
+        <button type="button" [disabled]="playing()" (click)="runObservation()">
+          {{ playing() ? 'Observing…' : actionLabel }}
         </button>
       }
     </aside>
   </div>
 
-  <details class="drawer">
+  <details class="drawer" open>
     <summary>
       <span>Investigation records</span>
       <small>{{ selectedEvidenceIds().length }} cited</small>
@@ -72,31 +229,31 @@
     </div>
   </details>
 
-  <details class="drawer evidence-board">
+  <details class="drawer evidence-board" open>
     <summary>
-      <span>Evidence board</span>
+      <span>Field evidence board</span>
       <small>{{ snapshot().claims.length }} classifications</small>
     </summary>
 
     <div class="claim-builder">
       <label>
-        Classification
+        My evidence indicates
         <select [value]="classification()" (change)="setClassification($event)">
           <option value="insufficient">Needs more evidence</option>
-          <option value="inherited">Inherited</option>
-          <option value="learned">Not inherited · learned</option>
-          <option value="environmental">Not inherited · environmental</option>
+          <option value="inherited">Inherited anatomy or ability</option>
+          <option value="innate">Innate protective reflex</option>
+          <option value="learned">Learned command response</option>
         </select>
       </label>
       <button type="button" [disabled]="!canSaveClaim()" (click)="saveClaim()">
-        Save classification
+        Save evidence claim
       </button>
       @if (currentClaim(); as claim) {
         <output [class.supported]="claim.supported">
           {{
             claim.supported
-              ? 'Evidence supports this classification.'
-              : 'Revise or gather more evidence.'
+              ? 'The cited records support this claim.'
+              : 'Keep this claim, revise it, or gather more evidence.'
           }}
         </output>
       }
@@ -112,14 +269,17 @@
         }
       </section>
       <section>
-        <h3>Not inherited</h3>
-        @for (
-          claim of claimsFor('learned', 'environmental');
-          track claim.specimenId + claim.observationId
-        ) {
-          <p [class.supported]="claim.supported">
-            {{ claimLabel(claim) }} <small>{{ classificationLabel(claim.classification) }}</small>
-          </p>
+        <h3>Innate reflex</h3>
+        @for (claim of claimsFor('innate'); track claim.specimenId + claim.observationId) {
+          <p [class.supported]="claim.supported">{{ claimLabel(claim) }}</p>
+        } @empty {
+          <p class="empty">No saved evidence</p>
+        }
+      </section>
+      <section>
+        <h3>Learned response</h3>
+        @for (claim of claimsFor('learned'); track claim.specimenId + claim.observationId) {
+          <p [class.supported]="claim.supported">{{ claimLabel(claim) }}</p>
         } @empty {
           <p class="empty">No saved evidence</p>
         }
@@ -138,8 +298,9 @@
   <details class="drawer guide">
     <summary>Guide</summary>
     <p>
-      Compare what was present at hatching with family, training, and habitat records. Repeat cue
-      tests whenever one observation is not enough.
+      Body structures can be inherited. A reflex happens without training and can have an inherited
+      biological basis. A response to a command is learned through experience. Fighting performance
+      may combine all three.
     </p>
   </details>
 </section>

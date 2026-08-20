@@ -129,6 +129,16 @@ export const DEFAULT_EXPRESSIVE_DRAGON: ExpressiveDragonProfile = {
   },
 };
 
+/**
+ * Shared reference genome for tools that need a complete, neutral dragon specimen.
+ * Every autosomal locus is heterozygous. The X-linked eye locus is necessarily
+ * hemizygous in an XY dragon, so its second chromosome value is Y rather than an allele.
+ */
+export const GENERIC_HETEROZYGOUS_XY_DRAGON: ExpressiveDragonProfile = normalizeGenomeForSex(
+  DEFAULT_EXPRESSIVE_DRAGON,
+  'male',
+);
+
 export function sexChromosomes(sex: DragonSex): 'XX' | 'XY' {
   return sex === 'female' ? 'XX' : 'XY';
 }

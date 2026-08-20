@@ -8,18 +8,13 @@ import {
   output,
   signal,
 } from '@angular/core';
+import {
+  AminoAcidVisual,
+  aminoAcidVisual as aminoAcidVisualFor,
+} from './amino-acid-chemistry.models';
 import { RnaTranslationStep, rnaSequence, translateRna } from './dna-process.models';
 
 type TranslationPhase = 'ready' | 'docking' | 'bonding' | 'translocating' | 'released';
-
-type AminoAcidGroup = 'hydrophobic' | 'polar' | 'positive' | 'negative' | 'aromatic' | 'special';
-
-interface AminoAcidVisual {
-  shape: string;
-  group: AminoAcidGroup;
-  groupLabel: string;
-  sideChain: string;
-}
 
 interface FoldPosition {
   x: number;
@@ -36,32 +31,6 @@ const RNA_ANTICODON: Readonly<Record<string, string>> = {
   C: 'G',
   G: 'C',
 };
-
-const AMINO_ACID_VISUALS: Readonly<Record<string, AminoAcidVisual>> = {
-  Ala: visual('small-diamond', 'hydrophobic', 'Hydrophobic', 'CH3'),
-  Val: visual('branched', 'hydrophobic', 'Hydrophobic', 'branched'),
-  Leu: visual('long-branch', 'hydrophobic', 'Hydrophobic', 'long branch'),
-  Ile: visual('asymmetric-branch', 'hydrophobic', 'Hydrophobic', 'branch'),
-  Met: visual('sulfur-chain', 'hydrophobic', 'Hydrophobic', 'S'),
-  Phe: visual('aromatic-ring', 'aromatic', 'Aromatic', 'ring'),
-  Tyr: visual('aromatic-hydroxyl', 'aromatic', 'Aromatic + polar', 'OH'),
-  Trp: visual('double-ring', 'aromatic', 'Aromatic', '2 rings'),
-  Ser: visual('hydroxyl', 'polar', 'Polar', 'OH'),
-  Thr: visual('branched-hydroxyl', 'polar', 'Polar', 'OH'),
-  Asn: visual('amide', 'polar', 'Polar', 'amide'),
-  Gln: visual('long-amide', 'polar', 'Polar', 'amide'),
-  Cys: visual('sulfur-drop', 'polar', 'Polar', 'SH'),
-  Lys: visual('positive-tail', 'positive', 'Positive', '+'),
-  Arg: visual('positive-fork', 'positive', 'Positive', '+'),
-  His: visual('imidazole', 'positive', 'Positive', '+ ring'),
-  Asp: visual('negative-short', 'negative', 'Negative', '-'),
-  Glu: visual('negative-long', 'negative', 'Negative', '-'),
-  Gly: visual('small-bead', 'special', 'Flexible', 'H'),
-  Pro: visual('proline-ring', 'special', 'Rigid turn', 'ring'),
-  STOP: visual('stop', 'special', 'Stop signal', 'STOP'),
-};
-
-const FALLBACK_AMINO_ACID_VISUAL = visual('amino-core', 'special', 'Amino acid', 'R');
 
 const FOLDED_POSITIONS: readonly FoldPosition[] = [
   { x: 10, y: 70 },
@@ -242,7 +211,7 @@ export class RnaTranslationAnimationComponent implements OnDestroy {
   }
 
   aminoAcidVisual(shortName: string): AminoAcidVisual {
-    return AMINO_ACID_VISUALS[shortName] ?? FALLBACK_AMINO_ACID_VISUAL;
+    return aminoAcidVisualFor(shortName);
   }
 
   ngOnDestroy(): void {
@@ -289,14 +258,6 @@ export class RnaTranslationAnimationComponent implements OnDestroy {
   }
 }
 
-function visual(
-  shape: string,
-  group: AminoAcidGroup,
-  groupLabel: string,
-  sideChain: string,
-): AminoAcidVisual {
-  return { shape, group, groupLabel, sideChain };
-}
 
 function proteinBackbonePath(points: readonly FoldPosition[]): string {
   if (!points.length) return '';

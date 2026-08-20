@@ -32,31 +32,47 @@ describe('Trait Evidence investigation', () => {
 
   it('requires a cue trial and training record for a learned response', () => {
     const dragon = TRAIT_EVIDENCE_DRAGONS[0];
-    const trial = cueTrial(dragon.id, 'bell-bow');
+    const trial = cueTrial(dragon.id, 'guard-command');
     const snapshot: TraitEvidenceSnapshot = {
       ...emptyTraitEvidenceSnapshot('student'),
       trials: [trial],
     };
-    const training = recordsForObservation(dragon, 'bell-bow')[0];
+    const training = recordsForObservation(dragon, 'guard-command')[0];
 
     expect(
-      supportsTraitEvidenceClaim(snapshot, dragon.id, 'bell-bow', 'learned', [training.id]),
+      supportsTraitEvidenceClaim(snapshot, dragon.id, 'guard-command', 'learned', [training.id]),
     ).toBeFalse();
     expect(
-      supportsTraitEvidenceClaim(snapshot, dragon.id, 'bell-bow', 'learned', [
+      supportsTraitEvidenceClaim(snapshot, dragon.id, 'guard-command', 'learned', [
         training.id,
         `trial:${trial.id}`,
       ]),
     ).toBeTrue();
   });
 
-  it('completes only after supported inherited, learned, and environmental claims', () => {
-    const aster = TRAIT_EVIDENCE_DRAGONS[0];
-    const brine = TRAIT_EVIDENCE_DRAGONS[1];
-    const trial = cueTrial(aster.id, 'bell-bow');
-    let snapshot: TraitEvidenceSnapshot = {
+  it('supports an innate reflex claim from a trial and pre-training record', () => {
+    const dragon = TRAIT_EVIDENCE_DRAGONS[0];
+    const trial = reflexTrial(dragon.id);
+    const snapshot: TraitEvidenceSnapshot = {
       ...emptyTraitEvidenceSnapshot('student'),
       trials: [trial],
+    };
+
+    expect(
+      supportsTraitEvidenceClaim(snapshot, dragon.id, 'fire-reflex', 'innate', [
+        recordsForObservation(dragon, 'fire-reflex')[0].id,
+        `trial:${trial.id}`,
+      ]),
+    ).toBeTrue();
+  });
+
+  it('completes only after supported inherited, innate, and learned claims', () => {
+    const aster = TRAIT_EVIDENCE_DRAGONS[0];
+    const commandTrial = cueTrial(aster.id, 'guard-command');
+    const fireTrial = reflexTrial(aster.id);
+    let snapshot: TraitEvidenceSnapshot = {
+      ...emptyTraitEvidenceSnapshot('student'),
+      trials: [commandTrial, fireTrial],
     };
 
     snapshot = upsertTraitEvidenceClaim(snapshot, {
@@ -67,20 +83,20 @@ describe('Trait Evidence investigation', () => {
     });
     snapshot = upsertTraitEvidenceClaim(snapshot, {
       specimenId: aster.id,
-      observationId: 'bell-bow',
+      observationId: 'guard-command',
       classification: 'learned',
-      evidenceIds: [recordsForObservation(aster, 'bell-bow')[0].id, `trial:${trial.id}`],
+      evidenceIds: [
+        recordsForObservation(aster, 'guard-command')[0].id,
+        `trial:${commandTrial.id}`,
+      ],
     });
     expect(traitEvidenceStatus(snapshot)).toBe('in-progress');
 
     snapshot = upsertTraitEvidenceClaim(snapshot, {
-      specimenId: brine.id,
-      observationId: 'soot-mark',
-      classification: 'environmental',
-      evidenceIds: [
-        liveEvidence(brine, 'soot-mark').id,
-        recordsForObservation(brine, 'soot-mark')[1].id,
-      ],
+      specimenId: aster.id,
+      observationId: 'fire-reflex',
+      classification: 'innate',
+      evidenceIds: [recordsForObservation(aster, 'fire-reflex')[0].id, `trial:${fireTrial.id}`],
     });
 
     expect(traitEvidenceStatus(snapshot)).toBe('complete');
@@ -89,14 +105,28 @@ describe('Trait Evidence investigation', () => {
 
 function cueTrial(
   specimenId: string,
-  behaviorId: TraitEvidenceTrial['behaviorId'],
+  observationId: 'guard-command' | 'tail-strike-command' | 'target-touch',
 ): TraitEvidenceTrial {
   return {
     id: 'trial-1',
     specimenId,
-    behaviorId,
+    observationId,
+    kind: 'command',
     responded: true,
     result: 'Responded after the cue.',
+    testedAtIso: '2026-08-14T00:00:00.000Z',
+  };
+}
+
+function reflexTrial(specimenId: string): TraitEvidenceTrial {
+  return {
+    id: 'reflex-1',
+    specimenId,
+    observationId: 'fire-reflex',
+    kind: 'reflex',
+    responded: true,
+    reactionTimeMs: 184,
+    result: 'Closed eyelids and nostrils in 184 ms.',
     testedAtIso: '2026-08-14T00:00:00.000Z',
   };
 }

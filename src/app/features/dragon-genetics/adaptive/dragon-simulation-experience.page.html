@@ -1,12 +1,16 @@
 @if (definition(); as simulation) {
-  <div class="experience-shell" [style.--simulation-accent]="simulation.accent">
+  <div
+    class="experience-shell viking-workstation"
+    [style.--simulation-accent]="simulation.accent"
+  >
     <header class="experience-header">
       <a
         class="exit"
         routerLink="/dragon-genetics"
         aria-label="Return to Dragon Genetics mission map"
-        >←</a
+      >←</a
       >
+      <span class="academy-crest" aria-hidden="true">ᛞ</span>
       <div class="title-block">
         <span
           >LAB {{ simulation.module.toString().padStart(2, '0') }} · {{ simulation.skill }}</span

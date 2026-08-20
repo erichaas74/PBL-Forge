@@ -1,8 +1,8 @@
 import { Vector3Data } from '../../../../shared/assembly/domain/assembly.models';
 import { SpecimenMotionDefinition } from '../../../../shared/assembly/preview/specimen-motion';
 import { buildSpecimenPose, SpecimenBend } from '../../../../shared/assembly/preview/specimen-pose';
-import { LearnedBehaviorId } from './trait-evidence.models';
 
+const AXIS_X: Vector3Data = { x: 1, y: 0, z: 0 };
 const AXIS_Y: Vector3Data = { x: 0, y: 1, z: 0 };
 const AXIS_Z: Vector3Data = { x: 0, y: 0, z: 1 };
 
@@ -23,16 +23,25 @@ function motion(
 }
 
 /** These are learned cue responses. They never appear in a genome or offspring record. */
-export const DRAGON_LEARNED_BEHAVIOR_MOTIONS: Readonly<
-  Record<LearnedBehaviorId, SpecimenMotionDefinition>
-> = {
-  'bell-bow': motion('bell-bow', (amount) => [
-    { role: 'head', radians: -0.48 * amount, axis: AXIS_Z },
-    { role: 'jaw', radians: 0.12 * amount, axis: AXIS_Z },
+export const DRAGON_LEARNED_BEHAVIOR_MOTIONS = {
+  'guard-command': motion('guard-command', (amount) => [
+    { role: 'head', radians: 0.38 * amount, axis: AXIS_Z },
+    { role: 'jaw', radians: 0.14 * amount, axis: AXIS_Z },
+    { role: 'wing', radians: -0.18 * amount, axis: AXIS_X, mirrorAcrossZ: true },
+  ]),
+  'tail-strike-command': motion('tail-strike-command', (amount) => [
+    { role: 'tail', radians: 0.58 * amount, axis: AXIS_Y },
+    { role: 'head', radians: -0.12 * amount, axis: AXIS_Z },
   ]),
   'target-touch': motion('target-touch', (amount) => [
     { role: 'head', radians: 0.5 * amount, axis: AXIS_Y },
     { role: 'jaw', radians: -0.08 * amount, axis: AXIS_Z },
+  ]),
+  // Retained for the general dragon motion gallery; Trait Evidence now uses
+  // fighting commands, but these poses remain shared renderer demonstrations.
+  'bell-bow': motion('bell-bow', (amount) => [
+    { role: 'head', radians: -0.48 * amount, axis: AXIS_Z },
+    { role: 'jaw', radians: 0.12 * amount, axis: AXIS_Z },
   ]),
   'wait-release': motion('wait-release', (amount) => [
     { role: 'head', radians: -0.2 * amount, axis: AXIS_Z },
@@ -41,12 +50,17 @@ export const DRAGON_LEARNED_BEHAVIOR_MOTIONS: Readonly<
   ]),
 };
 
+/** Head recoil synchronized with the code-driven eyelid and nostril monitor. */
+export const DRAGON_FIRE_REFLEX_MOTION = motion('fire-defense-reflex', (amount) => [
+  { role: 'head', radians: -0.32 * amount, axis: AXIS_Z },
+  { role: 'jaw', radians: 0.18 * amount, axis: AXIS_Z },
+  { role: 'wing', radians: -0.08 * amount, axis: AXIS_X, mirrorAcrossZ: true },
+]);
+
 /** Small orienting response shown when a dragon has not learned the tested cue. */
 export const DRAGON_NOTICE_MOTION = motion('notice-cue', (amount) => [
   { role: 'head', radians: -0.16 * amount, axis: AXIS_Y },
 ]);
-
-const AXIS_X: Vector3Data = { x: 1, y: 0, z: 0 };
 
 function heldMotion(phase: number): number {
   const value = Math.max(0, Math.min(1, phase));

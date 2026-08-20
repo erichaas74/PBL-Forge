@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
-import { DRAGON_TRAITS } from '../../simulation/domain/dragon-inheritance';
-import { DragonTraitId } from '../../simulation/domain/dragon-lab.models';
+import {
+  EXPRESSIVE_DRAGON_TRAITS,
+  ExpressiveDragonTraitId,
+} from '../../simulation/domain/dragon-expressive-genome';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   createEmptyPunnettSnapshot,
@@ -38,6 +40,7 @@ function normalizePunnettSnapshot(value: unknown, studentId: string): PunnettCom
   return {
     schemaVersion: 1,
     studentId,
+    mode: value['mode'] === 'test' ? 'test' : 'parents',
     parent1Id: typeof value['parent1Id'] === 'string' ? value['parent1Id'] : null,
     parent2Id: typeof value['parent2Id'] === 'string' ? value['parent2Id'] : null,
     traitId: isTraitId(value['traitId']) ? value['traitId'] : empty.traitId,
@@ -60,8 +63,8 @@ function normalizeAllele(value: unknown): string | null {
   return typeof value === 'string' && value.length <= 4 ? value : null;
 }
 
-function isTraitId(value: unknown): value is DragonTraitId {
-  return DRAGON_TRAITS.some((trait) => trait.id === value);
+function isTraitId(value: unknown): value is ExpressiveDragonTraitId {
+  return EXPRESSIVE_DRAGON_TRAITS.some((trait) => trait.id === value);
 }
 
 function isSavedCross(value: unknown): value is PunnettSavedCross {

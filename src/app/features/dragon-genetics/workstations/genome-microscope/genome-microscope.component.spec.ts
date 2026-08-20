@@ -164,6 +164,16 @@ describe('GenomeMicroscopeComponent', () => {
     expect(sexPair?.label).toContain('XY');
     expect(sexPair?.maternal.length).toBe(chromosomeVisual('Chr X').length);
     expect(sexPair?.paternal.length).toBe(chromosomeVisual('Chr Y').length);
+    expect(sexPair?.id).toBe('Chr X');
+    expect(microscope.cellChromosomePairs().at(-1)?.shortLabel).toBe('XY');
+  });
+
+  it('keeps the X chromosome selection linked to the sex-chromosome pair', () => {
+    microscope.selectChromosome('Chr X');
+
+    expect(microscope.activePair()?.kind).toBe('sex');
+    expect(microscope.activePair()?.id).toBe('Chr X');
+    expect(microscope.activeGene()?.id).toBe('eye-color');
   });
 
   it('opens a selected chromosome, gene, DNA, allele, RNA, base chemistry, protein, enzyme, and expression model from shared records', () => {

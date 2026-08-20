@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { AccountGeneticsLibraryService } from '../shared/account-genetics-library.service';
+import { DragonChromosomeSelectorComponent } from '../shared/dragon-chromosome-selector.component';
 import { PunnettComposerComponent } from './punnett-composer.component';
 import { PunnettComposerRepository } from './punnett-composer.repository';
 
@@ -36,16 +38,85 @@ describe('PunnettComposerComponent', () => {
     expect(composer.parent2Alleles()).toEqual(['w', 'w']);
   });
 
-  it('loads a chromosome record with its owning dragon and focus locus', () => {
+  it('starts with the universal dragon and chromosome selector', () => {
+    const selector = fixture.debugElement.query(By.directive(DragonChromosomeSelectorComponent))
+      .componentInstance as DragonChromosomeSelectorComponent;
+    const fireDragon = library.recordsFor(studentId).dragons[0];
+
+    expect(selector.dragons()).toBe(composer.selectorDragons());
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('app-account-genetics-file'),
+    ).toBeNull();
+    expect(selector.cellChromosomes().length).toBe(5);
+
+    selector.selectDragon(fireDragon);
+    selector.selectChromosome('Chr 2');
+
+    expect(composer.stagedChromosome()).toBe('Chr 2');
+    expect(composer.activeTrait().id).toBe('fire');
+    expect(composer.parent1()?.id).toBe(fireDragon.id);
+  });
+
+  it('loads a chromosome record only into its sex-matched parent bay', () => {
     const fireChromosome = library
       .recordsFor(studentId)
-      .chromosomes.find((record) => record.id === 'moss:chr-2')!;
+      .chromosomes.find((record) => record.id === 'quartz:chr-2')!;
     composer.selectAccountRecord(fireChromosome);
     composer.loadStagedRecord('parent2');
 
-    expect(composer.parent2()?.id).toBe('moss');
+    expect(composer.parent2()?.id).toBe('quartz');
     expect(composer.activeTrait().id).toBe('fire');
     expect(composer.parent2Alleles()).toEqual(fireChromosome.alleles);
+  });
+
+  it('replaces the fixed locus choices with genes from the selected chromosome', () => {
+    const selector = fixture.debugElement.query(By.directive(DragonChromosomeSelectorComponent))
+      .componentInstance as DragonChromosomeSelectorComponent;
+
+    selector.selectChromosome('Chr 3');
+    fixture.detectChanges();
+
+    expect(composer.chromosomeGenes().map((gene) => gene.id)).toEqual([
+      'scales',
+      'body-color',
+      'crest',
+    ]);
+    expect(composer.activeTrait().id).toBe('scales');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('FOCUS LOCUS');
+    expect(fixture.nativeElement.querySelectorAll('.gene-selector button').length).toBe(3);
+  });
+
+  it('uses standardized heterozygous XX and XY cells in test mode', () => {
+    composer.selectMode('test');
+    composer.selectTrait('eye-color');
+
+    expect(composer.parent1()?.sex).toBe('female');
+    expect(composer.parent2()?.sex).toBe('male');
+    expect(composer.parent1Alleles()).toEqual(['E', 'e']);
+    expect(composer.parent2Alleles()).toEqual(['E', 'Y']);
+    expect(composer.selectorDragons().map((dragon) => dragon.name)).toEqual([
+      'Heterozygous XX cell',
+      'Heterozygous XY cell',
+    ]);
+  });
+
+  it('shows both homologous chromosomes for a completed selected cell', () => {
+    composer.selectMode('test');
+    composer.selectTrait('eye-color');
+    for (const side of ['parent1', 'parent2'] as const) {
+      for (const slot of [0, 1]) {
+        composer.selectGamete(side, slot);
+        composer.placePendingGamete(side, slot);
+      }
+    }
+    composer.selectCell(2);
+    fixture.detectChanges();
+
+    expect(composer.selectedCell()?.genotype).toBe('EY');
+    expect(composer.selectedCellChromosomePair()?.label).toBe('XY sex chromosomes');
+    expect(composer.selectedCellChromosomePair()?.maternal).toBeTruthy();
+    expect(composer.selectedCellChromosomePair()?.paternal).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.offspring-chromosomes')).toBeTruthy();
   });
 
   it('places four gametes through the click alternative and computes all offspring cells', () => {

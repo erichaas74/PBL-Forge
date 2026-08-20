@@ -13,7 +13,7 @@ import {
 } from './trait-evidence.models';
 import { TRAIT_EVIDENCE_OBSERVATIONS } from './trait-evidence.content';
 
-const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.trait-evidence.v1';
+const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.trait-evidence.v2';
 
 @Injectable({ providedIn: 'root' })
 export class TraitEvidenceRepository {
@@ -75,12 +75,15 @@ function isTrial(value: unknown): value is TraitEvidenceTrial {
     isRecord(value) &&
     typeof value['id'] === 'string' &&
     typeof value['specimenId'] === 'string' &&
-    isObservationId(value['behaviorId']) &&
-    (value['behaviorId'] === 'bell-bow' ||
-      value['behaviorId'] === 'target-touch' ||
-      value['behaviorId'] === 'wait-release') &&
+    isObservationId(value['observationId']) &&
+    (value['observationId'] === 'fire-reflex' ||
+      value['observationId'] === 'guard-command' ||
+      value['observationId'] === 'tail-strike-command' ||
+      value['observationId'] === 'target-touch') &&
+    (value['kind'] === 'command' || value['kind'] === 'reflex') &&
     typeof value['responded'] === 'boolean' &&
     typeof value['result'] === 'string' &&
+    (value['reactionTimeMs'] === undefined || typeof value['reactionTimeMs'] === 'number') &&
     typeof value['testedAtIso'] === 'string'
   );
 }
@@ -107,10 +110,7 @@ function isObservationId(value: unknown): value is TraitEvidenceObservationId {
 
 function isClassification(value: unknown): value is TraitEvidenceClassification {
   return (
-    value === 'inherited' ||
-    value === 'learned' ||
-    value === 'environmental' ||
-    value === 'insufficient'
+    value === 'inherited' || value === 'innate' || value === 'learned' || value === 'insufficient'
   );
 }
 

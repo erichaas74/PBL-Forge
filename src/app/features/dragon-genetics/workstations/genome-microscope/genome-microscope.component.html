@@ -352,6 +352,51 @@
               <code>{{ activeRnaSequence() }}</code>
             </header>
             <app-rna-translation-animation [sequence]="activeRnaSequence()" />
+
+            @if (activeProtein(); as protein) {
+              <!--
+                The folded shape, the cellular job, and the trait link all come
+                from the gene catalog, so this card, the enzyme bench, and the
+                expression model describe one protein rather than three.
+              -->
+              <article
+                class="protein-identity"
+                [attr.data-role]="protein.role"
+                [style.--protein-main]="protein.palette.main"
+                [style.--protein-light]="protein.palette.light"
+                [style.--protein-deep]="protein.palette.deep"
+              >
+                <svg viewBox="-90 -50 180 100" role="img" [attr.aria-label]="protein.name + ' folded shape'">
+                  <path class="protein-body" [attr.d]="(activeProteinForm() ?? protein.form).shapePath" />
+                  <path
+                    class="protein-backbone"
+                    [attr.d]="(activeProteinForm() ?? protein.form).backbonePath"
+                  />
+                </svg>
+                <div>
+                  <small>{{ protein.proteinCode }} · {{ protein.roleLabel }}</small>
+                  <strong>{{ protein.name }}</strong>
+                  <p>{{ protein.cellRole }}</p>
+                  <p class="protein-chain-label">
+                    Chain: {{ (activeProteinForm() ?? protein.form).chainLabel }}
+                  </p>
+                  @if (activeProteinForm()?.role === 'variant') {
+                    <p class="protein-variant">
+                      This copy carries the gene's mutation, so its residue order — and the shape
+                      that order folds into — differs from the reference copy.
+                    </p>
+                  }
+                  @if (protein.activity; as activity) {
+                    <p class="protein-next">
+                      Works as an enzyme: {{ activity.equation }}
+                    </p>
+                  } @else {
+                    <p class="protein-next">{{ protein.traitContribution }}</p>
+                  }
+                </div>
+              </article>
+            }
+
             <p class="protein-boundary">
               A protein can contribute to a trait through cell activity; one allele does not always
               determine a visible trait by itself.

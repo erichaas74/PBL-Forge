@@ -1,6 +1,7 @@
-import { DragonTraitId } from '../../simulation/domain/dragon-lab.models';
+import { ExpressiveDragonTraitId } from '../../simulation/domain/dragon-expressive-genome';
 
 export type PunnettParentSide = 'parent1' | 'parent2';
+export type PunnettComposerMode = 'parents' | 'test';
 export type PunnettGameteSlots = readonly [string | null, string | null];
 
 export interface PunnettSavedCross {
@@ -9,7 +10,7 @@ export interface PunnettSavedCross {
   parent1Name: string;
   parent2Id: string;
   parent2Name: string;
-  traitId: DragonTraitId;
+  traitId: ExpressiveDragonTraitId;
   traitName: string;
   genotypeCounts: Readonly<Record<string, number>>;
   phenotypeCounts: Readonly<Record<string, number>>;
@@ -19,9 +20,10 @@ export interface PunnettSavedCross {
 export interface PunnettComposerSnapshot {
   schemaVersion: 1;
   studentId: string;
+  mode: PunnettComposerMode;
   parent1Id: string | null;
   parent2Id: string | null;
-  traitId: DragonTraitId;
+  traitId: ExpressiveDragonTraitId;
   parent1Gametes: PunnettGameteSlots;
   parent2Gametes: PunnettGameteSlots;
   savedCrosses: readonly PunnettSavedCross[];
@@ -50,6 +52,7 @@ export function createEmptyPunnettSnapshot(studentId: string): PunnettComposerSn
   return {
     schemaVersion: 1,
     studentId,
+    mode: 'parents',
     parent1Id: null,
     parent2Id: null,
     traitId: 'wings',

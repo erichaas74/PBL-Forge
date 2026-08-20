@@ -141,16 +141,20 @@ button {
 }
 
 .gene-button {
+  --gene-color: var(--vault-flame);
+
   display: grid;
   grid-template-columns: 1.5rem 1fr auto;
   align-items: center;
   gap: 0.45rem;
   min-width: 0;
   padding: 0.48rem 0.6rem;
-  border: 1px solid rgb(255 255 255 / 9%);
+  border: 1px solid color-mix(in srgb, var(--gene-color) 42%, transparent);
   border-radius: 0.62rem;
-  background: rgb(21 17 13 / 74%);
-  color: #a1978a;
+  background:
+    linear-gradient(90deg, var(--gene-color) 0 0.28rem, transparent 0.28rem),
+    color-mix(in srgb, var(--gene-color) 9%, rgb(21 17 13 / 88%));
+  color: color-mix(in srgb, var(--gene-color) 38%, #fdf4e6);
   cursor: pointer;
   transition:
     border-color 0.2s ease,
@@ -160,18 +164,24 @@ button {
 }
 
 .gene-button:hover:not(:disabled) {
-  border-color: rgb(240 164 78 / 48%);
+  border-color: var(--gene-color);
   color: var(--surface-raised);
   transform: translateX(2px);
 }
 
 .gene-button.active {
-  border-color: var(--vault-flame);
-  background: linear-gradient(110deg, rgb(240 164 78 / 16%), rgb(240 164 78 / 4%));
+  border-color: var(--gene-color);
+  background:
+    linear-gradient(90deg, var(--gene-color) 0 0.32rem, transparent 0.32rem),
+    linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--gene-color) 22%, transparent),
+      color-mix(in srgb, var(--gene-color) 5%, transparent)
+    );
   color: #fdf4e6;
   box-shadow:
-    inset 3px 0 var(--vault-flame),
-    0 0 18px rgb(240 164 78 / 8%);
+    inset 3px 0 var(--gene-color),
+    0 0 18px color-mix(in srgb, var(--gene-color) 16%, transparent);
 }
 
 .gene-button i {
@@ -342,17 +352,17 @@ button {
 }
 
 .allele-token:hover:not(:disabled) {
-  border-color: rgb(168 145 201 / 60%);
+  border-color: color-mix(in srgb, var(--active-gene-color) 68%, white);
 }
 .allele-token:active:not(:disabled) {
-  border-color: var(--vault-rune);
+  border-color: var(--active-gene-color);
 }
 
 .allele-token::before {
   position: absolute;
   inset: auto 8% 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgb(168 145 201 / 40%), transparent);
+  background: linear-gradient(90deg, transparent, var(--active-gene-color), transparent);
   content: '';
 }
 
@@ -374,11 +384,11 @@ button {
 }
 
 .allele-token.selected {
-  border-color: var(--vault-rune);
+  border-color: var(--active-gene-color);
   color: #fff;
   box-shadow:
-    0 0 0 3px rgb(168 145 201 / 12%),
-    0 0 22px rgb(168 145 201 / 24%);
+    0 0 0 3px color-mix(in srgb, var(--active-gene-color) 16%, transparent),
+    0 0 22px color-mix(in srgb, var(--active-gene-color) 28%, transparent);
 }
 .allele-token.locked {
   cursor: not-allowed;

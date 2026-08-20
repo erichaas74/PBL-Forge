@@ -26,16 +26,16 @@ describe('AlleleVaultWorkbenchComponent', () => {
     const body = instrument?.querySelector(':scope > .instrument-body');
     expect(vault?.nextElementSibling).toBe(body);
     expect(body?.firstElementChild?.classList.contains('gene-selector')).toBeTrue();
-    expect(element.querySelectorAll('.vault-cell-viewport .chromosome-in-cell').length).toBe(4);
+    expect(element.querySelectorAll('.vault-cell-viewport .chromosome-in-cell').length).toBe(5);
     expect(element.querySelectorAll('.allele-token').length).toBe(2);
     expect(element.querySelectorAll('.genome-pane').length).toBe(2);
-    expect(element.querySelectorAll('app-chromosome-svg').length).toBe(9);
-    expect(element.querySelectorAll('.chromosome-svg').length).toBe(9);
+    expect(element.querySelectorAll('app-chromosome-svg').length).toBe(10);
+    expect(element.querySelectorAll('.chromosome-svg').length).toBe(10);
     expect(element.querySelectorAll('.chromosome-svg--placeholder').length).toBe(2);
     expect(
       element.querySelectorAll('.vault-cell-viewport [data-band-start]').length,
     ).toBeGreaterThan(0);
-    expect(element.querySelectorAll('.inspection-panel .gene-locus').length).toBe(3);
+    expect(element.querySelectorAll('.inspection-panel .gene-locus').length).toBe(6);
     expect(element.querySelectorAll('.allele-token-chromosome').length).toBe(2);
     expect(
       [...element.querySelectorAll('.allele-token-chromosome [data-barcode-variant]')].map(
@@ -61,24 +61,28 @@ describe('AlleleVaultWorkbenchComponent', () => {
     expect(element.textContent).not.toContain('Wingless allele');
   });
 
-  it('lets students switch the cell between single and replicated chromosomes', () => {
+  it('shows the generic XY genome as homologous pairs without sister-chromatid controls', () => {
     const element = fixture.nativeElement as HTMLElement;
     const formButtons = element.querySelectorAll<HTMLButtonElement>(
       '.vault-cell-viewport .chromosome-form-controls button',
     );
 
-    expect(formButtons.length).toBe(2);
-    expect(element.querySelectorAll('.vault-cell-viewport .chromosome-svg--replicated').length).toBe(
-      0,
-    );
-
-    formButtons[1].click();
-    fixture.detectChanges();
-
-    expect(element.querySelectorAll('.vault-cell-viewport .chromosome-svg--replicated').length).toBe(
-      5,
-    );
-    expect(element.querySelectorAll('.vault-cell-viewport .centromere-joint').length).toBe(5);
+    expect(formButtons.length).toBe(0);
+    expect(
+      element.querySelectorAll('.vault-cell-viewport .chromosome-svg--replicated').length,
+    ).toBe(6);
+    expect(element.querySelectorAll('.vault-cell-viewport .centromere-joint').length).toBe(6);
+    expect(
+      element
+        .querySelector('.vault-cell-viewport .cell-chromosome-viewport')
+        ?.getAttribute('aria-label'),
+    ).toContain('heterozygous XY');
+    expect(
+      [...element.querySelectorAll('.vault-cell-viewport .chromosome-in-cell')].every((item) =>
+        item.getAttribute('aria-label')?.includes('homologous pair'),
+      ),
+    ).toBeTrue();
+    expect(component.cellChromosomes().find((item) => item.id === 'Chr X')?.shortLabel).toBe('XY');
   });
 
   it('keeps each allele barcode identity when it is dropped into either comparison sample', () => {
@@ -116,13 +120,34 @@ describe('AlleleVaultWorkbenchComponent', () => {
     expect(
       element.querySelector('.vault-cell-viewport [data-chromosome="Chr 2"]')?.classList,
     ).toContain('chromosome-in-cell--selected');
-    expect(element.querySelector('.inspection-panel')?.textContent).toContain('Chr 2');
+    expect(element.querySelector('.inspection-panel')?.textContent).toContain('Chromosome pair 2');
     expect(element.querySelector('.locus-readout')).toBeNull();
     expect(
       [...element.querySelectorAll<HTMLButtonElement>('.allele-token')].map((button) =>
         button.getAttribute('aria-label'),
       ),
     ).toEqual(['Allele sample CH2-G1a', 'Allele sample CH2-G1b']);
+  });
+
+  it('colors every gene control and opens the released X-linked gene', () => {
+    component.selectChromosome('Chr X');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const geneButton = element.querySelector<HTMLElement>('.gene-button');
+    const eyeGene = ALLELE_VAULT_GENES.find((gene) => gene.id === 'eye-color')!;
+
+    expect(component.activeChromosome()).toBe('Chr X');
+    expect(component.activeGeneId()).toBe('eye-color');
+    expect(component.activeGene().inheritance).toBe('x-linked');
+    expect(geneButton?.dataset['geneColor']).toBe(eyeGene.locusColor);
+    expect(geneButton?.style.getPropertyValue('--gene-color')).toBe(eyeGene.locusColor);
+    expect(element.querySelector('[data-locus="CHX-G1"]')).not.toBeNull();
+    expect(
+      [...element.querySelectorAll<HTMLElement>('.allele-token')].every(
+        (token) => token.dataset['geneColor'] === eyeGene.locusColor,
+      ),
+    ).toBeTrue();
   });
 
   it('shows only chromosomes released by the teacher list', () => {
@@ -143,7 +168,7 @@ describe('AlleleVaultWorkbenchComponent', () => {
       ),
     ];
     expect(selectors.length).toBe(2);
-    expect(selectors.map((button) => button.getAttribute('data-display-chromosome'))).toEqual([
+    expect(selectors.map((button) => button.getAttribute('data-chromosome'))).toEqual([
       'Chr 1',
       'Chr 2',
     ]);

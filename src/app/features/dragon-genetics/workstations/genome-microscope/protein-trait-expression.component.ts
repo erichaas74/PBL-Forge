@@ -7,6 +7,7 @@ import {
   linkedSignal,
   signal,
 } from '@angular/core';
+import { AminoAcidGroupPalette } from '../../../../shared/dna-process-visuals/amino-acid-chemistry.models';
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import {
@@ -25,10 +26,17 @@ import {
   expressedAllelePairPhenotype,
 } from '../allele-workbench/allele-vault.models';
 import { AccountDragonRecord } from '../shared/account-genetics-library.models';
-import { DRAGON_ENZYME_REACTIONS } from './dragon-enzyme-reactions.models';
+import { DRAGON_GENE_DNA_CATALOG, DragonProteinRole } from '../shared/dragon-gene-dna.catalog';
 
 const PROTEIN_DRAG_TYPE = 'application/x-pbl-protein-expression';
 
+/**
+ * One gene's route from a folded protein to a visible trait.
+ *
+ * Enzyme genes reach the cell through the molecule their enzyme releases;
+ * structural and signal genes reach it through the protein itself. Both routes
+ * end at a shape-specific receptor, so a student tests them the same way.
+ */
 interface ExpressionPathway {
   id: ExpressiveDragonTraitId;
   code: string;
@@ -36,9 +44,26 @@ interface ExpressionPathway {
   activeAllele: AlleleVaultAllele;
   neutralAllele: AlleleVaultAllele;
   activePair: readonly [AlleleVaultAllele, AlleleVaultAllele];
+  /** Id of the molecule that docks: an enzyme product or the protein itself. */
   productId: string;
+  /** Display name of that molecule. */
   proteinName: string;
+  /** The protein this gene codes for. */
+  sourceProteinName: string;
+  proteinCode: string;
+  role: DragonProteinRole;
+  roleLabel: string;
+  /** True when the docking molecule is an enzyme product rather than the protein. */
+  viaEnzyme: boolean;
+  /** One-line route caption, e.g. "Ember synthase builds this". */
+  routeLabel: string;
+  cellRole: string;
+  traitContribution: string;
+  palette: AminoAcidGroupPalette;
+  /** Silhouette of the docking molecule, generated from the gene's residues. */
   shape: string;
+  /** Silhouette of the protein itself, shown as the pathway's origin. */
+  proteinShape: string;
   phenotype: string;
 }
 
@@ -55,6 +80,8 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
   readonly alleles = input<readonly AlleleVaultAllele[]>(ALLELE_VAULT_ALLELES);
 
   readonly pathways = computed<readonly ExpressionPathway[]>(() => this.buildPathways());
+  readonly enzymePathways = computed(() => this.pathways().filter((pathway) => pathway.viaEnzyme));
+  readonly directPathways = computed(() => this.pathways().filter((pathway) => !pathway.viaEnzyme));
   readonly selectedProteinId = signal<ExpressiveDragonTraitId | null>(null);
   readonly pulseTargetId = signal<ExpressiveDragonTraitId | null>(null);
   readonly mismatchTargetId = signal<ExpressiveDragonTraitId | null>(null);
@@ -65,15 +92,19 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
   readonly allActivated = computed(
     () => this.pathways().length > 0 && this.activatedCount() === this.pathways().length,
   );
+  readonly selectedPathway = computed<ExpressionPathway | null>(() => {
+    const selectedId = this.selectedProteinId();
+    return selectedId ? (this.findPathway(selectedId) ?? null) : null;
+  });
   readonly statusMessage = linkedSignal(() => {
     const count = this.activatedCount();
     if (count === this.pathways().length && count > 0) {
-      return 'All saved product matches are active. The fully expressed dragon is restored.';
+      return 'Every molecule has found its receptor. The fully expressed dragon is restored.';
     }
     if (count > 0) {
-      return `${count} saved product ${count === 1 ? 'match is' : 'matches are'} active. Continue testing any remaining molecule.`;
+      return `${count} saved ${count === 1 ? 'match is' : 'matches are'} active. Continue testing any remaining molecule.`;
     }
-    return 'Select or drag any enzyme-built product, then test it against a receptor with the same shape.';
+    return 'Select or drag a molecule, then test it against a receptor with the same shape.';
   });
   readonly expressionProfile = computed(() => {
     const sex = this.dragon()?.sex ?? 'female';
@@ -117,8 +148,8 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
     const pathway = this.findPathway(pathwayId);
     this.statusMessage.set(
       next && pathway
-        ? `${pathway.proteinName} selected. Choose any receptor to test the fit.`
-        : 'Product selection cleared.',
+        ? `${pathway.proteinName} selected. ${pathway.routeLabel} Choose any receptor to test the fit.`
+        : 'Molecule selection cleared.',
     );
   }
 
@@ -140,7 +171,8 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
   dropProtein(event: DragEvent, targetId: ExpressiveDragonTraitId): void {
     event.preventDefault();
     const draggedId = event.dataTransfer?.getData(PROTEIN_DRAG_TYPE) as
-      ExpressiveDragonTraitId | '';
+      | ExpressiveDragonTraitId
+      | '';
     const sourceId = draggedId || this.selectedProteinId();
     if (sourceId) this.testFit(sourceId, targetId);
   }
@@ -150,7 +182,7 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
     if (!selectedId) {
       const target = this.findPathway(targetId);
       this.statusMessage.set(
-        `No product selected. Choose a molecule before testing receptor ${target?.code ?? ''}.`,
+        `No molecule selected. Choose one before testing receptor ${target?.code ?? ''}.`,
       );
       return;
     }
@@ -190,7 +222,7 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
     this.selectedProteinId.set(null);
     this.pulseTargetId.set(targetId);
     this.statusMessage.set(
-      `${source.proteinName} docked. The cell responded and Trait ${source.code} emerged: ${source.phenotype}.`,
+      `${source.proteinName} docked. ${source.traitContribution} Trait ${source.code} emerged: ${source.phenotype}.`,
     );
     this.clearSignalAfter(this.pulseTargetId, 900);
   }
@@ -210,16 +242,25 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
     return this.pathways().find((pathway) => pathway.id === pathwayId);
   }
 
+  /**
+   * Builds one pathway per released gene, reading protein identity, molecule
+   * shape, and cellular role from the gene catalog rather than from any table
+   * held here.
+   */
   private buildPathways(): readonly ExpressionPathway[] {
     const releasedGenes = this.genes();
-    return DRAGON_ENZYME_REACTIONS.flatMap((reaction, index): ExpressionPathway[] => {
-      const gene = releasedGenes.find((candidate) => candidate.id === reaction.expressionTraitId);
+    return DRAGON_GENE_DNA_CATALOG.flatMap((record, index): ExpressionPathway[] => {
+      const gene = releasedGenes.find((candidate) => candidate.id === record.geneId);
       if (!gene) return [];
       const geneAlleles = this.alleles().filter((allele) => allele.geneId === gene.id);
       const activeAllele = geneAlleles.find((allele) => allele.dominance === 'dominant');
       const neutralAllele = geneAlleles.find((allele) => allele.dominance === 'recessive');
       if (!activeAllele || !neutralAllele) return [];
+
+      const { protein } = record;
       const activePair = [activeAllele, activeAllele] as const;
+      const viaEnzyme = protein.activity !== null;
+
       return [
         {
           id: gene.id,
@@ -228,9 +269,21 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
           activeAllele,
           neutralAllele,
           activePair,
-          productId: reaction.product.id,
-          proteinName: reaction.product.name,
-          shape: reaction.product.path,
+          productId: protein.traitSignal.id,
+          proteinName: protein.traitSignal.name,
+          sourceProteinName: protein.name,
+          proteinCode: protein.proteinCode,
+          role: protein.role,
+          roleLabel: protein.roleLabel,
+          viaEnzyme,
+          routeLabel: viaEnzyme
+            ? `${protein.name} ${protein.activity?.actionLabel.toLowerCase()} it.`
+            : `${protein.name} does this job itself.`,
+          cellRole: protein.cellRole,
+          traitContribution: protein.traitContribution,
+          palette: protein.palette,
+          shape: protein.traitSignal.path,
+          proteinShape: protein.form.shapePath,
           phenotype: expressedAllelePairPhenotype(gene, activePair),
         },
       ];

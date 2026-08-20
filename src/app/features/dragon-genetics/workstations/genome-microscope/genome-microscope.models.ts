@@ -1,5 +1,3 @@
-import { ChromosomeSvgModel } from '../shared/chromosome-svg.component';
-
 export const GENOME_MICROSCOPE_LEVELS = [
   'dragon',
   'cell',
@@ -19,14 +17,6 @@ export const GENOME_MICROSCOPE_LEVELS = [
 
 export type GenomeMicroscopeLevel = (typeof GENOME_MICROSCOPE_LEVELS)[number];
 export type GenomeMicroscopeSex = 'female' | 'male';
-
-export interface GenomeMicroscopeChromosomePair {
-  id: string;
-  label: string;
-  kind: 'autosome' | 'sex';
-  maternal: ChromosomeSvgModel;
-  paternal: ChromosomeSvgModel;
-}
 
 export interface GenomeMicroscopeLevelDefinition {
   id: GenomeMicroscopeLevel;

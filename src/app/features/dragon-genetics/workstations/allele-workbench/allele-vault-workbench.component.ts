@@ -11,7 +11,10 @@ import {
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import { createExpressiveDragonBenchBuild } from '../../simulation/domain/dragon-specimen.profile';
-import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
+import {
+  DragonSex,
+  GENERIC_HETEROZYGOUS_XY_DRAGON,
+} from '../../simulation/domain/dragon-expressive-genome';
 import { allelePairToExpressiveProfile } from './allele-phenotype-profile';
 import { ChromosomeSvgComponent, ChromosomeSvgModel } from '../shared/chromosome-svg.component';
 import {
@@ -36,6 +39,10 @@ import {
   requiredExperimentKeys,
 } from '../shared/genetics-notebook.models';
 import { chromosomeVisual } from '../shared/dragon-chromosome.catalog';
+import {
+  buildDragonChromosomePairs,
+  chromosomePairViewportItems,
+} from '../shared/dragon-chromosome-pairs';
 import { geneAlleleMarking, geneDnaRecord } from '../shared/dragon-gene-dna.catalog';
 
 type ComparisonSide = 'left' | 'right';
@@ -74,11 +81,15 @@ export class AlleleVaultWorkbenchComponent {
     this.genes().filter((gene) => gene.chromosome === this.activeChromosome()),
   );
   readonly cellChromosomes = computed<readonly CellChromosomeViewportItem[]>(() =>
-    this.availableChromosomes().map((chromosome) => ({
-      id: chromosome,
-      label: chromosome,
-      model: this.buildChromosomeModelFor(chromosome, null),
-    })),
+    chromosomePairViewportItems(
+      buildDragonChromosomePairs({
+        genes: this.genes(),
+        alleles: this.alleles(),
+        chromosomes: this.availableChromosomes(),
+        sex: GENERIC_HETEROZYGOUS_XY_DRAGON.sex,
+        genotypeForGene: (geneId) => GENERIC_HETEROZYGOUS_XY_DRAGON.genome[geneId],
+      }),
+    ),
   );
 
   readonly activeGene = computed(
@@ -489,7 +500,7 @@ export class AlleleVaultWorkbenchComponent {
         position: visual.locusPositions[index] ?? 0.5,
         label: gene.sampleCode,
         symbol: gene.id === this.activeGeneId() ? loadedAllele?.sampleCode : undefined,
-        color: geneDnaRecord(gene.id).locusColor,
+        color: gene.locusColor,
         marking:
           gene.id === this.activeGeneId() && loadedAllele
             ? geneAlleleMarking(gene.id, loadedAllele.id === gene.alleleIds[0] ? 0 : 1)

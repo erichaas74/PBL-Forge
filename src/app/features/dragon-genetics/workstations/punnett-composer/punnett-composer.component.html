@@ -10,31 +10,53 @@
   </header>
 
   <div class="workstation-layout">
-    <app-account-genetics-file
-      [studentId]="studentId()"
-      [selectedRecordId]="stagedAccountRecord()?.id ?? null"
-      (recordSelected)="selectAccountRecord($event)"
+    <nav class="composer-mode" aria-label="Punnett Composer source mode">
+      <div>
+        <small>CELL SOURCE</small>
+        <strong>{{ snapshot().mode === 'parents' ? 'Parent mode' : 'Test mode' }}</strong>
+      </div>
+      <button
+        type="button"
+        [class.active]="snapshot().mode === 'parents'"
+        [attr.aria-pressed]="snapshot().mode === 'parents'"
+        (click)="selectMode('parents')"
+      >
+        <strong>Parent mode</strong><span>Choose an XX female and an XY male</span>
+      </button>
+      <button
+        type="button"
+        [class.active]="snapshot().mode === 'test'"
+        [attr.aria-pressed]="snapshot().mode === 'test'"
+        (click)="selectMode('test')"
+      >
+        <strong>Test mode</strong><span>Use heterozygous reference cells</span>
+      </button>
+    </nav>
+
+    <app-dragon-chromosome-selector
+      [dragons]="selectorDragons()"
+      [label]="snapshot().mode === 'parents' ? 'Parent dragon and chromosome selector' : 'Heterozygous test cell and chromosome selector'"
+      (dragonSelected)="selectSelectorDragon($event)"
+      (chromosomeSelected)="selectSelectorChromosome($event)"
     />
 
     <main class="composer-surface">
-      <header class="locus-console">
+      <header class="gene-console">
         <div>
-          <small>FOCUS LOCUS</small>
+          <small>{{ selectedChromosome() }} GENES</small>
           <strong>{{ activeTrait().name }}</strong>
-          <span
-            >Chr {{ activeTrait().chromosomeModel }} · {{ activeTrait().geneSymbol }} locus</span
-          >
+          <span>{{ activeGene().sampleCode }} · {{ activeGene().symbol }}</span>
         </div>
-        <div class="trait-selector" role="group" aria-label="Focus locus">
-          @for (trait of traits; track trait.id) {
+        <div class="gene-selector" role="group" [attr.aria-label]="selectedChromosome() + ' genes'">
+          @for (gene of chromosomeGenes(); track gene.id) {
             <button
               type="button"
-              [class.active]="snapshot().traitId === trait.id"
-              [attr.aria-pressed]="snapshot().traitId === trait.id"
-              (click)="selectTrait(trait.id)"
+              [class.active]="snapshot().traitId === gene.id"
+              [attr.aria-pressed]="snapshot().traitId === gene.id"
+              [style.--gene-color]="gene.locusColor"
+              (click)="selectTrait(gene.id)"
             >
-              <span>Chr {{ trait.chromosomeModel }}</span
-              >{{ trait.name }}
+              <i aria-hidden="true"></i><span>{{ gene.sampleCode }}</span>{{ gene.name }}
             </button>
           }
         </div>
@@ -49,12 +71,7 @@
             <span aria-hidden="true">P1 →</span>
           </div>
 
-          <section
-            class="parent-bank parent-one"
-            [class.ready]="!!parent1()"
-            (dragover)="allowAccountDrop($event)"
-            (drop)="dropAccountRecord($event, 'parent1')"
-          >
+          <section class="parent-bank parent-one" [class.ready]="!!parent1()">
             <button
               class="parent-load-target"
               type="button"
@@ -62,16 +79,16 @@
               [attr.aria-label]="
                 parent1()
                   ? 'Parent 1 is ' + parent1()!.name + '. Select a file record to replace it.'
-                  : 'Empty Parent 1 bay. Select a file record, then choose this bay.'
+                  : 'Empty Parent 1 bay. Select a dragon above, then choose this bay.'
               "
               (click)="loadStagedRecord('parent1')"
             >
-              <small>PARENT 1 · COLUMNS</small>
+              <small>FEMALE · XX · COLUMNS</small>
               @if (parent1(); as parent) {
                 <strong>{{ parent.name }}</strong
                 ><span>{{ parent.title }}</span>
               } @else {
-                <strong>Load dragon or chromosome</strong><span>Drop a file record here</span>
+                <strong>Place selected dragon</strong><span>Choose a specimen above</span>
               }
             </button>
             <div class="gamete-source-row" aria-label="Parent 1 available gametes">
@@ -89,9 +106,16 @@
                   (click)="selectGamete('parent1', index)"
                   (dragstart)="startGameteDrag($event, 'parent1', index)"
                 >
-                  <small>Gamete {{ index + 1 }}</small
-                  ><strong>{{ allele }}</strong
-                  ><i>→</i>
+                  @if (parentGeneCopyModel('parent1', index); as chromosome) {
+                    <app-chromosome-svg
+                      class="gene-copy-chromosome"
+                      [chromosome]="chromosome"
+                      [selectedLocus]="activeGene().sampleCode"
+                      [showAllLoci]="true"
+                      [compact]="true"
+                    />
+                  }
+                  <small>Copy {{ index + 1 }}</small><strong>{{ allele }}</strong><i>→</i>
                 </button>
               }
             </div>
@@ -113,17 +137,12 @@
               @if (slotValue('parent1', slot); as allele) {
                 <strong>{{ allele }}</strong>
               } @else {
-                <span>Drop gamete</span>
+                <span>Drop allele</span>
               }
             </button>
           }
 
-          <section
-            class="parent-bank parent-two"
-            [class.ready]="!!parent2()"
-            (dragover)="allowAccountDrop($event)"
-            (drop)="dropAccountRecord($event, 'parent2')"
-          >
+          <section class="parent-bank parent-two" [class.ready]="!!parent2()">
             <button
               class="parent-load-target"
               type="button"
@@ -131,16 +150,16 @@
               [attr.aria-label]="
                 parent2()
                   ? 'Parent 2 is ' + parent2()!.name + '. Select a file record to replace it.'
-                  : 'Empty Parent 2 bay. Select a file record, then choose this bay.'
+                  : 'Empty Parent 2 bay. Select a dragon above, then choose this bay.'
               "
               (click)="loadStagedRecord('parent2')"
             >
-              <small>PARENT 2 · ROWS</small>
+              <small>MALE · XY · ROWS</small>
               @if (parent2(); as parent) {
                 <strong>{{ parent.name }}</strong
                 ><span>{{ parent.title }}</span>
               } @else {
-                <strong>Load dragon or chromosome</strong><span>Drop a file record here</span>
+                <strong>Place selected dragon</strong><span>Choose a specimen above</span>
               }
             </button>
             <div class="gamete-source-column" aria-label="Parent 2 available gametes">
@@ -158,9 +177,16 @@
                   (click)="selectGamete('parent2', index)"
                   (dragstart)="startGameteDrag($event, 'parent2', index)"
                 >
-                  <small>Gamete {{ index + 1 }}</small
-                  ><strong>{{ allele }}</strong
-                  ><i>→</i>
+                  @if (parentGeneCopyModel('parent2', index); as chromosome) {
+                    <app-chromosome-svg
+                      class="gene-copy-chromosome"
+                      [chromosome]="chromosome"
+                      [selectedLocus]="activeGene().sampleCode"
+                      [showAllLoci]="true"
+                      [compact]="true"
+                    />
+                  }
+                  <small>Copy {{ index + 1 }}</small><strong>{{ allele }}</strong><i>→</i>
                 </button>
               }
             </div>
@@ -182,7 +208,7 @@
               @if (slotValue('parent2', slot); as allele) {
                 <strong>{{ allele }}</strong>
               } @else {
-                <span>Drop gamete</span>
+                <span>Drop allele</span>
               }
             </button>
           }
@@ -240,12 +266,30 @@
               ><b>{{ cell.parent2Allele }}</b>
             </div>
           </div>
+          @if (selectedCellChromosomePair(); as pair) {
+            <section
+              class="offspring-chromosomes"
+              aria-label="Selected offspring homologous chromosome pair"
+            >
+              <header>
+                <small>{{ pair.label }}</small>
+                <strong>Both inherited chromosomes</strong>
+              </header>
+              <app-chromosome-svg
+                [chromosome]="pair.maternal"
+                [pairedChromosome]="pair.paternal"
+                pairRelationship="homologous-pair"
+                [selectedLocus]="activeGene().sampleCode"
+                [showAllLoci]="true"
+              />
+            </section>
+          }
           <div class="genotype-readout">
             <small>COMBINED GENOTYPE</small>
             <strong>{{ cell.genotype }}</strong>
             <span>{{ activeTrait().name }} · {{ cell.phenotype }}</span>
           </div>
-          <p>This cell combines the gamete above its column with the gamete beside its row.</p>
+          <p>This cell combines the allele above its column with the allele beside its row.</p>
         } @else {
           <div class="incomplete-readout">
             <span aria-hidden="true">◇</span>

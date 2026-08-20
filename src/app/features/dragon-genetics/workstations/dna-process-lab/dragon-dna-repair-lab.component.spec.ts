@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ALLELE_VAULT_GENES } from '../allele-workbench/allele-vault.models';
 import { DragonDnaRepairLabComponent } from './dragon-dna-repair-lab.component';
 
 describe('DragonDnaRepairLabComponent', () => {
@@ -20,14 +21,16 @@ describe('DragonDnaRepairLabComponent', () => {
     expect(element.querySelectorAll('.scope-switch button').length).toBe(2);
     expect(element.querySelector('app-dna-sequence-analysis')).not.toBeNull();
     expect(element.querySelector('.question-dock')).toBeNull();
-    expect(lab.geneSpecimens().length).toBe(24);
+    expect(lab.geneSpecimens().length).toBe(ALLELE_VAULT_GENES.length * 2);
   });
 
   it('builds two modeled homolog records for every released chromosome', () => {
     lab.selectScope('chromosome');
     fixture.detectChanges();
 
-    expect(lab.chromosomeSpecimens().length).toBe(8);
+    expect(lab.chromosomeSpecimens().length).toBe(
+      new Set(ALLELE_VAULT_GENES.map((gene) => gene.chromosome)).size * 2,
+    );
     expect(lab.availableSpecimens()[0].detail).toContain('3 released genes');
     expect(lab.availableSpecimens()[0].detail).toContain('72 modeled bases');
     expect(lab.comparisonCase()?.reference.length).toBe(72);

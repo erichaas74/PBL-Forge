@@ -9,30 +9,48 @@ import {
   signal,
 } from '@angular/core';
 import {
-  DRAGON_TRAITS,
-  normalizeGenotype,
-  showsDominantPhenotype,
-} from '../../simulation/domain/dragon-inheritance';
+  DEFAULT_EXPRESSIVE_DRAGON,
+  EXPRESSIVE_DRAGON_TRAITS,
+  ExpressiveDragonProfile,
+  ExpressiveDragonTraitDefinition,
+  ExpressiveDragonTraitId,
+  GENERIC_HETEROZYGOUS_XY_DRAGON,
+  expressivePhenotype,
+  toCoreLabGenome,
+} from '../../simulation/domain/dragon-expressive-genome';
+import { DragonTraitGenotype } from '../../simulation/domain/dragon-lab.models';
+import { dragonParentExpressiveProfile } from '../../simulation/domain/dragon-specimen.profile';
 import {
-  DragonParentProfile,
-  DragonTraitDefinition,
-  DragonTraitId,
-} from '../../simulation/domain/dragon-lab.models';
-import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
+  ALLELE_VAULT_ALLELES,
+  ALLELE_VAULT_GENES,
+  AlleleVaultGene,
+} from '../allele-workbench/allele-vault.models';
 import {
   LOCAL_WORKSTATION_STUDENT_ID,
   normalizeWorkstationStudentId,
 } from '../shared/dragon-workstation-context.models';
 import {
-  ACCOUNT_GENETICS_RECORD_DRAG_TYPE,
+  AccountDragonRecord,
   AccountGeneticsRecord,
-  parseAccountGeneticsDragPayload,
 } from '../shared/account-genetics-library.models';
 import { AccountGeneticsLibraryService } from '../shared/account-genetics-library.service';
+import {
+  DragonChromosomePair,
+  buildDragonChromosomePairs,
+} from '../shared/dragon-chromosome-pairs';
+import {
+  DragonChromosomeSelection,
+  DragonChromosomeSelectorComponent,
+} from '../shared/dragon-chromosome-selector.component';
+import {
+  ChromosomeSvgComponent,
+  ChromosomeSvgModel,
+} from '../shared/chromosome-svg.component';
 import {
   createEmptyPunnettSnapshot,
   PendingPunnettGamete,
   PUNNETT_GAMETE_DRAG_TYPE,
+  PunnettComposerMode,
   PunnettComposerSnapshot,
   PunnettGameteSlots,
   PunnettOffspringCellModel,
@@ -41,9 +59,24 @@ import {
 } from './punnett-composer.models';
 import { PunnettComposerRepository } from './punnett-composer.repository';
 
+const TEST_FEMALE: AccountDragonRecord = testDragon(
+  'punnett-test-female',
+  'Heterozygous XX cell',
+  'female',
+  '#915ca8',
+  '#dfb8f2',
+);
+const TEST_MALE: AccountDragonRecord = testDragon(
+  'punnett-test-male',
+  'Heterozygous XY cell',
+  'male',
+  '#3d8196',
+  '#a5e4ef',
+);
+
 @Component({
   selector: 'app-punnett-composer',
-  imports: [AccountGeneticsFileComponent],
+  imports: [DragonChromosomeSelectorComponent, ChromosomeSvgComponent],
   templateUrl: './punnett-composer.component.html',
   styleUrl: './punnett-composer.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -58,28 +91,53 @@ export class PunnettComposerComponent {
   );
   readonly crossSaved = output<PunnettSavedCross>();
 
-  readonly traits = DRAGON_TRAITS;
+  readonly traits = EXPRESSIVE_DRAGON_TRAITS;
+  readonly genes = ALLELE_VAULT_GENES;
+  readonly testDragons = [TEST_FEMALE, TEST_MALE] as const;
   readonly snapshot = signal<PunnettComposerSnapshot>(
     createEmptyPunnettSnapshot(LOCAL_WORKSTATION_STUDENT_ID),
   );
+  readonly selectedChromosome = signal<AlleleVaultGene['chromosome']>('Chr 1');
   readonly stagedAccountRecord = signal<AccountGeneticsRecord | null>(null);
+  readonly stagedChromosome = signal<string | null>(null);
   readonly pendingGamete = signal<PendingPunnettGamete | null>(null);
   readonly selectedCellIndex = signal<number | null>(null);
   readonly recordMessage = signal('');
   private loadedStudentId: string | null = null;
 
   readonly accountSnapshot = computed(() => this.accountLibrary.recordsFor(this.studentId()));
-  readonly parent1 = computed(() => this.parentById(this.snapshot().parent1Id));
-  readonly parent2 = computed(() => this.parentById(this.snapshot().parent2Id));
-  readonly activeTrait = computed<DragonTraitDefinition>(
+  readonly selectorDragons = computed<readonly AccountDragonRecord[]>(() =>
+    this.snapshot().mode === 'test' ? this.testDragons : this.accountSnapshot().dragons,
+  );
+  readonly parent1 = computed<AccountDragonRecord | null>(() =>
+    this.snapshot().mode === 'test'
+      ? TEST_FEMALE
+      : this.accountParentById(this.snapshot().parent1Id),
+  );
+  readonly parent2 = computed<AccountDragonRecord | null>(() =>
+    this.snapshot().mode === 'test'
+      ? TEST_MALE
+      : this.accountParentById(this.snapshot().parent2Id),
+  );
+  readonly activeTrait = computed<ExpressiveDragonTraitDefinition>(
     () => this.traits.find((trait) => trait.id === this.snapshot().traitId) ?? this.traits[0],
   );
+  readonly activeGene = computed<AlleleVaultGene>(
+    () => this.genes.find((gene) => gene.id === this.snapshot().traitId) ?? this.genes[0],
+  );
+  readonly chromosomeGenes = computed(() =>
+    this.genes.filter((gene) => gene.chromosome === this.selectedChromosome()),
+  );
+  readonly parent1Profile = computed(() => this.profileFor('parent1'));
+  readonly parent2Profile = computed(() => this.profileFor('parent2'));
   readonly parent1Alleles = computed<readonly string[]>(
-    () => this.parent1()?.genome[this.snapshot().traitId] ?? [],
+    () => this.parent1Profile()?.genome[this.snapshot().traitId] ?? [],
   );
   readonly parent2Alleles = computed<readonly string[]>(
-    () => this.parent2()?.genome[this.snapshot().traitId] ?? [],
+    () => this.parent2Profile()?.genome[this.snapshot().traitId] ?? [],
   );
+  readonly parent1ChromosomePair = computed(() => this.chromosomePairFor(this.parent1Profile()));
+  readonly parent2ChromosomePair = computed(() => this.chromosomePairFor(this.parent2Profile()));
   readonly cells = computed<readonly PunnettOffspringCellModel[]>(() => {
     const state = this.snapshot();
     const trait = this.activeTrait();
@@ -99,7 +157,7 @@ export class PunnettComposerComponent {
           phenotype: null,
         };
       }
-      const genotypePair = normalizeGenotype([parent1Allele, parent2Allele]);
+      const genotypePair = normalizeAllelePair([parent1Allele, parent2Allele]);
       return {
         index,
         row,
@@ -107,9 +165,7 @@ export class PunnettComposerComponent {
         parent1Allele,
         parent2Allele,
         genotype: genotypePair.join(''),
-        phenotype: showsDominantPhenotype(genotypePair, trait.id)
-          ? trait.dominantPhenotype
-          : trait.recessivePhenotype,
+        phenotype: expressivePhenotype(this.offspringProfile(genotypePair), trait),
       };
     });
   });
@@ -117,22 +173,29 @@ export class PunnettComposerComponent {
     const index = this.selectedCellIndex();
     return index === null ? null : (this.cells()[index] ?? null);
   });
+  readonly selectedCellChromosomePair = computed<DragonChromosomePair | null>(() => {
+    const cell = this.selectedCell();
+    if (!cell?.parent1Allele || !cell.parent2Allele) return null;
+    return this.chromosomePairFor(
+      this.offspringProfile(normalizeAllelePair([cell.parent1Allele, cell.parent2Allele])),
+    );
+  });
   readonly squareComplete = computed(() => this.cells().every((cell) => !!cell.genotype));
   readonly genotypeCounts = computed(() => countCellValues(this.cells(), 'genotype'));
   readonly phenotypeCounts = computed(() => countCellValues(this.cells(), 'phenotype'));
   readonly savedCrosses = computed(() => this.snapshot().savedCrosses);
   readonly placementStatus = computed(() => {
-    const staged = this.stagedAccountRecord();
-    if (staged) {
-      const label =
-        staged.kind === 'dragon' ? staged.name : `${staged.dragonName} ${staged.chromosome}`;
-      return `${label} selected. Choose Parent 1 or Parent 2.`;
-    }
     const gamete = this.pendingGamete();
     if (gamete) {
-      return `${this.parentLabel(gamete.parent)} gamete ${gamete.allele} selected. Choose one of its axis boxes.`;
+      return `${this.parentLabel(gamete.parent)} allele ${gamete.allele} selected. Choose one of its axis boxes.`;
     }
-    return 'Select and place records or drag them directly onto matching boxes.';
+    if (this.snapshot().mode === 'test') {
+      return 'Test mode uses complete heterozygous XX and XY reference cells.';
+    }
+    if (!this.parent1() || !this.parent2()) {
+      return 'Choose a female and a male dragon. Each specimen is assigned to its matching parent bay.';
+    }
+    return 'Choose a chromosome, then choose one of its genes to build the cross.';
   });
 
   constructor() {
@@ -140,17 +203,50 @@ export class PunnettComposerComponent {
       const studentId = normalizeWorkstationStudentId(this.studentId());
       if (studentId === this.loadedStudentId) return;
       this.loadedStudentId = studentId;
-      this.snapshot.set(this.sanitizeSnapshot(this.repository.load(studentId)));
+      const loaded = this.sanitizeSnapshot(this.repository.load(studentId));
+      this.snapshot.set(loaded);
+      this.selectedChromosome.set(this.traitFor(loaded.traitId).chromosome);
       this.stagedAccountRecord.set(null);
+      this.stagedChromosome.set(null);
       this.pendingGamete.set(null);
       this.selectedCellIndex.set(null);
     });
+  }
+
+  selectMode(mode: PunnettComposerMode): void {
+    if (this.snapshot().mode === mode) return;
+    this.updateSnapshot((state) => ({
+      ...state,
+      mode,
+      parent1Gametes: [null, null],
+      parent2Gametes: [null, null],
+    }));
+    this.stagedAccountRecord.set(null);
+    this.pendingGamete.set(null);
+    this.selectedCellIndex.set(null);
+    this.recordMessage.set('');
   }
 
   selectAccountRecord(record: AccountGeneticsRecord): void {
     this.stagedAccountRecord.set(record);
     this.pendingGamete.set(null);
     this.recordMessage.set('');
+  }
+
+  selectSelectorDragon(dragon: AccountDragonRecord): void {
+    this.stagedChromosome.set(null);
+    if (this.snapshot().mode === 'parents') {
+      this.loadAccountRecord(dragon, dragon.sex === 'female' ? 'parent1' : 'parent2');
+    }
+  }
+
+  selectSelectorChromosome(selection: DragonChromosomeSelection): void {
+    const chromosome = selection.chromosome as AlleleVaultGene['chromosome'];
+    const firstGene = this.genes.find((gene) => gene.chromosome === chromosome);
+    if (!firstGene) return;
+    this.stagedChromosome.set(chromosome);
+    this.selectedChromosome.set(chromosome);
+    this.selectTrait(firstGene.id);
   }
 
   loadStagedRecord(side: PunnettParentSide): void {
@@ -160,8 +256,17 @@ export class PunnettComposerComponent {
   }
 
   loadAccountRecord(record: AccountGeneticsRecord, side: PunnettParentSide): void {
+    if (this.snapshot().mode !== 'parents') return;
     const dragonId = record.kind === 'dragon' ? record.id : record.dragonId;
-    if (!this.parentById(dragonId)) return;
+    const dragon = this.accountParentById(dragonId);
+    if (!dragon) return;
+    const expectedSex = side === 'parent1' ? 'female' : 'male';
+    if (dragon.sex !== expectedSex) {
+      this.recordMessage.set(
+        `${dragon.name} is ${dragon.sex}; choose the ${this.parentLabel(side).toLowerCase()} bay.`,
+      );
+      return;
+    }
     if (record.kind === 'chromosome') this.selectTrait(record.traitId);
     this.updateSnapshot((state) => ({
       ...state,
@@ -174,25 +279,9 @@ export class PunnettComposerComponent {
     this.recordMessage.set('');
   }
 
-  dropAccountRecord(event: DragEvent, side: PunnettParentSide): void {
-    event.preventDefault();
-    const payload = parseAccountGeneticsDragPayload(
-      event.dataTransfer?.getData(ACCOUNT_GENETICS_RECORD_DRAG_TYPE) ?? '',
-    );
-    if (!payload) return;
-    const record = this.accountLibrary.recordById(this.studentId(), payload.id);
-    if (!record || record.kind !== payload.kind) return;
-    this.loadAccountRecord(record, side);
-  }
-
-  allowAccountDrop(event: DragEvent): void {
-    if (event.dataTransfer?.types.includes(ACCOUNT_GENETICS_RECORD_DRAG_TYPE)) {
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'copy';
-    }
-  }
-
-  selectTrait(traitId: DragonTraitId): void {
+  selectTrait(traitId: ExpressiveDragonTraitId): void {
+    const trait = this.traitFor(traitId);
+    this.selectedChromosome.set(trait.chromosome);
     if (this.snapshot().traitId === traitId) return;
     this.updateSnapshot((state) => ({
       ...state,
@@ -206,8 +295,7 @@ export class PunnettComposerComponent {
   }
 
   selectGamete(parent: PunnettParentSide, sourceIndex: number): void {
-    const source = parent === 'parent1' ? this.parent1() : this.parent2();
-    const allele = source?.genome[this.snapshot().traitId][sourceIndex];
+    const allele = this.allelesFor(parent)[sourceIndex];
     if (!allele) return;
     this.pendingGamete.set({ parent, sourceIndex, allele });
     this.stagedAccountRecord.set(null);
@@ -215,13 +303,12 @@ export class PunnettComposerComponent {
   }
 
   startGameteDrag(event: DragEvent, parent: PunnettParentSide, sourceIndex: number): void {
-    const source = parent === 'parent1' ? this.parent1() : this.parent2();
-    const allele = source?.genome[this.snapshot().traitId][sourceIndex];
+    const allele = this.allelesFor(parent)[sourceIndex];
     if (!event.dataTransfer || !allele) return;
     const payload: PendingPunnettGamete = { parent, sourceIndex, allele };
     event.dataTransfer.effectAllowed = 'copy';
     event.dataTransfer.setData(PUNNETT_GAMETE_DRAG_TYPE, JSON.stringify(payload));
-    event.dataTransfer.setData('text/plain', `${this.parentLabel(parent)} gamete ${allele}`);
+    event.dataTransfer.setData('text/plain', `${this.parentLabel(parent)} allele ${allele}`);
   }
 
   placePendingGamete(parent: PunnettParentSide, slotIndex: number): void {
@@ -256,7 +343,7 @@ export class PunnettComposerComponent {
     }));
     this.pendingGamete.set(null);
     this.selectedCellIndex.set(null);
-    this.recordMessage.set('Square cleared. Parent records remain loaded.');
+    this.recordMessage.set('Square cleared. Parent cells remain loaded.');
   }
 
   selectCell(index: number): void {
@@ -289,6 +376,11 @@ export class PunnettComposerComponent {
     this.crossSaved.emit(record);
   }
 
+  parentGeneCopyModel(parent: PunnettParentSide, index: number): ChromosomeSvgModel | null {
+    const pair = parent === 'parent1' ? this.parent1ChromosomePair() : this.parent2ChromosomePair();
+    return index === 0 ? (pair?.maternal ?? null) : (pair?.paternal ?? null);
+  }
+
   slotValue(parent: PunnettParentSide, index: number): string | null {
     return parent === 'parent1'
       ? this.snapshot().parent1Gametes[index]
@@ -305,7 +397,7 @@ export class PunnettComposerComponent {
   cellAriaLabel(cell: PunnettOffspringCellModel): string {
     return cell.genotype
       ? `Offspring cell ${cell.index + 1}, genotype ${cell.genotype}, ${cell.phenotype}`
-      : `Offspring cell ${cell.index + 1}, incomplete. Select to examine missing gametes.`;
+      : `Offspring cell ${cell.index + 1}, incomplete. Select to examine missing alleles.`;
   }
 
   countEntries(values: Readonly<Record<string, number>>): readonly [string, number][] {
@@ -313,18 +405,20 @@ export class PunnettComposerComponent {
   }
 
   parentLabel(parent: PunnettParentSide): string {
-    return parent === 'parent1' ? 'Parent 1' : 'Parent 2';
+    return parent === 'parent1' ? 'Female parent' : 'Male parent';
+  }
+
+  private allelesFor(parent: PunnettParentSide): readonly string[] {
+    return parent === 'parent1' ? this.parent1Alleles() : this.parent2Alleles();
   }
 
   private placeGamete(parent: PunnettParentSide, slotIndex: number, allele: string): void {
-    const source = parent === 'parent1' ? this.parent1() : this.parent2();
-    if (!source?.genome[this.snapshot().traitId].includes(allele)) return;
+    const sourceAlleles = this.allelesFor(parent);
+    if (!sourceAlleles.includes(allele)) return;
     const key = parent === 'parent1' ? 'parent1Gametes' : 'parent2Gametes';
     this.updateSnapshot((state) => {
       const slots = [...state[key]] as [string | null, string | null];
-      const availableCopies = source.genome[state.traitId].filter(
-        (candidate) => candidate === allele,
-      ).length;
+      const availableCopies = sourceAlleles.filter((candidate) => candidate === allele).length;
       const loadedElsewhere = slots.filter(
         (candidate, index) => index !== slotIndex && candidate === allele,
       ).length;
@@ -341,8 +435,43 @@ export class PunnettComposerComponent {
     this.recordMessage.set('');
   }
 
-  private parentById(id: string | null): DragonParentProfile | null {
+  private profileFor(side: PunnettParentSide): ExpressiveDragonProfile | null {
+    if (this.snapshot().mode === 'test') {
+      return side === 'parent1' ? DEFAULT_EXPRESSIVE_DRAGON : GENERIC_HETEROZYGOUS_XY_DRAGON;
+    }
+    const parent = side === 'parent1' ? this.parent1() : this.parent2();
+    return parent ? dragonParentExpressiveProfile(parent, parent.sex) : null;
+  }
+
+  private offspringProfile(genotype: DragonTraitGenotype): ExpressiveDragonProfile {
+    const trait = this.activeTrait();
+    const sex = trait.inheritance === 'x-linked' && genotype.includes('Y') ? 'male' : 'female';
+    const baseline = sex === 'male' ? GENERIC_HETEROZYGOUS_XY_DRAGON : DEFAULT_EXPRESSIVE_DRAGON;
+    return {
+      sex,
+      genome: { ...baseline.genome, [trait.id]: genotype },
+    };
+  }
+
+  private chromosomePairFor(profile: ExpressiveDragonProfile | null): DragonChromosomePair | null {
+    if (!profile) return null;
+    return (
+      buildDragonChromosomePairs({
+        genes: this.genes,
+        alleles: ALLELE_VAULT_ALLELES,
+        chromosomes: [this.selectedChromosome()],
+        sex: profile.sex,
+        genotypeForGene: (geneId) => profile.genome[geneId],
+      })[0] ?? null
+    );
+  }
+
+  private accountParentById(id: string | null): AccountDragonRecord | null {
     return this.accountSnapshot().dragons.find((dragon) => dragon.id === id) ?? null;
+  }
+
+  private traitFor(id: ExpressiveDragonTraitId): ExpressiveDragonTraitDefinition {
+    return this.traits.find((trait) => trait.id === id) ?? this.traits[0];
   }
 
   private updateSnapshot(
@@ -358,16 +487,65 @@ export class PunnettComposerComponent {
   }
 
   private sanitizeSnapshot(snapshot: PunnettComposerSnapshot): PunnettComposerSnapshot {
-    const parent1 = this.parentById(snapshot.parent1Id);
-    const parent2 = this.parentById(snapshot.parent2Id);
+    const parent1 = this.accountParentById(snapshot.parent1Id);
+    const parent2 = this.accountParentById(snapshot.parent2Id);
+    const validParent1 = parent1?.sex === 'female' ? parent1 : null;
+    const validParent2 = parent2?.sex === 'male' ? parent2 : null;
+    const traitId = this.traitFor(snapshot.traitId).id;
     return {
       ...snapshot,
-      parent1Id: parent1?.id ?? null,
-      parent2Id: parent2?.id ?? null,
-      parent1Gametes: validGametes(parent1, snapshot.traitId, snapshot.parent1Gametes),
-      parent2Gametes: validGametes(parent2, snapshot.traitId, snapshot.parent2Gametes),
+      traitId,
+      parent1Id: validParent1?.id ?? null,
+      parent2Id: validParent2?.id ?? null,
+      parent1Gametes: validGametes(
+        snapshot.mode === 'test' ? DEFAULT_EXPRESSIVE_DRAGON : this.profileFrom(validParent1),
+        traitId,
+        snapshot.parent1Gametes,
+      ),
+      parent2Gametes: validGametes(
+        snapshot.mode === 'test' ? GENERIC_HETEROZYGOUS_XY_DRAGON : this.profileFrom(validParent2),
+        traitId,
+        snapshot.parent2Gametes,
+      ),
     };
   }
+
+  private profileFrom(parent: AccountDragonRecord | null): ExpressiveDragonProfile | null {
+    return parent ? dragonParentExpressiveProfile(parent, parent.sex) : null;
+  }
+}
+
+function testDragon(
+  id: string,
+  name: string,
+  sex: AccountDragonRecord['sex'],
+  color: string,
+  accentColor: string,
+): AccountDragonRecord {
+  const profile = sex === 'female' ? DEFAULT_EXPRESSIVE_DRAGON : GENERIC_HETEROZYGOUS_XY_DRAGON;
+  return {
+    kind: 'dragon',
+    id,
+    name,
+    title: 'Standardized heterozygous reference',
+    color,
+    accentColor,
+    genome: toCoreLabGenome(profile),
+    sex,
+    source: 'foundation',
+    storedAtIso: '2026-01-01T00:00:00.000Z',
+    generation: 0,
+  };
+}
+
+function normalizeAllelePair(pair: DragonTraitGenotype): DragonTraitGenotype {
+  return [...pair].sort((left, right) => {
+    if (left === 'Y') return 1;
+    if (right === 'Y') return -1;
+    const leftDominant = left === left.toUpperCase();
+    const rightDominant = right === right.toUpperCase();
+    return leftDominant === rightDominant ? left.localeCompare(right) : leftDominant ? -1 : 1;
+  }) as DragonTraitGenotype;
 }
 
 function parseGametePayload(value: string): PendingPunnettGamete | null {
@@ -391,8 +569,8 @@ function parseGametePayload(value: string): PendingPunnettGamete | null {
 }
 
 function validGametes(
-  parent: DragonParentProfile | null,
-  traitId: DragonTraitId,
+  parent: ExpressiveDragonProfile | null,
+  traitId: ExpressiveDragonTraitId,
   gametes: PunnettGameteSlots,
 ): PunnettGameteSlots {
   if (!parent) return [null, null];

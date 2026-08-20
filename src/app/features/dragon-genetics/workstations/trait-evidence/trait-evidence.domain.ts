@@ -27,7 +27,7 @@ export function evidenceKindsForClaim(
     liveEvidence(dragon, observationId),
     ...recordsForObservation(dragon, observationId),
     ...snapshot.trials
-      .filter((trial) => trial.specimenId === specimenId && trial.behaviorId === observationId)
+      .filter((trial) => trial.specimenId === specimenId && trial.observationId === observationId)
       .map(trialEvidence),
   ];
   const selected = new Set(evidenceIds);
@@ -53,7 +53,7 @@ export function supportsTraitEvidenceClaim(
   if (classification === 'learned') {
     return kinds.has('cue-trial') && kinds.has('training-record');
   }
-  return kinds.has('live-observation') && kinds.has('environment-record');
+  return kinds.has('reflex-trial') && (kinds.has('hatch-record') || kinds.has('family-record'));
 }
 
 export function upsertTraitEvidenceClaim(
@@ -93,8 +93,9 @@ export function traitEvidenceStatus(snapshot: TraitEvidenceSnapshot): TraitEvide
   const supported = snapshot.claims.filter((claim) => claim.supported);
   if (
     supported.some((claim) => claim.classification === 'inherited') &&
+    supported.some((claim) => claim.classification === 'innate') &&
     supported.some((claim) => claim.classification === 'learned') &&
-    supported.some((claim) => claim.classification === 'environmental')
+    supported.length >= 3
   ) {
     return 'complete';
   }

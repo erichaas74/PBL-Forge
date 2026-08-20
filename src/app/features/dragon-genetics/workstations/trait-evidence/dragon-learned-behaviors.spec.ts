@@ -4,7 +4,10 @@ import {
 } from '../../simulation/domain/dragon-inheritance';
 import { DragonLabGenome } from '../../simulation/domain/dragon-lab.models';
 import { buildSpecimenPose } from '../../../../shared/assembly/preview/specimen-pose';
-import { DRAGON_LEARNED_BEHAVIOR_MOTIONS } from './dragon-learned-behaviors';
+import {
+  DRAGON_FIRE_REFLEX_MOTION,
+  DRAGON_LEARNED_BEHAVIOR_MOTIONS,
+} from './dragon-learned-behaviors';
 
 describe('dragon learned behavior motions', () => {
   const genome: DragonLabGenome = {
@@ -18,7 +21,10 @@ describe('dragon learned behavior motions', () => {
     createVisualGenome('motion-dragon', genome, 1),
   ).assembly;
 
-  for (const motion of Object.values(DRAGON_LEARNED_BEHAVIOR_MOTIONS)) {
+  for (const motion of [
+    ...Object.values(DRAGON_LEARNED_BEHAVIOR_MOTIONS),
+    DRAGON_FIRE_REFLEX_MOTION,
+  ]) {
     it(`${motion.id} returns to the same resting assembly`, () => {
       const before = JSON.stringify(blueprint);
       const rest = buildSpecimenPose(blueprint, { droopRadians: 0.13 });

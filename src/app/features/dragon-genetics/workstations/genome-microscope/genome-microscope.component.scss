@@ -814,3 +814,88 @@ select:focus-visible {
     transition: none !important;
   }
 }
+
+/*
+ * Protein identity card.
+ *
+ * Colors arrive as inline custom properties taken from the protein's residue
+ * chemistry, so this card matches the same protein wherever it appears later.
+ */
+.protein-identity {
+  display: grid;
+  grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--protein-main) 45%, transparent);
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--protein-main) 9%, rgb(8 28 37 / 82%));
+}
+
+.protein-identity svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.protein-body {
+  fill: var(--protein-main);
+  stroke: var(--protein-light);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 5px 9px rgb(0 0 0 / 38%));
+}
+
+.protein-backbone {
+  fill: none;
+  stroke: var(--protein-deep);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+  opacity: 0.72;
+}
+
+.protein-identity > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.protein-identity small {
+  color: var(--protein-light);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  letter-spacing: 0.07em;
+}
+
+.protein-identity strong {
+  color: #f6fbfc;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.protein-identity p {
+  margin: 0;
+  color: #b7c7cd;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.protein-identity .protein-chain-label {
+  color: #dce9ec;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+}
+
+.protein-identity .protein-variant {
+  color: #f0c79a;
+}
+
+.protein-identity .protein-next {
+  color: var(--protein-light);
+}
+
+@media (max-width: 700px) {
+  .protein-identity {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

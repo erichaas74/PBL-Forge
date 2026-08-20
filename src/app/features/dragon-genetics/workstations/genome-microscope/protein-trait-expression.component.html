@@ -1,11 +1,15 @@
 <section
   class="expression-lab"
-  aria-label="Enzyme-product receptor and dragon trait expression model"
+  aria-label="Protein, enzyme-product, and dragon trait expression model"
 >
   <header class="expression-heading">
     <div>
       <small>SCIENTIFIC GOAL</small>
-      <strong>Determine which enzyme-built product activates each cell receptor.</strong>
+      <strong>Determine which molecule activates each cell receptor.</strong>
+      <span>
+        {{ enzymePathways().length }} of these molecules are released by an enzyme;
+        {{ directPathways().length }} are the folded protein itself.
+      </span>
     </div>
     <div class="expression-progress" role="status">
       <b>{{ activatedCount() }}/{{ pathways().length }}</b>
@@ -16,9 +20,9 @@
   <div class="expression-zones">
     <section class="protein-bank" aria-labelledby="protein-bank-title">
       <header>
-        <small>ENZYME PRODUCTS</small>
-        <strong id="protein-bank-title">Molecule bank</strong>
-        <span>Select or drag any available product.</span>
+        <small>MOLECULE BANK</small>
+        <strong id="protein-bank-title">Proteins and enzyme products</strong>
+        <span>Select or drag any available molecule.</span>
       </header>
 
       <div class="protein-list">
@@ -30,26 +34,45 @@
             [class.docked]="isActivated(pathway.id)"
             [attr.data-code]="pathway.code"
             [attr.data-product]="pathway.productId"
+            [attr.data-route]="pathway.viaEnzyme ? 'enzyme-product' : 'direct-protein'"
+            [style.--protein-main]="pathway.palette.main"
+            [style.--protein-light]="pathway.palette.light"
+            [style.--protein-deep]="pathway.palette.deep"
             [attr.draggable]="!isActivated(pathway.id)"
             [disabled]="isActivated(pathway.id)"
             [attr.aria-pressed]="selectedProteinId() === pathway.id"
             [attr.aria-label]="
               isActivated(pathway.id)
                 ? pathway.proteinName + ', docked'
-                : pathway.proteinName + ', select or drag to test a receptor'
+                : pathway.proteinName +
+                  ', ' +
+                  pathway.routeLabel +
+                  ' Select or drag to test a receptor.'
             "
             (click)="selectProtein(pathway.id)"
             (dragstart)="startDrag($event, pathway.id)"
           >
-            <svg viewBox="-90 -50 180 100" aria-hidden="true">
-              <path [attr.d]="pathway.shape" />
-              <path class="protein-fold" d="M-22 0 C-7 -12 7 12 22 0" />
+            <!--
+              Both silhouettes are generated from this gene's residue chain: the
+              small one is the folded protein, the large one is the molecule that
+              actually docks. For a structural protein they are the same shape.
+            -->
+            <svg class="token-shape" viewBox="-90 -50 180 100" aria-hidden="true">
+              <path class="protein-origin" [attr.d]="pathway.proteinShape" />
+              <path class="protein-signal" [attr.d]="pathway.shape" />
             </svg>
             <span>{{ pathway.proteinName }}</span>
-            <small>{{ isActivated(pathway.id) ? 'Docked' : 'Available' }}</small>
+            <small>{{ isActivated(pathway.id) ? 'Docked' : pathway.roleLabel }}</small>
           </button>
         }
       </div>
+
+      @if (selectedPathway(); as pathway) {
+        <p class="bank-detail">
+          <b>{{ pathway.proteinCode }} {{ pathway.sourceProteinName }}</b>
+          — {{ pathway.cellRole }} {{ pathway.routeLabel }}
+        </p>
+      }
     </section>
 
     <section
@@ -76,6 +99,8 @@
               [class.mismatch]="mismatchTargetId() === pathway.id"
               [attr.data-code]="pathway.code"
               [attr.data-product]="pathway.productId"
+              [style.--protein-main]="pathway.palette.main"
+              [style.--protein-light]="pathway.palette.light"
               [attr.aria-label]="
                 isActivated(pathway.id)
                   ? 'Receptor ' +
@@ -84,7 +109,7 @@
                     pathway.code +
                     ' expressed as ' +
                     pathway.phenotype
-                  : 'Test selected protein against receptor ' + pathway.code
+                  : 'Test selected molecule against receptor ' + pathway.code
               "
               (click)="testSelectedProtein(pathway.id)"
               (dragover)="allowDrop($event)"
@@ -94,7 +119,6 @@
                 <path class="receptor-outline" [attr.d]="pathway.shape" />
                 @if (isActivated(pathway.id)) {
                   <path class="receptor-fill" [attr.d]="pathway.shape" />
-                  <path class="receptor-fold" d="M-22 0 C-7 -12 7 12 22 0" />
                 }
               </svg>
               <span>Receptor {{ pathway.code }}</span>
@@ -129,7 +153,10 @@
 
       <div class="trait-results" aria-label="Observed trait evidence">
         @for (pathway of pathways(); track pathway.id) {
-          <div [class.expressed]="isActivated(pathway.id)">
+          <div
+            [class.expressed]="isActivated(pathway.id)"
+            [attr.data-route]="pathway.viaEnzyme ? 'enzyme-product' : 'direct-protein'"
+          >
             <b>Trait {{ pathway.code }}</b>
             @if (isActivated(pathway.id)) {
               <span>{{ pathway.phenotype }}</span>

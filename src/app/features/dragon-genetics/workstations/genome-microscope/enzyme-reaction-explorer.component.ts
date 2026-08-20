@@ -3,10 +3,15 @@ import {
   Component,
   OnDestroy,
   computed,
+  input,
   output,
   signal,
 } from '@angular/core';
-import { DRAGON_ENZYME_REACTIONS, DragonEnzymeReaction } from './dragon-enzyme-reactions.models';
+import {
+  DRAGON_ENZYME_REACTIONS,
+  DragonEnzymeMolecule,
+  DragonEnzymeReaction,
+} from './dragon-enzyme-reactions.models';
 
 export type EnzymeReactionPhase = 'ready' | 'docking' | 'catalyzing' | 'released' | 'rejected';
 
@@ -28,11 +33,15 @@ let nextEnzymeExplorerId = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EnzymeReactionExplorerComponent implements OnDestroy {
+  /** Restricts the bench to a subset of enzymes; defaults to every enzyme gene. */
+  readonly availableReactions = input<readonly DragonEnzymeReaction[]>(DRAGON_ENZYME_REACTIONS);
   readonly reactionCompleted = output<EnzymeReactionResult>();
 
-  readonly reactions = DRAGON_ENZYME_REACTIONS;
-  readonly selectedReactionId = signal(this.reactions[0].id);
-  readonly targetReactionId = signal(this.reactions[0].id);
+  readonly reactions = computed(() =>
+    this.availableReactions().length ? this.availableReactions() : DRAGON_ENZYME_REACTIONS,
+  );
+  readonly selectedReactionId = signal(DRAGON_ENZYME_REACTIONS[0].id);
+  readonly targetReactionId = signal(DRAGON_ENZYME_REACTIONS[0].id);
   readonly catalystActive = signal(false);
   readonly phase = signal<EnzymeReactionPhase>('ready');
   readonly productCounts = signal<Readonly<Record<string, number>>>({});
@@ -40,48 +49,48 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
 
   readonly activeReaction = computed<DragonEnzymeReaction>(
     () =>
-      this.reactions.find((reaction) => reaction.id === this.selectedReactionId()) ??
-      this.reactions[0],
+      this.reactions().find((reaction) => reaction.id === this.selectedReactionId()) ??
+      this.reactions()[0],
   );
   readonly targetReaction = computed<DragonEnzymeReaction>(
     () =>
-      this.reactions.find((reaction) => reaction.id === this.targetReactionId()) ??
-      this.reactions[0],
+      this.reactions().find((reaction) => reaction.id === this.targetReactionId()) ??
+      this.reactions()[0],
   );
+
+  /** Molecules drifting in the cell fluid, waiting for a matching active site. */
+  readonly inputMolecules = computed<readonly DragonEnzymeMolecule[]>(
+    () => this.targetReaction().reactants,
+  );
+  /** Molecules the reaction releases. */
+  readonly outputMolecules = computed<readonly DragonEnzymeMolecule[]>(
+    () => this.targetReaction().products,
+  );
+  /** The candidate enzyme's cavity, cut from its own body. */
+  readonly activeSiteShapes = computed(() => this.activeReaction().activeSite);
+  readonly breakingDown = computed(() => this.targetReaction().action === 'break-down');
+
   readonly selectedEnzymeMatchesTarget = computed(
     () => this.activeReaction().id === this.targetReaction().id,
   );
+  readonly targetProductName = computed(() => this.targetReaction().traitProduct.name);
   readonly currentProductCount = computed(
-    () => this.productCounts()[this.targetReaction().product.id] ?? 0,
+    () => this.productCounts()[this.targetReaction().traitProduct.id] ?? 0,
   );
-  readonly status = computed(() => {
-    if (this.phase() === 'ready' && !this.catalystActive()) {
-      return 'Catalyst inactive — substrates continue moving without reacting.';
-    }
-    switch (this.phase()) {
-      case 'docking':
-        return 'Matching substrates are docking in the active site.';
-      case 'catalyzing':
-        return 'The enzyme holds both substrates close enough for bonds to rearrange.';
-      case 'released':
-        return `${this.activeReaction().product.name} released; the enzyme is unchanged.`;
-      default:
-        return 'The active site is ready to bind its matching substrates.';
-    }
-  });
   readonly trialStatus = computed(() => {
+    const target = this.targetReaction();
     if (this.phase() === 'ready' && !this.catalystActive()) {
-      return `Test candidate enzymes to find the active site that builds ${this.targetReaction().product.name}.`;
+      return `Test candidate enzymes to find the active site that ${target.actionLabel.toLowerCase()} ${target.traitProduct.name}.`;
     }
     switch (this.phase()) {
       case 'docking':
-        return `${this.activeReaction().enzymeCode} is approaching the target substrates.`;
+        return `${this.activeReaction().enzymeCode} is approaching the target molecules.`;
       case 'catalyzing':
         return 'The active site fits. Bonds are rearranging.';
       case 'released':
-        return `${this.activeReaction().enzymeCode} built ${this.targetReaction().product.name}; the enzyme is unchanged.`;
+        return `${this.activeReaction().enzymeCode} released ${target.traitProduct.name}; the enzyme is unchanged.`;
       case 'rejected':
-        return `${this.activeReaction().enzymeCode} does not fit these substrates. No product formed.`;
+        return `${this.activeReaction().enzymeCode} does not fit these molecules. No reaction.`;
       default:
         return 'The selected enzyme is ready to test.';
     }
@@ -93,8 +102,7 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
 
   readonly instanceId = `enzyme-reaction-${nextEnzymeExplorerId++}`;
   readonly enzymeGradientId = `${this.instanceId}-enzyme-gradient`;
-  readonly substrateAGradientId = `${this.instanceId}-substrate-a-gradient`;
-  readonly substrateBGradientId = `${this.instanceId}-substrate-b-gradient`;
+  readonly reactantGradientId = `${this.instanceId}-reactant-gradient`;
   readonly productGradientId = `${this.instanceId}-product-gradient`;
   readonly enzymeMaskId = `${this.instanceId}-enzyme-mask`;
   readonly shadowId = `${this.instanceId}-shadow`;
@@ -103,7 +111,7 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
   private timers: ReturnType<typeof setTimeout>[] = [];
 
   selectReaction(reactionId: string): void {
-    if (!this.reactions.some((reaction) => reaction.id === reactionId)) return;
+    if (!this.reactions().some((reaction) => reaction.id === reactionId)) return;
     this.clearTimers();
     this.selectedReactionId.set(reactionId);
     this.phase.set('ready');
@@ -111,7 +119,7 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
   }
 
   selectTarget(reactionId: string): void {
-    if (!this.reactions.some((reaction) => reaction.id === reactionId)) return;
+    if (!this.reactions().some((reaction) => reaction.id === reactionId)) return;
     this.clearTimers();
     this.targetReactionId.set(reactionId);
     this.phase.set('ready');
@@ -149,7 +157,7 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
   }
 
   productCount(reaction: DragonEnzymeReaction): number {
-    return this.productCounts()[reaction.product.id] ?? 0;
+    return this.productCounts()[reaction.traitProduct.id] ?? 0;
   }
 
   trialOutcome(reaction: DragonEnzymeReaction): EnzymeTrialOutcome {
@@ -159,7 +167,7 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
   trialLabel(reaction: DragonEnzymeReaction): string {
     switch (this.trialOutcome(reaction)) {
       case 'match':
-        return 'Built the target';
+        return 'Ran the reaction';
       case 'no-match':
         return 'No match';
       default:
@@ -178,13 +186,13 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
     this.recordTrial('match');
     this.productCounts.update((counts) => ({
       ...counts,
-      [reaction.product.id]: totalBuilt,
+      [reaction.traitProduct.id]: totalBuilt,
     }));
     this.phase.set('released');
     this.reactionCompleted.emit({
       enzymeId: enzyme.id,
-      productId: reaction.product.id,
-      productName: reaction.product.name,
+      productId: reaction.traitProduct.id,
+      productName: reaction.traitProduct.name,
       totalBuilt,
     });
     if (this.catalystActive() && !this.prefersReducedMotion()) {

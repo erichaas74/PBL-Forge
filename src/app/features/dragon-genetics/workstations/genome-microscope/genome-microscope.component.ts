@@ -36,13 +36,20 @@ import {
   CellChromosomeViewportItem,
 } from '../shared/cell-chromosome-viewport.component';
 import { CellModelComponent } from '../shared/cell-model.component';
-import { chromosomeVisual, DRAGON_AUTOSOME_LABELS } from '../shared/dragon-chromosome.catalog';
-import { ChromosomeSvgModel } from '../shared/chromosome-svg.component';
-import { geneAlleleMarking, geneDnaRecord } from '../shared/dragon-gene-dna.catalog';
+import { DRAGON_AUTOSOME_LABELS } from '../shared/dragon-chromosome.catalog';
+import {
+  buildDragonChromosomePairs,
+  chromosomePairViewportItems,
+  DragonChromosomePair,
+} from '../shared/dragon-chromosome-pairs';
+import {
+  DragonGeneProtein,
+  DragonProteinForm,
+  geneDnaRecord,
+} from '../shared/dragon-gene-dna.catalog';
 import {
   GENOME_MICROSCOPE_LEVEL_DEFINITIONS,
   GENOME_MICROSCOPE_LEVELS,
-  GenomeMicroscopeChromosomePair,
   GenomeMicroscopeEvidence,
   GenomeMicroscopeLevel,
   GenomeMicroscopeSex,
@@ -96,7 +103,8 @@ export class GenomeMicroscopeComponent {
   readonly dragons = input<readonly AccountDragonRecord[]>([]);
   readonly genes = input<readonly AlleleVaultGene[]>(ALLELE_VAULT_GENES);
   readonly alleles = input<readonly AlleleVaultAllele[]>(ALLELE_VAULT_ALLELES);
-  readonly autosomeChromosomes = input<readonly string[]>(DRAGON_AUTOSOME_LABELS);
+  readonly autosomeChromosomes =
+    input<readonly AlleleVaultGene['chromosome'][]>(DRAGON_AUTOSOME_LABELS);
   readonly initialLevel = input<GenomeMicroscopeLevel>('dragon');
   readonly showSpecimenLoader = input(true);
   readonly showGuideControl = input(true);
@@ -126,10 +134,19 @@ export class GenomeMicroscopeComponent {
   });
   readonly specimenSex = computed<GenomeMicroscopeSex>(() => this.loadedDragon()?.sex ?? 'female');
 
-  readonly chromosomePairs = computed<readonly GenomeMicroscopeChromosomePair[]>(() => [
-    ...this.autosomeChromosomes().map((chromosome) => this.buildPair(chromosome)),
-    this.buildSexPair(),
-  ]);
+  readonly chromosomePairs = computed<readonly DragonChromosomePair[]>(() =>
+    buildDragonChromosomePairs({
+      genes: this.genes(),
+      alleles: this.alleles(),
+      chromosomes: [...this.autosomeChromosomes(), 'Chr X'],
+      sex: this.specimenSex(),
+      genotypeForGene: (geneId) => {
+        const dragon = this.loadedDragon();
+        const trait = DRAGON_TRAITS.find((candidate) => candidate.id === geneId);
+        return dragon && trait ? dragon.genome[trait.id] : undefined;
+      },
+    }),
+  );
   readonly activePair = computed(
     () =>
       this.chromosomePairs().find((pair) => pair.id === this.selectedChromosome()) ??
@@ -169,19 +186,33 @@ export class GenomeMicroscopeComponent {
   );
 
   /**
+   * The protein the selected gene codes for.
+   *
+   * This is the same record the enzyme bench and the expression model read, so
+   * the shape a student meets here is the shape they meet two levels later.
+   */
+  readonly activeProtein = computed<DragonGeneProtein | null>(() => {
+    const gene = this.activeGene();
+    return gene ? geneDnaRecord(gene.id).protein : null;
+  });
+  /** The protein form for the allele copy currently under the objective. */
+  readonly activeProteinForm = computed<DragonProteinForm | null>(() => {
+    const gene = this.activeGene();
+    if (!gene) return null;
+    const record = geneDnaRecord(gene.id);
+    const sequence = this.activeDnaSequence();
+    const marking =
+      record.alleles.find((allele) => allele.sequence === sequence) ?? record.alleles[0];
+    return marking.protein;
+  });
+
+  /**
    * The nucleus presents homologs as five aligned pairs instead of ten loose
    * chromosome copies. The same pair models feed the nucleus, chromosome-set,
    * chromosome, and gene magnifications so a selection stays spatially stable.
    */
   readonly cellChromosomePairs = computed<readonly CellChromosomeViewportItem[]>(() =>
-    this.chromosomePairs().map((pair) => ({
-      id: pair.id,
-      label: pair.label,
-      shortLabel: this.chromosomeNumber(pair.id),
-      model: pair.maternal,
-      pairedModel: pair.paternal,
-      pairRelationship: 'homologous-pair',
-    })),
+    chromosomePairViewportItems(this.chromosomePairs()),
   );
 
   readonly currentLevelIndex = computed(() => GENOME_MICROSCOPE_LEVELS.indexOf(this.level()));
@@ -293,7 +324,7 @@ export class GenomeMicroscopeComponent {
   }
 
   chromosomeNumber(chromosome: string): string {
-    if (chromosome === 'sex') return this.specimenSex() === 'female' ? 'XX' : 'XY';
+    if (chromosome === 'Chr X') return this.specimenSex() === 'female' ? 'XX' : 'XY';
     return chromosome.replace(/^Chr\s*/i, '');
   }
 
@@ -307,65 +338,6 @@ export class GenomeMicroscopeComponent {
 
   levelAvailable(level: GenomeMicroscopeLevel): boolean {
     return !this.isMolecularLevel(level) || this.genes().length > 0;
-  }
-
-  private buildPair(chromosome: string): GenomeMicroscopeChromosomePair {
-    return {
-      id: chromosome,
-      label: `Chromosome pair ${this.chromosomeNumber(chromosome)}`,
-      kind: 'autosome',
-      maternal: this.chromosomeModel(chromosome, 0),
-      paternal: this.chromosomeModel(chromosome, 1),
-    };
-  }
-
-  private buildSexPair(): GenomeMicroscopeChromosomePair {
-    const second = this.specimenSex() === 'female' ? 'Chr X' : 'Chr Y';
-    return {
-      id: 'sex',
-      label: `${this.specimenSex() === 'female' ? 'XX' : 'XY'} sex chromosomes`,
-      kind: 'sex',
-      maternal: this.chromosomeModel('Chr X', 0),
-      paternal: this.chromosomeModel(second, 1),
-    };
-  }
-
-  private chromosomeModel(chromosome: string, copy: 0 | 1): ChromosomeSvgModel {
-    const visual = chromosomeVisual(chromosome);
-    const chromosomeGenes = this.genes().filter((gene) => gene.chromosome === chromosome);
-    const number = this.chromosomeNumber(chromosome);
-    return {
-      length: visual.length,
-      leftLabel: `${number}p`,
-      rightLabel: `${number}q`,
-      centromere: visual.centromere,
-      bands: visual.bands,
-      loci: chromosomeGenes.map((gene, index) => {
-        const symbol = this.alleleSymbol(gene, copy);
-        const allele = this.alleles().find(
-          (candidate) => candidate.geneId === gene.id && candidate.symbol === symbol,
-        );
-        const alleleIndex = allele ? gene.alleleIds.indexOf(allele.id) : -1;
-        // Older dragon records carry only the four core teaching genotypes.
-        // Every released locus still has a canonical DNA identity, so show its
-        // reference barcode when that dragon has no stored allele for the gene.
-        const barcodeAlleleIndex: 0 | 1 = alleleIndex === 1 ? 1 : 0;
-        return {
-          position: visual.locusPositions[index] ?? 0.5,
-          label: gene.sampleCode,
-          color: geneDnaRecord(gene.id).locusColor,
-          symbol,
-          marking: geneAlleleMarking(gene.id, barcodeAlleleIndex),
-        };
-      }),
-    };
-  }
-
-  private alleleSymbol(gene: AlleleVaultGene, copy: 0 | 1): string | undefined {
-    const dragon = this.loadedDragon();
-    const trait = DRAGON_TRAITS.find((candidate) => candidate.id === gene.id);
-    if (!dragon || !trait) return undefined;
-    return dragon.genome[trait.id][copy];
   }
 
   private buildAlleleCopies(): readonly AlleleCopyView[] {

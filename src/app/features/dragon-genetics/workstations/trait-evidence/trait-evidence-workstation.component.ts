@@ -12,11 +12,15 @@ import {
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import { provideDragonSpecimenProfile } from '../../simulation/domain/dragon-specimen.profile';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
-import { DRAGON_LEARNED_BEHAVIOR_MOTIONS, DRAGON_NOTICE_MOTION } from './dragon-learned-behaviors';
+import {
+  DRAGON_FIRE_REFLEX_MOTION,
+  DRAGON_LEARNED_BEHAVIOR_MOTIONS,
+  DRAGON_NOTICE_MOTION,
+} from './dragon-learned-behaviors';
 import {
   TRAIT_EVIDENCE_DRAGONS,
   availableObservations,
-  isLearnedBehavior,
+  isTrialObservation,
   liveEvidence,
   observationDefinition,
   observationResult,
@@ -59,11 +63,12 @@ export class TraitEvidenceWorkstationComponent {
   readonly dragons = TRAIT_EVIDENCE_DRAGONS;
   readonly snapshot = this.snapshotSignal.asReadonly();
   readonly selectedDragonId = signal(TRAIT_EVIDENCE_DRAGONS[0].id);
-  readonly selectedObservationId = signal<TraitEvidenceObservationId>('wings');
+  readonly selectedObservationId = signal<TraitEvidenceObservationId>('horns');
   readonly selectedEvidenceIds = signal<readonly string[]>([]);
   readonly classification = signal<TraitEvidenceClassification>('insufficient');
   readonly playing = signal(false);
-  readonly lastTrial = signal<TraitEvidenceTrial | null>(null);
+  readonly reflexActive = signal(false);
+  readonly flippedDragonIds = signal<readonly string[]>([]);
 
   readonly selectedDragon = computed(
     () => this.dragons.find((dragon) => dragon.id === this.selectedDragonId()) ?? this.dragons[0],
@@ -81,7 +86,7 @@ export class TraitEvidenceWorkstationComponent {
       ...recordsForObservation(dragon, observationId),
       ...this.snapshot()
         .trials.filter(
-          (trial) => trial.specimenId === dragon.id && trial.behaviorId === observationId,
+          (trial) => trial.specimenId === dragon.id && trial.observationId === observationId,
         )
         .map(trialEvidence),
     ];
@@ -96,14 +101,14 @@ export class TraitEvidenceWorkstationComponent {
   );
   readonly resultText = computed(() => {
     const observationId = this.selectedObservationId();
-    if (!isLearnedBehavior(observationId)) {
+    if (!isTrialObservation(observationId)) {
       return observationResult(this.selectedDragon(), observationId);
     }
     const latest = [...this.snapshot().trials]
       .reverse()
       .find(
         (trial) =>
-          trial.specimenId === this.selectedDragonId() && trial.behaviorId === observationId,
+          trial.specimenId === this.selectedDragonId() && trial.observationId === observationId,
       );
     return latest?.result ?? observationResult(this.selectedDragon(), observationId);
   });
@@ -121,17 +126,30 @@ export class TraitEvidenceWorkstationComponent {
   }
 
   selectDragon(event: Event): void {
-    const id = (event.target as HTMLSelectElement).value;
-    if (!this.dragons.some((dragon) => dragon.id === id)) return;
-    this.selectedDragonId.set(id);
-    if (
-      !this.observations().some((observation) => observation.id === this.selectedObservationId())
-    ) {
-      this.selectedObservationId.set('wings');
-    }
-    this.lastTrial.set(null);
-    this.recordObservation();
-    this.loadClaimDraft();
+    this.setDragon((event.target as HTMLSelectElement).value);
+  }
+
+  selectDragonById(id: string): void {
+    this.setDragon(id);
+  }
+
+  toggleDragonCard(id: string): void {
+    this.flippedDragonIds.update((ids) =>
+      ids.includes(id) ? ids.filter((candidate) => candidate !== id) : [...ids, id],
+    );
+  }
+
+  isDragonCardFlipped(id: string): boolean {
+    return this.flippedDragonIds().includes(id);
+  }
+
+  dragonTrialCount(id: string): number {
+    return this.snapshot().trials.filter((trial) => trial.specimenId === id).length;
+  }
+
+  dragonSupportedClaimCount(id: string): number {
+    return this.snapshot().claims.filter((claim) => claim.specimenId === id && claim.supported)
+      .length;
   }
 
   selectObservationFromEvent(event: Event): void {
@@ -148,44 +166,76 @@ export class TraitEvidenceWorkstationComponent {
     const roles = part?.roles ?? [];
     const observationId: TraitEvidenceObservationId = roles.includes('wing')
       ? 'wings'
-      : roles.includes('head')
-        ? 'horns'
-        : roles.includes('jaw')
-          ? 'fire'
-          : 'scales';
+      : roles.includes('tail')
+        ? 'tail'
+        : roles.includes('head')
+          ? 'horns'
+          : roles.includes('jaw')
+            ? 'fire'
+            : 'scales';
     this.selectObservation(observationId);
   }
 
-  async testBehavior(): Promise<void> {
+  async runObservation(): Promise<void> {
     const observationId = this.selectedObservationId();
-    if (!isLearnedBehavior(observationId) || this.playing()) return;
+    if (this.playing()) return;
     const dragon = this.selectedDragon();
-    const responded = dragon.trainedBehaviorIds.includes(observationId);
+    const definition = observationDefinition(observationId);
     this.playing.set(true);
-    await this.viewport?.playMotion(
-      responded ? DRAGON_LEARNED_BEHAVIOR_MOTIONS[observationId] : DRAGON_NOTICE_MOTION,
-    );
-    const now = new Date().toISOString();
-    const trial: TraitEvidenceTrial = {
-      id: `${dragon.id}-${observationId}-${Date.now()}`,
-      specimenId: dragon.id,
-      behaviorId: observationId,
-      responded,
-      result: responded
-        ? `${dragon.name} performed the trained response after the cue.`
-        : `${dragon.name} noticed the cue but did not perform the response.`,
-      testedAtIso: now,
-    };
-    const current = this.snapshot();
-    this.persist({
-      ...current,
-      observedCharacteristicIds: unique([...current.observedCharacteristicIds, observationId]),
-      trials: [...current.trials, trial].slice(-30),
-      updatedAtIso: now,
-    });
-    this.lastTrial.set(trial);
-    this.selectedEvidenceIds.update((ids) => unique([...ids, `trial:${trial.id}`]));
-    this.playing.set(false);
+
+    try {
+      if (definition.ability) {
+        const available =
+          observationId === 'horns'
+            ? dragon.horned
+            : observationId === 'fire'
+              ? dragon.fireBreathing
+              : true;
+        if (available) await this.viewport?.playAbility(definition.ability);
+        else await this.viewport?.playMotion(DRAGON_NOTICE_MOTION);
+        return;
+      }
+
+      if (!isTrialObservation(observationId)) return;
+
+      const isReflex = observationId === 'fire-reflex';
+      const responded = isReflex || dragon.trainedBehaviorIds.includes(observationId);
+      if (isReflex) this.reflexActive.set(true);
+      await this.viewport?.playMotion(
+        isReflex
+          ? DRAGON_FIRE_REFLEX_MOTION
+          : responded
+            ? DRAGON_LEARNED_BEHAVIOR_MOTIONS[observationId]
+            : DRAGON_NOTICE_MOTION,
+      );
+
+      const now = new Date().toISOString();
+      const trial: TraitEvidenceTrial = {
+        id: `${dragon.id}-${observationId}-${Date.now()}`,
+        specimenId: dragon.id,
+        observationId,
+        kind: isReflex ? 'reflex' : 'command',
+        responded,
+        result: isReflex
+          ? `${dragon.name} closed both eyelids and both nostrils in ${dragon.reflexLatencyMs} ms.`
+          : responded
+            ? `${dragon.name} performed the trained response after the command.`
+            : `${dragon.name} noticed the command but did not perform the response.`,
+        ...(isReflex ? { reactionTimeMs: dragon.reflexLatencyMs } : {}),
+        testedAtIso: now,
+      };
+      const current = this.snapshot();
+      this.persist({
+        ...current,
+        observedCharacteristicIds: unique([...current.observedCharacteristicIds, observationId]),
+        trials: [...current.trials, trial].slice(-30),
+        updatedAtIso: now,
+      });
+      this.selectedEvidenceIds.update((ids) => unique([...ids, `trial:${trial.id}`]));
+    } finally {
+      this.reflexActive.set(false);
+      this.playing.set(false);
+    }
   }
 
   toggleEvidence(evidenceId: string, event: Event): void {
@@ -199,8 +249,8 @@ export class TraitEvidenceWorkstationComponent {
     const value = (event.target as HTMLSelectElement).value as TraitEvidenceClassification;
     if (
       value === 'inherited' ||
+      value === 'innate' ||
       value === 'learned' ||
-      value === 'environmental' ||
       value === 'insufficient'
     ) {
       this.classification.set(value);
@@ -229,20 +279,40 @@ export class TraitEvidenceWorkstationComponent {
 
   classificationLabel(classification: TraitEvidenceClassification): string {
     return {
-      inherited: 'Inherited',
-      learned: 'Learned',
-      environmental: 'Environmental',
+      inherited: 'Inherited anatomy or ability',
+      innate: 'Innate reflex',
+      learned: 'Learned response',
       insufficient: 'Needs evidence',
     }[classification];
+  }
+
+  observationKindLabel(): string {
+    return {
+      appearance: 'Body characteristic',
+      ability: 'Fighting ability',
+      reflex: 'Protective reflex',
+      command: 'Command response',
+    }[this.selectedObservation().kind];
   }
 
   isEvidenceSelected(evidenceId: string): boolean {
     return this.selectedEvidenceIds().includes(evidenceId);
   }
 
+  private setDragon(id: string): void {
+    if (!this.dragons.some((dragon) => dragon.id === id)) return;
+    this.selectedDragonId.set(id);
+    if (
+      !this.observations().some((observation) => observation.id === this.selectedObservationId())
+    ) {
+      this.selectedObservationId.set('horns');
+    }
+    this.recordObservation();
+    this.loadClaimDraft();
+  }
+
   private selectObservation(observationId: TraitEvidenceObservationId): void {
     this.selectedObservationId.set(observationId);
-    this.lastTrial.set(null);
     this.recordObservation();
     this.loadClaimDraft();
   }
@@ -265,7 +335,7 @@ export class TraitEvidenceWorkstationComponent {
     const claim = this.findClaim();
     this.classification.set(claim?.classification ?? 'insufficient');
     const observationId = this.selectedObservationId();
-    const defaultEvidence = isLearnedBehavior(observationId)
+    const defaultEvidence = isTrialObservation(observationId)
       ? []
       : [liveEvidence(this.selectedDragon(), observationId).id];
     this.selectedEvidenceIds.set(claim?.evidenceIds ?? defaultEvidence);
