@@ -116,6 +116,10 @@ views. Trait Evidence, Punnett Composer, Genome Microscope, Dragon Hatchery, Inc
 Blood Compatibility, Protein Rescue, Island Diversity intake, and Arena account selection consume
 these shared pieces rather than carrying their own card or carousel behavior.
 
+Punnett Composer presents two sex-filtered instances: an XX female deck assigned only to Parent 1
+and an XY male deck assigned only to Parent 2. Test mode keeps the same two positions but substitutes
+the canonical heterozygous XX and XY reference cells.
+
 Before the wider rollout, add contract tests proving that Hatchery, Test Bench, Arena, and the card
 resolver report the same phenotype and combat values for the same dragon record.
 

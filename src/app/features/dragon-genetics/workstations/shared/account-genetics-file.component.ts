@@ -23,6 +23,7 @@ import {
 import { AccountGeneticsLibraryService } from './account-genetics-library.service';
 import { accountDragonPerformance, dragonGeneration } from './dragon-account-card';
 import { DragonCardDeckSelectorComponent } from './dragon-card-deck-selector.component';
+import { DragonCardBloodType } from './dragon-flip-card.component';
 
 @Component({
   selector: 'app-account-genetics-file',
@@ -44,6 +45,9 @@ export class AccountGeneticsFileComponent {
   readonly label = input<string | null>(null);
   readonly sexFilter = input<DragonSex | null>(null);
   readonly eligibleDragonIds = input<readonly string[] | null>(null);
+  readonly bloodTypeByDragonId = input<
+    Readonly<Partial<Record<string, DragonCardBloodType>>>
+  >({});
   readonly recordSelected = output<AccountGeneticsRecord>();
 
   readonly open = linkedSignal(() => this.initiallyOpen());

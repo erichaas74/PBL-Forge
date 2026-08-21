@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { stubSpecimenThumbnailRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { DragonPedigreeLabComponent } from './dragon-pedigree-lab.component';
 import { investigationById } from './pedigree-population';
 
@@ -8,6 +9,7 @@ describe('DragonPedigreeLabComponent', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    stubSpecimenThumbnailRendering();
     TestBed.configureTestingModule({ imports: [DragonPedigreeLabComponent] });
     fixture = TestBed.createComponent(DragonPedigreeLabComponent);
     fixture.componentRef.setInput('studentId', 'spec-student');

@@ -1,6 +1,7 @@
 import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
+import { stubSpecimenViewportRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { CompanionShowComponent } from './companion-show.component';
 
 describe('CompanionShowComponent', () => {
@@ -9,6 +10,7 @@ describe('CompanionShowComponent', () => {
 
   beforeEach(async () => {
     localStorage.removeItem(storageKey);
+    stubSpecimenViewportRendering();
     await TestBed.configureTestingModule({
       imports: [CompanionShowComponent],
     }).compileComponents();

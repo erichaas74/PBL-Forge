@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { stubSpecimenViewportRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import {
   DragonHatcheryInstrument,
   DragonVisualBridge,
@@ -33,6 +34,7 @@ describe('DragonHatcheryStationComponent', () => {
   let hatched: (readonly DragonOffspring[])[];
 
   beforeEach(() => {
+    stubSpecimenViewportRendering();
     TestBed.configureTestingModule({ imports: [DragonHatcheryStationComponent] });
     bridge = TestBed.inject(DragonVisualBridge);
     fixture = TestBed.createComponent(DragonHatcheryStationComponent);

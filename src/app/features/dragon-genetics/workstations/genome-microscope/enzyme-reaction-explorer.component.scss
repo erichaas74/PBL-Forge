@@ -229,7 +229,7 @@
 }
 
 .ambient-enzyme {
-  opacity: 0.3;
+  opacity: 0.4;
 }
 
 .ambient-enzyme path {
@@ -270,7 +270,7 @@
 .enzyme-molecule text {
   fill: #fff8eb;
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
 }
 
@@ -283,7 +283,7 @@
 
 .molecule-labels text {
   fill: #bfd3d9;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   transform-box: view-box;
   transform-origin: 0 0;
@@ -291,11 +291,11 @@
 }
 
 .reactant-label-0 {
-  transform: translate(150px, 60px);
+  transform: translate(112px, 46px);
 }
 
 .reactant-label-1 {
-  transform: translate(750px, 60px);
+  transform: translate(548px, 46px);
 }
 
 .product-label {
@@ -303,15 +303,15 @@
 }
 
 .product-label-0 {
-  transform: translate(690px, 402px);
+  transform: translate(506px, 314px);
 }
 
 .enzyme-explorer[data-action='break-down'] .product-label-0 {
-  transform: translate(200px, 402px);
+  transform: translate(152px, 314px);
 }
 
 .product-label-1 {
-  transform: translate(690px, 402px);
+  transform: translate(506px, 314px);
 }
 
 .enzyme-explorer[data-phase='released'] .product-label {

@@ -4,10 +4,10 @@
 }
 
 .fanned-deck {
-  --deck-card-width: min(22rem, calc(100vw - 5.5rem));
-  --deck-card-height: 36.8rem;
-  --deck-next-offset: clamp(6.5rem, 19vw, 9.5rem);
-  --deck-previous-offset: clamp(3.8rem, 11vw, 5.5rem);
+  --deck-card-width: var(--fanned-deck-card-width, min(22rem, calc(100vw - 5.5rem)));
+  --deck-card-height: var(--fanned-deck-card-height, 36.8rem);
+  --deck-next-offset: var(--fanned-deck-next-offset, clamp(6.5rem, 19vw, 9.5rem));
+  --deck-previous-offset: var(--fanned-deck-previous-offset, clamp(3.8rem, 11vw, 5.5rem));
   display: grid;
   gap: 0.45rem;
   min-width: 0;
@@ -178,9 +178,12 @@
 
 @media (max-width: 520px) {
   .fanned-deck {
-    --deck-card-width: min(20rem, calc(100vw - 8rem));
-    --deck-next-offset: clamp(4.8rem, 19vw, 6rem);
-    --deck-previous-offset: clamp(2.7rem, 10vw, 3.4rem);
+    --deck-card-width: var(--fanned-deck-mobile-card-width, min(20rem, calc(100vw - 8rem)));
+    --deck-next-offset: var(--fanned-deck-mobile-next-offset, clamp(4.8rem, 19vw, 6rem));
+    --deck-previous-offset: var(
+      --fanned-deck-mobile-previous-offset,
+      clamp(2.7rem, 10vw, 3.4rem)
+    );
   }
 
   .fanned-deck__peek {

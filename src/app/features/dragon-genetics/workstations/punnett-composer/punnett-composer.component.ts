@@ -37,12 +37,16 @@ import { AccountGeneticsLibraryService } from '../shared/account-genetics-librar
 import {
   DragonChromosomePair,
   buildDragonChromosomePairs,
+  chromosomePairViewportItems,
 } from '../shared/dragon-chromosome-pairs';
 import {
   DragonChromosomeSelection,
   DragonChromosomeSelectorComponent,
+  DragonGeneSelection,
 } from '../shared/dragon-chromosome-selector.component';
 import { ChromosomeSvgComponent, ChromosomeSvgModel } from '../shared/chromosome-svg.component';
+import { CellChromosomeViewportComponent } from '../shared/cell-chromosome-viewport.component';
+import { DRAGON_AUTOSOME_LABELS } from '../shared/dragon-chromosome.catalog';
 import {
   createEmptyPunnettSnapshot,
   PendingPunnettGamete,
@@ -73,7 +77,11 @@ const TEST_MALE: AccountDragonRecord = testDragon(
 
 @Component({
   selector: 'app-punnett-composer',
-  imports: [DragonChromosomeSelectorComponent, ChromosomeSvgComponent],
+  imports: [
+    DragonChromosomeSelectorComponent,
+    CellChromosomeViewportComponent,
+    ChromosomeSvgComponent,
+  ],
   templateUrl: './punnett-composer.component.html',
   styleUrl: './punnett-composer.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -91,6 +99,7 @@ export class PunnettComposerComponent {
   readonly traits = EXPRESSIVE_DRAGON_TRAITS;
   readonly genes = ALLELE_VAULT_GENES;
   readonly testDragons = [TEST_FEMALE, TEST_MALE] as const;
+  readonly parentSides = ['parent1', 'parent2'] as const;
   readonly snapshot = signal<PunnettComposerSnapshot>(
     createEmptyPunnettSnapshot(LOCAL_WORKSTATION_STUDENT_ID),
   );
@@ -139,14 +148,16 @@ export class PunnettComposerComponent {
   );
   readonly parent1ChromosomePair = computed(() => this.chromosomePairFor(this.parent1Profile()));
   readonly parent2ChromosomePair = computed(() => this.chromosomePairFor(this.parent2Profile()));
+  readonly parent1CellChromosomes = computed(() => this.cellChromosomesFor(this.parent1Profile()));
+  readonly parent2CellChromosomes = computed(() => this.cellChromosomesFor(this.parent2Profile()));
   readonly cells = computed<readonly PunnettOffspringCellModel[]>(() => {
     const state = this.snapshot();
     const trait = this.activeTrait();
     return Array.from({ length: 4 }, (_, index) => {
       const row = Math.floor(index / 2);
       const column = index % 2;
-      const parent1Allele = state.parent1Gametes[column];
-      const parent2Allele = state.parent2Gametes[row];
+      const parent1Allele = state.parent1Gametes[row];
+      const parent2Allele = state.parent2Gametes[column];
       if (!parent1Allele || !parent2Allele) {
         return {
           index,
@@ -191,12 +202,12 @@ export class PunnettComposerComponent {
       return `${this.parentLabel(gamete.parent)} allele ${gamete.allele} selected. Choose one of its axis boxes.`;
     }
     if (this.snapshot().mode === 'test') {
-      return 'Test mode uses complete heterozygous XX and XY reference cells.';
+      return 'Choose a gene, then drag or select each chromosome copy for its matching allele box.';
     }
     if (!this.parent1() || !this.parent2()) {
-      return 'Choose a female and a male dragon. Each specimen is assigned to its matching parent bay.';
+      return 'Flip each dragon card, choose a chromosome, and select a gene to load that parent.';
     }
-    return 'Choose a chromosome, then choose one of its genes to build the cross.';
+    return 'Select the same gene on both dragon cards to load their chromosome copies into the square.';
   });
 
   constructor() {
@@ -253,6 +264,25 @@ export class PunnettComposerComponent {
     if (!firstGene) return;
     this.stagedChromosome.set(chromosome);
     this.selectedChromosome.set(chromosome);
+    this.selectTrait(firstGene.id);
+  }
+
+  selectSelectorGene(side: PunnettParentSide, selection: DragonGeneSelection): void {
+    this.selectedChromosome.set(selection.chromosome);
+    if (this.snapshot().mode === 'parents') {
+      this.loadAccountRecord(selection.dragon, side);
+    }
+    this.selectTrait(selection.geneId);
+    if (this.snapshot().mode === 'parents') {
+      this.loadParentGeneCopies(side);
+    }
+  }
+
+  selectTestChromosome(chromosome: string): void {
+    const chromosomeId = chromosome as AlleleVaultGene['chromosome'];
+    const firstGene = this.genes.find((gene) => gene.chromosome === chromosomeId);
+    if (!firstGene) return;
+    this.selectedChromosome.set(chromosomeId);
     this.selectTrait(firstGene.id);
   }
 
@@ -350,7 +380,11 @@ export class PunnettComposerComponent {
     }));
     this.pendingGamete.set(null);
     this.selectedCellIndex.set(null);
-    this.recordMessage.set('Square cleared. Parent cells remain loaded.');
+    this.recordMessage.set(
+      this.snapshot().mode === 'parents'
+        ? 'Square cleared. Select genes on the parent cards to load it again.'
+        : 'Square cleared. Heterozygous chromosome sources remain available.',
+    );
   }
 
   selectCell(index: number): void {
@@ -419,6 +453,21 @@ export class PunnettComposerComponent {
     return parent === 'parent1' ? this.parent1Alleles() : this.parent2Alleles();
   }
 
+  private loadParentGeneCopies(parent: PunnettParentSide): void {
+    const alleles = this.allelesFor(parent);
+    if (alleles.length < 2) return;
+    const key = parent === 'parent1' ? 'parent1Gametes' : 'parent2Gametes';
+    this.updateSnapshot((state) => ({
+      ...state,
+      [key]: [alleles[0], alleles[1]],
+    }));
+    this.pendingGamete.set(null);
+    this.selectedCellIndex.set(null);
+    this.recordMessage.set(
+      `${this.parentLabel(parent)} ${this.activeGene().sampleCode} chromosome copies loaded.`,
+    );
+  }
+
   private placeGamete(parent: PunnettParentSide, slotIndex: number, allele: string): void {
     const sourceAlleles = this.allelesFor(parent);
     if (!sourceAlleles.includes(allele)) return;
@@ -470,6 +519,19 @@ export class PunnettComposerComponent {
         sex: profile.sex,
         genotypeForGene: (geneId) => profile.genome[geneId],
       })[0] ?? null
+    );
+  }
+
+  private cellChromosomesFor(profile: ExpressiveDragonProfile | null) {
+    if (!profile) return [];
+    return chromosomePairViewportItems(
+      buildDragonChromosomePairs({
+        genes: this.genes,
+        alleles: ALLELE_VAULT_ALLELES,
+        chromosomes: [...DRAGON_AUTOSOME_LABELS, 'Chr X'],
+        sex: profile.sex,
+        genotypeForGene: (geneId) => profile.genome[geneId],
+      }),
     );
   }
 

@@ -3,7 +3,7 @@ import { provideDragonSpecimenProfile } from '../../simulation/domain/dragon-spe
 import { AccountDragonRecord } from './account-genetics-library.models';
 import { buildAccountDragonCardView } from './dragon-account-card';
 import { buildDragonCardGenomeView, DragonCardChromosomeId } from './dragon-card-genome';
-import { DragonFlipCardComponent } from './dragon-flip-card.component';
+import { DragonCardBloodType, DragonFlipCardComponent } from './dragon-flip-card.component';
 import { FannedCardDeckComponent } from './fanned-card-deck.component';
 
 @Component({
@@ -20,6 +20,9 @@ export class DragonCardDeckSelectorComponent {
   readonly disabled = input(false);
   readonly compact = input(false);
   readonly ariaLabel = input('Dragon card deck selector');
+  readonly bloodTypeByDragonId = input<
+    Readonly<Partial<Record<string, DragonCardBloodType>>>
+  >({});
 
   readonly dragonSelected = output<AccountDragonRecord>();
 

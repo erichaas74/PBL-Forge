@@ -28,20 +28,22 @@
     (activeItemChange)="selectDragon($event)"
   />
 
-  <ng-template #selectorCard let-dragon let-active="active" let-renderLive="renderLive">
+  <ng-template #selectorCard let-dragon let-active="active" let-renderPortrait="renderPortrait">
     @if (cardViews().get(dragon.id); as cardView) {
       @if (cardGenomeViews().get(dragon.id); as genomeView) {
         <app-dragon-flip-card
           [card]="cardView"
           [genome]="genomeView"
           [selectedChromosome]="selectedCardChromosome()"
+          [selectedGene]="selectedGene()"
           [flipped]="isCardFlipped(dragon.id)"
           [active]="active && !disabled()"
-          [renderLive]="renderLive"
+          [renderPortrait]="renderPortrait"
           [footerLeft]="selectedGeneCount() + ' genes on selected pair'"
           [footerRight]="genomeView.sexChromosomes"
           (flipRequested)="toggleCard(dragon.id)"
           (chromosomeSelected)="selectChromosome($event)"
+          (geneSelected)="selectGene($event)"
         />
       }
     }

@@ -1,29 +1,29 @@
-import { computed, EnvironmentInjector, inject, Injectable } from '@angular/core';
+import { computed, inject, Injectable, NgZone } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
-  Auth,
-  authState,
   GoogleAuthProvider,
   signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
-  User
-} from '@angular/fire/auth';
-import { doc, Firestore, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
-import { toSignal } from '@angular/core/rxjs-interop';
+  User,
+} from 'firebase/auth';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+
 import { environment } from '../../../environments/environment';
-import { runInFirebaseContext } from './firebase-context';
+import { observeAuthState } from './firebase-observables';
+import { FIREBASE_AUTH, FIREBASE_FIRESTORE } from './firebase.providers';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
-  private readonly auth = inject(Auth);
-  private readonly firestore = inject(Firestore);
-  private readonly injector = inject(EnvironmentInjector);
+  private readonly auth = inject(FIREBASE_AUTH);
+  private readonly firestore = inject(FIREBASE_FIRESTORE);
+  private readonly zone = inject(NgZone);
   private readonly initialization = this.initializeSession().catch((error: unknown) => {
     console.error('Firebase session initialization failed.', error);
   });
 
-  readonly user = toSignal(authState(this.auth), { initialValue: null });
+  readonly user = toSignal(observeAuthState(this.auth, this.zone), { initialValue: null });
   readonly isLocal = environment.useEmulators;
   readonly isLocalTeacher = computed(() =>
     this.isLocal && this.user()?.email === 'teacher@pblforge.local');
@@ -41,50 +41,47 @@ export class SessionService {
   }
 
   async signInWithGoogle(): Promise<void> {
-    const credential = await runInFirebaseContext(this.injector, () =>
-      signInWithPopup(this.auth, new GoogleAuthProvider()));
+    const credential = await signInWithPopup(this.auth, new GoogleAuthProvider());
     await this.ensureUserProfile(credential.user);
   }
 
   async signOut(): Promise<void> {
-    await runInFirebaseContext(this.injector, () => signOut(this.auth));
+    await signOut(this.auth);
     if (this.isLocal) {
-      await runInFirebaseContext(this.injector, () => signInAnonymously(this.auth));
+      await signInAnonymously(this.auth);
     }
   }
 
   async signInAsLocalTeacher(): Promise<void> {
     if (!this.isLocal) return;
-    await runInFirebaseContext(this.injector, () =>
-      signInWithEmailAndPassword(
-        this.auth,
-        'teacher@pblforge.local',
-        'dragon-demo-teacher'
-      ));
+    await signInWithEmailAndPassword(
+      this.auth,
+      'teacher@pblforge.local',
+      'dragon-demo-teacher',
+    );
   }
 
   private async initializeSession(): Promise<void> {
     await this.auth.authStateReady();
     if (this.isLocal && !this.auth.currentUser) {
-      await runInFirebaseContext(this.injector, () => signInAnonymously(this.auth));
+      await signInAnonymously(this.auth);
     } else if (!this.isLocal && this.auth.currentUser) {
       await this.ensureUserProfile(this.auth.currentUser);
     }
   }
 
   private async ensureUserProfile(user: User): Promise<void> {
-    const reference = runInFirebaseContext(this.injector, () =>
-      doc(this.firestore, `users/${user.uid}`));
-    const profile = await runInFirebaseContext(this.injector, () => getDoc(reference));
-    await runInFirebaseContext(this.injector, () => {
-      const publicProfile = {
-        displayName: user.displayName ?? user.email ?? 'Student',
-        photoURL: user.photoURL ?? null,
-        lastSeenAt: serverTimestamp(),
-      };
-      return setDoc(reference, profile.exists()
-        ? publicProfile
-        : { ...publicProfile, role: 'student' }, { merge: true });
-    });
+    const reference = doc(this.firestore, `users/${user.uid}`);
+    const profile = await getDoc(reference);
+    const publicProfile = {
+      displayName: user.displayName ?? user.email ?? 'Student',
+      photoURL: user.photoURL ?? null,
+      lastSeenAt: serverTimestamp(),
+    };
+    await setDoc(
+      reference,
+      profile.exists() ? publicProfile : { ...publicProfile, role: 'student' },
+      { merge: true },
+    );
   }
 }

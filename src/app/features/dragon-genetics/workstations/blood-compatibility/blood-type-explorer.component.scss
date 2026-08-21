@@ -1,0 +1,248 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.blood-type-explorer {
+  overflow: hidden;
+  border: 1px solid #45666a;
+  border-radius: 0.85rem;
+  background: #061a1e;
+}
+
+.blood-type-explorer > header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 0.95rem;
+  background: linear-gradient(120deg, #102f34, #0a2328);
+}
+
+.blood-type-explorer header span,
+.explorer-readout small {
+  color: #e4bc67;
+  font-size: var(--text-xs);
+  font-weight: 950;
+  letter-spacing: 0.1em;
+}
+
+.blood-type-explorer h4 {
+  margin: 0.12rem 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.blood-type-explorer header p {
+  margin: 0.2rem 0 0;
+  color: #9fb4b3;
+  font-size: var(--text-sm);
+}
+
+.blood-type-explorer > header > strong {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: #75343a;
+  color: white;
+  font-size: var(--text-md);
+}
+
+.type-picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0.7rem 0.85rem;
+  border-block: 1px solid #314f53;
+  background: #091f24;
+}
+
+.type-picker button {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.7rem;
+  padding: 0.5rem;
+  border: 1px solid #48666a;
+  border-radius: 0.55rem;
+  background: #0d292e;
+  color: #d6e3e1;
+  font-size: var(--text-sm);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.type-picker button i {
+  display: block;
+  width: 1rem;
+  height: 1.25rem;
+  border-radius: 65% 35% 60% 40% / 70% 40% 60% 30%;
+  background: #dc5957;
+  transform: rotate(42deg);
+}
+
+.type-picker button.active {
+  border-color: #e4bc67;
+  background: #633036;
+  color: white;
+  box-shadow: inset 0 0 0 2px rgb(228 188 103 / 18%);
+}
+
+.explorer-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.34fr);
+  gap: 0.7rem;
+  padding: 0.8rem;
+}
+
+.cell-model {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #36575b;
+  border-radius: 0.75rem;
+}
+
+.cell-model svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 20rem;
+}
+
+.plasma-particles circle {
+  fill: #f2ca78;
+  opacity: 0.42;
+}
+
+.antigen .antigen-stalk {
+  fill: none;
+  stroke-width: 5;
+}
+
+.antigen .antigen-head {
+  stroke-width: 2;
+}
+
+.antigen text {
+  fill: white;
+  font-size: var(--text-xs);
+  font-weight: 950;
+}
+
+.antigen-a .antigen-stalk,
+.antigen-a .antigen-head {
+  fill: #e55b54;
+  stroke: #80242a;
+}
+
+.antigen-b .antigen-stalk,
+.antigen-b .antigen-head {
+  fill: #4a9bd2;
+  stroke: #174f78;
+}
+
+.antibody > path:first-child {
+  fill: none;
+  stroke: #c6d9e9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 10;
+}
+
+.antibody .binding-site {
+  stroke: #d4e2ed;
+  stroke-width: 2;
+}
+
+.antibody-a .binding-site {
+  fill: #e55b54;
+}
+
+.antibody-b .binding-site {
+  fill: #4a9bd2;
+}
+
+.antibody text {
+  fill: #dce8e7;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.cell-caption rect {
+  fill: rgb(5 24 28 / 88%);
+  stroke: #45686b;
+}
+
+.cell-caption text {
+  fill: #dce8e7;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.explorer-readout {
+  display: grid;
+  gap: 0.55rem;
+  align-content: start;
+}
+
+.explorer-readout > div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.7rem;
+  border: 1px solid #35565a;
+  border-radius: 0.65rem;
+  background: #0a2429;
+}
+
+.explorer-readout strong {
+  color: #d8e5e3;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+
+.compatible-donors span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.compatible-donors b {
+  display: grid;
+  min-width: 2rem;
+  min-height: 2rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #6d3037;
+  color: white;
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 820px) {
+  .explorer-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .explorer-readout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .blood-type-explorer > header {
+    align-items: flex-start;
+  }
+
+  .type-picker,
+  .explorer-readout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .type-picker button {
+    justify-content: flex-start;
+  }
+
+  .cell-model svg {
+    min-height: 15rem;
+  }
+}

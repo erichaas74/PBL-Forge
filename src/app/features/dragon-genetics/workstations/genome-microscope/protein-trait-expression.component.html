@@ -125,11 +125,7 @@
                 opens it — the same relationship the enzyme bench models.
               -->
               <svg viewBox="0 0 160 120" aria-hidden="true">
-                <path
-                  class="receptor-socket"
-                  [attr.d]="pathway.socketPath"
-                  fill-rule="evenodd"
-                />
+                <path class="receptor-socket" [attr.d]="pathway.socketPath" fill-rule="evenodd" />
                 <path class="receptor-outline" [attr.d]="pathway.shape" />
                 @if (isActivated(pathway.id)) {
                   <path class="receptor-fill" [attr.d]="pathway.shape" />

@@ -40,7 +40,7 @@ export interface EnzymeReactionResult {
 }
 
 /** Scene the reaction is drawn in, matching the SVG viewBox. */
-const SCENE: FieldBounds = { width: 900, height: 440, pad: 70 };
+const SCENE: FieldBounds = { width: 660, height: 340, pad: 44 };
 
 /**
  * Every molecule and every enzyme is drawn at the same scale.
@@ -48,10 +48,20 @@ const SCENE: FieldBounds = { width: 900, height: 440, pad: 70 };
  * That equality is what makes the fit legible: a product is not "about the
  * size of" the active site, it is the same box, so it drops in exactly.
  */
-const BODY_SCALE = 1.3;
+const BODY_SCALE = 0.85;
 
 /** Where the catalyst waits. Molecules that dock here land on its active site. */
-const SITE = { x: 450, y: 250 };
+const SITE = { x: 330, y: 168 };
+
+/**
+ * How far a drifting molecule is lifted so its visible mass sits on its centre.
+ *
+ * A molecule fills only the top of its box and the enzyme fills the bottom, and
+ * the two share the box centre once docked. Drawing a free molecule a little
+ * higher keeps its drift, its wall bounces, and its collisions centred on what
+ * a student can actually see; it settles back down as it seats.
+ */
+const DRIFT_LIFT = 28;
 
 /** Bodies in the cell fluid: three of each reactant, two of each product. */
 const FIELD_POPULATION: readonly FieldSlot[] = [
@@ -350,6 +360,7 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
       rot: (index * 47) % 360,
       vrot: enzyme ? 0 : (((index % 4) - 1.5) / 3) * 2,
       timer: 0,
+      seat: 0,
     };
   }
 
@@ -416,9 +427,8 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
 
   /** Draws the nearest free molecule of each required slot into the active site. */
   private captureReactants(): void {
-    const needed: FieldSlot[] = this.inputMolecules().length > 1
-      ? ['reactant-a', 'reactant-b']
-      : ['reactant-a'];
+    const needed: FieldSlot[] =
+      this.inputMolecules().length > 1 ? ['reactant-a', 'reactant-b'] : ['reactant-a'];
 
     for (const slot of needed) {
       const candidates = this.fieldBodies.filter(
@@ -478,7 +488,7 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
 
     const ambient = this.ambientRefs();
     this.ambientEnzymes.forEach((body, index) => {
-      ambient[index]?.nativeElement.setAttribute('transform', bodyTransform(body, 0.62));
+      ambient[index]?.nativeElement.setAttribute('transform', bodyTransform(body, 0.62, 0));
     });
   }
 }
@@ -489,9 +499,10 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
  * The trailing shift is what makes docking exact: a molecule sharing the
  * enzyme's centre, rotation, and scale lands perfectly on its active site.
  */
-function bodyTransform(body: FieldEntity, scale = BODY_SCALE): string {
+function bodyTransform(body: FieldEntity, scale = BODY_SCALE, lift = DRIFT_LIFT): string {
   const x = Math.round(body.x * 10) / 10;
   const y = Math.round(body.y * 10) / 10;
   const rot = Math.round(body.rot * 10) / 10;
-  return `translate(${x} ${y}) rotate(${rot}) scale(${scale}) translate(-80 -60)`;
+  const offset = Math.round((-60 + lift * (1 - body.seat)) * 10) / 10;
+  return `translate(${x} ${y}) rotate(${rot}) scale(${scale}) translate(-80 ${offset})`;
 }

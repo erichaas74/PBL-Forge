@@ -30,6 +30,10 @@ export interface DragonChromosomeSelection {
   chromosome: AlleleVaultGene['chromosome'];
 }
 
+export interface DragonGeneSelection extends DragonChromosomeSelection {
+  geneId: AlleleVaultGene['id'];
+}
+
 /** Shared physical card deck for choosing one dragon and one chromosome pair. */
 @Component({
   selector: 'app-dragon-chromosome-selector',
@@ -45,12 +49,14 @@ export class DragonChromosomeSelectorComponent {
   readonly alleles = input<readonly AlleleVaultAllele[]>(ALLELE_VAULT_ALLELES);
   readonly initialDragonId = input<string | null>(null);
   readonly initialChromosome = input<AlleleVaultGene['chromosome']>('Chr 1');
+  readonly selectedGene = input<AlleleVaultGene['id'] | null>(null);
   readonly label = input('Dragon and chromosome selector');
   readonly disabled = input(false);
   readonly compact = input(false);
 
   readonly dragonSelected = output<AccountDragonRecord>();
   readonly chromosomeSelected = output<DragonChromosomeSelection>();
+  readonly geneSelected = output<DragonGeneSelection>();
 
   readonly selectedDragonId = linkedSignal(
     () => this.initialDragonId() ?? this.dragons()[0]?.id ?? null,
@@ -148,5 +154,16 @@ export class DragonChromosomeSelectorComponent {
     const chromosomeId = item.id as AlleleVaultGene['chromosome'];
     this.selectedChromosomeId.set(chromosomeId);
     this.chromosomeSelected.emit({ dragon, chromosome: chromosomeId });
+  }
+
+  selectGene(geneId: AlleleVaultGene['id']): void {
+    if (this.disabled()) return;
+    const dragon = this.selectedDragon();
+    const chromosome = this.selectedChromosomeId();
+    const gene = this.genes().find(
+      (candidate) => candidate.id === geneId && candidate.chromosome === chromosome,
+    );
+    if (!dragon || !gene) return;
+    this.geneSelected.emit({ dragon, chromosome, geneId });
   }
 }

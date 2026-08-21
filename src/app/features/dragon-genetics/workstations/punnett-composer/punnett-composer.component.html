@@ -33,57 +33,128 @@
       </button>
     </nav>
 
-    <section class="parent-card-selectors" aria-label="Female and male parent card selectors">
-      <article>
-        <header><small>PARENT 1 · XX</small><strong>Female dragon</strong></header>
-        <app-dragon-chromosome-selector
-          [dragons]="femaleSelectorDragons()"
-          [initialDragonId]="parent1()?.id ?? femaleSelectorDragons()[0]?.id ?? null"
-          [compact]="true"
-          [label]="
-            snapshot().mode === 'parents'
-              ? 'Female parent and chromosome selector'
-              : 'Heterozygous XX test cell'
-          "
-          (dragonSelected)="selectSelectorDragon('parent1', $event)"
-          (chromosomeSelected)="selectSelectorChromosome($event)"
-        />
-        @if (snapshot().mode === 'parents' && !parent1() && femaleSelectorDragons().length) {
-          <button
-            type="button"
-            class="use-parent-card"
-            (click)="useFirstAvailableParent('parent1')"
-          >
-            Use {{ femaleSelectorDragons()[0].name }} as female parent
-          </button>
-        }
-      </article>
+    @if (snapshot().mode === 'parents') {
+      <section class="parent-card-selectors" aria-label="Female and male parent card selectors">
+        <article>
+          <header><small>PARENT 1 · XX</small><strong>Female dragon</strong></header>
+          <app-dragon-chromosome-selector
+            [dragons]="femaleSelectorDragons()"
+            [initialDragonId]="parent1()?.id ?? femaleSelectorDragons()[0]?.id ?? null"
+            [initialChromosome]="selectedChromosome()"
+            [selectedGene]="snapshot().traitId"
+            [compact]="true"
+            label="Female parent and chromosome selector"
+            (dragonSelected)="selectSelectorDragon('parent1', $event)"
+            (chromosomeSelected)="selectSelectorChromosome($event)"
+            (geneSelected)="selectSelectorGene('parent1', $event)"
+          />
+        </article>
 
-      <article>
-        <header><small>PARENT 2 · XY</small><strong>Male dragon</strong></header>
-        <app-dragon-chromosome-selector
-          [dragons]="maleSelectorDragons()"
-          [initialDragonId]="parent2()?.id ?? maleSelectorDragons()[0]?.id ?? null"
-          [compact]="true"
-          [label]="
-            snapshot().mode === 'parents'
-              ? 'Male parent and chromosome selector'
-              : 'Heterozygous XY test cell'
-          "
-          (dragonSelected)="selectSelectorDragon('parent2', $event)"
-          (chromosomeSelected)="selectSelectorChromosome($event)"
-        />
-        @if (snapshot().mode === 'parents' && !parent2() && maleSelectorDragons().length) {
-          <button
-            type="button"
-            class="use-parent-card"
-            (click)="useFirstAvailableParent('parent2')"
-          >
-            Use {{ maleSelectorDragons()[0].name }} as male parent
-          </button>
+        <article>
+          <header><small>PARENT 2 · XY</small><strong>Male dragon</strong></header>
+          <app-dragon-chromosome-selector
+            [dragons]="maleSelectorDragons()"
+            [initialDragonId]="parent2()?.id ?? maleSelectorDragons()[0]?.id ?? null"
+            [initialChromosome]="selectedChromosome()"
+            [selectedGene]="snapshot().traitId"
+            [compact]="true"
+            label="Male parent and chromosome selector"
+            (dragonSelected)="selectSelectorDragon('parent2', $event)"
+            (chromosomeSelected)="selectSelectorChromosome($event)"
+            (geneSelected)="selectSelectorGene('parent2', $event)"
+          />
+        </article>
+      </section>
+    } @else {
+      <section class="test-models" aria-label="Heterozygous test cell models">
+        @for (side of parentSides; track side) {
+          <article class="test-model" [class.parent-two-source]="side === 'parent2'">
+            <header>
+              <small>{{
+                side === 'parent1'
+                  ? 'TEST CELL · XX · LEFT AXIS'
+                  : 'TEST CELL · XY · TOP AXIS'
+              }}</small>
+              <strong>{{ side === 'parent1' ? parent1()?.name : parent2()?.name }}</strong>
+            </header>
+
+            <app-cell-chromosome-viewport
+              [chromosomes]="
+                side === 'parent1' ? parent1CellChromosomes() : parent2CellChromosomes()
+              "
+              [selectedChromosome]="selectedChromosome()"
+              [selectedLocus]="activeGene().sampleCode"
+              [showLoci]="true"
+              [selectable]="true"
+              layout="inspect"
+              [ariaLabel]="
+                (side === 'parent1' ? 'XX' : 'XY') + ' heterozygous test cell and chromosome view'
+              "
+              (chromosomeSelected)="selectTestChromosome($event)"
+            />
+
+            <section class="test-gene-view" [attr.aria-label]="selectedChromosome() + ' genes'">
+              <header>
+                <small>GENE VIEW</small><strong>{{ selectedChromosome() }} genes</strong>
+              </header>
+              <div>
+                @for (gene of chromosomeGenes(); track gene.id) {
+                  <button
+                    type="button"
+                    [class.active]="snapshot().traitId === gene.id"
+                    [attr.aria-pressed]="snapshot().traitId === gene.id"
+                    [style.--gene-color]="gene.locusColor"
+                    (click)="selectTrait(gene.id)"
+                  >
+                    <i aria-hidden="true"></i><span>{{ gene.sampleCode }}</span
+                    ><strong>{{ gene.name }}</strong>
+                  </button>
+                }
+              </div>
+            </section>
+
+            <section class="test-gene-copies" aria-label="Two draggable gene copies">
+              <header><small>GENE COPIES</small><strong>Drag or select a copy</strong></header>
+              <div class="test-source-copies">
+                @for (
+                  allele of side === 'parent1' ? parent1Alleles() : parent2Alleles();
+                  track $index;
+                  let index = $index
+                ) {
+                  <button
+                    type="button"
+                    class="gamete-token"
+                    [class.parent-one-token]="side === 'parent1'"
+                    [class.parent-two-token]="side === 'parent2'"
+                    [class.selected]="
+                      pendingGamete()?.parent === side && pendingGamete()?.sourceIndex === index
+                    "
+                    [attr.aria-pressed]="
+                      pendingGamete()?.parent === side && pendingGamete()?.sourceIndex === index
+                    "
+                    draggable="true"
+                    (click)="selectGamete(side, index)"
+                    (dragstart)="startGameteDrag($event, side, index)"
+                  >
+                    @if (parentGeneCopyModel(side, index); as chromosome) {
+                      <app-chromosome-svg
+                        class="gene-copy-chromosome"
+                        [chromosome]="chromosome"
+                        [selectedLocus]="activeGene().sampleCode"
+                        [showAllLoci]="true"
+                        [compact]="true"
+                      />
+                    }
+                    <small>Copy {{ index + 1 }}</small>
+                    <strong>{{ allele }}</strong>
+                  </button>
+                }
+              </div>
+            </section>
+          </article>
         }
-      </article>
-    </section>
+      </section>
+    }
 
     <main class="composer-surface">
       <header class="gene-console">
@@ -92,155 +163,23 @@
           <strong>{{ activeTrait().name }}</strong>
           <span>{{ activeGene().sampleCode }} · {{ activeGene().symbol }}</span>
         </div>
-        <div class="gene-selector" role="group" [attr.aria-label]="selectedChromosome() + ' genes'">
-          @for (gene of chromosomeGenes(); track gene.id) {
-            <button
-              type="button"
-              [class.active]="snapshot().traitId === gene.id"
-              [attr.aria-pressed]="snapshot().traitId === gene.id"
-              [style.--gene-color]="gene.locusColor"
-              (click)="selectTrait(gene.id)"
-            >
-              <i aria-hidden="true"></i><span>{{ gene.sampleCode }}</span
-              >{{ gene.name }}
-            </button>
-          }
-        </div>
+        <p>
+          {{
+            snapshot().mode === 'parents'
+              ? 'Selected from the chromosome side of a parent card'
+              : 'Selected from the heterozygous chromosome model'
+          }}
+        </p>
         <button class="clear-button" type="button" (click)="clearSquare()">Clear square</button>
       </header>
 
       <div class="matrix-scroller">
         <div class="punnett-matrix" aria-label="Two by two Punnett square">
           <div class="matrix-corner">
-            <span aria-hidden="true">P2 ↓</span>
+            <span aria-hidden="true">P1 ↓</span>
             <strong>Gamete axes</strong>
-            <span aria-hidden="true">P1 →</span>
+            <span aria-hidden="true">P2 →</span>
           </div>
-
-          <section class="parent-bank parent-one" [class.ready]="!!parent1()">
-            <button
-              class="parent-load-target"
-              type="button"
-              [class.awaiting]="!!stagedAccountRecord()"
-              [attr.aria-label]="
-                parent1()
-                  ? 'Parent 1 is ' + parent1()!.name + '. Select a file record to replace it.'
-                  : 'Empty Parent 1 bay. Select a dragon above, then choose this bay.'
-              "
-              (click)="loadStagedRecord('parent1')"
-            >
-              <small>FEMALE · XX · COLUMNS</small>
-              @if (parent1(); as parent) {
-                <strong>{{ parent.name }}</strong
-                ><span>{{ parent.title }}</span>
-              } @else {
-                <strong>Place selected dragon</strong><span>Choose a specimen above</span>
-              }
-            </button>
-            <div class="gamete-source-row" aria-label="Parent 1 available gametes">
-              @for (allele of parent1Alleles(); track $index; let index = $index) {
-                <button
-                  type="button"
-                  class="gamete-token parent-one-token"
-                  [class.selected]="
-                    pendingGamete()?.parent === 'parent1' && pendingGamete()?.sourceIndex === index
-                  "
-                  [attr.aria-pressed]="
-                    pendingGamete()?.parent === 'parent1' && pendingGamete()?.sourceIndex === index
-                  "
-                  draggable="true"
-                  (click)="selectGamete('parent1', index)"
-                  (dragstart)="startGameteDrag($event, 'parent1', index)"
-                >
-                  @if (parentGeneCopyModel('parent1', index); as chromosome) {
-                    <app-chromosome-svg
-                      class="gene-copy-chromosome"
-                      [chromosome]="chromosome"
-                      [selectedLocus]="activeGene().sampleCode"
-                      [showAllLoci]="true"
-                      [compact]="true"
-                    />
-                  }
-                  <small>Copy {{ index + 1 }}</small
-                  ><strong>{{ allele }}</strong
-                  ><i>→</i>
-                </button>
-              }
-            </div>
-          </section>
-
-          @for (slot of [0, 1]; track slot) {
-            <button
-              type="button"
-              class="axis-slot parent-one-axis"
-              [class.filled]="!!slotValue('parent1', slot)"
-              [class.compatible]="pendingGamete()?.parent === 'parent1'"
-              [attr.aria-label]="slotAriaLabel('parent1', slot)"
-              [style.grid-column]="slot + 3"
-              (click)="placePendingGamete('parent1', slot)"
-              (dragover)="allowGameteDrop($event, 'parent1')"
-              (drop)="dropGamete($event, 'parent1', slot)"
-            >
-              <small>P1 · {{ slot + 1 }}</small>
-              @if (slotValue('parent1', slot); as allele) {
-                <strong>{{ allele }}</strong>
-              } @else {
-                <span>Drop allele</span>
-              }
-            </button>
-          }
-
-          <section class="parent-bank parent-two" [class.ready]="!!parent2()">
-            <button
-              class="parent-load-target"
-              type="button"
-              [class.awaiting]="!!stagedAccountRecord()"
-              [attr.aria-label]="
-                parent2()
-                  ? 'Parent 2 is ' + parent2()!.name + '. Select a file record to replace it.'
-                  : 'Empty Parent 2 bay. Select a dragon above, then choose this bay.'
-              "
-              (click)="loadStagedRecord('parent2')"
-            >
-              <small>MALE · XY · ROWS</small>
-              @if (parent2(); as parent) {
-                <strong>{{ parent.name }}</strong
-                ><span>{{ parent.title }}</span>
-              } @else {
-                <strong>Place selected dragon</strong><span>Choose a specimen above</span>
-              }
-            </button>
-            <div class="gamete-source-column" aria-label="Parent 2 available gametes">
-              @for (allele of parent2Alleles(); track $index; let index = $index) {
-                <button
-                  type="button"
-                  class="gamete-token parent-two-token"
-                  [class.selected]="
-                    pendingGamete()?.parent === 'parent2' && pendingGamete()?.sourceIndex === index
-                  "
-                  [attr.aria-pressed]="
-                    pendingGamete()?.parent === 'parent2' && pendingGamete()?.sourceIndex === index
-                  "
-                  draggable="true"
-                  (click)="selectGamete('parent2', index)"
-                  (dragstart)="startGameteDrag($event, 'parent2', index)"
-                >
-                  @if (parentGeneCopyModel('parent2', index); as chromosome) {
-                    <app-chromosome-svg
-                      class="gene-copy-chromosome"
-                      [chromosome]="chromosome"
-                      [selectedLocus]="activeGene().sampleCode"
-                      [showAllLoci]="true"
-                      [compact]="true"
-                    />
-                  }
-                  <small>Copy {{ index + 1 }}</small
-                  ><strong>{{ allele }}</strong
-                  ><i>→</i>
-                </button>
-              }
-            </div>
-          </section>
 
           @for (slot of [0, 1]; track slot) {
             <button
@@ -248,8 +187,9 @@
               class="axis-slot parent-two-axis"
               [class.filled]="!!slotValue('parent2', slot)"
               [class.compatible]="pendingGamete()?.parent === 'parent2'"
+              [disabled]="snapshot().mode === 'parents'"
               [attr.aria-label]="slotAriaLabel('parent2', slot)"
-              [style.grid-row]="slot + 3"
+              [style.grid-column]="slot + 2"
               (click)="placePendingGamete('parent2', slot)"
               (dragover)="allowGameteDrop($event, 'parent2')"
               (drop)="dropGamete($event, 'parent2', slot)"
@@ -258,7 +198,29 @@
               @if (slotValue('parent2', slot); as allele) {
                 <strong>{{ allele }}</strong>
               } @else {
-                <span>Drop allele</span>
+                <span>{{ snapshot().mode === 'test' ? 'Drop allele' : 'Select card gene' }}</span>
+              }
+            </button>
+          }
+
+          @for (slot of [0, 1]; track slot) {
+            <button
+              type="button"
+              class="axis-slot parent-one-axis"
+              [class.filled]="!!slotValue('parent1', slot)"
+              [class.compatible]="pendingGamete()?.parent === 'parent1'"
+              [disabled]="snapshot().mode === 'parents'"
+              [attr.aria-label]="slotAriaLabel('parent1', slot)"
+              [style.grid-row]="slot + 2"
+              (click)="placePendingGamete('parent1', slot)"
+              (dragover)="allowGameteDrop($event, 'parent1')"
+              (drop)="dropGamete($event, 'parent1', slot)"
+            >
+              <small>P1 · {{ slot + 1 }}</small>
+              @if (slotValue('parent1', slot); as allele) {
+                <strong>{{ allele }}</strong>
+              } @else {
+                <span>{{ snapshot().mode === 'test' ? 'Drop allele' : 'Select card gene' }}</span>
               }
             </button>
           }
@@ -271,8 +233,8 @@
               [class.selected]="selectedCellIndex() === cell.index"
               [attr.aria-label]="cellAriaLabel(cell)"
               [attr.aria-pressed]="selectedCellIndex() === cell.index"
-              [style.grid-column]="cell.column + 3"
-              [style.grid-row]="cell.row + 3"
+              [style.grid-column]="cell.column + 2"
+              [style.grid-row]="cell.row + 2"
               (click)="selectCell(cell.index)"
             >
               <span class="cell-number">{{ cell.index + 1 }}</span>

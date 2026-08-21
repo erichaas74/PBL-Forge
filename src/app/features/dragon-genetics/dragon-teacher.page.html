@@ -153,7 +153,7 @@
                         : '—'
                     }}{{
                       usesEvidenceScore(activity.id) &&
-                      student.simulationScores?.[activity.id] !== undefined
+                      $safeNavigationMigration(student.simulationScores?.[activity.id]) !== undefined
                         ? '%'
                         : ''
                     }}</span

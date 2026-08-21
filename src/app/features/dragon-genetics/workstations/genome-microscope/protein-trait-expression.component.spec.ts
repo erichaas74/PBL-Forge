@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { stubSpecimenViewportRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { provideDragonSpecimenProfile } from '../../simulation/domain/dragon-specimen.profile';
 import { ALLELE_VAULT_GENES } from '../allele-workbench/allele-vault.models';
 import { DRAGON_GENE_DNA_CATALOG, geneProtein } from '../shared/dragon-gene-dna.catalog';
@@ -15,6 +16,7 @@ describe('ProteinTraitExpressionComponent', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    stubSpecimenViewportRendering();
     TestBed.configureTestingModule({
       imports: [ProteinTraitExpressionComponent],
       providers: [provideDragonSpecimenProfile()],

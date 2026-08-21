@@ -1,18 +1,17 @@
-import { EnvironmentInjector, inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable, NgZone, signal } from '@angular/core';
 import {
   collection,
-  collectionData,
   doc,
-  docData,
-  Firestore,
   query,
   serverTimestamp,
   setDoc,
-  where
-} from '@angular/fire/firestore';
+  where,
+} from 'firebase/firestore';
 import { catchError, map, Observable, of, shareReplay } from 'rxjs';
+
 import { ActivityResponse, PblActivity, PblProject } from '../models/pbl.models';
-import { runInFirebaseContext } from './firebase-context';
+import { observeCollection, observeDocument } from './firebase-observables';
+import { FIREBASE_FIRESTORE } from './firebase.providers';
 
 const BUILT_IN_PROJECTS: readonly PblProject[] = [{
   id: 'dragon-genetics-lab',
@@ -32,14 +31,15 @@ const BUILT_IN_PROJECTS: readonly PblProject[] = [{
 
 @Injectable({ providedIn: 'root' })
 export class ProjectRepository {
-  private readonly firestore = inject(Firestore);
-  private readonly injector = inject(EnvironmentInjector);
+  private readonly firestore = inject(FIREBASE_FIRESTORE);
+  private readonly zone = inject(NgZone);
 
   readonly error = signal<string | null>(null);
 
-  readonly publishedProjects$: Observable<PblProject[]> = collectionData(
+  readonly publishedProjects$: Observable<PblProject[]> = observeCollection<PblProject>(
     query(collection(this.firestore, 'projects'), where('status', '==', 'published')),
-    { idField: 'id' }
+    this.zone,
+    { idField: 'id' },
   ).pipe(
     map((projects) => {
       const merged = new Map(BUILT_IN_PROJECTS.map(project => [project.id, project]));
@@ -55,28 +55,27 @@ export class ProjectRepository {
   );
 
   project$(projectId: string): Observable<PblProject | undefined> {
-    return runInFirebaseContext(this.injector, () =>
-      docData(doc(this.firestore, `projects/${projectId}`), { idField: 'id' }).pipe(
-        map((project) => project as PblProject | undefined)
-      ));
+    return observeDocument<PblProject>(
+      doc(this.firestore, `projects/${projectId}`),
+      this.zone,
+      { idField: 'id' },
+    );
   }
 
   activities$(projectId: string): Observable<PblActivity[]> {
-    return runInFirebaseContext(this.injector, () =>
-      collectionData(collection(this.firestore, `projects/${projectId}/activities`), {
-        idField: 'id'
-      }).pipe(
-        map((activities) =>
-          (activities as PblActivity[]).sort((a, b) => a.order - b.order)
-        )
-      ));
+    return observeCollection<PblActivity>(
+      collection(this.firestore, `projects/${projectId}/activities`),
+      this.zone,
+      { idField: 'id' },
+    ).pipe(map((activities) => activities.sort((a, b) => a.order - b.order)));
   }
 
   activity$(projectId: string, activityId: string): Observable<PblActivity | undefined> {
-    return runInFirebaseContext(this.injector, () =>
-      docData(doc(this.firestore, `projects/${projectId}/activities/${activityId}`), {
-        idField: 'id'
-      }).pipe(map((activity) => activity as PblActivity | undefined)));
+    return observeDocument<PblActivity>(
+      doc(this.firestore, `projects/${projectId}/activities/${activityId}`),
+      this.zone,
+      { idField: 'id' },
+    );
   }
 
   async saveResponse(
@@ -86,18 +85,17 @@ export class ProjectRepository {
     response: ActivityResponse
   ): Promise<void> {
     const submissionId = `${studentId}_${projectId}_${activityId}`;
-    await runInFirebaseContext(this.injector, () =>
-      setDoc(
-        doc(this.firestore, `submissions/${submissionId}`),
-        {
-          studentId,
-          projectId,
-          activityId,
-          response,
-          status: 'in-progress',
-          updatedAt: serverTimestamp()
-        },
-        { merge: true }
-      ));
+    await setDoc(
+      doc(this.firestore, `submissions/${submissionId}`),
+      {
+        studentId,
+        projectId,
+        activityId,
+        response,
+        status: 'in-progress',
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
   }
 }

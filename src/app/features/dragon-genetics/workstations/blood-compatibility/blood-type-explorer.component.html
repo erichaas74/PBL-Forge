@@ -1,0 +1,163 @@
+<section class="blood-type-explorer" aria-labelledby="blood-type-explorer-title">
+  <header>
+    <div>
+      <span>INTERACTIVE CELL MODEL</span>
+      <h4 id="blood-type-explorer-title">Blood type explorer</h4>
+      <p>Select a blood type to compare its red-cell antigens and plasma antibodies.</p>
+    </div>
+    <strong>TYPE {{ typeSymbol(selectedType().name) }}</strong>
+  </header>
+
+  <div class="type-picker" role="group" aria-label="Blood type to explore">
+    @for (type of bloodTypes; track type.id) {
+      <button
+        type="button"
+        [class.active]="selectedTypeId() === type.id"
+        [attr.aria-pressed]="selectedTypeId() === type.id"
+        [attr.data-type]="typeSymbol(type.name)"
+        (click)="selectType(type.id)"
+      >
+        <i aria-hidden="true"></i>
+        Type {{ typeSymbol(type.name) }}
+      </button>
+    }
+  </div>
+
+  <div class="explorer-stage">
+    <div class="cell-model">
+      <svg
+        viewBox="0 0 740 420"
+        role="img"
+        [attr.aria-label]="ariaSummary()"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <title>{{ ariaSummary() }}</title>
+        <defs>
+          <radialGradient id="explorer-plasma" cx="50%" cy="48%" r="68%">
+            <stop offset="0" stop-color="#f5cf80" stop-opacity="0.2" />
+            <stop offset="1" stop-color="#082126" stop-opacity="0" />
+          </radialGradient>
+          <radialGradient id="explorer-cell" cx="40%" cy="35%" r="68%">
+            <stop offset="0" stop-color="#ec7d72" />
+            <stop offset="0.58" stop-color="#d94f50" />
+            <stop offset="1" stop-color="#7e262f" />
+          </radialGradient>
+          <radialGradient id="explorer-cell-center" cx="50%" cy="50%" r="60%">
+            <stop offset="0" stop-color="#75232c" />
+            <stop offset="1" stop-color="#a33239" />
+          </radialGradient>
+        </defs>
+
+        <rect width="740" height="420" rx="24" fill="#071d22" />
+        <rect width="740" height="420" rx="24" fill="url(#explorer-plasma)" />
+        <g class="plasma-particles" aria-hidden="true">
+          <circle cx="45" cy="58" r="3" />
+          <circle cx="106" cy="341" r="4" />
+          <circle cx="174" cy="76" r="2.5" />
+          <circle cx="582" cy="62" r="3" />
+          <circle cx="673" cy="126" r="4" />
+          <circle cx="635" cy="348" r="2.5" />
+          <circle cx="545" cy="304" r="3" />
+          <circle cx="73" cy="212" r="2.5" />
+        </g>
+
+        <g class="red-cell" aria-hidden="true">
+          <circle cx="370" cy="213" r="132" fill="#5d1e28" opacity="0.35" />
+          <circle cx="370" cy="213" r="121" fill="url(#explorer-cell)" />
+          <ellipse cx="370" cy="216" rx="63" ry="52" fill="url(#explorer-cell-center)" />
+          <ellipse cx="342" cy="172" rx="53" ry="25" fill="#ffaaa0" opacity="0.16" />
+        </g>
+
+        @for (position of antigenPositions; track $index) {
+          @let marker = markerAt($index);
+          @if (marker) {
+            <g
+              class="antigen"
+              [class.antigen-a]="marker === 'a'"
+              [class.antigen-b]="marker === 'b'"
+              [attr.transform]="
+                'translate(' + position.x + ' ' + position.y + ') rotate(' + position.rotation + ')'
+              "
+              aria-hidden="true"
+            >
+              <path class="antigen-stalk" d="M 0 8 L 0 -13" />
+              @if (marker === 'a') {
+                <path class="antigen-head" d="M -10 -12 L 10 -12 L 0 -31 Z" />
+              } @else {
+                <circle class="antigen-head" cx="0" cy="-23" r="9" />
+              }
+              <text x="0" y="-19" text-anchor="middle" dominant-baseline="middle">
+                {{ marker.toUpperCase() }}
+              </text>
+            </g>
+          }
+        }
+
+        @if (antibodies().includes('a')) {
+          <g
+            class="antibody antibody-a"
+            transform="translate(122 164) rotate(-18)"
+            aria-hidden="true"
+          >
+            <path d="M 0 40 L 0 6 M 0 6 L -25 -21 M 0 6 L 25 -21" />
+            <path class="binding-site" d="M -33 -27 L -17 -27 L -25 -14 Z" />
+            <path class="binding-site" d="M 17 -27 L 33 -27 L 25 -14 Z" />
+            <text x="0" y="62" text-anchor="middle">anti-A</text>
+          </g>
+        }
+        @if (antibodies().includes('b')) {
+          <g
+            class="antibody antibody-b"
+            transform="translate(618 262) rotate(17)"
+            aria-hidden="true"
+          >
+            <path d="M 0 40 L 0 6 M 0 6 L -25 -21 M 0 6 L 25 -21" />
+            <circle class="binding-site" cx="-25" cy="-24" r="8" />
+            <circle class="binding-site" cx="25" cy="-24" r="8" />
+            <text x="0" y="62" text-anchor="middle">anti-B</text>
+          </g>
+        }
+
+        <g class="cell-caption" aria-hidden="true">
+          <rect x="266" y="370" width="208" height="34" rx="17" />
+          <text x="370" y="392" text-anchor="middle">
+            {{ selectedType().markerLabel.replace(' · Rh positive', '') }}
+          </text>
+        </g>
+      </svg>
+    </div>
+
+    <aside class="explorer-readout" aria-live="polite">
+      <div>
+        <small>RED-CELL SURFACE</small>
+        <strong>
+          @if (selectedType().markers.length) {
+            {{ selectedType().markers.join(' + ').toUpperCase() }} antigen{{
+              selectedType().markers.length === 1 ? '' : 's'
+            }}
+          } @else {
+            No A or B antigens
+          }
+        </strong>
+      </div>
+      <div>
+        <small>PLASMA</small>
+        <strong>
+          {{ antibodyLabel() }}
+        </strong>
+      </div>
+      <div>
+        <small>POSSIBLE GENOTYPES</small>
+        <strong>{{ selectedType().possibleGenotypes.join(' or ') }}</strong>
+      </div>
+      <div class="compatible-donors">
+        <small>COMPATIBLE RED-CELL DONORS</small>
+        <span>
+          @for (donor of compatibleDonors(); track donor.id) {
+            <b>{{ typeSymbol(donor.name) }}</b>
+          }
+        </span>
+      </div>
+    </aside>
+  </div>
+</section>

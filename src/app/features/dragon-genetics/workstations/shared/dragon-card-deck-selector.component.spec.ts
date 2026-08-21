@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { stubSpecimenThumbnailRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { DRAGON_PARENTS } from '../../simulation/domain/dragon-inheritance';
 import { AccountDragonRecord } from './account-genetics-library.models';
 import { DragonCardDeckSelectorComponent } from './dragon-card-deck-selector.component';
@@ -17,6 +18,7 @@ describe('DragonCardDeckSelectorComponent', () => {
   let selector: DragonCardDeckSelectorComponent;
 
   beforeEach(() => {
+    stubSpecimenThumbnailRendering();
     TestBed.configureTestingModule({ imports: [DragonCardDeckSelectorComponent] });
     fixture = TestBed.createComponent(DragonCardDeckSelectorComponent);
     selector = fixture.componentInstance;
@@ -33,9 +35,25 @@ describe('DragonCardDeckSelectorComponent', () => {
 
     expect(element.querySelectorAll('.fanned-deck__slot').length).toBe(DRAGONS.length);
     expect(element.querySelector('.is-active')?.textContent).toContain(DRAGONS[0].name);
+    expect(element.querySelector('app-specimen-thumb')).not.toBeNull();
+    expect(element.querySelector('app-specimen-viewport')).toBeNull();
     element.querySelector<HTMLElement>('.is-next .fanned-deck__peek')!.click();
 
     expect(selector.dragonSelected.emit).toHaveBeenCalledWith(DRAGONS[1]);
+  });
+
+  it('shows an unknown blood drop until a laboratory result is supplied', () => {
+    const element = fixture.nativeElement as HTMLElement;
+    const drop = element.querySelector<HTMLElement>('.is-active .dragon-card__blood-type')!;
+
+    expect(drop.textContent).toContain('?');
+    expect(drop.getAttribute('aria-label')).toBe('Blood type not tested');
+
+    fixture.componentRef.setInput('bloodTypeByDragonId', { [DRAGONS[0].id]: 'AB' });
+    fixture.detectChanges();
+
+    expect(drop.textContent).toContain('AB');
+    expect(drop.getAttribute('aria-label')).toBe('Blood type AB');
   });
 
   it('flips the active card and keeps chromosome selection on its back', () => {

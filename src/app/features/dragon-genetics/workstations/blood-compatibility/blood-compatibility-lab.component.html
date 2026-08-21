@@ -62,9 +62,10 @@
       </div>
       <p>
         A and B are codominant: an AB dragon displays both antigens. A and B are each expressed over
-        O. Every blood type in this lab is Rh positive. In this simplified red-cell model, every donor antigen must already be present on the
-        recipient's cells.
+        O. Every blood type in this lab is Rh positive. In this simplified red-cell model, every
+        donor antigen must already be present on the recipient's cells.
       </p>
+      <app-blood-type-explorer />
       <div class="type-reference">
         @for (type of bloodTypes; track type.id) {
           <article>
@@ -86,293 +87,215 @@
   <div class="intake-grid">
     <app-account-genetics-file
       [studentId]="studentId()"
+      [dragonsOnly]="true"
+      [initiallyOpen]="true"
       [selectedRecordId]="stagedAccountRecord()?.id ?? null"
+      [bloodTypeByDragonId]="determinedBloodTypeByDragonId()"
+      label="Emergency patient dragon cards"
       (recordSelected)="selectAccountRecord($event)"
     />
 
-    <section
-      class="patient-bay"
-      [class.loaded]="!!patientSpecimen()"
-      (dragover)="allowAccountDrop($event)"
-      (drop)="dropPatient($event)"
-      aria-labelledby="patient-bay-title"
-    >
-      <header>
-        <div>
-          <span class="panel-code">EMERGENCY PATIENT</span>
-          <h3 id="patient-bay-title">Trauma intake</h3>
-        </div>
-        <button type="button" [disabled]="!stagedAccountRecord()" (click)="loadStagedPatient()">
-          Load patient
-        </button>
-      </header>
+    <ng-container *ngTemplateOutlet="bloodTester" />
 
-      @if (patientSpecimen(); as patient) {
-        <div class="patient-card">
-          <span
-            class="dragon-mark"
-            [style.--dragon-color]="patient.color"
-            [style.--dragon-accent]="patient.accentColor"
-            aria-hidden="true"
-            >{{ patient.dragonName.slice(0, 1) }}</span
-          >
-          <div>
-            <small>{{ patient.dragonTitle }}</small>
-            <strong>{{ patient.dragonName }}</strong>
-            <p>Major blood loss after an Arena impact. Transfusion support requested.</p>
-          </div>
-        </div>
-        <div class="sealed-sample">
-          <span aria-hidden="true">{{ patient.sampleCode }}</span>
-          <div>
-            <small>PATIENT BLOOD SAMPLE</small>
-            @if (patientBloodType(); as type) {
-              <strong>{{ type.name }} marker phenotype</strong>
-              <p>Possible genotypes: {{ type.possibleGenotypes.join(' or ') }}</p>
-            } @else {
-              <strong>Identity sealed</strong>
-              <p>Both antiserum reactions are required.</p>
-            }
-          </div>
-          <button type="button" (click)="loadPatientSample()">Test sample</button>
-        </div>
-      } @else {
-        <div class="empty-patient">
-          <span aria-hidden="true">+</span>
-          <strong>Drop an account dragon here</strong>
-          <p>
-            A chromosome record loads the dragon it belongs to without revealing blood identity.
-          </p>
-        </div>
-      }
-    </section>
-
-    <aside
-      class="patient-monitor"
-      [attr.data-condition]="patientCondition()"
-      aria-label="Patient condition monitor"
-    >
-      <header>
-        <span class="panel-code">VITALS</span>
-        <h3>Healing monitor</h3>
-      </header>
-      <div class="pulse-line" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-      <strong>
-        {{
-          !patientSpecimen()
-            ? 'AWAITING PATIENT'
-            : patientCondition() === 'stable'
-              ? 'STABILIZING'
-              : patientCondition() === 'reaction'
-                ? 'TRANSFUSION REACTION'
-                : 'CRITICAL · HOLDING'
-        }}
-      </strong>
-      <dl>
-        <div>
-          <dt>Pressure</dt>
-          <dd>{{ patientCondition() === 'stable' ? 'Improving' : 'Low' }}</dd>
-        </div>
-        <div>
-          <dt>Cell response</dt>
-          <dd>
-            {{
-              patientCondition() === 'reaction'
-                ? 'Clumping'
-                : patientCondition() === 'stable'
-                  ? 'Dispersed'
-                  : 'Unknown'
-            }}
-          </dd>
-        </div>
-      </dl>
-    </aside>
+    <ng-container *ngTemplateOutlet="donorRack" />
   </div>
 
   <div class="investigation-grid" [class.inactive]="!patientSpecimen()">
-    <aside class="donor-rack" aria-labelledby="donor-rack-title">
-      <header>
-        <span class="panel-code">DONOR ROSTER</span>
-        <h3 id="donor-rack-title">Available dragons</h3>
-      </header>
-      <p>
-        {{
-          mode() === 'challenge'
-            ? 'Finite units and availability notes are active.'
-            : 'Teaching-model units remain reusable.'
-        }}
-      </p>
-      <div class="donor-list">
-        @for (donor of donors(); track donor.id) {
-          @let donorType = bloodTypeForSpecimen(donor.id);
-          <article
-            class="donor-card"
-            [class.selected]="stagedDonorId() === donor.id"
-            [class.unavailable]="!donorUsable(donor)"
-            [attr.draggable]="donorUsable(donor)"
-            (dragstart)="startDonorDrag($event, donor)"
-          >
-            <header>
-              <span
-                class="dragon-mark small"
-                [style.--dragon-color]="donor.color"
-                [style.--dragon-accent]="donor.accentColor"
-                aria-hidden="true"
-                >{{ donor.dragonName.slice(0, 1) }}</span
-              >
-              <div>
-                <strong>{{ donor.dragonName }}</strong
-                ><small>{{ donor.sampleCode }} · {{ donor.dragonTitle }}</small>
-              </div>
-              <b>{{ donorUnits(donor) }}</b>
-            </header>
-            <p>{{ donor.condition }}</p>
-            @if (mode() === 'challenge') {
-              <small class="stewardship">{{ donor.stewardshipNote }}</small>
-            }
-            <div class="donor-result">
-              @if (donorType) {
-                <span>{{ donorType.name }}</span
-                ><small
-                  >{{ donorType.markerLabel }} ·
-                  {{ donorType.possibleGenotypes.join(' or ') }}</small
-                >
-              } @else {
-                <span>Blood identity sealed</span><small>Run both serum tests</small>
-              }
-            </div>
-            <footer>
-              <button type="button" (click)="loadDonorSample(donor.id)">Test sample</button>
-              <button
-                type="button"
-                [disabled]="!donorUsable(donor)"
-                (click)="selectDonor(donor.id)"
-              >
-                Select donor
-              </button>
-            </footer>
-          </article>
-        }
-      </div>
-    </aside>
-
-    <section class="blood-tester" aria-labelledby="blood-tester-title">
-      <header>
-        <div>
-          <span class="panel-code">MARKER ANALYSIS</span>
-          <h3 id="blood-tester-title">Antiserum reaction plate</h3>
-        </div>
-        @if (activeSpecimen(); as specimen) {
-          <strong>{{ specimen.sampleCode }}</strong>
-        }
-      </header>
-
-      <div class="reagent-shelf" aria-label="Blood testing reagents">
-        @for (reagent of reagents; track reagent.marker) {
-          <button
-            type="button"
-            class="reagent-vial"
-            [class.selected]="pendingReagent() === reagent.marker"
-            [attr.aria-pressed]="pendingReagent() === reagent.marker"
-            draggable="true"
-            (click)="selectReagent(reagent.marker)"
-            (dragstart)="startReagentDrag($event, reagent.marker)"
-          >
-            <span [attr.data-marker]="reagent.marker" aria-hidden="true">{{ reagent.code }}</span>
-            <strong>{{ reagent.name }}</strong>
-          </button>
-        }
-      </div>
-
-      <div
-        class="reaction-plate"
-        [class.loaded]="!!activeSpecimen()"
-        (dragover)="allowReagentDrop($event)"
-        (drop)="dropReagent($event)"
-      >
-        @if (activeSpecimen(); as specimen) {
-          <header>
-            <div>
-              <small>LOADED SPECIMEN</small
-              ><strong>{{ specimen.sampleCode }} · {{ specimen.dragonName }}</strong>
-            </div>
-            <button type="button" [disabled]="!pendingReagent()" (click)="applyPendingReagent()">
-              Apply selected serum
+    <ng-template #donorRack>
+      <aside class="donor-rack" aria-labelledby="donor-rack-title">
+        <header>
+          <span class="panel-code">DONOR VIALS</span>
+          <h3 id="donor-rack-title">Typed blood supply</h3>
+        </header>
+        <p>
+          {{
+            mode() === 'challenge'
+              ? 'One pre-typed vial per ABO type; finite supply rules are active.'
+              : 'Four reusable, pre-typed teaching-model units.'
+          }}
+        </p>
+        <div class="donor-list">
+          @for (donor of donorVials(); track donor.id) {
+            @let donorType = donorBloodType(donor);
+            <button
+              type="button"
+              class="donor-vial"
+              [class.selected]="stagedDonorId() === donor.id"
+              [class.unavailable]="!donorUsable(donor)"
+              [disabled]="!donorUsable(donor)"
+              [attr.draggable]="donorUsable(donor)"
+              [attr.aria-label]="'Select type ' + donorType.name + ' donor vial'"
+              (click)="selectDonor(donor.id)"
+              (dragstart)="startDonorDrag($event, donor)"
+            >
+              <span class="vial-visual" aria-hidden="true">
+                <i class="vial-cap"></i>
+                <i class="vial-glass"><i class="vial-blood"></i></i>
+                <b>{{ donorTypeSymbol(donor) }}</b>
+              </span>
+              <span class="vial-copy">
+                <strong>Type {{ donorTypeSymbol(donor) }}</strong>
+              </span>
+              <span class="vial-supply">{{ donorUnits(donor) }}</span>
             </button>
-          </header>
-          <div class="well-grid">
-            @for (reagent of reagents; track reagent.marker) {
-              @let reaction = reactionFor(reagent.marker);
-              <article
-                class="reaction-well"
-                [class.untested]="reaction === null"
-                [class.agglutination]="reaction === true"
-                [class.smooth]="reaction === false"
-              >
-                <div class="well-visual" [attr.data-marker]="reagent.marker" aria-hidden="true">
-                  <div class="serum-vial"><span>{{ reagent.code }}</span></div>
-                  <i class="serum-drop"></i>
-                  <div class="well-dish">
-                    <div class="well-liquid">
-                      <i class="mix-ring"></i>
-                      @for (cell of [
-                        { x: '22%', y: '23%', r: '12deg', d: '0ms' },
-                        { x: '48%', y: '18%', r: '-15deg', d: '35ms' },
-                        { x: '74%', y: '28%', r: '25deg', d: '70ms' },
-                        { x: '25%', y: '51%', r: '-30deg', d: '105ms' },
-                        { x: '55%', y: '46%', r: '8deg', d: '140ms' },
-                        { x: '78%', y: '53%', r: '-20deg', d: '175ms' },
-                        { x: '20%', y: '74%', r: '22deg', d: '210ms' },
-                        { x: '47%', y: '72%', r: '-8deg', d: '245ms' },
-                        { x: '72%', y: '76%', r: '15deg', d: '280ms' },
-                        { x: '84%', y: '40%', r: '-24deg', d: '315ms' },
-                      ]; track $index) {
-                        <i
-                          class="test-cell"
-                          [style.--cell-x]="cell.x"
-                          [style.--cell-y]="cell.y"
-                          [style.--cell-r]="cell.r"
-                          [style.--cell-delay]="cell.d"
-                        ></i>
-                      }
+          }
+        </div>
+      </aside>
+    </ng-template>
+
+    <ng-template #bloodTester>
+      <section class="blood-tester" aria-labelledby="blood-tester-title">
+        <header>
+          <div>
+            <span class="panel-code">{{
+              patientTypeClaim() ? 'PATIENT TYPE RECORDED' : 'MARKER ANALYSIS'
+            }}</span>
+            <h3 id="blood-tester-title">Antiserum reaction plate</h3>
+          </div>
+          @if (patientTypeClaim(); as patientType) {
+            <strong>TYPE {{ patientType.name.replace('+', '') }}</strong>
+          } @else if (activeSpecimen(); as specimen) {
+            <strong>{{ specimen.sampleCode }}</strong>
+          }
+        </header>
+
+        <div class="reagent-shelf" aria-label="Blood testing reagents">
+          @for (reagent of reagents; track reagent.marker) {
+            <button
+              type="button"
+              class="reagent-vial"
+              [class.selected]="pendingReagent() === reagent.marker"
+              [attr.aria-pressed]="pendingReagent() === reagent.marker"
+              draggable="true"
+              (click)="selectReagent(reagent.marker)"
+              (dragstart)="startReagentDrag($event, reagent.marker)"
+            >
+              <span [attr.data-marker]="reagent.marker" aria-hidden="true">{{ reagent.code }}</span>
+              <strong>{{ reagent.name }}</strong>
+            </button>
+          }
+        </div>
+
+        <div
+          class="reaction-plate"
+          [class.loaded]="!!activeSpecimen()"
+          (dragover)="allowReagentDrop($event)"
+          (drop)="dropReagent($event)"
+        >
+          @if (activeSpecimen(); as specimen) {
+            <header>
+              <div>
+                <small>LOADED SPECIMEN</small
+                ><strong>{{ specimen.sampleCode }} · {{ specimen.dragonName }}</strong>
+              </div>
+              <button type="button" [disabled]="!pendingReagent()" (click)="applyPendingReagent()">
+                Apply selected serum
+              </button>
+            </header>
+            <div class="well-grid">
+              @for (reagent of reagents; track reagent.marker) {
+                @let reaction = reactionFor(reagent.marker);
+                <article
+                  class="reaction-well"
+                  [class.untested]="reaction === null"
+                  [class.agglutination]="reaction === true"
+                  [class.smooth]="reaction === false"
+                >
+                  <div class="well-visual" [attr.data-marker]="reagent.marker" aria-hidden="true">
+                    <div class="serum-vial">
+                      <span>{{ reagent.code }}</span>
+                    </div>
+                    <i class="serum-drop"></i>
+                    <div class="well-dish">
+                      <div class="well-liquid">
+                        <i class="mix-ring"></i>
+                        @for (
+                          cell of [
+                            { x: '22%', y: '23%', r: '12deg', d: '0ms' },
+                            { x: '48%', y: '18%', r: '-15deg', d: '35ms' },
+                            { x: '74%', y: '28%', r: '25deg', d: '70ms' },
+                            { x: '25%', y: '51%', r: '-30deg', d: '105ms' },
+                            { x: '55%', y: '46%', r: '8deg', d: '140ms' },
+                            { x: '78%', y: '53%', r: '-20deg', d: '175ms' },
+                            { x: '20%', y: '74%', r: '22deg', d: '210ms' },
+                            { x: '47%', y: '72%', r: '-8deg', d: '245ms' },
+                            { x: '72%', y: '76%', r: '15deg', d: '280ms' },
+                            { x: '84%', y: '40%', r: '-24deg', d: '315ms' },
+                          ];
+                          track $index
+                        ) {
+                          <i
+                            class="test-cell"
+                            [style.--cell-x]="cell.x"
+                            [style.--cell-y]="cell.y"
+                            [style.--cell-r]="cell.r"
+                            [style.--cell-delay]="cell.d"
+                          ></i>
+                        }
+                      </div>
                     </div>
                   </div>
-                </div>
-                <strong>{{ reagent.name }}</strong>
-                <span>{{
-                  reaction === null
-                    ? 'Not tested'
-                    : reaction
-                      ? 'Agglutination'
-                      : 'Smooth suspension'
-                }}</span>
-              </article>
-            }
-          </div>
-          @if (activeBloodType(); as type) {
-            <div class="type-readout" role="status">
-              <span
-                ><small>MARKER PHENOTYPE</small><strong>{{ type.name }}</strong></span
-              >
-              <span
-                ><small>POSSIBLE GENOTYPES</small
-                ><strong>{{ type.possibleGenotypes.join(' or ') }}</strong></span
-              >
+                  <strong>{{ reagent.name }}</strong>
+                  <span>{{
+                    reaction === null
+                      ? 'Not tested'
+                      : reaction
+                        ? 'Agglutination'
+                        : 'Smooth suspension'
+                  }}</span>
+                </article>
+              }
             </div>
+            @if (isFullyTested(specimen.id) && specimen.id === patientSpecimen()?.id) {
+              <section class="type-classifier" aria-labelledby="type-classifier-title">
+                <header>
+                  <div>
+                    <small>STUDENT EVIDENCE RECORD</small>
+                    <strong id="type-classifier-title"
+                      >Record the blood type shown by the wells</strong
+                    >
+                  </div>
+                  @if (patientTypeClaim(); as claim) {
+                    <span>RECORDED: TYPE {{ claim.name.replace('+', '') }}</span>
+                  }
+                </header>
+                <div class="type-choices" role="group" aria-label="Record the patient's blood type">
+                  @for (type of bloodTypes; track type.id) {
+                    <button
+                      type="button"
+                      [class.selected]="patientTypeClaimId() === type.id"
+                      [attr.aria-pressed]="patientTypeClaimId() === type.id"
+                      [attr.data-patient-type]="type.name.replace('+', '')"
+                      (click)="recordPatientBloodType(type.id)"
+                    >
+                      Type {{ type.name.replace('+', '') }}
+                    </button>
+                  }
+                </div>
+                <p>
+                  Compare both visible reactions. This classification remains revisable as you
+                  gather transfusion evidence.
+                </p>
+              </section>
+            } @else {
+              <p class="tester-cue">
+                Apply both sera in either order. Agglutination means that surface marker is present.
+              </p>
+            }
           } @else {
-            <p class="tester-cue">
-              Apply both sera in either order. Agglutination means that surface marker is present.
-            </p>
+            <div class="empty-tester">
+              <span aria-hidden="true">•••</span>
+              <strong>Choose a dragon card</strong>
+              <p>Its blood sample will load directly onto this testing plate.</p>
+            </div>
           }
-        } @else {
-          <div class="empty-tester">
-            <span aria-hidden="true">•••</span>
-            <strong>Load a patient or donor sample</strong>
-            <p>Reagent wells stay neutral until a specimen is on the plate.</p>
-          </div>
+        </div>
+
+        @if (patientTypeClaim()) {
+          <ng-container *ngTemplateOutlet="transfusionStation" />
         }
-      </div>
-    </section>
+      </section>
+    </ng-template>
 
     <aside class="evidence-board" aria-labelledby="evidence-title">
       <header>
@@ -393,7 +316,7 @@
             <span
               >AA
               <b>{{
-                testFor(patient.id)?.antiA === null || !testFor(patient.id)
+                $safeNavigationMigration(testFor(patient.id)?.antiA) === null || !testFor(patient.id)
                   ? '—'
                   : testFor(patient.id)?.antiA
                     ? '+'
@@ -403,7 +326,7 @@
             <span
               >AB
               <b>{{
-                testFor(patient.id)?.antiB === null || !testFor(patient.id)
+                $safeNavigationMigration(testFor(patient.id)?.antiB) === null || !testFor(patient.id)
                   ? '—'
                   : testFor(patient.id)?.antiB
                     ? '+'
@@ -434,120 +357,122 @@
     </aside>
   </div>
 
-  <section
-    class="healing-chamber"
-    [class.loaded]="!!chamberDonor()"
-    [attr.data-result]="
-      latestChamberTrial()?.compatible === true
-        ? 'compatible'
-        : latestChamberTrial()?.compatible === false
-          ? 'reaction'
-          : 'untested'
-    "
-    (dragover)="allowDonorDrop($event)"
-    (drop)="dropDonor($event)"
-    aria-labelledby="healing-chamber-title"
-  >
-    <header>
-      <div>
-        <span class="panel-code">TRANSFUSION MODEL</span>
-        <h3 id="healing-chamber-title">Healing Chamber</h3>
+  <ng-template #transfusionStation>
+    <section
+      class="healing-chamber transfusion-station"
+      [class.loaded]="!!chamberDonor()"
+      [attr.data-result]="
+        latestChamberTrial()?.compatible === true
+          ? 'compatible'
+          : latestChamberTrial()?.compatible === false
+            ? 'reaction'
+            : 'untested'
+      "
+      (dragover)="allowDonorDrop($event)"
+      (drop)="dropDonor($event)"
+      aria-label="Patient transfusion station"
+    >
+      <div class="transfusion-toolbar">
+        <div>
+          <strong>Patient type recorded</strong>
+          <p>Select or drag a typed donor vial, then observe the transfusion response.</p>
+        </div>
+        <div class="chamber-actions">
+          <button type="button" [disabled]="!stagedDonorId()" (click)="loadStagedDonor()">
+            Load selected vial
+          </button>
+          <button type="button" [disabled]="!chamberDonor()" (click)="releaseDonor()">
+            Clear station
+          </button>
+        </div>
       </div>
-      <div class="chamber-actions">
-        <button type="button" [disabled]="!stagedDonorId()" (click)="loadStagedDonor()">
-          Load selected donor
-        </button>
-        <button type="button" [disabled]="!chamberDonor()" (click)="releaseDonor()">
-          Clear chamber
-        </button>
-      </div>
-    </header>
 
-    <div class="chamber-body">
-      <aside class="recipient-port">
-        <small>RECIPIENT</small>
-        @if (patientSpecimen(); as patient) {
-          <strong>{{ patient.dragonName }}</strong>
-          <span>{{ patientBloodType()?.name ?? 'Blood type untested' }}</span>
-        } @else {
-          <strong>No patient loaded</strong>
-        }
-        <div class="health-gauge" [attr.data-condition]="patientCondition()"><i></i></div>
-      </aside>
+      <div class="chamber-body">
+        <aside class="recipient-port">
+          <small>RECIPIENT</small>
+          @if (patientSpecimen(); as patient) {
+            <strong>{{ patient.dragonName }}</strong>
+            <span>{{ patientTypeClaimSymbol() ?? 'Blood type not recorded' }}</span>
+          } @else {
+            <strong>No patient loaded</strong>
+          }
+          <div class="health-gauge" [attr.data-condition]="patientCondition()"><i></i></div>
+        </aside>
 
-      <div class="cell-field" aria-live="polite">
-        @if (chamberDonor(); as donor) {
-          @let donorType = chamberDonorBloodType();
-          <div class="flow-line" aria-hidden="true"></div>
-          @for (cell of [0, 1, 2, 3, 4, 5]; track cell) {
-            <span
-              class="blood-cell"
-              [class.clumped]="latestChamberTrial()?.compatible === false"
-              aria-hidden="true"
-            >
-              @if (donorType?.markers?.includes('a')) {
-                <i class="a-marker">A</i>
-              }
-              @if (donorType?.markers?.includes('b')) {
-                <i class="b-marker">B</i>
-              }
-            </span>
-          }
-          @if (latestChamberTrial()?.compatible === false) {
-            <span class="antibody one" aria-hidden="true">Y</span
-            ><span class="antibody two" aria-hidden="true">Y</span
-            ><span class="antibody three" aria-hidden="true">Y</span>
-          }
-          <p>
-            @if (latestChamberTrial(); as trial) {
-              {{
-                trial.compatible
-                  ? 'Donor cells remain dispersed; circulation is stabilizing.'
-                  : 'Recipient antibodies bind unfamiliar donor markers; cells are clumping.'
-              }}
-            } @else {
-              {{
-                donorType
-                  ? 'Marker evidence is available. Authorize to observe the cell response.'
-                  : 'Test this donor with both sera before authorization.'
-              }}
+        <div class="cell-field" aria-live="polite">
+          @if (chamberDonor(); as donor) {
+            @let donorType = chamberDonorBloodType();
+            <div class="flow-line" aria-hidden="true"></div>
+            @for (cell of [0, 1, 2, 3, 4, 5]; track cell) {
+              <span
+                class="blood-cell"
+                [class.clumped]="latestChamberTrial()?.compatible === false"
+                aria-hidden="true"
+              >
+                @if (donorType?.markers?.includes('a')) {
+                  <i class="a-marker">A</i>
+                }
+                @if (donorType?.markers?.includes('b')) {
+                  <i class="b-marker">B</i>
+                }
+              </span>
             }
-          </p>
-        } @else {
-          <div class="empty-chamber">
-            <span aria-hidden="true">+</span><strong>Drop an available donor here</strong>
-            <p>Donor cards remain in the roster and can also be selected, then loaded.</p>
-          </div>
-        }
+            @if (latestChamberTrial()?.compatible === false) {
+              <span class="antibody one" aria-hidden="true">Y</span
+              ><span class="antibody two" aria-hidden="true">Y</span
+              ><span class="antibody three" aria-hidden="true">Y</span>
+            }
+            <p>
+              @if (latestChamberTrial(); as trial) {
+                {{
+                  trial.compatible
+                    ? 'Donor cells remain dispersed; circulation is stabilizing.'
+                    : 'Recipient antibodies bind unfamiliar donor markers; cells are clumping.'
+                }}
+              } @else {
+                {{
+                  donorType
+                    ? 'Marker evidence is available. Authorize to observe the cell response.'
+                    : 'Test this donor with both sera before authorization.'
+                }}
+              }
+            </p>
+          } @else {
+            <div class="empty-chamber">
+              <span aria-hidden="true">+</span><strong>Drop an available donor vial here</strong>
+              <p>Choose a typed vial from the donor rack, then load it into this station.</p>
+            </div>
+          }
+        </div>
+
+        <aside class="donor-port">
+          <small>DONOR UNIT</small>
+          @if (chamberDonor(); as donor) {
+            <strong>{{ donor.dragonName }}</strong>
+            <span>{{ chamberDonorBloodType()?.name ?? 'Blood type untested' }}</span>
+            <p>{{ donorUnits(donor) }}</p>
+          } @else {
+            <strong>None staged</strong>
+          }
+          <button type="button" [disabled]="!chamberReady()" (click)="authorizeTransfusion()">
+            Authorize transfusion
+          </button>
+        </aside>
       </div>
 
-      <aside class="donor-port">
-        <small>DONOR UNIT</small>
-        @if (chamberDonor(); as donor) {
-          <strong>{{ donor.dragonName }}</strong>
-          <span>{{ chamberDonorBloodType()?.name ?? 'Blood type untested' }}</span>
-          <p>{{ donorUnits(donor) }}</p>
-        } @else {
-          <strong>None staged</strong>
-        }
-        <button type="button" [disabled]="!chamberReady()" (click)="authorizeTransfusion()">
-          Authorize transfusion
-        </button>
-      </aside>
-    </div>
-
-    @if (transfusionTrials().length) {
-      <div class="trial-log" aria-label="Transfusion trial evidence">
-        @for (trial of transfusionTrials(); track trial.id) {
-          <span [attr.data-result]="trial.compatible ? 'compatible' : 'reaction'"
-            ><strong>{{ trial.donorName }}</strong
-            >{{ trial.compatible ? 'cells dispersed' : 'cell clumping'
-            }}{{ trial.unitConsumed ? ' · 1 unit used' : '' }}</span
-          >
-        }
-      </div>
-    }
-  </section>
+      @if (transfusionTrials().length) {
+        <div class="trial-log" aria-label="Transfusion trial evidence">
+          @for (trial of transfusionTrials(); track trial.id) {
+            <span [attr.data-result]="trial.compatible ? 'compatible' : 'reaction'"
+              ><strong>{{ trial.donorName }}</strong
+              >{{ trial.compatible ? 'cells dispersed' : 'cell clumping'
+              }}{{ trial.unitConsumed ? ' · 1 unit used' : '' }}</span
+            >
+          }
+        </div>
+      }
+    </section>
+  </ng-template>
 
   <section class="emergency-record" aria-labelledby="emergency-record-title">
     <header>
@@ -592,11 +517,11 @@
       <dl>
         <div>
           <dt>Patient blood</dt>
-          <dd>{{ patientBloodType()?.name ?? 'Incomplete marker evidence' }}</dd>
+          <dd>{{ patientTypeClaimSymbol() ?? 'Not recorded' }}</dd>
         </div>
         <div>
           <dt>Possible genotype</dt>
-          <dd>{{ patientBloodType()?.possibleGenotypes?.join(' or ') ?? '—' }}</dd>
+          <dd>{{ patientTypeClaim()?.possibleGenotypes?.join(' or ') ?? '—' }}</dd>
         </div>
         <div>
           <dt>Donor blood</dt>

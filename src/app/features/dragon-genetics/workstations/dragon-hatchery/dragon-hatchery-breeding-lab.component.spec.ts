@@ -1,5 +1,9 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import {
+  stubSpecimenThumbnailRendering,
+  stubSpecimenViewportRendering,
+} from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
 import { generateMeiosisRun } from './meiosis-gamete.domain';
 import { DragonHatcheryBreedingLabComponent } from './dragon-hatchery-breeding-lab.component';
@@ -12,6 +16,8 @@ describe('DragonHatcheryBreedingLabComponent', () => {
   beforeEach(() => {
     localStorage.removeItem(`pbl-forge.dragon-genetics.account-library.v1.${studentId}`);
     localStorage.removeItem(`pbl-forge.dragon-genetics.hatchery-breeding.v1.${studentId}`);
+    stubSpecimenThumbnailRendering();
+    stubSpecimenViewportRendering();
     TestBed.configureTestingModule({ imports: [DragonHatcheryBreedingLabComponent] });
     fixture = TestBed.createComponent(DragonHatcheryBreedingLabComponent);
     fixture.componentRef.setInput('studentId', studentId);
@@ -51,6 +57,33 @@ describe('DragonHatcheryBreedingLabComponent', () => {
     component.selectParent('female', male);
     expect(component.eggParent()?.id).toBe(female.id);
     expect(component.statusMessage()).toContain('female dragon');
+  });
+
+  it('keeps both parent meiosis microscopes available without a numbered step rail', () => {
+    const female = component.account().dragons.find((dragon) => dragon.sex === 'female')!;
+    const male = component.account().dragons.find((dragon) => dragon.sex === 'male')!;
+    component.selectParent('female', female);
+    component.selectParent('male', male);
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('.step-number')).toBeNull();
+    expect(root.querySelectorAll('.meiosis-parent-switch button').length).toBe(2);
+
+    component.inspectParentMeiosis('male');
+    expect(component.activeRole()).toBe('male');
+
+    const spermRun = generateMeiosisRun(male, 'male', 'sperm-first', 'scales');
+    component.selectGamete('male', {
+      run: spermRun,
+      gamete: spermRun.gametes[0],
+      reason: '',
+      selectedAtIso: new Date().toISOString(),
+    });
+
+    expect(component.spermSelection()).not.toBeNull();
+    expect(component.eggSelection()).toBeNull();
+    expect(component.activeRole()).toBe('female');
   });
 
   it('fuses two loaded chromosome cells into an interactive diploid egg', fakeAsync(() => {

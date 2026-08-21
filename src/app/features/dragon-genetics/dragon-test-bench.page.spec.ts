@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { stubSpecimenViewportRendering } from '../../shared/assembly/preview/specimen-viewport.testing';
 import { DragonTestBenchPage } from './dragon-test-bench.page';
 
 describe('DragonTestBenchPage', () => {
@@ -13,6 +14,7 @@ describe('DragonTestBenchPage', () => {
   }
 
   beforeEach(async () => {
+    stubSpecimenViewportRendering();
     await TestBed.configureTestingModule({ imports: [DragonTestBenchPage] }).compileComponents();
     fixture = TestBed.createComponent(DragonTestBenchPage);
     fixture.detectChanges();

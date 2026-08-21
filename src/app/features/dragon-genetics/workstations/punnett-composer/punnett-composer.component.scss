@@ -37,7 +37,6 @@ button {
 .instrument-header span,
 .gene-console small,
 .composer-mode small,
-.parent-load-target small,
 .evidence-inspector > header span,
 .genotype-readout small,
 .cross-record small,
@@ -157,17 +156,6 @@ app-dragon-chromosome-selector {
   border-radius: 0;
 }
 
-.use-parent-card {
-  min-height: 3rem;
-  margin: 0.65rem;
-  border: 1px solid #f1d47c;
-  border-radius: 0.65rem;
-  background: #f1d47c;
-  color: #152a31;
-  font-weight: 950;
-  cursor: pointer;
-}
-
 .composer-mode button {
   gap: 0.12rem;
   padding: 0.55rem 0.7rem;
@@ -203,7 +191,6 @@ app-dragon-chromosome-selector {
 
 .composer-surface {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   overflow: hidden;
 }
@@ -233,13 +220,6 @@ app-dragon-chromosome-selector {
   font-size: 0.75rem;
 }
 
-.gene-selector {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.35rem;
-}
-
-.gene-selector button,
 .clear-button {
   min-height: 2.8rem;
   padding: 0.35rem 0.45rem;
@@ -252,38 +232,149 @@ app-dragon-chromosome-selector {
   cursor: pointer;
 }
 
-.gene-selector button {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  text-align: left;
-}
-
-.gene-selector button i {
-  grid-row: 1 / 3;
-  width: 0.6rem;
-  height: 0.6rem;
-  margin-right: 0.35rem;
-  border-radius: 50%;
-  background: var(--gene-color);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gene-color) 18%, transparent);
-}
-
-.gene-selector button span {
-  color: #6f929f;
-  font-size: 0.75rem;
-  font-weight: 750;
-}
-
-.gene-selector button:hover,
-.gene-selector button.active {
-  border-color: var(--simulation-accent, #5eb5e8);
-  background: color-mix(in srgb, var(--simulation-accent, #5eb5e8) 14%, #0e303e);
-  color: white;
+.gene-console > p {
+  margin: 0;
+  color: #9bb1b9;
+  font-size: 0.8rem;
+  line-height: 1.35;
 }
 
 .clear-button {
   white-space: nowrap;
+}
+
+.test-models {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.test-model {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--p1) 65%, #38515d);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 50% 32%, rgb(101 189 232 / 9%), transparent 24rem), rgb(7 28 38 / 94%);
+}
+
+.test-model.parent-two-source {
+  border-color: color-mix(in srgb, var(--p2) 65%, #38515d);
+}
+
+.test-model > header {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.test-model > header small,
+.test-gene-view > header small,
+.test-gene-copies > header small {
+  color: var(--p1);
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+
+.parent-two-source > header small {
+  color: var(--p2);
+}
+
+.test-model > header strong {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+}
+
+.test-model app-cell-chromosome-viewport {
+  --cell-viewport-accent: var(--p1);
+  --cell-viewport-edge: color-mix(in srgb, var(--p1) 58%, transparent);
+}
+
+.test-model.parent-two-source app-cell-chromosome-viewport {
+  --cell-viewport-accent: var(--p2);
+  --cell-viewport-edge: color-mix(in srgb, var(--p2) 58%, transparent);
+}
+
+.test-gene-view,
+.test-gene-copies {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.55rem;
+  border: 1px solid #35525e;
+  border-radius: 0.7rem;
+  background: rgb(4 21 29 / 68%);
+}
+
+.test-gene-view > header,
+.test-gene-copies > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.test-gene-view > header strong,
+.test-gene-copies > header strong {
+  color: #d9e4e8;
+  font-size: 0.8rem;
+}
+
+.test-gene-view > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.test-gene-view button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  min-height: 2.7rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid #34515e;
+  border-radius: 0.5rem;
+  background: #0e303e;
+  color: #aec0c7;
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.test-gene-view button > i {
+  grid-row: 1 / 3;
+  width: 0.55rem;
+  height: 1.5rem;
+  margin-right: 0.4rem;
+  border-radius: 99px;
+  background: var(--gene-color);
+}
+
+.test-gene-view button > span {
+  color: #7896a1;
+}
+
+.test-gene-view button > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.test-gene-view button:hover,
+.test-gene-view button.active {
+  border-color: var(--gene-color);
+  background: color-mix(in srgb, var(--gene-color) 13%, #0e303e);
+  color: white;
+}
+
+.test-source-copies {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
 }
 
 .matrix-scroller {
@@ -295,21 +386,18 @@ app-dragon-chromosome-selector {
 
 .punnett-matrix {
   display: grid;
-  grid-template-columns: minmax(7.5rem, 0.78fr) minmax(5.4rem, 0.52fr) repeat(
-      2,
-      minmax(9.5rem, 1fr)
-    );
-  grid-template-rows: 7rem 5.2rem repeat(2, minmax(9.3rem, 1fr));
+  grid-template-columns: minmax(7rem, 0.62fr) repeat(2, minmax(10rem, 1fr));
+  grid-template-rows: 6.2rem repeat(2, minmax(10rem, 1fr));
   gap: 0.38rem;
   width: 100%;
-  min-width: 39rem;
-  min-height: 36.5rem;
+  min-width: 30rem;
+  min-height: 29rem;
 }
 
 .matrix-corner {
   display: grid;
-  grid-column: 1 / 3;
-  grid-row: 1 / 3;
+  grid-column: 1;
+  grid-row: 1;
   grid-template-columns: 1fr auto;
   grid-template-rows: 1fr auto;
   gap: 0.25rem;
@@ -340,91 +428,6 @@ app-dragon-chromosome-selector {
   justify-self: center;
   color: #aec2ca;
   font-size: 0.8rem;
-}
-
-.parent-bank {
-  display: grid;
-  gap: 0.5rem;
-  min-width: 0;
-  padding: 0.55rem;
-  border: 1px dashed #49626c;
-  border-radius: 0.8rem;
-  background: rgb(5 24 33 / 76%);
-}
-
-.parent-bank.ready {
-  border-style: solid;
-}
-
-.parent-one {
-  grid-column: 3 / 5;
-  grid-row: 1;
-  grid-template-columns: minmax(9rem, 0.75fr) minmax(12rem, 1.25fr);
-  border-color: color-mix(in srgb, var(--p1) 65%, #38515d);
-}
-
-.parent-two {
-  grid-column: 1;
-  grid-row: 3 / 5;
-  grid-template-rows: auto minmax(0, 1fr);
-  border-color: color-mix(in srgb, var(--p2) 65%, #38515d);
-}
-
-.parent-load-target {
-  display: grid;
-  align-content: center;
-  min-width: 0;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid #395864;
-  border-radius: 0.6rem;
-  background: rgb(255 255 255 / 4%);
-  color: white;
-  text-align: left;
-  cursor: pointer;
-}
-
-.parent-load-target.awaiting {
-  border-color: #f2d37c;
-  box-shadow: 0 0 0 3px rgb(242 211 124 / 9%);
-}
-
-.parent-one .parent-load-target small {
-  color: var(--p1);
-}
-
-.parent-two .parent-load-target small {
-  color: var(--p2);
-}
-
-.parent-load-target strong,
-.parent-load-target span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.parent-load-target strong {
-  margin-top: 0.15rem;
-  font-family: var(--font-display);
-  font-size: 0.8rem;
-}
-
-.parent-load-target span {
-  margin-top: 0.1rem;
-  color: #8da5af;
-  font-size: 0.75rem;
-}
-
-.gamete-source-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.gamete-source-column {
-  display: grid;
-  align-content: center;
-  gap: 0.65rem;
 }
 
 .gamete-token {
@@ -515,6 +518,11 @@ app-dragon-chromosome-selector {
   cursor: pointer;
 }
 
+.axis-slot:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
 .axis-slot small,
 .axis-slot span {
   font-size: 0.75rem;
@@ -542,7 +550,7 @@ app-dragon-chromosome-selector {
 }
 
 .parent-one-axis {
-  grid-row: 2;
+  grid-column: 1;
 }
 
 .parent-one-axis.filled {
@@ -556,7 +564,7 @@ app-dragon-chromosome-selector {
 }
 
 .parent-two-axis {
-  grid-column: 2;
+  grid-row: 1;
 }
 
 .parent-two-axis.filled {
@@ -970,7 +978,6 @@ summary:focus-visible {
 
   app-dragon-chromosome-selector,
   .composer-mode,
-  .composer-surface,
   .evidence-inspector {
     grid-column: 1;
     grid-template-columns: minmax(14rem, 0.8fr) minmax(14rem, 0.9fr) minmax(18rem, 1.2fr);
@@ -1005,7 +1012,8 @@ summary:focus-visible {
 }
 
 @media (max-width: 860px) {
-  .parent-card-selectors {
+  .parent-card-selectors,
+  .test-models {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -1033,7 +1041,7 @@ summary:focus-visible {
     grid-template-columns: 1fr auto;
   }
 
-  .gene-selector {
+  .gene-console > p {
     grid-column: 1 / 3;
     grid-row: 2;
   }
@@ -1064,7 +1072,7 @@ summary:focus-visible {
 }
 
 @media (max-width: 560px) {
-  .gene-selector {
+  .test-gene-view > div {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

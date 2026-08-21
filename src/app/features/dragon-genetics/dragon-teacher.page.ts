@@ -2,15 +2,17 @@ import { AsyncPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  EnvironmentInjector,
   inject,
+  NgZone,
   signal,
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { collection, collectionData, Firestore, query, where } from '@angular/fire/firestore';
 import { RouterLink } from '@angular/router';
+import { collection, query, where } from 'firebase/firestore';
 import { catchError, combineLatest, map, of, switchMap } from 'rxjs';
-import { runInFirebaseContext } from '../../core/firebase/firebase-context';
+
+import { observeCollection } from '../../core/firebase/firebase-observables';
+import { FIREBASE_FIRESTORE } from '../../core/firebase/firebase.providers';
 import { SessionService } from '../../core/firebase/session.service';
 import { DragonAdaptiveStore } from './adaptive/dragon-adaptive.store';
 import {
@@ -45,8 +47,8 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonTeacherPage {
-  private readonly firestore = inject(Firestore);
-  private readonly injector = inject(EnvironmentInjector);
+  private readonly firestore = inject(FIREBASE_FIRESTORE);
+  private readonly zone = inject(NgZone);
   readonly session = inject(SessionService);
   readonly adaptiveStore = inject(DragonAdaptiveStore);
   readonly error = signal<string | null>(null);
@@ -60,24 +62,24 @@ export class DragonTeacherPage {
   readonly progress$ = toObservable(this.session.user).pipe(
     switchMap((user) => {
       this.error.set(null);
-      return runInFirebaseContext(this.injector, () => {
-        const records = collection(this.firestore, 'dragonLabProgress');
-        const source = query(records, where('teacherId', '==', user?.uid ?? '__none__'));
-        return collectionData(source, { idField: 'id' }).pipe(
-          map((documents) =>
-            (documents as DragonStudentProgressDocument[]).sort(
-              (a, b) =>
-                (b.completedSimulationIds?.length ?? 0) - (a.completedSimulationIds?.length ?? 0) ||
-                a.studentId.localeCompare(b.studentId),
-            ),
+      const records = collection(this.firestore, 'dragonLabProgress');
+      const source = query(records, where('teacherId', '==', user?.uid ?? '__none__'));
+      return observeCollection<DragonStudentProgressDocument>(source, this.zone, {
+        idField: 'id',
+      }).pipe(
+        map((documents) =>
+          documents.sort(
+            (a, b) =>
+              (b.completedSimulationIds?.length ?? 0) - (a.completedSimulationIds?.length ?? 0) ||
+              a.studentId.localeCompare(b.studentId),
           ),
-          catchError((error: unknown) => {
-            console.error('Dragon Genetics teacher dashboard could not load.', error);
-            this.error.set('Sign in with the assigned teacher account to view student records.');
-            return of([] as DragonStudentProgressDocument[]);
-          }),
-        );
-      });
+        ),
+        catchError((error: unknown) => {
+          console.error('Dragon Genetics teacher dashboard could not load.', error);
+          this.error.set('Sign in with the assigned teacher account to view student records.');
+          return of([] as DragonStudentProgressDocument[]);
+        }),
+      );
     }),
   );
   readonly dashboard$ = combineLatest([

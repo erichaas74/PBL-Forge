@@ -1,6 +1,11 @@
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import {
+  stubSpecimenThumbnailRendering,
+  stubSpecimenViewportRendering,
+} from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
+import { DragonCardDeckSelectorComponent } from '../shared/dragon-card-deck-selector.component';
 import { IncubatorSamplerComponent } from './incubator-sampler.component';
 
 describe('IncubatorSamplerComponent', () => {
@@ -9,6 +14,8 @@ describe('IncubatorSamplerComponent', () => {
 
   beforeEach(async () => {
     localStorage.removeItem(storageKey);
+    stubSpecimenThumbnailRendering();
+    stubSpecimenViewportRendering();
     await TestBed.configureTestingModule({
       imports: [IncubatorSamplerComponent],
     }).compileComponents();
@@ -25,6 +32,11 @@ describe('IncubatorSamplerComponent', () => {
     expect(inventories.length).toBe(2);
     expect(inventories[0].componentInstance.sexFilter()).toBe('female');
     expect(inventories[1].componentInstance.sexFilter()).toBe('male');
+    expect(inventories.every(({ componentInstance }) => componentInstance.dragonsOnly())).toBeTrue();
+    expect(inventories.every(({ componentInstance }) => componentInstance.open())).toBeTrue();
+    expect(fixture.debugElement.queryAll(By.directive(DragonCardDeckSelectorComponent)).length).toBe(
+      2,
+    );
     expect(fixture.nativeElement.textContent).toContain('FEMALE DRAGONS · EGG PARENT');
     expect(fixture.nativeElement.textContent).toContain('MALE DRAGONS · SPERM PARENT');
     fixture.destroy();

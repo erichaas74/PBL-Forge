@@ -259,6 +259,18 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
     this.assignParent(role, record);
   }
 
+
+  inspectParentMeiosis(role: ParentRole): void {
+    if (!this.parentsReady() || this.clutch().length) return;
+    this.activeRole.set(role);
+    const selection = role === 'female' ? this.eggSelection() : this.spermSelection();
+    this.statusMessage.set(
+      selection
+        ? `${role === 'female' ? 'Egg' : 'Sperm'} gamete secured. You can inspect or replace it.`
+        : `Investigating the ${role === 'female' ? 'egg' : 'sperm'} parent’s meiosis.`,
+    );
+  }
+
   selectGamete(role: ParentRole, selection: SelectedMeiosisGamete): void {
     if (this.fertilizationState() === 'egg') {
       this.fertilizationState.set('loading');
@@ -269,13 +281,18 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
       this.eggSelection.set(selection);
       this.inspectedEggGameteChromosome.set(null);
       this.inspectedEggGameteLocus.set(null);
-      this.activeRole.set('male');
-      this.statusMessage.set('Egg gamete secured. Run the sperm parent’s meiosis next.');
+      if (!this.spermSelection()) this.activeRole.set('male');
+      this.statusMessage.set('Egg gamete secured. Either parent remains available for comparison.');
     } else {
       this.spermSelection.set(selection);
       this.inspectedSpermGameteChromosome.set(null);
       this.inspectedSpermGameteLocus.set(null);
-      this.statusMessage.set('Sperm gamete secured. The fertilization chamber is ready.');
+      if (!this.eggSelection()) this.activeRole.set('female');
+      this.statusMessage.set(
+        this.eggSelection()
+          ? 'Both gametes are secured. The fertilization chamber is ready.'
+          : 'Sperm gamete secured. Either parent remains available for comparison.',
+      );
     }
     this.persist();
     if (this.canFertilize()) this.fertilize();

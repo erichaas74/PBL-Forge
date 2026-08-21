@@ -109,7 +109,9 @@ describe('dragon protein geometry', () => {
     const set = enzymeShapeSet(CHAIN, 42);
     const socket = socketPlatePath(set.product);
 
-    expect(socket.startsWith(`M 0 0 H ${MOLECULE_BOX.width} V ${MOLECULE_BOX.height} H 0 Z`)).toBeTrue();
+    expect(
+      socket.startsWith(`M 0 0 H ${MOLECULE_BOX.width} V ${MOLECULE_BOX.height} H 0 Z`),
+    ).toBeTrue();
     expect(socket.endsWith(set.product)).toBeTrue();
     // Any molecule can be punched out, including a single released fragment.
     expect(socketPlatePath(set.substrateB)).toContain(set.substrateB);

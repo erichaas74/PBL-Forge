@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideSpecimenProfile } from './specimen-profile.registry';
 import { SpecimenThumbComponent } from './specimen-thumb.component';
 import { SpecimenSource } from './specimen.models';
+import { stubSpecimenThumbnailRendering } from './specimen-viewport.testing';
 
 describe('SpecimenThumbComponent', () => {
   let fixture: ComponentFixture<SpecimenThumbComponent>;
@@ -19,12 +20,16 @@ describe('SpecimenThumbComponent', () => {
   };
 
   beforeEach(() => {
+    stubSpecimenThumbnailRendering();
     TestBed.configureTestingModule({
       imports: [SpecimenThumbComponent],
       providers: [
         provideSpecimenProfile({
           id: 'test-species',
-          supports: (genome): genome is unknown => true,
+          supports: (genome): genome is unknown => {
+            void genome;
+            return true;
+          },
           express: () => source.kind === 'descriptor' ? source.descriptor : (undefined as never),
         }),
       ],

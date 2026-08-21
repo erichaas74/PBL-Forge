@@ -27,13 +27,7 @@ export interface ProteinGeometryPoint {
 }
 
 /** How the two substrates interlock where they meet in the middle. */
-export type ProteinConnectorType =
-  | 'round'
-  | 'wideRound'
-  | 'diamond'
-  | 'tShape'
-  | 'hex'
-  | 'square';
+export type ProteinConnectorType = 'round' | 'wideRound' | 'diamond' | 'tShape' | 'hex' | 'square';
 
 export const PROTEIN_CONNECTOR_TYPES: readonly ProteinConnectorType[] = [
   'round',

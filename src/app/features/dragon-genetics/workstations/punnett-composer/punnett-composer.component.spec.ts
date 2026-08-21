@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { stubSpecimenThumbnailRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { AccountGeneticsLibraryService } from '../shared/account-genetics-library.service';
+import { CellChromosomeViewportComponent } from '../shared/cell-chromosome-viewport.component';
 import { DragonChromosomeSelectorComponent } from '../shared/dragon-chromosome-selector.component';
 import { PunnettComposerComponent } from './punnett-composer.component';
 import { PunnettComposerRepository } from './punnett-composer.repository';
@@ -13,6 +15,7 @@ describe('PunnettComposerComponent', () => {
 
   beforeEach(() => {
     localStorage.removeItem(`pbl-forge.dragon-genetics.punnett-composer.v1.${studentId}`);
+    stubSpecimenThumbnailRendering();
     TestBed.configureTestingModule({ imports: [PunnettComposerComponent] });
     fixture = TestBed.createComponent(PunnettComposerComponent);
     fixture.componentRef.setInput('studentId', studentId);
@@ -94,7 +97,26 @@ describe('PunnettComposerComponent', () => {
     ]);
     expect(composer.activeTrait().id).toBe('scales');
     expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('FOCUS LOCUS');
-    expect(fixture.nativeElement.querySelectorAll('.gene-selector button').length).toBe(3);
+    expect(fixture.nativeElement.querySelector('.gene-selector')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.is-active .dragon-card__gene').length).toBe(6);
+  });
+
+  it('loads each parents two chromosome copies when its card gene is selected', () => {
+    const selectors = fixture.debugElement
+      .queryAll(By.directive(DragonChromosomeSelectorComponent))
+      .map((item) => item.componentInstance as DragonChromosomeSelectorComponent);
+
+    selectors[0].selectGene('wings');
+    selectors[1].selectGene('wings');
+    fixture.detectChanges();
+
+    expect(composer.parent1()?.id).toBe('ember');
+    expect(composer.parent2()?.id).toBe('tide');
+    expect(composer.snapshot().parent1Gametes).toEqual(['W', 'w']);
+    expect(composer.snapshot().parent2Gametes).toEqual(['w', 'w']);
+    expect(composer.squareComplete()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.parent-bank')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.axis-slot').length).toBe(4);
   });
 
   it('uses standardized heterozygous XX and XY cells in test mode', () => {
@@ -115,6 +137,29 @@ describe('PunnettComposerComponent', () => {
     expect(composer.maleSelectorDragons().map((dragon) => dragon.name)).toEqual([
       'Heterozygous XY cell',
     ]);
+
+    fixture.detectChanges();
+    expect(
+      fixture.debugElement.queryAll(By.directive(CellChromosomeViewportComponent)).length,
+    ).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.test-model .gamete-token').length).toBe(4);
+    expect(
+      fixture.nativeElement.querySelector('.test-model app-dragon-chromosome-selector'),
+    ).toBeNull();
+    expect(fixture.nativeElement.querySelector('.test-model app-dragon-flip-card')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.parent-bank')).toBeNull();
+  });
+
+  it('selects chromosomes and genes directly from the test cell model', () => {
+    composer.selectMode('test');
+    composer.selectTestChromosome('Chr 3');
+    fixture.detectChanges();
+
+    expect(composer.selectedChromosome()).toBe('Chr 3');
+    expect(composer.activeTrait().id).toBe('scales');
+    expect(composer.parent1CellChromosomes().length).toBe(5);
+    expect(composer.parent2CellChromosomes().length).toBe(5);
+    expect(fixture.nativeElement.querySelectorAll('.test-gene-view button').length).toBe(6);
   });
 
   it('shows both homologous chromosomes for a completed selected cell', () => {
@@ -126,7 +171,7 @@ describe('PunnettComposerComponent', () => {
         composer.placePendingGamete(side, slot);
       }
     }
-    composer.selectCell(2);
+    composer.selectCell(1);
     fixture.detectChanges();
 
     expect(composer.selectedCell()?.genotype).toBe('EY');
@@ -150,9 +195,49 @@ describe('PunnettComposerComponent', () => {
     fixture.detectChanges();
 
     expect(composer.squareComplete()).toBeTrue();
-    expect(composer.cells().map((cell) => cell.genotype)).toEqual(['Ww', 'ww', 'Ww', 'ww']);
+    expect(composer.cells().map((cell) => cell.genotype)).toEqual(['Ww', 'Ww', 'ww', 'ww']);
     expect(composer.genotypeCounts()).toEqual({ Ww: 2, ww: 2 });
     expect(fixture.nativeElement.querySelectorAll('.offspring-cell.complete').length).toBe(4);
+  });
+
+  it('drags a test-model gene copy into its matching Punnett axis box', () => {
+    composer.selectMode('test');
+    const data = new Map<string, string>();
+    const dataTransfer = {
+      effectAllowed: 'none',
+      setData: (type: string, value: string) => data.set(type, value),
+      getData: (type: string) => data.get(type) ?? '',
+    } as unknown as DataTransfer;
+
+    composer.startGameteDrag({ dataTransfer } as DragEvent, 'parent1', 0);
+    composer.dropGamete(
+      { dataTransfer, preventDefault: () => undefined } as unknown as DragEvent,
+      'parent1',
+      0,
+    );
+
+    expect(composer.snapshot().parent1Gametes).toEqual(['W', null]);
+  });
+
+  it('connects the left model to the left axis and the right model to the top axis', () => {
+    composer.selectMode('test');
+    fixture.detectChanges();
+
+    const leftAxis = fixture.nativeElement.querySelectorAll('.parent-one-axis');
+    const topAxis = fixture.nativeElement.querySelectorAll('.parent-two-axis');
+
+    expect(leftAxis.length).toBe(2);
+    expect(topAxis.length).toBe(2);
+    expect(leftAxis[0].textContent).toContain('P1');
+    expect(topAxis[0].textContent).toContain('P2');
+
+    composer.selectGamete('parent1', 0);
+    leftAxis[0].click();
+    composer.selectGamete('parent2', 0);
+    topAxis[0].click();
+
+    expect(composer.snapshot().parent1Gametes).toEqual(['W', null]);
+    expect(composer.snapshot().parent2Gametes).toEqual(['W', null]);
   });
 
   it('allows every cell to be selected and explains incomplete cells', () => {

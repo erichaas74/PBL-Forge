@@ -1,11 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { describeSpecimen } from './specimen.models';
 import { SpecimenViewportComponent } from './specimen-viewport.component';
+import { stubSpecimenViewportRendering } from './specimen-viewport.testing';
 
 describe('SpecimenViewportComponent', () => {
   let fixture: ComponentFixture<SpecimenViewportComponent>;
 
   beforeEach(async () => {
+    stubSpecimenViewportRendering();
     await TestBed.configureTestingModule({ imports: [SpecimenViewportComponent] }).compileComponents();
     fixture = TestBed.createComponent(SpecimenViewportComponent);
   });

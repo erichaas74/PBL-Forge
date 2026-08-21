@@ -9,7 +9,12 @@
     <section
       class="dragon-card dragon-card--front"
       [attr.aria-hidden]="flipped()"
+      [attr.aria-label]="'Flip ' + card().name + ' to show chromosomes'"
+      [attr.tabindex]="active() && !flipped() ? 0 : -1"
+      role="button"
       (click)="requestFlip()"
+      (keydown.enter)="requestFlip()"
+      (keydown.space)="requestFlip(); $event.preventDefault()"
     >
       <header>
         <span>{{ card().seriesLabel }}</span>
@@ -17,18 +22,20 @@
         @if (card().arenaRating !== null) {
           <small>★ {{ card().arenaRating }}</small>
         } @else {
-          <small>{{ genome().sexChromosomes }}</small>
+          <div class="dragon-card__blood-type" role="img" [attr.aria-label]="bloodTypeLabel()">
+            <svg viewBox="0 0 64 80" aria-hidden="true" focusable="false">
+              <path d="M32 2C26 17 8 34 8 51a24 24 0 0 0 48 0C56 34 38 17 32 2Z" />
+            </svg>
+            <strong>{{ bloodType() ?? '?' }}</strong>
+          </div>
         }
       </header>
       <div class="dragon-card__portrait">
-        @if (renderLive()) {
-          <app-specimen-viewport
+        @if (renderPortrait()) {
+          <app-specimen-thumb
             [source]="card().source"
-            [controls]="false"
-            [showGroundShadow]="false"
-            [transparent]="true"
-            [framePadding]="1.28"
-            [ariaLabel]="card().name + ' live three-dimensional card portrait'"
+            [labelOverride]="card().name"
+            [showLabel]="false"
           />
         } @else {
           <div class="dragon-card__standby" aria-hidden="true">{{ card().name.slice(0, 1) }}</div>
@@ -83,7 +90,15 @@
         </div>
         <div class="dragon-card__gene-list">
           @for (gene of selectedGenes(); track gene.id) {
-            <article [style.--locus-color]="gene.locusColor">
+            <button
+              type="button"
+              class="dragon-card__gene"
+              [class.is-selected]="selectedGene() === gene.id"
+              [attr.aria-pressed]="selectedGene() === gene.id"
+              [style.--locus-color]="gene.locusColor"
+              [disabled]="!active() || !flipped()"
+              (click)="selectGene(gene.id)"
+            >
               <span class="gene-locus" aria-hidden="true"></span>
               <div>
                 <small>{{ gene.sampleCode }} · {{ gene.inheritanceLabel }}</small>
@@ -91,7 +106,7 @@
                 <p>{{ gene.phenotype }}</p>
               </div>
               <code>{{ gene.genotype }}</code>
-            </article>
+            </button>
           }
         </div>
       </section>

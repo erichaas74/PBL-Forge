@@ -67,9 +67,9 @@ describe('EnzymeReactionExplorerComponent', () => {
       enzyme.activeSitePath,
     );
     // The cell still holds the target's molecules; only the candidate changed.
-    const carried = [...element.querySelectorAll<SVGPathElement>('.field-body .molecule-shape')].map(
-      (path) => path.getAttribute('d'),
-    );
+    const carried = [
+      ...element.querySelectorAll<SVGPathElement>('.field-body .molecule-shape'),
+    ].map((path) => path.getAttribute('d'));
     for (const molecule of [...target.reactants, ...target.products]) {
       expect(carried).toContain(molecule.path);
     }

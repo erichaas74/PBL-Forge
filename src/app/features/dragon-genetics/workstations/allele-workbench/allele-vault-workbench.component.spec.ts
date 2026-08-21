@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { stubSpecimenViewportRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { AlleleVaultWorkbenchComponent } from './allele-vault-workbench.component';
 import {
   ALLELE_VAULT_ALLELES,
@@ -11,6 +12,7 @@ describe('AlleleVaultWorkbenchComponent', () => {
   let component: AlleleVaultWorkbenchComponent;
 
   beforeEach(async () => {
+    stubSpecimenViewportRendering();
     await TestBed.configureTestingModule({
       imports: [AlleleVaultWorkbenchComponent],
     }).compileComponents();

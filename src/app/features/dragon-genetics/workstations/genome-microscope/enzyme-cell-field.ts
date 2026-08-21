@@ -25,6 +25,14 @@ export interface FieldEntity {
   vrot: number;
   /** Frames left before a released molecule settles back into free drift. */
   timer: number;
+  /**
+   * How far the body has settled into an active site, 0 to 1.
+   *
+   * A molecule fills only the upper part of its box, so while it drifts it is
+   * drawn by that visible mass and while it seats it is drawn by the box the
+   * enzyme shares. This value carries it between the two.
+   */
+  seat: number;
 }
 
 export interface FieldBounds {
@@ -35,7 +43,7 @@ export interface FieldBounds {
 }
 
 /** Radius used for molecule-to-molecule collisions, in scene units. */
-export const FIELD_COLLISION_RADIUS = 52;
+export const FIELD_COLLISION_RADIUS = 42;
 
 const MAX_SPEED = 3.4;
 const JITTER = 0.09;
@@ -68,6 +76,7 @@ export function stepField(
       entity.timer -= step;
       if (entity.timer <= 0) entity.state = 'free';
     }
+    entity.seat += (0 - entity.seat) * 0.25 * step;
 
     entity.x += entity.vx * step;
     entity.y += entity.vy * step;
@@ -141,12 +150,7 @@ function resolveCollisions(entities: readonly FieldEntity[]): void {
  * Returns true once it has arrived, which is the bench's cue that the
  * substrates are seated and the reaction can proceed.
  */
-export function pullToSite(
-  entity: FieldEntity,
-  siteX: number,
-  siteY: number,
-  grip = 0.3,
-): boolean {
+export function pullToSite(entity: FieldEntity, siteX: number, siteY: number, grip = 0.3): boolean {
   entity.x += (siteX - entity.x) * grip;
   entity.y += (siteY - entity.y) * grip;
 
@@ -154,6 +158,7 @@ export function pullToSite(
   if (turn > 180) turn -= 360;
   if (turn < -180) turn += 360;
   entity.rot -= turn * grip;
+  entity.seat += (1 - entity.seat) * grip;
 
   return Math.hypot(siteX - entity.x, siteY - entity.y) < 1.5;
 }
@@ -166,6 +171,7 @@ export function seatInSite(entity: FieldEntity, siteX: number, siteY: number): v
   entity.vx = 0;
   entity.vy = 0;
   entity.vrot = 0;
+  entity.seat = 1;
 }
 
 /**
@@ -189,6 +195,7 @@ export function ejectFromSite(
   entity.vy = -(2.4 + random() * 1.6);
   entity.vrot = (random() - 0.5) * 4;
   entity.timer = 90;
+  entity.seat = 1;
 }
 
 /** Sends a spent molecule back to the cell wall as a fresh free body. */
@@ -206,4 +213,5 @@ export function respawn(
   entity.rot = random() * 360;
   entity.vrot = (random() - 0.5) * 2.4;
   entity.timer = 0;
+  entity.seat = 0;
 }

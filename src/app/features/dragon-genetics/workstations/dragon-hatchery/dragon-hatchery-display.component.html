@@ -191,7 +191,7 @@
               </span>
               <div class="chromosome-frame" [class.sampling]="vm.phase === 'reveal' && egg.sampled">
                 <app-chromosome-pair
-                  [alleles]="alleleDisplay(egg.focusTrait?.allelePair)"
+                  [alleles]="alleleDisplay($safeNavigationMigration(egg.focusTrait?.allelePair))"
                   [geneIndex]="egg.focusTrait?.geneIndex ?? 0"
                   [concealed]="!egg.sampled"
                   [theme]="theme().chromosome"
@@ -200,11 +200,11 @@
               </div>
               <div class="allele-slots">
                 <span class="slot" [attr.data-target]="vm.targets.alleleSlotA">
-                  <i>Allele 1</i>{{ alleleDisplay(egg.focusTrait?.allelePair)[0] }}
+                  <i>Allele 1</i>{{ alleleDisplay($safeNavigationMigration(egg.focusTrait?.allelePair))[0] }}
                 </span>
                 <span class="genotype-chip mono">{{ egg.genotypeLabel ?? '— — —' }}</span>
                 <span class="slot" [attr.data-target]="vm.targets.alleleSlotB">
-                  <i>Allele 2</i>{{ alleleDisplay(egg.focusTrait?.allelePair)[1] }}
+                  <i>Allele 2</i>{{ alleleDisplay($safeNavigationMigration(egg.focusTrait?.allelePair))[1] }}
                 </span>
               </div>
             </section>

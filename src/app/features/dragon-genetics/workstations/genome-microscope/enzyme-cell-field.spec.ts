@@ -25,6 +25,7 @@ function entity(overrides: Partial<FieldEntity> = {}): FieldEntity {
     rot: 0,
     vrot: 0,
     timer: 0,
+    seat: 0,
     ...overrides,
   };
 }
@@ -90,7 +91,25 @@ describe('enzyme cell field', () => {
 
     seatInSite(body, 450, 250);
 
-    expect(body).toEqual(jasmine.objectContaining({ x: 450, y: 250, rot: 0, vx: 0, vy: 0, vrot: 0 }));
+    expect(body).toEqual(
+      jasmine.objectContaining({ x: 450, y: 250, rot: 0, vx: 0, vy: 0, vrot: 0, seat: 1 }),
+    );
+  });
+
+  /*
+   * A molecule fills the top of its box and the enzyme the bottom, so a drifting
+   * body is drawn higher than a seated one; `seat` carries it between the two.
+   */
+  it('settles a captured molecule down into the box it shares with the enzyme', () => {
+    const body = entity({ state: 'captured', x: 300, y: 200 });
+
+    expect(body.seat).toBe(0);
+    for (let frame = 0; frame < 30; frame += 1) pullToSite(body, 450, 250);
+    expect(body.seat).toBeGreaterThan(0.99);
+
+    body.state = 'free';
+    for (let frame = 0; frame < 40; frame += 1) stepField([body], BOUNDS, 1, steady);
+    expect(body.seat).toBeLessThan(0.01);
   });
 
   it('throws the two fragments of a split in opposite directions', () => {

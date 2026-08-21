@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   BattleBodySnapshot,
@@ -10,6 +10,7 @@ import { findParent, runDragonBatch } from './dragon-genetics.domain';
 
 @Component({
   selector: 'app-arena-viewport',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template:
     '<div class="viewport-stub" [attr.data-appearance]="appearance()" [attr.aria-label]="ariaLabel()"></div>',
 })

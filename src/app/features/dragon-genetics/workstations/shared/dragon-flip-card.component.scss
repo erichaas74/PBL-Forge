@@ -131,14 +131,55 @@
   box-shadow: inset 0 0 1.5rem rgb(0 0 0 / 45%);
 }
 
-.dragon-card__portrait app-specimen-viewport {
-  --viewport-edge: transparent;
-  --viewport-height: 100%;
-  --viewport-min-height: 0;
-  --viewport-stage-background: transparent;
+.dragon-card__portrait app-specimen-thumb {
   display: block;
   width: 100%;
   height: 100%;
+  min-height: 11.5rem;
+  border-radius: 0;
+  background: transparent;
+  aspect-ratio: auto;
+}
+
+.dragon-card__blood-type {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-column: 2;
+  grid-row: 2;
+  width: 2.9rem;
+  height: 3.55rem;
+  margin-top: -0.55rem;
+  place-items: center;
+  align-self: center;
+  justify-self: end;
+  filter: drop-shadow(0 0.2rem 0.22rem rgb(0 0 0 / 55%));
+  pointer-events: none;
+}
+
+.dragon-card__blood-type svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: #a81722;
+  stroke: #ffe4cc;
+  stroke-width: 2.5;
+}
+
+.dragon-card__blood-type strong {
+  position: relative;
+  z-index: 1;
+  color: #fff8e8;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgb(48 0 0 / 90%);
+}
+
+.dragon-card__blood-type strong {
+  align-self: center;
+  margin-top: 0.38rem;
+  font-family: var(--font-display, serif);
+  font-size: 1.2rem;
 }
 
 .dragon-card__standby {
@@ -282,7 +323,7 @@
   overflow: auto;
 }
 
-.dragon-card__gene-list article {
+.dragon-card__gene {
   display: grid;
   grid-template-columns: 0.45rem minmax(0, 1fr) auto;
   gap: 0.4rem;
@@ -290,6 +331,26 @@
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: 0.4rem;
   background: rgb(255 255 255 / 6%);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dragon-card__gene:hover:not(:disabled),
+.dragon-card__gene.is-selected {
+  border-color: var(--locus-color);
+  background: color-mix(in srgb, var(--locus-color) 18%, rgb(255 255 255 / 6%));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--locus-color) 32%, transparent);
+}
+
+.dragon-card__gene:focus-visible {
+  outline: 2px solid #fff0c7;
+  outline-offset: 1px;
+}
+
+.dragon-card__gene:disabled {
+  cursor: default;
 }
 
 .gene-locus {

@@ -1,8 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { stubSpecimenThumbnailRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { AccountGeneticsLibraryService } from './account-genetics-library.service';
 import {
   DragonChromosomeSelection,
   DragonChromosomeSelectorComponent,
+  DragonGeneSelection,
 } from './dragon-chromosome-selector.component';
 
 describe('DragonChromosomeSelectorComponent', () => {
@@ -10,6 +12,7 @@ describe('DragonChromosomeSelectorComponent', () => {
   let selector: DragonChromosomeSelectorComponent;
 
   beforeEach(() => {
+    stubSpecimenThumbnailRendering();
     TestBed.configureTestingModule({ imports: [DragonChromosomeSelectorComponent] });
     fixture = TestBed.createComponent(DragonChromosomeSelectorComponent);
     const dragons = TestBed.inject(AccountGeneticsLibraryService).recordsFor(
@@ -64,6 +67,26 @@ describe('DragonChromosomeSelectorComponent', () => {
       (fixture.nativeElement as HTMLElement).querySelector('.is-active [data-chromosome="Chr 3"]')
         ?.classList,
     ).toContain('chromosome-in-cell--selected');
+  });
+
+  it('emits a selectable gene from the active chromosome side of the card', () => {
+    const selections: DragonGeneSelection[] = [];
+    selector.geneSelected.subscribe((value) => selections.push(value));
+    selector.selectChromosome('Chr 3');
+
+    selector.selectGene('body-color');
+    fixture.detectChanges();
+
+    expect(selections).toEqual([
+      {
+        dragon: selector.selectedDragon()!,
+        chromosome: 'Chr 3',
+        geneId: 'body-color',
+      },
+    ]);
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('.dragon-card__gene').length,
+    ).toBeGreaterThan(0);
   });
 
   it('keeps flip state on the active card while exposing the chromosome cell', () => {

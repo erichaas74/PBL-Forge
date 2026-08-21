@@ -17,7 +17,7 @@ export interface FannedCardContext<T extends FannedDeckItem = FannedDeckItem> {
   $implicit: T;
   active: boolean;
   position: number;
-  renderLive: boolean;
+  renderPortrait: boolean;
 }
 
 @Component({
@@ -66,7 +66,7 @@ export class FannedCardDeckComponent<T extends FannedDeckItem = FannedDeckItem> 
       $implicit: item,
       active: position === 0,
       position,
-      renderLive: Math.abs(position) <= 1,
+      renderPortrait: Math.abs(position) <= 1,
     };
   }
 

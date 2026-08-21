@@ -1,4 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {
+  stubSpecimenThumbnailRendering,
+  stubSpecimenViewportRendering,
+} from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { DRAGON_PARENTS } from '../../simulation/domain/dragon-inheritance';
 import { AccountDragonRecord } from '../shared/account-genetics-library.models';
 import { chromosomeVisual } from '../shared/dragon-chromosome.catalog';
@@ -21,6 +25,8 @@ describe('GenomeMicroscopeComponent', () => {
   let microscope: GenomeMicroscopeComponent;
 
   beforeEach(() => {
+    stubSpecimenThumbnailRendering();
+    stubSpecimenViewportRendering();
     TestBed.configureTestingModule({ imports: [GenomeMicroscopeComponent] });
     fixture = TestBed.createComponent(GenomeMicroscopeComponent);
     fixture.componentRef.setInput('dragons', TEST_DRAGONS);

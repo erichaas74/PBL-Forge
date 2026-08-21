@@ -1,9 +1,11 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FannedCardDeckComponent, FannedDeckItem } from './fanned-card-deck.component';
 
 @Component({
   imports: [FannedCardDeckComponent],
+  // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <ng-template #card let-item>
       <span class="test-card">{{ item.id }}</span>

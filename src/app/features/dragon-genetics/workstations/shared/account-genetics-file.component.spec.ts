@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { stubSpecimenThumbnailRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { AccountGeneticsFileComponent } from './account-genetics-file.component';
 
 describe('AccountGeneticsFileComponent', () => {
@@ -6,6 +7,7 @@ describe('AccountGeneticsFileComponent', () => {
   let component: AccountGeneticsFileComponent;
 
   beforeEach(() => {
+    stubSpecimenThumbnailRendering();
     TestBed.configureTestingModule({ imports: [AccountGeneticsFileComponent] });
     fixture = TestBed.createComponent(AccountGeneticsFileComponent);
     component = fixture.componentInstance;
@@ -27,7 +29,8 @@ describe('AccountGeneticsFileComponent', () => {
 
     root.querySelector<HTMLElement>('.is-next .fanned-deck__peek')!.click();
     fixture.detectChanges();
-    expect(root.querySelector('app-specimen-viewport')).not.toBeNull();
+    expect(root.querySelector('app-specimen-thumb')).not.toBeNull();
+    expect(root.querySelector('app-specimen-viewport')).toBeNull();
 
     const selected = component.activeDeckDragon()!;
     spyOn(component.recordSelected, 'emit');

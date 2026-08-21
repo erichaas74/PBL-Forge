@@ -32,7 +32,7 @@
       (activeItemChange)="selectDragonById($event.id)"
     />
 
-    <ng-template #traitDragonCard let-dragon let-active="active" let-renderLive="renderLive">
+    <ng-template #traitDragonCard let-dragon let-active="active" let-renderPortrait="renderPortrait">
       @if (dragonCardViews.get(dragon.id); as cardView) {
         @if (cardGenomeViews.get(dragon.id); as genomeView) {
           <app-dragon-flip-card
@@ -41,7 +41,7 @@
             [selectedChromosome]="selectedCardChromosomeId(dragon.id)"
             [flipped]="isDragonCardFlipped(dragon.id)"
             [active]="active"
-            [renderLive]="renderLive"
+            [renderPortrait]="renderPortrait"
             [footerLeft]="dragonTrialCount(dragon.id) + ' trials'"
             [footerRight]="dragonSupportedClaimCount(dragon.id) + ' supported claims'"
             (flipRequested)="toggleDragonCard(dragon.id)"

@@ -32,6 +32,7 @@ import { DragonWorkstationContextService } from '../workstations/shared/dragon-w
 import { GeneticsNotebookComponent } from '../workstations/shared/genetics-notebook.component';
 import { DragonAdaptiveStore } from './dragon-adaptive.store';
 import {
+  DragonSimulationId,
   GeneratedSimulationQuestion,
   InstructionLevel,
   INSTRUCTION_LEVELS,
@@ -47,6 +48,15 @@ import { DragonSimulationVisualComponent } from '../workstations/simulation-visu
 import { GenomeMicroscopeComponent } from '../workstations/genome-microscope/genome-microscope.component';
 import { PunnettComposerComponent } from '../workstations/punnett-composer/punnett-composer.component';
 import { IncubatorSamplerComponent } from '../workstations/incubator-sampler/incubator-sampler.component';
+
+const DEDICATED_WORKSTATION_IDS = new Set<DragonSimulationId>([
+  'allele-workbench',
+  'dna-process-lab',
+  'dragon-hatchery',
+  'genome-microscope',
+  'incubator-sampler',
+  'punnett-composer',
+]);
 
 @Component({
   selector: 'app-dragon-simulation-experience-page',
@@ -82,6 +92,10 @@ export class DragonSimulationExperiencePage {
   readonly definition = computed(() => {
     const id = this.simulationId();
     return isDragonSimulationId(id) ? DRAGON_SIMULATION_BY_ID[id] : null;
+  });
+  readonly hasDedicatedWorkstation = computed(() => {
+    const id = this.definition()?.id;
+    return id ? DEDICATED_WORKSTATION_IDS.has(id) : false;
   });
   readonly run = computed(() => {
     const definition = this.definition();

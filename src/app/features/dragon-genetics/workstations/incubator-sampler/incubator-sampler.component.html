@@ -82,7 +82,7 @@
           sexFilter="female"
           [selectedRecordId]="originalParentIds()[0]"
           [disabled]="selectionLocked()"
-          label="Egg-parent inventory"
+          label="Egg-parent dragon cards"
           (recordSelected)="selectAccountRecord('female', $event)"
         />
       } @else if (parentA(); as parent) {
@@ -387,7 +387,7 @@
           sexFilter="male"
           [selectedRecordId]="originalParentIds()[1]"
           [disabled]="selectionLocked()"
-          label="Sperm-parent inventory"
+          label="Sperm-parent dragon cards"
           (recordSelected)="selectAccountRecord('male', $event)"
         />
       } @else if (parentB(); as parent) {

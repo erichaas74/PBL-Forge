@@ -1,9 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { GarageAccordionComponent } from './garage-accordion.component';
 
 @Component({
   imports: [GarageAccordionComponent],
+  // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <app-garage-accordion heading="Dragon Parts" [count]="4" [startOpen]="startOpen">
       <p class="projected">body content</p>

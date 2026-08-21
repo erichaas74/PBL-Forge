@@ -3,9 +3,8 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
-      "@pbl/assembly/*": ["src/app/shared/assembly/*"]
+      "@pbl/assembly/*": ["./src/app/shared/assembly/*"]
     },
     "strict": true,
     "noImplicitOverride": true,

@@ -2,13 +2,13 @@ import { EnvironmentInjector, inject, Injectable } from '@angular/core';
 import {
   collection,
   doc,
-  Firestore,
   getDoc,
   getDocs,
   serverTimestamp,
   setDoc,
-} from '@angular/fire/firestore';
+} from 'firebase/firestore';
 import { runInFirebaseContext } from '../../../core/firebase/firebase-context';
+import { FIREBASE_FIRESTORE } from '../../../core/firebase/firebase.providers';
 import { SessionService } from '../../../core/firebase/session.service';
 import {
   DragonAssignment,
@@ -27,7 +27,7 @@ export const DEFAULT_DRAGON_ASSIGNMENT_ID = 'default';
 
 @Injectable({ providedIn: 'root' })
 export class DragonAdaptiveRepository {
-  private readonly firestore = inject(Firestore);
+  private readonly firestore = inject(FIREBASE_FIRESTORE);
   private readonly session = inject(SessionService);
   private readonly injector = inject(EnvironmentInjector);
 

@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,13 +9,10 @@ import {
   signal,
 } from '@angular/core';
 import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
-import {
-  ACCOUNT_GENETICS_RECORD_DRAG_TYPE,
-  AccountGeneticsRecord,
-  parseAccountGeneticsDragPayload,
-} from '../shared/account-genetics-library.models';
+import { AccountGeneticsRecord } from '../shared/account-genetics-library.models';
 import { AccountGeneticsLibraryService } from '../shared/account-genetics-library.service';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
+import { DragonCardBloodType } from '../shared/dragon-flip-card.component';
 import {
   BLOOD_TYPE_DEFINITIONS,
   BloodEmergencyRecord,
@@ -30,9 +27,11 @@ import {
   bloodSpecimenForPatient,
   bloodTypeForReactions,
   clinicDonors,
+  phenotypeForGenotype,
   transfusionCompatibility,
 } from './blood-compatibility.models';
 import { BloodCompatibilityRepository } from './blood-compatibility.repository';
+import { BloodTypeExplorerComponent } from './blood-type-explorer.component';
 
 const BLOOD_REAGENT_DRAG_TYPE = 'application/x-pbl-blood-reagent';
 const BLOOD_DONOR_DRAG_TYPE = 'application/x-pbl-blood-donor';
@@ -41,7 +40,7 @@ type PatientCondition = 'critical' | 'stable' | 'reaction';
 
 @Component({
   selector: 'app-blood-compatibility-lab',
-  imports: [DatePipe, AccountGeneticsFileComponent],
+  imports: [DatePipe, NgTemplateOutlet, AccountGeneticsFileComponent, BloodTypeExplorerComponent],
   templateUrl: './blood-compatibility-lab.component.html',
   styleUrl: './blood-compatibility-lab.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -65,6 +64,7 @@ export class BloodCompatibilityLabComponent {
   readonly activeSpecimenId = signal<string | null>(null);
   readonly pendingReagent = signal<BloodMarker | null>(null);
   readonly tests = signal<Readonly<Record<string, BloodTestEvidence>>>({});
+  readonly patientTypeClaimId = signal<BloodPhenotypeId | null>(null);
   readonly stagedDonorId = signal<string | null>(null);
   readonly chamberDonorId = signal<string | null>(null);
   readonly remainingUnits = signal<Readonly<Record<string, number>>>({});
@@ -73,7 +73,7 @@ export class BloodCompatibilityLabComponent {
   readonly explanation = signal('');
   readonly records = signal<readonly BloodEmergencyRecord[]>([]);
   readonly statusMessage = signal(
-    'Select an account dragon, then load or drag the record into the emergency bay.',
+    'Choose a dragon card to load its blood sample directly onto the testing plate.',
   );
 
   readonly accountSnapshot = computed(() => this.accountLibrary.recordsFor(this.studentId()));
@@ -83,17 +83,44 @@ export class BloodCompatibilityLabComponent {
     return dragon ? bloodSpecimenForPatient(dragon) : null;
   });
   readonly donors = computed(() => clinicDonors(this.mode()));
+  readonly donorVials = computed(() =>
+    [...this.donors()].sort(
+      (left, right) =>
+        this.bloodTypes.indexOf(this.donorBloodType(left)) -
+        this.bloodTypes.indexOf(this.donorBloodType(right)),
+    ),
+  );
   readonly activeSpecimen = computed(() => this.specimenById(this.activeSpecimenId()));
   readonly activeTest = computed(() => {
     const specimen = this.activeSpecimen();
     return specimen ? (this.tests()[specimen.id] ?? null) : null;
   });
-  readonly activeBloodType = computed(() => this.bloodTypeForTest(this.activeTest()));
   readonly patientTest = computed(() => {
     const specimen = this.patientSpecimen();
     return specimen ? (this.tests()[specimen.id] ?? null) : null;
   });
   readonly patientBloodType = computed(() => this.bloodTypeForTest(this.patientTest()));
+  readonly patientTypeClaim = computed(() => {
+    const claimId = this.patientTypeClaimId();
+    return claimId ? (this.bloodTypes.find((type) => type.id === claimId) ?? null) : null;
+  });
+  readonly patientTypeClaimSymbol = computed(
+    () => this.patientTypeClaim()?.name.replace('+', '') ?? null,
+  );
+  readonly determinedBloodTypeByDragonId = computed<Readonly<Record<string, DragonCardBloodType>>>(
+    () => {
+      const determined: Record<string, DragonCardBloodType> = {};
+      for (const record of this.records()) {
+        determined[record.patientId] = cardBloodType(record.patientPhenotype);
+      }
+      const patient = this.patientSpecimen();
+      const currentType = this.patientTypeClaim();
+      if (patient && currentType) {
+        determined[patient.dragonId] = cardBloodType(currentType.id);
+      }
+      return determined;
+    },
+  );
   readonly chamberDonor = computed(
     () => this.donors().find((donor) => donor.id === this.chamberDonorId()) ?? null,
   );
@@ -123,6 +150,7 @@ export class BloodCompatibilityLabComponent {
     Boolean(
       this.latestChamberTrial()?.compatible &&
       this.patientBloodType() &&
+      this.patientTypeClaimId() === this.patientBloodType()?.id &&
       this.chamberDonorBloodType() &&
       this.explanation().trim().length >= 16,
     ),
@@ -133,6 +161,9 @@ export class BloodCompatibilityLabComponent {
   readonly saveReadiness = computed(() => {
     if (!this.latestChamberTrial()?.compatible) {
       return 'A stable transfusion result is needed before the emergency record can be saved.';
+    }
+    if (this.patientTypeClaimId() !== this.patientBloodType()?.id) {
+      return 'Review the recorded patient type against both serum reactions.';
     }
     if (this.explanation().trim().length < 16) {
       return 'Connect the patient markers, donor markers, and compatibility rule in your note.';
@@ -168,14 +199,7 @@ export class BloodCompatibilityLabComponent {
   }
 
   selectAccountRecord(record: AccountGeneticsRecord): void {
-    this.stagedAccountRecord.set(record);
-    const name = record.kind === 'dragon' ? record.name : record.dragonName;
-    this.statusMessage.set(`${name} selected. Load the record into the emergency patient bay.`);
-  }
-
-  loadStagedPatient(): void {
-    const record = this.stagedAccountRecord();
-    if (record) this.loadPatientRecord(record);
+    this.loadPatientRecord(record);
   }
 
   loadPatientRecord(record: AccountGeneticsRecord): void {
@@ -184,9 +208,10 @@ export class BloodCompatibilityLabComponent {
     if (!dragon) return;
     this.patientDragonId.set(dragon.id);
     this.stagedAccountRecord.set(record);
-    this.activeSpecimenId.set(null);
+    this.activeSpecimenId.set(`patient:${dragon.id}`);
     this.pendingReagent.set(null);
     this.tests.set({});
+    this.patientTypeClaimId.set(null);
     this.stagedDonorId.set(null);
     this.chamberDonorId.set(null);
     this.transfusionTrials.set([]);
@@ -194,30 +219,8 @@ export class BloodCompatibilityLabComponent {
     this.explanation.set('');
     this.resetSupplies();
     this.statusMessage.set(
-      `${dragon.name} is in the emergency bay. The blood identity remains sealed until antiserum testing.`,
+      `${dragon.name}'s sample is on the testing plate. Apply both antisera to determine the blood type.`,
     );
-  }
-
-  allowAccountDrop(event: DragEvent): void {
-    if (event.dataTransfer?.types.includes(ACCOUNT_GENETICS_RECORD_DRAG_TYPE)) {
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'copy';
-    }
-  }
-
-  dropPatient(event: DragEvent): void {
-    event.preventDefault();
-    const payload = parseAccountGeneticsDragPayload(
-      event.dataTransfer?.getData(ACCOUNT_GENETICS_RECORD_DRAG_TYPE) ?? '',
-    );
-    if (!payload) return;
-    const record = this.accountLibrary.recordById(this.studentId(), payload.id);
-    if (record?.kind === payload.kind) this.loadPatientRecord(record);
-  }
-
-  loadPatientSample(): void {
-    const specimen = this.patientSpecimen();
-    if (specimen) this.loadSpecimen(specimen);
   }
 
   loadDonorSample(donorId: string): void {
@@ -269,20 +272,30 @@ export class BloodCompatibilityLabComponent {
     };
     this.tests.update((tests) => ({ ...tests, [specimen.id]: next }));
     this.pendingReagent.set(null);
-    const completeType = this.bloodTypeForTest(next);
+    const testComplete = next.antiA !== null && next.antiB !== null;
     this.statusMessage.set(
-      completeType
-        ? `${specimen.sampleCode} now has both reactions recorded: ${completeType.name} blood type.`
+      testComplete
+        ? `${specimen.sampleCode} now has both reactions recorded. Use the visible evidence to record a blood type.`
         : `${this.reagentName(marker)} produced ${reaction ? 'agglutination' : 'a smooth suspension'} in ${specimen.sampleCode}.`,
+    );
+  }
+
+  recordPatientBloodType(id: BloodPhenotypeId): void {
+    const patient = this.patientSpecimen();
+    if (!patient || !this.isFullyTested(patient.id)) return;
+    this.patientTypeClaimId.set(id);
+    this.statusMessage.set(
+      `Type ${this.phenotypeName(id)} recorded from the reaction evidence. You can revise this classification after observing transfusion results.`,
     );
   }
 
   selectDonor(donorId: string): void {
     const donor = this.donors().find((candidate) => candidate.id === donorId);
     if (!donor || !this.donorUsable(donor)) return;
+    this.recordTypedDonorEvidence(donor);
     this.stagedDonorId.set(donor.id);
     this.statusMessage.set(
-      `${donor.dragonName} selected. Load or drag this donor into the Healing Chamber.`,
+      `${this.donorBloodType(donor).name} donor vial selected. Load or drag it into the transfusion station.`,
     );
   }
 
@@ -313,11 +326,12 @@ export class BloodCompatibilityLabComponent {
   stageDonor(donorId: string): void {
     const donor = this.donors().find((candidate) => candidate.id === donorId);
     if (!donor || !this.donorUsable(donor)) return;
+    this.recordTypedDonorEvidence(donor);
     this.stagedDonorId.set(donor.id);
     this.chamberDonorId.set(donor.id);
     this.patientCondition.set('critical');
     this.statusMessage.set(
-      `${donor.dragonName} staged in the Healing Chamber. Authorization requires complete patient and donor marker evidence.`,
+      `${donor.dragonName} staged in the transfusion station. Authorization requires complete patient and donor marker evidence.`,
     );
   }
 
@@ -360,7 +374,7 @@ export class BloodCompatibilityLabComponent {
     this.stagedDonorId.set(null);
     if (this.patientCondition() === 'reaction') this.patientCondition.set('critical');
     this.statusMessage.set(
-      'Healing Chamber cleared. Prior transfusion evidence remains in the trial log.',
+      'Transfusion station cleared. Prior transfusion evidence remains in the trial log.',
     );
   }
 
@@ -441,6 +455,14 @@ export class BloodCompatibilityLabComponent {
     return `${units} unit${units === 1 ? '' : 's'} remaining`;
   }
 
+  donorBloodType(donor: DonorCandidate) {
+    return phenotypeForGenotype(donor.genotype);
+  }
+
+  donorTypeSymbol(donor: DonorCandidate): string {
+    return this.donorBloodType(donor).name.replace('+', '');
+  }
+
   donorUsable(donor: DonorCandidate): boolean {
     return (
       donor.available && (this.mode() === 'standard' || (this.remainingUnits()[donor.id] ?? 0) > 0)
@@ -482,6 +504,20 @@ export class BloodCompatibilityLabComponent {
     };
   }
 
+  private recordTypedDonorEvidence(donor: DonorCandidate): void {
+    if (this.isFullyTested(donor.id)) return;
+    this.tests.update((tests) => ({
+      ...tests,
+      [donor.id]: {
+        specimenId: donor.id,
+        sampleCode: donor.sampleCode,
+        antiA: antiserumReaction(donor, 'a'),
+        antiB: antiserumReaction(donor, 'b'),
+        testedAtIso: new Date().toISOString(),
+      },
+    }));
+  }
+
   private bloodTypeForTest(test: BloodTestEvidence | null) {
     return test ? bloodTypeForReactions(test.antiA, test.antiB) : null;
   }
@@ -490,5 +526,18 @@ export class BloodCompatibilityLabComponent {
     this.remainingUnits.set(
       Object.fromEntries(clinicDonors('challenge').map((donor) => [donor.id, donor.units ?? 0])),
     );
+  }
+}
+
+function cardBloodType(phenotype: BloodPhenotypeId): DragonCardBloodType {
+  switch (phenotype) {
+    case 'a-positive':
+      return 'A';
+    case 'b-positive':
+      return 'B';
+    case 'ab-positive':
+      return 'AB';
+    case 'o-positive':
+      return 'O';
   }
 }

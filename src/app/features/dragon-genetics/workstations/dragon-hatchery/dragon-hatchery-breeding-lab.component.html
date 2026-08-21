@@ -2,10 +2,10 @@
   <header class="lab-head">
     <div>
       <span class="eyebrow">DRAGON HATCHERY · BREEDING WORKSPACE</span>
-      <h2>Build this clutch from real gametes</h2>
+      <h2>Determine how two gametes form a new dragon</h2>
       <p>
-        Choose a female and male account dragon, observe a different five-chromosome meiosis in each
-        parent, then select the egg and sperm that will form every Hatchery egg.
+        Compare a female and male account dragon, investigate meiosis in either parent, and combine
+        one egg with one sperm when the evidence is ready.
       </p>
     </div>
     @if (clutch().length) {
@@ -17,9 +17,8 @@
     <section class="parent-setup" aria-labelledby="parent-setup-title">
       <header>
         <div>
-          <span class="step-number">01</span>
           <div>
-            <h3 id="parent-setup-title">Choose the female and male parents</h3>
+            <h3 id="parent-setup-title">Breeding pair</h3>
             <p>{{ statusMessage() }}</p>
           </div>
         </div>
@@ -93,11 +92,30 @@
     @if (parentsReady()) {
       <section class="fertilization-bench" aria-label="Selected gamete chambers">
         <header>
-          <span class="step-number">02</span>
           <div>
-            <h3>Run meiosis, then load the chambers</h3>
-            <p>Drag a gamete here or use its Send button.</p>
+            <h3>Meiosis and fertilization bench</h3>
+            <p>Explore either parent. Drag a gamete into its chamber or use its Send button.</p>
           </div>
+          @if (!clutch().length) {
+            <nav class="meiosis-parent-switch" aria-label="Parent meiosis microscope">
+              <button
+                type="button"
+                [class.active]="activeRole() === 'female'"
+                [attr.aria-pressed]="activeRole() === 'female'"
+                (click)="inspectParentMeiosis('female')"
+              >
+                Egg parent
+              </button>
+              <button
+                type="button"
+                [class.active]="activeRole() === 'male'"
+                [attr.aria-pressed]="activeRole() === 'male'"
+                (click)="inspectParentMeiosis('male')"
+              >
+                Sperm parent
+              </button>
+            </nav>
+          }
         </header>
         <div class="fertilization-stage">
           @if (fusionVisible()) {
