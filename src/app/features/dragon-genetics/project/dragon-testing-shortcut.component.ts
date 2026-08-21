@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
@@ -57,7 +57,6 @@ import { DragonTestingProgressRepository } from './dragon-testing-progress.repos
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonTestingShortcutComponent {
   private readonly router = inject(Router);

@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -15,8 +14,8 @@ import {
   JointBehaviorProfile,
   JointType,
   Vector3Data,
-} from '../../models/assembly.models';
-import { VectorAxis } from '../../utils/vector-data';
+} from '@pbl/assembly/domain/assembly.models';
+import { VectorAxis } from '@pbl/assembly/domain/vector-data';
 import { AssemblyGarageStore } from '../../state/assembly-garage.store';
 import { ASSEMBLY_PART_DEFINITIONS } from '../../data/assembly-part-definitions';
 import { DesignerDragonDraftStore } from '../../../designer-dragon-draft.store';
@@ -36,7 +35,6 @@ interface CapturedBaseline {
   imports: [GarageAccordionComponent, RouterLink],
   templateUrl: './garage-inspector.component.html',
   styleUrl: './garage-inspector.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GarageInspectorComponent {
   readonly store = inject(AssemblyGarageStore);

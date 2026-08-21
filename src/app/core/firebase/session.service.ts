@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, NgZone } from '@angular/core';
+import { computed, inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   GoogleAuthProvider,
@@ -18,12 +18,11 @@ import { FIREBASE_AUTH, FIREBASE_FIRESTORE } from './firebase.providers';
 export class SessionService {
   private readonly auth = inject(FIREBASE_AUTH);
   private readonly firestore = inject(FIREBASE_FIRESTORE);
-  private readonly zone = inject(NgZone);
   private readonly initialization = this.initializeSession().catch((error: unknown) => {
     console.error('Firebase session initialization failed.', error);
   });
 
-  readonly user = toSignal(observeAuthState(this.auth, this.zone), { initialValue: null });
+  readonly user = toSignal(observeAuthState(this.auth), { initialValue: null });
   readonly isLocal = environment.useEmulators;
   readonly isLocalTeacher = computed(() =>
     this.isLocal && this.user()?.email === 'teacher@pblforge.local');

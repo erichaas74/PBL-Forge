@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
 import { SpecimenThumbComponent } from '../../../../shared/assembly/preview/specimen-thumb.component';
 import { CellModelComponent } from './cell-model.component';
@@ -35,7 +35,6 @@ export interface DragonFlipCardView {
   imports: [SpecimenThumbComponent, CellModelComponent],
   templateUrl: './dragon-flip-card.component.html',
   styleUrl: './dragon-flip-card.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonFlipCardComponent {
   readonly card = input.required<DragonFlipCardView>();

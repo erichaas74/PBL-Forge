@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   OnDestroy,
   computed,
@@ -74,7 +73,6 @@ interface ExpressionPathway {
   imports: [SpecimenViewportComponent],
   templateUrl: './protein-trait-expression.component.html',
   styleUrl: './protein-trait-expression.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProteinTraitExpressionComponent implements OnDestroy {
   readonly dragon = input<AccountDragonRecord | null>(null);

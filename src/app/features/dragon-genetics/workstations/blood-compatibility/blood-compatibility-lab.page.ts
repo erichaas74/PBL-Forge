@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonWorkstationContextService } from '../shared/dragon-workstation-context.service';
 import { BloodCompatibilityLabComponent } from './blood-compatibility-lab.component';
@@ -9,7 +9,6 @@ import { BloodCompatibilityLabComponent } from './blood-compatibility-lab.compon
   imports: [RouterLink, BloodCompatibilityLabComponent],
   templateUrl: './blood-compatibility-lab.page.html',
   styleUrl: './blood-compatibility-lab.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BloodCompatibilityLabPage {
   private readonly context = inject(DragonWorkstationContextService);

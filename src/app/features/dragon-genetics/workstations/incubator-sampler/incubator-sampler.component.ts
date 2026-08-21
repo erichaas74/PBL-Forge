@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   OnDestroy,
   computed,
@@ -72,7 +71,6 @@ interface IncubatorBucketView extends IncubatorPhenotypeResult {
   imports: [AccountGeneticsFileComponent, SpecimenViewportComponent],
   templateUrl: './incubator-sampler.component.html',
   styleUrl: './incubator-sampler.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IncubatorSamplerComponent implements OnDestroy {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);

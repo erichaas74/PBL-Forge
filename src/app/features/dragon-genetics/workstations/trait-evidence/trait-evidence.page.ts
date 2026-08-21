@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonActivityProgressRepository } from '../../project/dragon-activity-progress.repository';
 import { DragonProjectHubFacade } from '../../project/dragon-project-hub.facade';
@@ -13,7 +13,6 @@ import { TraitEvidenceWorkstationComponent } from './trait-evidence-workstation.
   imports: [RouterLink, TraitEvidenceWorkstationComponent],
   templateUrl: './trait-evidence.page.html',
   styleUrl: './trait-evidence.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TraitEvidencePage {
   private readonly context = inject(DragonWorkstationContextService);

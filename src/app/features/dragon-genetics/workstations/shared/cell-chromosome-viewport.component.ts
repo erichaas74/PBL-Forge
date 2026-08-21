@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
 import { CellModelChromosome, CellModelComponent } from './cell-model.component';
 import { ChromosomeSvgComponent } from './chromosome-svg.component';
 
@@ -20,9 +20,7 @@ export interface CellChromosomeLocusSelection {
   selector: 'app-cell-chromosome-viewport',
   imports: [CellModelComponent, ChromosomeSvgComponent],
   templateUrl: './cell-chromosome-viewport.component.html',
-  styleUrl: './cell-chromosome-viewport.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
+  styleUrl: './cell-chromosome-viewport.component.scss',})
 export class CellChromosomeViewportComponent {
   readonly chromosomes = input<readonly CellChromosomeViewportItem[]>([]);
   readonly selectedChromosome = input<string | null>(null);

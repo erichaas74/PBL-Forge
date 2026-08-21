@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ProjectRepository } from '../../core/firebase/project.repository';
 import { PblProject } from '../../core/models/pbl.models';
@@ -9,7 +9,6 @@ import { PblProject } from '../../core/models/pbl.models';
   imports: [AsyncPipe, RouterLink],
   templateUrl: './catalog.page.html',
   styleUrl: './catalog.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CatalogPage {
   readonly repository = inject(ProjectRepository);

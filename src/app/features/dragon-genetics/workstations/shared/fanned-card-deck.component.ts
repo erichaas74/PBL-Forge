@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   TemplateRef,
   computed,
@@ -25,7 +24,6 @@ export interface FannedCardContext<T extends FannedDeckItem = FannedDeckItem> {
   imports: [NgTemplateOutlet],
   templateUrl: './fanned-card-deck.component.html',
   styleUrl: './fanned-card-deck.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FannedCardDeckComponent<T extends FannedDeckItem = FannedDeckItem> {
   readonly items = input.required<readonly T[]>();

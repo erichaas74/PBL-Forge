@@ -4,7 +4,7 @@ import {
   JOINT_TYPES,
   SHAPE_TYPES,
   Vector3Data,
-} from '../models/assembly.models';
+} from '@pbl/assembly/domain/assembly.models';
 
 const shapeTypes = new Set<string>(SHAPE_TYPES);
 const jointTypes = new Set<string>(JOINT_TYPES);

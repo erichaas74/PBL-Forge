@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SessionService } from '../../../../core/firebase/session.service';
 import { DragonArenaComponent } from '../../dragon-arena.component';
@@ -27,9 +27,7 @@ import { DragonArenaMissionRepository } from './dragon-arena-mission.repository'
   selector: 'app-dragon-arena-mission-page',
   imports: [RouterLink, DragonArenaComponent, AccountGeneticsFileComponent],
   templateUrl: './dragon-arena-mission.page.html',
-  styleUrl: './dragon-arena-mission.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
+  styleUrl: './dragon-arena-mission.page.scss',})
 export class DragonArenaMissionPage {
   private readonly session = inject(SessionService);
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);

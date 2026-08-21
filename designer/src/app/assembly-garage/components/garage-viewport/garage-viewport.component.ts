@@ -1,6 +1,5 @@
 import {
   AfterViewInit,
-  ChangeDetectionStrategy,
   Component,
   ElementRef,
   OnDestroy,
@@ -14,7 +13,7 @@ import {
   AssemblyState,
   PartMoveEvent,
   SnapPointSelectionEvent,
-} from '../../models/assembly.models';
+} from '@pbl/assembly/domain/assembly.models';
 import { AssemblyPhysicsService } from '@pbl/assembly/assembly-physics.service';
 import { AssemblyRendererService } from '@pbl/assembly/assembly-renderer.service';
 
@@ -22,7 +21,6 @@ import { AssemblyRendererService } from '@pbl/assembly/assembly-renderer.service
   selector: 'app-garage-viewport',
   templateUrl: './garage-viewport.component.html',
   styleUrl: './garage-viewport.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GarageViewportComponent implements AfterViewInit, OnDestroy {
   readonly state = input.required<AssemblyState>();

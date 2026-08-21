@@ -39,7 +39,7 @@
           <header><small>PARENT 1 · XX</small><strong>Female dragon</strong></header>
           <app-dragon-chromosome-selector
             [dragons]="femaleSelectorDragons()"
-            [initialDragonId]="parent1()?.id ?? femaleSelectorDragons()[0]?.id ?? null"
+            [initialDragonId]="parent1()?.id ?? femaleSelectorDragons()[0].id"
             [initialChromosome]="selectedChromosome()"
             [selectedGene]="snapshot().traitId"
             [compact]="true"
@@ -54,7 +54,7 @@
           <header><small>PARENT 2 · XY</small><strong>Male dragon</strong></header>
           <app-dragon-chromosome-selector
             [dragons]="maleSelectorDragons()"
-            [initialDragonId]="parent2()?.id ?? maleSelectorDragons()[0]?.id ?? null"
+            [initialDragonId]="parent2()?.id ?? maleSelectorDragons()[0].id"
             [initialChromosome]="selectedChromosome()"
             [selectedGene]="snapshot().traitId"
             [compact]="true"

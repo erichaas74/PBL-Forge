@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, linkedSignal } from '@angular/core';
+import { Component, input, linkedSignal } from '@angular/core';
 
 let accordionCount = 0;
 
@@ -16,7 +16,6 @@ let accordionCount = 0;
   selector: 'app-garage-accordion',
   templateUrl: './garage-accordion.component.html',
   styleUrl: './garage-accordion.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GarageAccordionComponent {
   readonly heading = input.required<string>();

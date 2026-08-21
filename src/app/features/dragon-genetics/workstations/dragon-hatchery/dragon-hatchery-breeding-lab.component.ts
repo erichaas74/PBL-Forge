@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   OnDestroy,
   computed,
@@ -87,7 +86,6 @@ const GAMETE_CHROMOSOME_LABELS = ['Chr 1', 'Chr 2', 'Chr 3', 'Chr 4', 'Chr X'] a
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './dragon-hatchery-breeding-lab.component.html',
   styleUrl: './dragon-hatchery-breeding-lab.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonHatcheryBreedingLabComponent implements OnDestroy {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);

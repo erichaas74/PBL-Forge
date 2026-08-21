@@ -148,8 +148,9 @@ inside the Dragon Genetics feature.
 - Use the five-level scientific microscope map to connect cell, chromosome, DNA, gene, and allele
   without a separate location-trail scene.
 - Use a reveal-gated Allele Vault after the hierarchy map rather than a separate Chromosome Locator.
-- Adapt the DNA base-pairing, replication, transcription, insertion, deletion, substitution, and
-  mismatch-repair visuals from `docs/dna-mutation-animation.html` into a controlled DNA lab.
+- Keep DNA base-pairing, replication, and transcription in the shared process visuals, and keep
+  insertion, deletion, substitution, and mismatch repair in the active
+  `dna-sequence-analysis.component` instrument.
   Remove uncoiling from the molecular lab, keep replication distinct from transcription, and avoid implying
   that every copying error changes a visible trait. Build these as reusable molecular-animation and
   explanation-question components so later DNA and RNA prompts use the same diagrams.

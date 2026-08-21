@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { ASSEMBLY_PRESETS } from './data/presets/assembly-presets';
 import { AssemblyPartFamily } from './data/assembly-part-definitions';
 import {
   AssemblyPreset,
   PartMoveEvent,
   SnapPointSelectionEvent,
-} from './models/assembly.models';
+} from '@pbl/assembly/domain/assembly.models';
 import { GarageInspectorComponent } from './components/garage-inspector/garage-inspector.component';
 import { GaragePartsPanelComponent } from './components/garage-parts-panel/garage-parts-panel.component';
 import { GarageViewportComponent } from './components/garage-viewport/garage-viewport.component';
@@ -29,7 +29,6 @@ import { DesignerDragonDraftStore } from '../designer-dragon-draft.store';
   ],
   templateUrl: './assembly-garage.component.html',
   styleUrl: './assembly-garage.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AssemblyGarageComponent implements OnInit {
   readonly store = inject(AssemblyGarageStore);

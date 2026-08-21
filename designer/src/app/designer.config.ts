@@ -1,7 +1,6 @@
 import {
   ApplicationConfig,
   provideBrowserGlobalErrorListeners,
-  provideZoneChangeDetection,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { designerRoutes } from './designer.routes';
@@ -10,8 +9,6 @@ import { designerRoutes } from './designer.routes';
 export const designerConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(designerRoutes),
   ],
 };
-

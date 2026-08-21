@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import {
   CHROMOSOME_PAIR_DESCRIPTIONS,
   ChromosomePairRelationship,
@@ -112,9 +112,7 @@ let nextCellModelId = 0;
   selector: 'app-cell-model',
   imports: [ChromosomeSvgComponent],
   templateUrl: './cell-model.component.html',
-  styleUrl: './cell-model.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
+  styleUrl: './cell-model.component.scss',})
 export class CellModelComponent {
   readonly chromosomes = input<readonly CellModelChromosome[]>([]);
   readonly stage = input<CellModelStage>('interphase');

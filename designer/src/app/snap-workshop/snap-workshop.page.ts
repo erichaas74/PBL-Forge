@@ -1,6 +1,5 @@
 import {
   AfterViewInit,
-  ChangeDetectionStrategy,
   Component,
   ElementRef,
   OnDestroy,
@@ -66,7 +65,6 @@ interface SocketRow {
   imports: [RouterLink],
   templateUrl: './snap-workshop.page.html',
   styleUrl: './snap-workshop.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [AssemblyRendererService],
 })
 export class SnapWorkshopPage implements AfterViewInit, OnDestroy {

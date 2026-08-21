@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   ViewChild,
   computed,
@@ -116,7 +115,6 @@ const MIN_CLAIM_LENGTH = 40;
   imports: [SpecimenViewportComponent],
   templateUrl: './companion-show.component.html',
   styleUrl: './companion-show.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CompanionShowComponent {
   private readonly repository = inject(CompanionShowRepository);

@@ -1,6 +1,5 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -43,7 +42,6 @@ type PatientCondition = 'critical' | 'stable' | 'reaction';
   imports: [DatePipe, NgTemplateOutlet, AccountGeneticsFileComponent, BloodTypeExplorerComponent],
   templateUrl: './blood-compatibility-lab.component.html',
   styleUrl: './blood-compatibility-lab.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BloodCompatibilityLabComponent {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);

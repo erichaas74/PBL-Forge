@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   OnDestroy,
   computed,
@@ -121,7 +120,6 @@ let nextUnravelingId = 0;
   selector: 'app-chromosome-unraveling',
   templateUrl: './chromosome-unraveling.component.html',
   styleUrl: './chromosome-unraveling.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChromosomeUnravelingComponent implements OnDestroy {
   readonly sequence = input('ATGCCGTACCGAGCTACCGGATCA');

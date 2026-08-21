@@ -1,6 +1,5 @@
 import { DatePipe } from '@angular/common';
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -55,7 +54,6 @@ const POPULATION_DRAGON_DRAG_TYPE = 'application/x-pbl-island-dragon';
   imports: [DatePipe, AccountGeneticsFileComponent],
   templateUrl: './island-diversity-manager.component.html',
   styleUrl: './island-diversity-manager.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IslandDiversityManagerComponent {
   private readonly repository = inject(IslandDiversityRepository);

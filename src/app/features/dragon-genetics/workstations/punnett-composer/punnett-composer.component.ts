@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -84,7 +83,6 @@ const TEST_MALE: AccountDragonRecord = testDragon(
   ],
   templateUrl: './punnett-composer.component.html',
   styleUrl: './punnett-composer.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PunnettComposerComponent {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);

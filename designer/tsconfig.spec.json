@@ -2,20 +2,9 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "../out-tsc/dragon-designer-spec",
-    "types": ["jasmine"]
+    "rootDir": "..",
+    "types": ["vitest/globals"]
   },
-  "include": [
-    "src/**/*.spec.ts",
-    "src/**/*.d.ts",
-    "../src/app/shared/assembly/**/*.ts"
-  ],
-  "angularCompilerOptions": {
-    "extendedDiagnostics": {
-      "checks": {
-        "nullishCoalescingNotNullable": "suppress",
-        "optionalChainNotNullable": "suppress"
-      }
-    }
-  }
+  "files": ["../src/test-setup.ts"],
+  "include": ["src/**/*.spec.ts", "src/**/*.d.ts"]
 }
-

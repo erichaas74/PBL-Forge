@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -31,7 +30,6 @@ import { DragonCardBloodType } from './dragon-flip-card.component';
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './account-genetics-file.component.html',
   styleUrl: './account-genetics-file.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountGeneticsFileComponent {
   private readonly library = inject(AccountGeneticsLibraryService);

@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ProjectRepository } from '../../core/firebase/project.repository';
 import { SessionService } from '../../core/firebase/session.service';
@@ -9,7 +9,6 @@ import { SessionService } from '../../core/firebase/session.service';
   imports: [AsyncPipe, RouterLink],
   templateUrl: './teacher.page.html',
   styleUrl: './teacher.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TeacherPage {
   readonly repository = inject(ProjectRepository);

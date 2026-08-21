@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { SpecimenTestBenchComponent } from '../../shared/assembly/preview/specimen-test-bench.component';
 import { DRAGON_BENCH_COPY, DRAGON_BENCH_MOTIONS } from './simulation/data/dragon-bench-content';
 import {
@@ -75,7 +75,6 @@ const DEFAULT_MINI_FORMS: Readonly<Record<MiniGeneId, string>> = {
   imports: [SpecimenTestBenchComponent],
   templateUrl: './dragon-test-bench.page.html',
   styleUrl: './dragon-test-bench.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonTestBenchPage {
   readonly traits = EXPRESSIVE_DRAGON_TRAITS;

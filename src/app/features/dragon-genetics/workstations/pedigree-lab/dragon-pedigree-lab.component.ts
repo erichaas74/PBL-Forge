@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -103,7 +102,6 @@ const CLUTCH_SIZE = 6;
   templateUrl: './dragon-pedigree-lab.component.html',
   styleUrl: './dragon-pedigree-lab.component.scss',
   providers: [provideDragonSpecimenProfile()],
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonPedigreeLabComponent {
   private readonly repository = inject(PedigreeLabRepository);

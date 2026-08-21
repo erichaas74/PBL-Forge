@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import {
   NucleobaseAtom,
   NucleobaseSymbol,
@@ -18,7 +18,6 @@ interface MoleculeBondLine {
   selector: 'app-nucleobase-molecule',
   templateUrl: './nucleobase-molecule.component.html',
   styleUrl: './nucleobase-molecule.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NucleobaseMoleculeComponent {
   readonly base = input.required<NucleobaseSymbol>();

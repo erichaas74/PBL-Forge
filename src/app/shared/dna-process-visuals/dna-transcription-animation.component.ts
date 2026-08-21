@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   OnDestroy,
   computed,
@@ -14,7 +13,6 @@ import { complementaryDna, dnaSequence, transcribedRna } from './dna-process.mod
   selector: 'app-dna-transcription-animation',
   templateUrl: './dna-transcription-animation.component.html',
   styleUrl: './dna-transcription-animation.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DnaTranscriptionAnimationComponent implements OnDestroy {
   readonly sequence = input('AGTCAT');

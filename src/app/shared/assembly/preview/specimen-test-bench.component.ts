@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   ViewChild,
   computed,
@@ -60,7 +59,6 @@ interface DefenseRow {
   imports: [SpecimenViewportComponent],
   templateUrl: './specimen-test-bench.component.html',
   styleUrl: './specimen-test-bench.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SpecimenTestBenchComponent {
   readonly source = input.required<SpecimenSource>();

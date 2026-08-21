@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import {
   DNA_BASES,
   DNA_COMPLEMENT,
@@ -21,7 +21,6 @@ type NucleicAcidContext = 'DNA' | 'RNA';
   imports: [NucleobaseMoleculeComponent],
   templateUrl: './dna-rna-base-explorer.component.html',
   styleUrl: './dna-rna-base-explorer.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DnaRnaBaseExplorerComponent {
   readonly dnaSequence = input('ATGCCGTA');

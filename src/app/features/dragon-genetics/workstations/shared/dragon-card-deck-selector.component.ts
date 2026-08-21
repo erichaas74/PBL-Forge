@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
 import { provideDragonSpecimenProfile } from '../../simulation/domain/dragon-specimen.profile';
 import { AccountDragonRecord } from './account-genetics-library.models';
 import { buildAccountDragonCardView } from './dragon-account-card';
@@ -12,7 +12,6 @@ import { FannedCardDeckComponent } from './fanned-card-deck.component';
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './dragon-card-deck-selector.component.html',
   styleUrl: './dragon-card-deck-selector.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonCardDeckSelectorComponent {
   readonly dragons = input.required<readonly AccountDragonRecord[]>();

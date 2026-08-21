@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import {
   AlleleVaultAllele,
   AlleleVaultGene,
@@ -15,7 +15,6 @@ import {
   selector: 'app-genetics-notebook',
   templateUrl: './genetics-notebook.component.html',
   styleUrl: './genetics-notebook.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GeneticsNotebookComponent {
   readonly genes = input.required<readonly AlleleVaultGene[]>();

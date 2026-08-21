@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   input,
@@ -41,7 +40,6 @@ export interface DragonGeneSelection extends DragonChromosomeSelection {
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './dragon-chromosome-selector.component.html',
   styleUrl: './dragon-chromosome-selector.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonChromosomeSelectorComponent {
   readonly dragons = input<readonly AccountDragonRecord[]>([]);

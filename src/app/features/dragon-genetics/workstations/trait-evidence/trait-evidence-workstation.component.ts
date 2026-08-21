@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   ViewChild,
   computed,
@@ -54,7 +53,6 @@ import { TraitEvidenceRepository, emptyTraitEvidenceSnapshot } from './trait-evi
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './trait-evidence-workstation.component.html',
   styleUrl: './trait-evidence-workstation.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TraitEvidenceWorkstationComponent {
   readonly studentId = input.required<string>();

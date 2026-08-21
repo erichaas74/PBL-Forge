@@ -9,48 +9,41 @@ import { seaStackFooting } from './berk-sea-stack';
  * of the island. Both are one constant away from being silently wrong.
  */
 describe('berk grandstand', () => {
-  const pitRadius = 10.5;
-  /** Outer edge of the gallery ring, from `addKillRingGallery`. */
-  const galleryRadius = pitRadius + 2.1;
+    const pitRadius = 10.5;
+    /** Outer edge of the gallery ring, from `addKillRingGallery`. */
+    const galleryRadius = pitRadius + 2.1;
 
-  it('stands clear of the gallery it sits behind', () => {
-    const footprint = grandstandFootprint(pitRadius);
-    expect(footprint.frontRadius).toBeGreaterThan(galleryRadius);
-    expect(footprint.backRadius).toBeGreaterThan(footprint.frontRadius);
-  });
+    it('stands clear of the gallery it sits behind', () => {
+        const footprint = grandstandFootprint(pitRadius);
+        expect(footprint.frontRadius).toBeGreaterThan(galleryRadius);
+        expect(footprint.backRadius).toBeGreaterThan(footprint.frontRadius);
+    });
 
-  it('keeps its back corners on the rock', () => {
-    const footprint = grandstandFootprint(pitRadius);
-    const footing = seaStackFooting(pitRadius);
+    it('keeps its back corners on the rock', () => {
+        const footprint = grandstandFootprint(pitRadius);
+        const footing = seaStackFooting(pitRadius);
 
-    for (const side of [-1, 1]) {
-      const corner = new THREE.Vector2(
-        Math.cos(Math.PI - side * footprint.halfSpan) * footprint.backRadius,
-        Math.sin(Math.PI - side * footprint.halfSpan) * footprint.backRadius,
-      );
-      expect(corner.distanceTo(footing.center))
-        .withContext(`back corner at ${corner.x.toFixed(1)},${corner.y.toFixed(1)}`)
-        .toBeLessThanOrEqual(footing.radius);
-    }
+        for (const side of [-1, 1]) {
+            const corner = new THREE.Vector2(Math.cos(Math.PI - side * footprint.halfSpan) * footprint.backRadius, Math.sin(Math.PI - side * footprint.halfSpan) * footprint.backRadius);
+            expect(corner.distanceTo(footing.center), `back corner at ${corner.x.toFixed(1)},${corner.y.toFixed(1)}`).toBeLessThanOrEqual(footing.radius);
+        }
 
-    // And it is still a stand rather than a bench: an arc this far below the
-    // authored maximum would mean the island had shrunk under it.
-    expect(footprint.halfSpan).toBeGreaterThan(0.6);
-  });
+        // And it is still a stand rather than a bench: an arc this far below the
+        // authored maximum would mean the island had shrunk under it.
+        expect(footprint.halfSpan).toBeGreaterThan(0.6);
+    });
 
-  it('builds on one side of the ring, above the ground', () => {
-    const stand = createBerkGrandstand({ pitRadius, quality: 'high' });
-    const bounds = new THREE.Box3().setFromObject(stand);
+    it('builds on one side of the ring, above the ground', () => {
+        const stand = createBerkGrandstand({ pitRadius, quality: 'high' });
+        const bounds = new THREE.Box3().setFromObject(stand);
 
-    // Centred on -x, so nothing may cross to the seaward half. A stand that
-    // wrapped the pit would be standing over the drop.
-    expect(bounds.max.x)
-      .withContext('the stand should stay on the landward side')
-      .toBeLessThan(0);
-    // Feet on the rock, not sunk into it or floating over it.
-    expect(bounds.min.y).toBeGreaterThan(-0.2);
-    expect(bounds.min.y).toBeLessThan(0.2);
-    // Tall enough to show over the palisade from inside the pit.
-    expect(bounds.max.y).toBeGreaterThan(8);
-  });
+        // Centred on -x, so nothing may cross to the seaward half. A stand that
+        // wrapped the pit would be standing over the drop.
+        expect(bounds.max.x, 'the stand should stay on the landward side').toBeLessThan(0);
+        // Feet on the rock, not sunk into it or floating over it.
+        expect(bounds.min.y).toBeGreaterThan(-0.2);
+        expect(bounds.min.y).toBeLessThan(0.2);
+        // Tall enough to show over the palisade from inside the pit.
+        expect(bounds.max.y).toBeGreaterThan(8);
+    });
 });

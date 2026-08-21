@@ -7,231 +7,214 @@ import { DragonCardDeckSelectorComponent } from '../shared/dragon-card-deck-sele
 import { BloodCompatibilityLabComponent } from './blood-compatibility-lab.component';
 
 describe('BloodCompatibilityLabComponent', () => {
-  let fixture: ComponentFixture<BloodCompatibilityLabComponent>;
-  let component: BloodCompatibilityLabComponent;
+    let fixture: ComponentFixture<BloodCompatibilityLabComponent>;
+    let component: BloodCompatibilityLabComponent;
 
-  beforeEach(async () => {
-    localStorage.clear();
-    stubSpecimenThumbnailRendering();
-    await TestBed.configureTestingModule({
-      imports: [BloodCompatibilityLabComponent],
-      providers: [provideRouter([])],
-    }).compileComponents();
-    fixture = TestBed.createComponent(BloodCompatibilityLabComponent);
-    fixture.componentRef.setInput('studentId', 'blood-compatibility-component-spec');
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+    beforeEach(async () => {
+        localStorage.clear();
+        stubSpecimenThumbnailRendering();
+        await TestBed.configureTestingModule({
+            imports: [BloodCompatibilityLabComponent],
+            providers: [provideRouter([])],
+        }).compileComponents();
+        fixture = TestBed.createComponent(BloodCompatibilityLabComponent);
+        fixture.componentRef.setInput('studentId', 'blood-compatibility-component-spec');
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-  it('opens a dragon-only flip-card deck for emergency patient selection', () => {
-    const catalog = fixture.debugElement.query(By.directive(AccountGeneticsFileComponent));
+    it('opens a dragon-only flip-card deck for emergency patient selection', () => {
+        const catalog = fixture.debugElement.query(By.directive(AccountGeneticsFileComponent));
 
-    expect(catalog.componentInstance.dragonsOnly()).toBeTrue();
-    expect(catalog.componentInstance.open()).toBeTrue();
-    expect(catalog.componentInstance.inventoryLabel()).toBe('Emergency patient dragon cards');
-    expect(
-      fixture.debugElement.query(By.directive(DragonCardDeckSelectorComponent)),
-    ).not.toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('Saved chromosomes');
-  });
+        expect(catalog.componentInstance.dragonsOnly()).toBe(true);
+        expect(catalog.componentInstance.open()).toBe(true);
+        expect(catalog.componentInstance.inventoryLabel()).toBe('Emergency patient dragon cards');
+        expect(fixture.debugElement.query(By.directive(DragonCardDeckSelectorComponent))).not.toBeNull();
+        expect(fixture.nativeElement.textContent).not.toContain('Saved chromosomes');
+    });
 
-  it('loads the selected dragon directly onto the blood tester', () => {
-    const tide = accountDragon('tide');
-    component.selectAccountRecord(tide);
-    expect(component.patientDragonId()).toBe('tide');
-    expect(component.activeSpecimen()?.id).toBe('patient:tide');
+    it('loads the selected dragon directly onto the blood tester', () => {
+        const tide = accountDragon('tide');
+        component.selectAccountRecord(tide);
+        expect(component.patientDragonId()).toBe('tide');
+        expect(component.activeSpecimen()?.id).toBe('patient:tide');
 
-    const moss = accountDragon('moss');
-    component.selectAccountRecord(moss);
+        const moss = accountDragon('moss');
+        component.selectAccountRecord(moss);
 
-    expect(component.patientDragonId()).toBe('moss');
-    expect(component.activeSpecimen()?.id).toBe('patient:moss');
-    expect(component.patientBloodType()).toBeNull();
+        expect(component.patientDragonId()).toBe('moss');
+        expect(component.activeSpecimen()?.id).toBe('patient:moss');
+        expect(component.patientBloodType()).toBeNull();
 
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.patient-bay')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.intake-grid > .blood-tester')).not.toBeNull();
-    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Load patient');
-    expect(fixture.nativeElement.querySelector('.sealed-sample')).toBeNull();
-  });
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('.patient-bay')).toBeNull();
+        expect(fixture.nativeElement.querySelector('.intake-grid > .blood-tester')).not.toBeNull();
+        expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Load patient');
+        expect(fixture.nativeElement.querySelector('.sealed-sample')).toBeNull();
+    });
 
-  it('uses the former monitor position for four typed donor vials', () => {
-    const element = fixture.nativeElement as HTMLElement;
-    const vialTypes = [...element.querySelectorAll('.donor-vial .vial-visual b')].map((vial) =>
-      vial.textContent?.trim(),
-    );
+    it('uses the former monitor position for four typed donor vials', () => {
+        const element = fixture.nativeElement as HTMLElement;
+        const vialTypes = [...element.querySelectorAll('.donor-vial .vial-visual b')].map((vial) => vial.textContent?.trim());
 
-    expect(element.querySelector('.patient-monitor')).toBeNull();
-    expect(element.querySelector('.intake-grid > .donor-rack')).not.toBeNull();
-    expect(element.querySelectorAll('.donor-vial').length).toBe(4);
-    expect(element.querySelector('.donor-card')).toBeNull();
-    expect(vialTypes).toEqual(['A', 'B', 'AB', 'O']);
-  });
+        expect(element.querySelector('.patient-monitor')).toBeNull();
+        expect(element.querySelector('.intake-grid > .donor-rack')).not.toBeNull();
+        expect(element.querySelectorAll('.donor-vial').length).toBe(4);
+        expect(element.querySelector('.donor-card')).toBeNull();
+        expect(vialTypes).toEqual(['A', 'B', 'AB', 'O']);
+    });
 
-  it('adds an interactive blood type explorer to the allele and compatibility guide', () => {
-    component.guideOpen.set(true);
-    fixture.detectChanges();
+    it('adds an interactive blood type explorer to the allele and compatibility guide', () => {
+        component.guideOpen.set(true);
+        fixture.detectChanges();
 
-    const explorer = fixture.nativeElement.querySelector('.blood-type-explorer') as HTMLElement;
-    expect(explorer).not.toBeNull();
-    expect(explorer.querySelectorAll('.antigen-a').length).toBeGreaterThan(0);
-    expect(explorer.querySelector('.antibody-b')).not.toBeNull();
+        const explorer = fixture.nativeElement.querySelector('.blood-type-explorer') as HTMLElement;
+        expect(explorer).not.toBeNull();
+        expect(explorer.querySelectorAll('.antigen-a').length).toBeGreaterThan(0);
+        expect(explorer.querySelector('.antibody-b')).not.toBeNull();
 
-    (explorer.querySelector('[data-type="O"]') as HTMLButtonElement).click();
-    fixture.detectChanges();
+        (explorer.querySelector('[data-type="O"]') as HTMLButtonElement).click();
+        fixture.detectChanges();
 
-    expect(explorer.querySelector('.antigen-a')).toBeNull();
-    expect(explorer.querySelector('.antigen-b')).toBeNull();
-    expect(explorer.querySelector('.antibody-a')).not.toBeNull();
-    expect(explorer.querySelector('.antibody-b')).not.toBeNull();
-    expect(explorer.querySelectorAll('.compatible-donors b').length).toBe(1);
-    expect(explorer.querySelector('.compatible-donors')?.textContent?.trim()).toContain('O');
-  });
+        expect(explorer.querySelector('.antigen-a')).toBeNull();
+        expect(explorer.querySelector('.antigen-b')).toBeNull();
+        expect(explorer.querySelector('.antibody-a')).not.toBeNull();
+        expect(explorer.querySelector('.antibody-b')).not.toBeNull();
+        expect(explorer.querySelectorAll('.compatible-donors b').length).toBe(1);
+        expect(explorer.querySelector('.compatible-donors')?.textContent?.trim()).toContain('O');
+    });
 
-  it('supports click and drag reagent application in either order', () => {
-    component.loadPatientRecord(accountDragon('ember'));
+    it('supports click and drag reagent application in either order', () => {
+        component.loadPatientRecord(accountDragon('ember'));
 
-    component.selectReagent('a');
-    component.applyPendingReagent();
-    fixture.detectChanges();
-    expect(
-      fixture.nativeElement.querySelector('.is-active .dragon-card__blood-type')?.textContent,
-    ).toContain('?');
+        component.selectReagent('a');
+        component.applyPendingReagent();
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('.is-active .dragon-card__blood-type')?.textContent).toContain('?');
 
-    component.dropReagent(dragEvent('application/x-pbl-blood-reagent', 'b'));
-    fixture.detectChanges();
+        component.dropReagent(dragEvent('application/x-pbl-blood-reagent', 'b'));
+        fixture.detectChanges();
 
-    const test = component.patientTest();
-    expect(test?.antiA).toBeTrue();
-    expect(test?.antiB).toBeTrue();
-    expect(component.patientBloodType()?.id).toBe('ab-positive');
-    expect(component.patientBloodType()?.possibleGenotypes).toEqual(['AB']);
-    expect(component.patientTypeClaim()).toBeNull();
-    expect(component.determinedBloodTypeByDragonId()['ember']).toBeUndefined();
-    expect(component.statusMessage()).not.toContain('AB+');
-    expect(
-      fixture.nativeElement.querySelector('.is-active .dragon-card__blood-type')?.textContent,
-    ).toContain('?');
+        const test = component.patientTest();
+        expect(test?.antiA).toBe(true);
+        expect(test?.antiB).toBe(true);
+        expect(component.patientBloodType()?.id).toBe('ab-positive');
+        expect(component.patientBloodType()?.possibleGenotypes).toEqual(['AB']);
+        expect(component.patientTypeClaim()).toBeNull();
+        expect(component.determinedBloodTypeByDragonId()['ember']).toBeUndefined();
+        expect(component.statusMessage()).not.toContain('AB+');
+        expect(fixture.nativeElement.querySelector('.is-active .dragon-card__blood-type')?.textContent).toContain('?');
 
-    component.recordPatientBloodType('ab-positive');
-    fixture.detectChanges();
-    expect(component.determinedBloodTypeByDragonId()['ember']).toBe('AB');
-    expect(
-      fixture.nativeElement.querySelector('.is-active .dragon-card__blood-type')?.textContent,
-    ).toContain('AB');
-  });
+        component.recordPatientBloodType('ab-positive');
+        fixture.detectChanges();
+        expect(component.determinedBloodTypeByDragonId()['ember']).toBe('AB');
+        expect(fixture.nativeElement.querySelector('.is-active .dragon-card__blood-type')?.textContent).toContain('AB');
+    });
 
-  it('keeps the completed reaction plate visible until the student records a blood type', () => {
-    component.loadPatientRecord(accountDragon('ember'));
-    fixture.detectChanges();
+    it('keeps the completed reaction plate visible until the student records a blood type', () => {
+        component.loadPatientRecord(accountDragon('ember'));
+        fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.blood-tester .reaction-plate')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.blood-tester .transfusion-station')).toBeNull();
+        expect(fixture.nativeElement.querySelector('.blood-tester .reaction-plate')).not.toBeNull();
+        expect(fixture.nativeElement.querySelector('.blood-tester .transfusion-station')).toBeNull();
 
-    component.applyReagent('a');
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.blood-tester .reaction-plate')).not.toBeNull();
+        component.applyReagent('a');
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('.blood-tester .reaction-plate')).not.toBeNull();
 
-    component.applyReagent('b');
-    fixture.detectChanges();
+        component.applyReagent('b');
+        fixture.detectChanges();
 
-    const reactionPlate = fixture.nativeElement.querySelector(
-      '.blood-tester .reaction-plate',
-    ) as HTMLElement;
-    expect(reactionPlate).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.type-classifier')).not.toBeNull();
-    expect(component.patientTypeClaim()).toBeNull();
-    expect(fixture.nativeElement.querySelector('.blood-tester .transfusion-station')).toBeNull();
+        const reactionPlate = fixture.nativeElement.querySelector('.blood-tester .reaction-plate') as HTMLElement;
+        expect(reactionPlate).not.toBeNull();
+        expect(fixture.nativeElement.querySelector('.type-classifier')).not.toBeNull();
+        expect(component.patientTypeClaim()).toBeNull();
+        expect(fixture.nativeElement.querySelector('.blood-tester .transfusion-station')).toBeNull();
 
-    component.recordPatientBloodType('o-positive');
-    fixture.detectChanges();
+        component.recordPatientBloodType('o-positive');
+        fixture.detectChanges();
 
-    const transfusionStation = fixture.nativeElement.querySelector(
-      '.blood-tester .transfusion-station',
-    ) as HTMLElement;
-    expect(reactionPlate).not.toBeNull();
-    expect(transfusionStation).not.toBeNull();
-    expect(
-      reactionPlate.compareDocumentPosition(transfusionStation) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(fixture.nativeElement.querySelectorAll('.healing-chamber').length).toBe(1);
-    expect(component.patientTypeClaim()?.id).toBe('o-positive');
-  });
+        const transfusionStation = fixture.nativeElement.querySelector('.blood-tester .transfusion-station') as HTMLElement;
+        expect(reactionPlate).not.toBeNull();
+        expect(transfusionStation).not.toBeNull();
+        expect(reactionPlate.compareDocumentPosition(transfusionStation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(fixture.nativeElement.querySelectorAll('.healing-chamber').length).toBe(1);
+        expect(component.patientTypeClaim()?.id).toBe('o-positive');
+    });
 
-  it('carries known blood evidence through click and drag vial selection', () => {
-    component.selectDonor('clinic-cinder');
-    expect(component.isFullyTested('clinic-cinder')).toBeTrue();
-    expect(component.bloodTypeForSpecimen('clinic-cinder')?.id).toBe('o-positive');
-    component.loadStagedDonor();
-    expect(component.chamberDonorId()).toBe('clinic-cinder');
+    it('carries known blood evidence through click and drag vial selection', () => {
+        component.selectDonor('clinic-cinder');
+        expect(component.isFullyTested('clinic-cinder')).toBe(true);
+        expect(component.bloodTypeForSpecimen('clinic-cinder')?.id).toBe('o-positive');
+        component.loadStagedDonor();
+        expect(component.chamberDonorId()).toBe('clinic-cinder');
 
-    component.dropDonor(dragEvent('application/x-pbl-blood-donor', 'clinic-pyra'));
+        component.dropDonor(dragEvent('application/x-pbl-blood-donor', 'clinic-pyra'));
 
-    expect(component.chamberDonorId()).toBe('clinic-pyra');
-    expect(component.isFullyTested('clinic-pyra')).toBeTrue();
-    expect(component.bloodTypeForSpecimen('clinic-pyra')?.id).toBe('b-positive');
-  });
+        expect(component.chamberDonorId()).toBe('clinic-pyra');
+        expect(component.isFullyTested('clinic-pyra')).toBe(true);
+        expect(component.bloodTypeForSpecimen('clinic-pyra')?.id).toBe('b-positive');
+    });
 
-  it('reveals a dangerous reaction from incompatible tested donor cells', () => {
-    component.loadPatientRecord(accountDragon('quartz'));
-    fullyTest('patient:quartz');
-    fullyTest('clinic-maris');
-    component.stageDonor('clinic-maris');
+    it('reveals a dangerous reaction from incompatible tested donor cells', () => {
+        component.loadPatientRecord(accountDragon('quartz'));
+        fullyTest('patient:quartz');
+        fullyTest('clinic-maris');
+        component.stageDonor('clinic-maris');
 
-    expect(component.chamberReady()).toBeTrue();
-    component.authorizeTransfusion();
+        expect(component.chamberReady()).toBe(true);
+        component.authorizeTransfusion();
 
-    expect(component.latestChamberTrial()?.compatible).toBeFalse();
-    expect(component.latestChamberTrial()?.unfamiliarMarkers).toEqual(['a']);
-    expect(component.patientCondition()).toBe('reaction');
-  });
+        expect(component.latestChamberTrial()?.compatible).toBe(false);
+        expect(component.latestChamberTrial()?.unfamiliarMarkers).toEqual(['a']);
+        expect(component.patientCondition()).toBe('reaction');
+    });
 
-  it('consumes a finite challenge unit and can save a supported emergency record', () => {
-    component.loadPatientRecord(accountDragon('ember'));
-    component.setMode('challenge');
-    fullyTest('patient:ember');
-    fullyTest('clinic-cinder');
-    component.recordPatientBloodType('ab-positive');
-    component.stageDonor('clinic-cinder');
+    it('consumes a finite challenge unit and can save a supported emergency record', () => {
+        component.loadPatientRecord(accountDragon('ember'));
+        component.setMode('challenge');
+        fullyTest('patient:ember');
+        fullyTest('clinic-cinder');
+        component.recordPatientBloodType('ab-positive');
+        component.stageDonor('clinic-cinder');
 
-    expect(component.remainingUnits()['clinic-cinder']).toBe(1);
-    component.authorizeTransfusion();
-    expect(component.remainingUnits()['clinic-cinder']).toBe(0);
-    expect(component.patientCondition()).toBe('stable');
+        expect(component.remainingUnits()['clinic-cinder']).toBe(1);
+        component.authorizeTransfusion();
+        expect(component.remainingUnits()['clinic-cinder']).toBe(0);
+        expect(component.patientCondition()).toBe('stable');
 
-    component.updateExplanation(
-      'Cinder has no A or B antigens, so the patient recognizes every donor-cell antigen.',
-    );
-    expect(component.canSaveRecord()).toBeTrue();
-    component.saveEmergencyRecord();
+        component.updateExplanation('Cinder has no A or B antigens, so the patient recognizes every donor-cell antigen.');
+        expect(component.canSaveRecord()).toBe(true);
+        component.saveEmergencyRecord();
 
-    expect(component.records().length).toBe(1);
-    expect(component.records()[0].patientPhenotype).toBe('ab-positive');
-    expect(component.records()[0].donorPhenotype).toBe('o-positive');
-    expect(component.records()[0].mode).toBe('challenge');
-  });
+        expect(component.records().length).toBe(1);
+        expect(component.records()[0].patientPhenotype).toBe('ab-positive');
+        expect(component.records()[0].donorPhenotype).toBe('o-positive');
+        expect(component.records()[0].mode).toBe('challenge');
+    });
 
-  function accountDragon(id: string) {
-    return component.accountSnapshot().dragons.find((dragon) => dragon.id === id)!;
-  }
-
-  function fullyTest(specimenId: string): void {
-    if (specimenId.startsWith('patient:')) {
-      component.loadPatientRecord(accountDragon(specimenId.replace('patient:', '')));
-    } else {
-      component.loadDonorSample(specimenId);
+    function accountDragon(id: string) {
+        return component.accountSnapshot().dragons.find((dragon) => dragon.id === id)!;
     }
-    component.applyReagent('a');
-    component.applyReagent('b');
-  }
+
+    function fullyTest(specimenId: string): void {
+        if (specimenId.startsWith('patient:')) {
+            component.loadPatientRecord(accountDragon(specimenId.replace('patient:', '')));
+        }
+        else {
+            component.loadDonorSample(specimenId);
+        }
+        component.applyReagent('a');
+        component.applyReagent('b');
+    }
 });
 
 function dragEvent(type: string, value: string): DragEvent {
-  return {
-    preventDefault: jasmine.createSpy('preventDefault'),
-    dataTransfer: {
-      types: [type],
-      getData: (requestedType: string) => (requestedType === type ? value : ''),
-    },
-  } as unknown as DragEvent;
+    return {
+        preventDefault: vi.fn().mockName('preventDefault'),
+        dataTransfer: {
+            types: [type],
+            getData: (requestedType: string) => (requestedType === type ? value : ''),
+        },
+    } as unknown as DragEvent;
 }

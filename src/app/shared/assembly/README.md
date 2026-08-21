@@ -10,11 +10,11 @@ This folder owns the game-neutral assembly runtime. Features and games may depen
 - `rendering/`: Three.js geometry, visual transforms, and material profiles.
 - `assembly-physics.service.ts`: single-assembly preview simulation.
 - `assembly-renderer.service.ts`: interactive single-assembly renderer.
-- `assembly-viewport/`: non-interactive embeddable viewport for future games.
 
 `AssemblyBlueprint` is the serialized asset. `AssemblyState` adds Garage-only simulation state and must not be stored in the Creation Library.
 
-Games obtain blueprints, moves, and scenarios through `CreationLibraryService`. The Arena is a reusable combat lab; its first registered game-facing consumer is `robot-battle`.
+Games obtain blueprints, moves, and scenarios through `CreationLibraryService`. Arena consumers
+compose the shared combat physics, renderer, and strategy runtime directly.
 
 Dragon models cross from the separate Dragon Designer application through a validated,
 versioned `DragonModelPack`. The shared `model-pack/` folder owns that contract and parser; it does

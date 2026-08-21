@@ -9,9 +9,9 @@ import {
   QuaternionData,
   ShapeType,
   Vector3Data,
-} from '../models/assembly.models';
-import { createAssemblyId } from '../utils/assembly-id';
-import { quaternionFromAxisAngle } from '../utils/vector-data';
+} from '@pbl/assembly/domain/assembly.models';
+import { createAssemblyId } from '@pbl/assembly/domain/assembly-id';
+import { quaternionFromAxisAngle } from '@pbl/assembly/domain/vector-data';
 import { dragonBodySurfacePoint } from '@pbl/assembly/rendering/dragon-body-profile';
 import { dragonHeadJawMountFor } from '@pbl/assembly/rendering/dragon-head-profile';
 import { wingClawAnchor, wingRootMount } from '@pbl/assembly/rendering/dragon-wing-profile';

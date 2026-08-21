@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   OnDestroy,
   computed,
@@ -47,7 +46,6 @@ const FOLDED_POSITIONS: readonly FoldPosition[] = [
   selector: 'app-rna-translation-animation',
   templateUrl: './rna-translation-animation.component.html',
   styleUrl: './rna-translation-animation.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RnaTranslationAnimationComponent implements OnDestroy {
   readonly sequence = input('AUGCCGUACCGAGCUACCGGAUCA');

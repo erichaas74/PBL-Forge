@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   ElementRef,
   HostListener,
@@ -78,9 +77,7 @@ const MAX_CARDS_PER_TURN = 3;
     DragonArenaSoundService,
   ],
   templateUrl: './dragon-arena.component.html',
-  styleUrl: './dragon-arena.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
+  styleUrl: './dragon-arena.component.scss',})
 export class DragonArenaComponent implements OnChanges {
   readonly champion = input.required<StudentDragonRecord>();
   /**

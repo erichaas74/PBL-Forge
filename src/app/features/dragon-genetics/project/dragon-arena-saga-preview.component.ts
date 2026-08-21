@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   OnChanges,
   SimpleChanges,
@@ -53,7 +52,6 @@ const ARENA_WARDEN_SEED = runDragonBatch(
   ],
   templateUrl: './dragon-arena-saga-preview.component.html',
   styleUrl: './dragon-arena-saga-preview.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonArenaSagaPreviewComponent implements OnChanges {
   readonly studentId = input.required<string>();

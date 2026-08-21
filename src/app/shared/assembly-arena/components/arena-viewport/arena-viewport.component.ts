@@ -1,6 +1,5 @@
 import {
   AfterViewInit,
-  ChangeDetectionStrategy,
   Component,
   ElementRef,
   OnDestroy,
@@ -30,7 +29,6 @@ export type ArenaViewportAppearance = 'standard' | 'dragon-pit';
   selector: 'app-arena-viewport',
   templateUrl: './arena-viewport.component.html',
   styleUrl: './arena-viewport.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArenaViewportComponent implements AfterViewInit, OnDestroy {
   readonly controlFrameFactory =

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import { DragonEggStatusId } from '../../../../shared/dragon-visuals/domain/dragon-visual.models';
 import { DRAGON_HATCHERY_THEME, DragonHatcheryTheme } from './dragon-hatchery.theme';
 
@@ -19,7 +19,6 @@ interface Speckle {
   selector: 'app-hatchery-egg-glyph',
   templateUrl: './hatchery-egg-glyph.component.html',
   styleUrl: './hatchery-egg-glyph.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HatcheryEggGlyphComponent {
   readonly status = input.required<DragonEggStatusId>();

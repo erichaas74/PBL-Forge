@@ -2,23 +2,12 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "../out-tsc/dragon-designer",
+    "rootDir": "..",
     "types": []
   },
-  "include": [
-    "src/**/*.ts",
-    "../src/app/shared/assembly/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "exclude": [
     "src/**/*.spec.ts",
     "../src/**/*.spec.ts"
-  ],
-  "angularCompilerOptions": {
-    "extendedDiagnostics": {
-      "checks": {
-        "nullishCoalescingNotNullable": "suppress",
-        "optionalChainNotNullable": "suppress"
-      }
-    }
-  }
+  ]
 }
-

@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   ElementRef,
   OnDestroy,
@@ -172,7 +171,6 @@ function wingControls(): readonly Omit<StyleControl, 'value'>[] {
   imports: [RouterLink],
   templateUrl: './parts-lab.page.html',
   styleUrl: './parts-lab.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [SpecimenRendererService],
 })
 export class PartsLabPage implements OnDestroy {

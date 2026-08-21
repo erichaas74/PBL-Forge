@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, inject } from '@angular/core';
+import { Component, OnDestroy, computed, effect, inject } from '@angular/core';
 import { AssemblyGarageComponent } from './assembly-garage/assembly-garage.component';
 import { AssemblyPreset } from '@pbl/assembly/domain/assembly.models';
 import {
@@ -22,7 +22,6 @@ import { setDragonStyleOverride } from '@pbl/assembly/rendering/dragon-procedura
       [dragonPackExport]="true"
     />
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonGaragePage implements OnDestroy {
   private readonly draft = inject(DesignerDragonDraftStore);

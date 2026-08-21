@@ -1,12 +1,9 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   ElementRef,
-  NgZone,
   OnDestroy,
   computed,
   effect,
-  inject,
   input,
   output,
   signal,
@@ -83,7 +80,6 @@ let nextEnzymeExplorerId = 0;
   selector: 'app-enzyme-reaction-explorer',
   templateUrl: './enzyme-reaction-explorer.component.html',
   styleUrl: './enzyme-reaction-explorer.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EnzymeReactionExplorerComponent implements OnDestroy {
   /** Restricts the bench to a subset of enzymes; defaults to every enzyme gene. */
@@ -170,8 +166,6 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
 
   private readonly bodyRefs = viewChildren<ElementRef<SVGGElement>>('fieldBody');
   private readonly ambientRefs = viewChildren<ElementRef<SVGGElement>>('ambientEnzyme');
-  private readonly zone = inject(NgZone);
-
   private timers: ReturnType<typeof setTimeout>[] = [];
   private frame: number | null = null;
   private lastPhase: EnzymeReactionPhase = 'ready';
@@ -374,16 +368,14 @@ export class EnzymeReactionExplorerComponent implements OnDestroy {
   private startLoop(): void {
     if (typeof requestAnimationFrame === 'undefined') return;
 
-    this.zone.runOutsideAngular(() => {
-      const tick = (time: number) => {
-        const step = this.lastFrameTime ? Math.min(3, (time - this.lastFrameTime) / 16.7) : 1;
-        this.lastFrameTime = time;
-        if (!this.prefersReducedMotion()) this.advance(step);
-        this.render();
-        this.frame = requestAnimationFrame(tick);
-      };
+    const tick = (time: number) => {
+      const step = this.lastFrameTime ? Math.min(3, (time - this.lastFrameTime) / 16.7) : 1;
+      this.lastFrameTime = time;
+      if (!this.prefersReducedMotion()) this.advance(step);
+      this.render();
       this.frame = requestAnimationFrame(tick);
-    });
+    };
+    this.frame = requestAnimationFrame(tick);
   }
 
   private advance(step: number): void {

@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -53,7 +52,6 @@ type ExpressionState = 'idle' | 'running' | 'revealed';
   imports: [SpecimenViewportComponent, ChromosomeSvgComponent, CellChromosomeViewportComponent],
   templateUrl: './allele-vault-workbench.component.html',
   styleUrl: './allele-vault-workbench.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AlleleVaultWorkbenchComponent {
   readonly genes = input<readonly AlleleVaultGene[]>(ALLELE_VAULT_GENES);

@@ -1,9 +1,7 @@
 import { AsyncPipe } from '@angular/common';
 import {
-  ChangeDetectionStrategy,
   Component,
   inject,
-  NgZone,
   signal,
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
@@ -44,11 +42,9 @@ import {
   imports: [AsyncPipe, RouterLink],
   templateUrl: './dragon-teacher.page.html',
   styleUrl: './dragon-teacher.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonTeacherPage {
   private readonly firestore = inject(FIREBASE_FIRESTORE);
-  private readonly zone = inject(NgZone);
   readonly session = inject(SessionService);
   readonly adaptiveStore = inject(DragonAdaptiveStore);
   readonly error = signal<string | null>(null);
@@ -64,7 +60,7 @@ export class DragonTeacherPage {
       this.error.set(null);
       const records = collection(this.firestore, 'dragonLabProgress');
       const source = query(records, where('teacherId', '==', user?.uid ?? '__none__'));
-      return observeCollection<DragonStudentProgressDocument>(source, this.zone, {
+      return observeCollection<DragonStudentProgressDocument>(source, {
         idField: 'id',
       }).pipe(
         map((documents) =>

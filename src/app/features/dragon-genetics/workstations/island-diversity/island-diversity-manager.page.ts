@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonCapstoneProgressRepository } from '../../project/dragon-capstone-progress.repository';
 import { LOCAL_WORKSTATION_STUDENT_ID } from '../shared/dragon-workstation-context.models';
@@ -12,7 +12,6 @@ import { StoredIslandDiversityWorld } from './island-diversity.models';
   imports: [RouterLink, IslandDiversityManagerComponent],
   templateUrl: './island-diversity-manager.page.html',
   styleUrl: './island-diversity-manager.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IslandDiversityManagerPage {
   private readonly context = inject(DragonWorkstationContextService);

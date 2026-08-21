@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -50,7 +49,6 @@ interface DnaSpecimen {
   imports: [DnaSequenceAnalysisComponent, ChromosomeSvgComponent],
   templateUrl: './dragon-dna-repair-lab.component.html',
   styleUrl: './dragon-dna-repair-lab.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonDnaRepairLabComponent {
   private readonly repository = inject(DnaComparisonRepository);

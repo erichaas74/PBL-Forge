@@ -141,11 +141,7 @@ These are product/cleanup findings, not hidden architecture dependencies:
    guidance forbidden by the authoritative workstation rules. Its science and file boundaries are
    now isolated, but the interaction must be redesigned as an open-order instrument before it can
    pass the product rejection checklist.
-2. **Loose prototype files remain in the active folder.** The standalone HTML prototypes and old
-   Markdown plans at the root of `workstations/` are not imported by the Angular app. Move them to
-   `migration-archive/` or `docs/` in a dedicated cleanup change so the active source tree describes
-   runtime code only.
-3. **Several UI orchestrators remain large.** Pedigree, meiosis, and companion-show components have
+2. **Several UI orchestrators remain large.** Pedigree, meiosis, and companion-show components have
    pure domain and repository layers already, but their view-state files are still long. Split them
    by actual instrument subpanels only when those subpanels need independent tests or reuse; do not
    create a shared visual mega-component or move station-specific CSS into global styles.

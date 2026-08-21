@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   ElementRef,
   HostListener,
@@ -35,9 +34,7 @@ interface GuideTurn {
   selector: 'app-wise-dragon-guide',
   imports: [SpecimenViewportComponent],
   templateUrl: './wise-dragon-guide.component.html',
-  styleUrl: './wise-dragon-guide.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [...provideDragonSpecimenProfile()],
+  styleUrl: './wise-dragon-guide.component.scss',  providers: [...provideDragonSpecimenProfile()],
 })
 export class WiseDragonGuideComponent implements OnDestroy {
   @ViewChild('launcher') private launcher?: ElementRef<HTMLButtonElement>;

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
   ProjectActivityViewModel,
@@ -20,7 +20,6 @@ const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS;
   imports: [RouterLink, DragonArenaSagaPreviewComponent, MiniDragonSagaPreviewComponent],
   templateUrl: './dragon-genetics.page.html',
   styleUrl: './dragon-genetics.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonGeneticsPage {
   readonly hub = inject(DragonProjectHubFacade);

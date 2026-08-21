@@ -25,12 +25,9 @@ size of a biological chromosome.
 
 ## Visual direction
 
-Use the light comparison bench, chromosome overview, aligned base blocks, difference markers, and
-side-by-side sample loading established by
-[`dna_comparison_workstation.html`](../../src/app/features/dragon-genetics/workstations/dna_comparison_workstation.html).
-Use the nucleotide colors, strand rails, paired-base blocks, insertion/deletion/substitution
-choreography, and moving repair complex established by
-[`dna_mutations_animations.html`](../../src/app/features/dragon-genetics/workstations/dna_mutations_animations.html).
+The active workstation owns the light comparison bench, chromosome overview, aligned base blocks,
+difference markers, side-by-side sample loading, nucleotide colors, mutation choreography, and
+repair-complex motion. Treat that implementation as the visual source of truth.
 
 The active workstation is in
 [`workstations/dna-process-lab/`](../../src/app/features/dragon-genetics/workstations/dna-process-lab/).

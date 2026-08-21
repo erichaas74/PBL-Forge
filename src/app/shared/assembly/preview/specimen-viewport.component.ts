@@ -1,6 +1,5 @@
 import {
   AfterViewInit,
-  ChangeDetectionStrategy,
   Component,
   ElementRef,
   OnDestroy,
@@ -29,7 +28,6 @@ import { SpecimenRendererService, isSpecimenRenderingAvailable } from './specime
   selector: 'app-specimen-viewport',
   templateUrl: './specimen-viewport.component.html',
   styleUrl: './specimen-viewport.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [SpecimenRendererService],
 })
 export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {

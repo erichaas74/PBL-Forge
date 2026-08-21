@@ -1,4 +1,4 @@
-import { AssemblyPreset } from '../../models/assembly.models';
+import { AssemblyPreset } from '@pbl/assembly/domain/assembly.models';
 import { CAR_LOAD_PRESET } from '@pbl/assembly/assets/car-load';
 import { CLASSIC_DRAGON_TEST_PRESET } from './classic-dragon-test';
 import { PINEWOOD_DERBY_CAR_PRESET } from '@pbl/assembly/assets/pinewood-derby-car';

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonCapstoneProgressRepository } from '../../project/dragon-capstone-progress.repository';
 import { LOCAL_WORKSTATION_STUDENT_ID } from '../shared/dragon-workstation-context.models';
@@ -11,9 +11,7 @@ import { CompanionShowSnapshot } from './companion-show.models';
   selector: 'app-companion-show-page',
   imports: [RouterLink, CompanionShowComponent],
   templateUrl: './companion-show.page.html',
-  styleUrl: './companion-show.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
+  styleUrl: './companion-show.page.scss',})
 export class CompanionShowPage {
   private readonly context = inject(DragonWorkstationContextService);
   private readonly capstoneProgressRepository = inject(DragonCapstoneProgressRepository);

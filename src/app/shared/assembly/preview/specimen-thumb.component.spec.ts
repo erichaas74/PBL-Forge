@@ -5,49 +5,49 @@ import { SpecimenSource } from './specimen.models';
 import { stubSpecimenThumbnailRendering } from './specimen-viewport.testing';
 
 describe('SpecimenThumbComponent', () => {
-  let fixture: ComponentFixture<SpecimenThumbComponent>;
+    let fixture: ComponentFixture<SpecimenThumbComponent>;
 
-  const source: SpecimenSource = {
-    kind: 'descriptor',
-    descriptor: {
-      id: 'spec-1',
-      label: 'Ember',
-      blueprint: { parts: [], joints: [] },
-      traits: [],
-      profileId: 'test-species',
-      accentColor: '#d94841',
-    },
-  };
+    const source: SpecimenSource = {
+        kind: 'descriptor',
+        descriptor: {
+            id: 'spec-1',
+            label: 'Ember',
+            blueprint: { parts: [], joints: [] },
+            traits: [],
+            profileId: 'test-species',
+            accentColor: '#d94841',
+        },
+    };
 
-  beforeEach(() => {
-    stubSpecimenThumbnailRendering();
-    TestBed.configureTestingModule({
-      imports: [SpecimenThumbComponent],
-      providers: [
-        provideSpecimenProfile({
-          id: 'test-species',
-          supports: (genome): genome is unknown => {
-            void genome;
-            return true;
-          },
-          express: () => source.kind === 'descriptor' ? source.descriptor : (undefined as never),
-        }),
-      ],
+    beforeEach(() => {
+        stubSpecimenThumbnailRendering();
+        TestBed.configureTestingModule({
+            imports: [SpecimenThumbComponent],
+            providers: [
+                provideSpecimenProfile({
+                    id: 'test-species',
+                    supports: (genome): genome is unknown => {
+                        void genome;
+                        return true;
+                    },
+                    express: () => source.kind === 'descriptor' ? source.descriptor : (undefined as never),
+                }),
+            ],
+        });
+        fixture = TestBed.createComponent(SpecimenThumbComponent);
+        fixture.componentRef.setInput('source', source);
+        fixture.detectChanges();
     });
-    fixture = TestBed.createComponent(SpecimenThumbComponent);
-    fixture.componentRef.setInput('source', source);
-    fixture.detectChanges();
-  });
 
-  it('labels the real rendered specimen', () => {
-    expect(fixture.nativeElement.querySelector('.nameplate')?.textContent).toContain('Ember');
-    expect(fixture.componentInstance.alt()).toBe('Ember phenotype');
-  });
+    it('labels the real rendered specimen', () => {
+        expect(fixture.nativeElement.querySelector('.nameplate')?.textContent).toContain('Ember');
+        expect(fixture.componentInstance.alt()).toBe('Ember phenotype');
+    });
 
-  it('uses the neutral unavailable state when a baked render cannot be produced', () => {
-    const image = fixture.nativeElement.querySelector('img');
-    const fallback = fixture.nativeElement.querySelector('.fallback');
+    it('uses the neutral unavailable state when a baked render cannot be produced', () => {
+        const image = fixture.nativeElement.querySelector('img');
+        const fallback = fixture.nativeElement.querySelector('.fallback');
 
-    expect(Boolean(image) || Boolean(fallback)).toBeTrue();
-  });
+        expect(Boolean(image) || Boolean(fallback)).toBe(true);
+    });
 });

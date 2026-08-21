@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   OnDestroy,
   computed,
@@ -40,7 +39,6 @@ const PROTEIN_SAMPLE_DRAG_TYPE = 'application/x-pbl-protein-rescue-sample';
   imports: [DatePipe, RouterLink, AccountGeneticsFileComponent, DnaTranscriptionAnimationComponent],
   templateUrl: './protein-rescue-lab.component.html',
   styleUrl: './protein-rescue-lab.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProteinRescueLabComponent implements OnDestroy {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);

@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   DestroyRef,
   computed,
@@ -48,7 +47,6 @@ interface DnaAnimationSnapshot {
   selector: 'app-dna-sequence-analysis',
   templateUrl: './dna-sequence-analysis.component.html',
   styleUrl: './dna-sequence-analysis.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DnaSequenceAnalysisComponent {
   readonly baseColors = DRAGON_DNA_BASE_COLORS;

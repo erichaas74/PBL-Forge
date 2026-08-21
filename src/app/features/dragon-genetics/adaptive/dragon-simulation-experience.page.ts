@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -74,7 +73,6 @@ const DEDICATED_WORKSTATION_IDS = new Set<DragonSimulationId>([
   ],
   templateUrl: './dragon-simulation-experience.page.html',
   styleUrl: './dragon-simulation-experience.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonSimulationExperiencePage {
   readonly store = inject(DragonAdaptiveStore);

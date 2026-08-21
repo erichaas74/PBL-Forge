@@ -1,4 +1,4 @@
-import { inject, Injectable, NgZone, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import {
   collection,
   doc,
@@ -32,13 +32,11 @@ const BUILT_IN_PROJECTS: readonly PblProject[] = [{
 @Injectable({ providedIn: 'root' })
 export class ProjectRepository {
   private readonly firestore = inject(FIREBASE_FIRESTORE);
-  private readonly zone = inject(NgZone);
 
   readonly error = signal<string | null>(null);
 
   readonly publishedProjects$: Observable<PblProject[]> = observeCollection<PblProject>(
     query(collection(this.firestore, 'projects'), where('status', '==', 'published')),
-    this.zone,
     { idField: 'id' },
   ).pipe(
     map((projects) => {
@@ -57,7 +55,6 @@ export class ProjectRepository {
   project$(projectId: string): Observable<PblProject | undefined> {
     return observeDocument<PblProject>(
       doc(this.firestore, `projects/${projectId}`),
-      this.zone,
       { idField: 'id' },
     );
   }
@@ -65,7 +62,6 @@ export class ProjectRepository {
   activities$(projectId: string): Observable<PblActivity[]> {
     return observeCollection<PblActivity>(
       collection(this.firestore, `projects/${projectId}/activities`),
-      this.zone,
       { idField: 'id' },
     ).pipe(map((activities) => activities.sort((a, b) => a.order - b.order)));
   }
@@ -73,7 +69,6 @@ export class ProjectRepository {
   activity$(projectId: string, activityId: string): Observable<PblActivity | undefined> {
     return observeDocument<PblActivity>(
       doc(this.firestore, `projects/${projectId}/activities/${activityId}`),
-      this.zone,
       { idField: 'id' },
     );
   }

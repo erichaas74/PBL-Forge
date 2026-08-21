@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { combineLatest, map, shareReplay, switchMap } from 'rxjs';
 import { ProjectRepository } from '../../core/firebase/project.repository';
@@ -16,7 +16,6 @@ import {
   imports: [AsyncPipe, RouterLink],
   templateUrl: './activity-player.page.html',
   styleUrl: './activity-player.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ActivityPlayerPage {
   private readonly route = inject(ActivatedRoute);

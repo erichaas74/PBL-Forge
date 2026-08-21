@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -59,7 +58,6 @@ const PHASE_RAIL: readonly PhaseStep[] = [
   imports: [ChromosomePairComponent, HatcheryEggGlyphComponent],
   templateUrl: './dragon-hatchery-display.component.html',
   styleUrl: './dragon-hatchery-display.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonHatcheryDisplayComponent {
   private readonly bridge = inject(DragonVisualBridge);

@@ -1,4 +1,3 @@
-import { NgZone } from '@angular/core';
 import { Auth, onAuthStateChanged, User } from 'firebase/auth';
 import {
   DocumentData,
@@ -8,20 +7,19 @@ import {
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
 
-export function observeAuthState(auth: Auth, zone: NgZone): Observable<User | null> {
+export function observeAuthState(auth: Auth): Observable<User | null> {
   return new Observable((subscriber) =>
     onAuthStateChanged(
       auth,
-      (user) => zone.run(() => subscriber.next(user)),
-      (error) => zone.run(() => subscriber.error(error)),
-      () => zone.run(() => subscriber.complete()),
+      (user) => subscriber.next(user),
+      (error) => subscriber.error(error),
+      () => subscriber.complete(),
     ),
   );
 }
 
 export function observeCollection<T extends DocumentData>(
   source: Query<DocumentData>,
-  zone: NgZone,
   options: { idField?: string } = {},
 ): Observable<T[]> {
   return new Observable((subscriber) =>
@@ -34,17 +32,16 @@ export function observeCollection<T extends DocumentData>(
             ? { ...data, [options.idField]: document.id }
             : data) as T;
         });
-        zone.run(() => subscriber.next(documents));
+        subscriber.next(documents);
       },
-      (error) => zone.run(() => subscriber.error(error)),
-      () => zone.run(() => subscriber.complete()),
+      (error) => subscriber.error(error),
+      () => subscriber.complete(),
     ),
   );
 }
 
 export function observeDocument<T extends DocumentData>(
   source: DocumentReference<DocumentData>,
-  zone: NgZone,
   options: { idField?: string } = {},
 ): Observable<T | undefined> {
   return new Observable((subscriber) =>
@@ -55,10 +52,10 @@ export function observeDocument<T extends DocumentData>(
         const document = data
           ? ((options.idField ? { ...data, [options.idField]: snapshot.id } : data) as T)
           : undefined;
-        zone.run(() => subscriber.next(document));
+        subscriber.next(document);
       },
-      (error) => zone.run(() => subscriber.error(error)),
-      () => zone.run(() => subscriber.complete()),
+      (error) => subscriber.error(error),
+      () => subscriber.complete(),
     ),
   );
 }

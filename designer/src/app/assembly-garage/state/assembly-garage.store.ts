@@ -12,7 +12,7 @@ import {
   JointType,
   ShapeType,
   Vector3Data,
-} from '../models/assembly.models';
+} from '@pbl/assembly/domain/assembly.models';
 import { cloneAssemblyBlueprint } from '@pbl/assembly/domain/assembly-clone';
 import {
   DEFAULT_PART_COLORS,
@@ -23,7 +23,7 @@ import {
   AssemblyPartDefinition,
   createPartFromDefinition,
 } from '../data/assembly-part-definitions';
-import { createAssemblyId } from '../utils/assembly-id';
+import { createAssemblyId } from '@pbl/assembly/domain/assembly-id';
 import { parseAssemblyState } from '../utils/assembly-validation';
 import {
   addVectors,
@@ -34,7 +34,7 @@ import {
   getPartSnapPoints,
   SnapMatch,
   subtractVectors,
-} from '../utils/snap-points';
+} from '@pbl/assembly/domain/snap-points';
 import {
   cloneVector3,
   identityQuaternion,
@@ -44,7 +44,7 @@ import {
   positiveNumber,
   rotateVectorByQuaternion,
   VectorAxis,
-} from '../utils/vector-data';
+} from '@pbl/assembly/domain/vector-data';
 
 @Injectable()
 export class AssemblyGarageStore {

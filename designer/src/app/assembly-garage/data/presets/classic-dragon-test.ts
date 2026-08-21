@@ -4,7 +4,7 @@ import {
   AssemblySnapPoint,
   AssemblyBlueprint,
   Vector3Data,
-} from '../../models/assembly.models';
+} from '@pbl/assembly/domain/assembly.models';
 import {
   ASSEMBLY_PART_DEFINITIONS,
   AssemblyPartDefinition,
@@ -14,7 +14,7 @@ import {
   getAssemblySnapPoints,
   getPartSnapPoints,
   subtractVectors,
-} from '../../utils/snap-points';
+} from '@pbl/assembly/domain/snap-points';
 import {
   cloneVector3,
   identityQuaternion,
@@ -22,7 +22,7 @@ import {
   multiplyQuaternions,
   normalizeVector3,
   rotateVectorByQuaternion,
-} from '../../utils/vector-data';
+} from '@pbl/assembly/domain/vector-data';
 import { preset } from '@pbl/assembly/assets/assembly-preset-builder';
 
 interface CatalogPresetPart {

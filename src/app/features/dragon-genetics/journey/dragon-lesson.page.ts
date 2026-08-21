@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DragonJourneyFacade } from './dragon-journey.facade';
 import { DragonLessonId } from './domain/dragon-journey.models';
@@ -8,7 +8,6 @@ import { DragonLessonId } from './domain/dragon-journey.models';
   imports: [RouterLink],
   templateUrl: './dragon-lesson.page.html',
   styleUrl: './dragon-lesson.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonLessonPage {
   readonly journey = inject(DragonJourneyFacade);

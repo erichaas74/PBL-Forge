@@ -1,4 +1,4 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AssemblyBlueprint } from '../domain/assembly.models';
 import { SpecimenSource, describeSpecimen } from './specimen.models';
@@ -56,7 +56,6 @@ const LOCAL_PROFILE: SpecimenProfile<TestGenome> = {
 @Component({
   imports: [SpecimenViewComponent],
   providers: [provideSpecimenProfile(LOCAL_PROFILE as SpecimenProfile)],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<app-specimen-view [source]="source()" (traitFocused)="focused = $event" />`,
 })
 class HostComponent {

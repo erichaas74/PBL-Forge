@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, input, output, signal } from '@angular/core';
+import { Component, OnDestroy, computed, effect, input, output, signal } from '@angular/core';
 import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
 import { getTrait } from '../../simulation/domain/dragon-inheritance';
 import { DragonParentProfile, DragonTraitId } from '../../simulation/domain/dragon-lab.models';
@@ -68,7 +68,6 @@ const PHASES: readonly MeiosisPhase[] = [
   imports: [CellChromosomeViewportComponent, CellModelComponent],
   templateUrl: './meiosis-gamete-selector.component.html',
   styleUrl: './meiosis-gamete-selector.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MeiosisGameteSelectorComponent implements OnDestroy {
   readonly parent = input.required<DragonParentProfile>();

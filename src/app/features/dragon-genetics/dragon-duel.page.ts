@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { DragonArenaComponent } from './dragon-arena.component';
 import { findParent, runDragonBatch } from './dragon-genetics.domain';
 import { DRAGON_TRAITS, genotypeLabel } from './simulation/domain/dragon-inheritance';
@@ -40,7 +40,6 @@ const DUEL_TEST_RUN = 7;
     .genome { margin: 0; font-size: 0.92rem; opacity: 0.85; }
     .result { margin: 0.5rem 0 0; font-weight: 700; }
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonDuelPage {
   readonly parentage = 'Ember × Tide';

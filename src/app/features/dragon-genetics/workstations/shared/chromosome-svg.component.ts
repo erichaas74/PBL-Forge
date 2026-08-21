@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { DragonGeneAlleleMarking, DragonGeneBarcodeMutationType } from './dragon-gene-dna.catalog';
 
 export interface ChromosomeBand {
@@ -79,7 +79,6 @@ let nextChromosomeSvgId = 0;
   selector: 'app-chromosome-svg',
   templateUrl: './chromosome-svg.component.html',
   styleUrl: './chromosome-svg.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChromosomeSvgComponent {
   readonly chromosome = input.required<ChromosomeSvgModel>();

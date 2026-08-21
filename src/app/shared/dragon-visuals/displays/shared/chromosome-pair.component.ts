@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import {
   CHROMOSOME_DIAGRAM,
   ChromosomeDiagramTheme,
@@ -200,7 +200,6 @@ import {
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChromosomePairComponent {
   readonly alleles = input.required<readonly [string, string]>();

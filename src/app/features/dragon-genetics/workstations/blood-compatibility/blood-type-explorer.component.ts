@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import {
   BLOOD_TYPE_DEFINITIONS,
   BloodMarker,
@@ -15,7 +15,6 @@ interface AntigenPosition {
   selector: 'app-blood-type-explorer',
   templateUrl: './blood-type-explorer.component.html',
   styleUrl: './blood-type-explorer.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BloodTypeExplorerComponent {
   readonly bloodTypes = BLOOD_TYPE_DEFINITIONS;

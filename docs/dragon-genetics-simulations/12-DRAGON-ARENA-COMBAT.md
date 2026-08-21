@@ -115,53 +115,6 @@ the existing RAF tick and merge into the same `ControlKey` set.
 
 Works with any USB/Bluetooth controller on Chromebooks. Deadzone ~0.2.
 
-### No hands on controls at all: strategy duel
-
-The shared arena already has **strategy block programs** (move/sensor/logic
-blocks producing control frames). A "coach mode" duel would let a student
-assemble their dragon's _program_ before the fight, then watch both AIs battle.
-That turns the duel into a planning exercise — often better classroom fit than a
-reflex game, and it reuses `strategy-runner` and the block panel as-is.
-
-## Turn-based duel design
-
-The infrastructure already exists in the shared arena and is unused by the dragon
-duel: `playMode: 'turn-based'`, `activeTeam`, `endTurn()`, and the **attack move
-system** (`ATTACK_MOVE_CATALOG` + `attack-move-runner`) that plays scripted
-sequences of steps (`aim`, `advance`, `bite`, …) through the physics engine.
-
-### Proposed flow ("plan → watch → pass")
-
-1. **Plan phase** (untimed): the active player picks up to 3 move cards —
-   _Advance_, _Circle left/right_, _Retreat_, _Bite lunge_, _Wing buffet_,
-   _Tail sweep_, _Brace_ (defensive: lowers stance, halves incoming knockback).
-2. **Play phase** (~6 s): physics runs, the attack-move runner executes the
-   scripted cards while the opponent's AI runs a mild defensive program.
-3. **Pass**: `endTurn()` swaps `activeTeam`; on a shared device the laptop turns
-   around. Both dragons keep their real positions and damage between turns —
-   physics is the referee, so knockdowns and limb loss still emerge naturally.
-
-### Genetics hooks (the point of the whole thing)
-
-| Genotype             | Turn-based effect                                         |
-| -------------------- | --------------------------------------------------------- |
-| `W_`                 | unlocks _Wing buffet_ card (+ glide distance on Advance)  |
-| `F_`                 | unlocks _Fire breath_ card (cone damage, 2-turn cooldown) |
-| `H_`                 | _Brace_ card gains extra knockback resistance             |
-| jaw/temperament loci | _Bite lunge_ damage multiplier                            |
-
-Cards a dragon can't use appear greyed with the genotype reason — the same
-pattern the wing-buffet button already uses (`Unavailable: wingless`).
-
-### Why turn-based fits classrooms
-
-- Removes reflex advantage — the genetics decisions dominate, not dexterity.
-- One device per pair works (pass-and-plan), no controllers needed.
-- Natural pause points for teacher talk ("why did the armored dragon survive
-  that hit?").
-- Real-time stays available as the "exhibition" mode; both run on the same
-  physics, store, and damage rules.
-
 ## Suggested build order
 
 1. ~~Body-relative drive + upright assist (gaps 1–2)~~ **Done.** Dragon drive is

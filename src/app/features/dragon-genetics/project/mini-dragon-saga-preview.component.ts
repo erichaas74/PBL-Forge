@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { SpecimenSource } from '../../../shared/assembly/preview/specimen.models';
 import { SpecimenViewportComponent } from '../../../shared/assembly/preview/specimen-viewport.component';
 import {
@@ -24,7 +24,6 @@ interface ChampionPreview {
   imports: [SpecimenViewportComponent],
   templateUrl: './mini-dragon-saga-preview.component.html',
   styleUrl: './mini-dragon-saga-preview.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MiniDragonSagaPreviewComponent {
   readonly studentId = input.required<string>();

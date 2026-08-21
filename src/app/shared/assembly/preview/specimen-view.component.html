@@ -7,12 +7,12 @@
       [attr.aria-label]="descriptor() ? descriptor()!.label + ' — ' + stageLabel() : stageLabel()"
     ></div>
 
-    @if (!renderingAvailable) {
+    @if (errorMessage()) {
+      <p class="specimen-view__fallback specimen-view__fallback--error">{{ errorMessage() }}</p>
+    } @else if (!renderingAvailable) {
       <p class="specimen-view__fallback">
         This browser cannot draw the 3D specimen. The trait readings below describe it in full.
       </p>
-    } @else if (errorMessage()) {
-      <p class="specimen-view__fallback specimen-view__fallback--error">{{ errorMessage() }}</p>
     }
 
     @if (activeTrait(); as trait) {

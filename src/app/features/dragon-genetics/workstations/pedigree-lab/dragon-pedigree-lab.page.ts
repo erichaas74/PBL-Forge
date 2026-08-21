@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -15,7 +15,6 @@ import { DragonPedigreeLabComponent } from './dragon-pedigree-lab.component';
   imports: [RouterLink, DragonPedigreeLabComponent],
   templateUrl: './dragon-pedigree-lab.page.html',
   styleUrl: './dragon-pedigree-lab.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonPedigreeLabPage {
   private readonly context = inject(DragonWorkstationContextService);

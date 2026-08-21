@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { JOINT_TYPES, JointType, SHAPE_TYPES, ShapeType } from '../../models/assembly.models';
-import { VectorAxis } from '../../utils/vector-data';
+import { Component, computed, inject, input } from '@angular/core';
+import { JOINT_TYPES, JointType, SHAPE_TYPES, ShapeType } from '@pbl/assembly/domain/assembly.models';
+import { VectorAxis } from '@pbl/assembly/domain/vector-data';
 import { AssemblyGarageStore } from '../../state/assembly-garage.store';
 import {
   ASSEMBLY_PART_DEFINITIONS,
@@ -16,7 +16,6 @@ import { GarageAccordionComponent } from '../garage-accordion/garage-accordion.c
   imports: [GarageAccordionComponent],
   templateUrl: './garage-parts-panel.component.html',
   styleUrl: './garage-parts-panel.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GaragePartsPanelComponent {
   readonly store = inject(AssemblyGarageStore);

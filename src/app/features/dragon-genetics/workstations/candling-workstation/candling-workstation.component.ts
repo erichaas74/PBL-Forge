@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
 import {
   DRAGON_PARENTS,
   DRAGON_TRAITS,
@@ -23,7 +23,6 @@ export interface CandlingEggAssignment {
   imports: [DragonHatcheryStationComponent],
   templateUrl: './candling-workstation.component.html',
   styleUrl: './candling-workstation.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CandlingWorkstationComponent {
   readonly studentId = input.required<string>();

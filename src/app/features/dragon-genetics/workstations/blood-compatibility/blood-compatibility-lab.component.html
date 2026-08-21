@@ -303,6 +303,7 @@
         <h3 id="evidence-title">Marker evidence</h3>
       </header>
       @if (patientSpecimen(); as patient) {
+        @let patientTest = testFor(patient.id);
         <article
           class="evidence-card patient-evidence"
           [class.complete]="isFullyTested(patient.id)"
@@ -316,9 +317,9 @@
             <span
               >AA
               <b>{{
-                $safeNavigationMigration(testFor(patient.id)?.antiA) === null || !testFor(patient.id)
+                patientTest?.antiA === null || patientTest?.antiA === undefined
                   ? '—'
-                  : testFor(patient.id)?.antiA
+                  : patientTest.antiA
                     ? '+'
                     : '−'
               }}</b></span
@@ -326,9 +327,9 @@
             <span
               >AB
               <b>{{
-                $safeNavigationMigration(testFor(patient.id)?.antiB) === null || !testFor(patient.id)
+                patientTest?.antiB === null || patientTest?.antiB === undefined
                   ? '—'
-                  : testFor(patient.id)?.antiB
+                  : patientTest.antiB
                     ? '+'
                     : '−'
               }}</b></span

@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -95,7 +94,6 @@ interface PrimaryAction {
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './dragon-hatchery-station.component.html',
   styleUrl: './dragon-hatchery-station.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonHatcheryStationComponent {
   private readonly bridge = inject(DragonVisualBridge);

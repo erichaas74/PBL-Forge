@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -84,7 +83,6 @@ import { SpecimenThumbnailService } from './specimen-thumbnail.service';
       white-space: nowrap;
     }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SpecimenThumbComponent {
   readonly source = input.required<SpecimenSource>();

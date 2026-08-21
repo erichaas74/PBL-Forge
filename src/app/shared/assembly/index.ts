@@ -6,4 +6,3 @@ export * from './domain/vector-data';
 export * from './combat/assembly-combat.models';
 export * from './physics/cannon-assembly.factory';
 export * from './rendering/three-assembly-mesh.factory';
-export * from './physics-test-result';

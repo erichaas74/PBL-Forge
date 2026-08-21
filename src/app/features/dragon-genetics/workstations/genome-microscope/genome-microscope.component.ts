@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   input,
@@ -99,7 +98,6 @@ const EMPTY_ALLELE_COPY: AlleleCopyView = {
   providers: [provideDragonSpecimenProfile()],
   templateUrl: './genome-microscope.component.html',
   styleUrl: './genome-microscope.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenomeMicroscopeComponent {
   readonly dragons = input<readonly AccountDragonRecord[]>([]);

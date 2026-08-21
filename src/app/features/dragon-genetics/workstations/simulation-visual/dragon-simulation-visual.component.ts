@@ -1,11 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { DragonSimulationDefinition } from '../../adaptive/dragon-simulation.models';
 
 @Component({
   selector: 'app-dragon-simulation-visual',
   templateUrl: './dragon-simulation-visual.component.html',
   styleUrl: './dragon-simulation-visual.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DragonSimulationVisualComponent {
   readonly definition = input.required<DragonSimulationDefinition>();

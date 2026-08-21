@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   ViewChild,
   computed,
@@ -67,9 +66,7 @@ const PREVIEW_TRIAL: DragonArenaTrialRecord = {
   selector: 'app-wise-dragon-page',
   imports: [RouterLink, SpecimenViewportComponent],
   templateUrl: './wise-dragon.page.html',
-  styleUrl: './wise-dragon.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [
+  styleUrl: './wise-dragon.page.scss',  providers: [
     WiseDragonSessionStore,
     MockWiseDragonConversationGateway,
     {

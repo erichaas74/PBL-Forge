@@ -1,4 +1,4 @@
-import { AssemblyState, ShapeType, Vector3Data } from '../models/assembly.models';
+import { AssemblyState, ShapeType, Vector3Data } from '@pbl/assembly/domain/assembly.models';
 
 export const DEFAULT_PART_DIMENSIONS: Record<ShapeType, Vector3Data> = {
   box: { x: 1.2, y: 0.7, z: 0.7 },
