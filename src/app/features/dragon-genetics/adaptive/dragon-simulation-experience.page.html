@@ -104,13 +104,17 @@
         <main class="experience-workspace allele-workspace">
           <section class="visual-stage allele-stage">
             @if (availableAlleleGenes().length) {
-              <app-allele-vault-workbench
-                [genes]="availableAlleleGenes()"
-                [alleles]="availableAlleles()"
-                [notebook]="store.geneticsNotebook()"
-                [claimFeedback]="alleleClaimFeedback()"
-                (interaction)="handleAlleleWorkbenchInteraction($event)"
-              />
+              @defer (on immediate) {
+                <app-allele-vault-workbench
+                  [genes]="availableAlleleGenes()"
+                  [alleles]="availableAlleles()"
+                  [notebook]="store.geneticsNotebook()"
+                  [claimFeedback]="alleleClaimFeedback()"
+                  (interaction)="handleAlleleWorkbenchInteraction($event)"
+                />
+              } @placeholder {
+                <div class="instrument-loading" role="status">Opening allele samples…</div>
+              }
             } @else {
               <div class="empty-allele-catalog" role="status">
                 No gene samples have been released for this assignment.
@@ -130,44 +134,67 @@
       } @else if (simulation.id === 'punnett-composer') {
         <main class="experience-workspace punnett-workspace">
           <section class="visual-stage punnett-stage">
-            <app-punnett-composer [studentId]="studentId()" [goal]="simulation.goal" />
+            @defer (on immediate) {
+              <app-punnett-composer [studentId]="studentId()" [goal]="simulation.goal" />
+            } @placeholder {
+              <div class="instrument-loading" role="status">Preparing chromosome tiles…</div>
+            }
           </section>
         </main>
       } @else if (simulation.id === 'incubator-sampler') {
         <main class="experience-workspace incubator-workspace">
           <section class="visual-stage incubator-stage">
-            <app-incubator-sampler [studentId]="studentId()" [goal]="simulation.goal" />
+            @defer (on immediate) {
+              <app-incubator-sampler [studentId]="studentId()" [goal]="simulation.goal" />
+            } @placeholder {
+              <div class="instrument-loading" role="status">Warming the incubator…</div>
+            }
           </section>
         </main>
       } @else if (simulation.id === 'genome-microscope') {
         <main class="experience-workspace genome-workspace">
           <section class="visual-stage genome-stage">
-            <app-genome-microscope
-              [dragons]="availableDragons()"
-              [genes]="availableAlleleGenes()"
-              [alleles]="availableAlleles()"
-              (modelSelected)="selectNode($event)"
-            />
+            @defer (on immediate) {
+              <app-genome-microscope
+                [dragons]="availableDragons()"
+                [genes]="availableAlleleGenes()"
+                [alleles]="availableAlleles()"
+                (modelSelected)="selectNode($event)"
+              />
+            } @placeholder {
+              <div class="instrument-loading" role="status">Focusing the microscope…</div>
+            }
           </section>
         </main>
       } @else if (simulation.id === 'dna-process-lab') {
         <main class="experience-workspace dna-workspace">
           <section class="visual-stage dna-stage">
-            <app-dragon-dna-repair-lab
-              [studentId]="studentId()"
-              [goal]="simulation.goal"
-              [analysisCase]="transferredDnaAnalysisCase()"
-              [chromosomeModel]="transferredDnaChromosomeModel()"
-              [genes]="availableAlleleGenes()"
-              [alleles]="availableAlleles()"
-              (modelSelected)="selectNode($event)"
-            />
+            @defer (on immediate) {
+              <app-dragon-dna-repair-lab
+                [studentId]="studentId()"
+                [goal]="simulation.goal"
+                [analysisCase]="transferredDnaAnalysisCase()"
+                [chromosomeModel]="transferredDnaChromosomeModel()"
+                [genes]="availableAlleleGenes()"
+                [alleles]="availableAlleles()"
+                (modelSelected)="selectNode($event)"
+              />
+            } @placeholder {
+              <div class="instrument-loading" role="status">Loading the DNA analyzer…</div>
+            }
           </section>
         </main>
       } @else if (simulation.id === 'dragon-hatchery') {
         <main class="experience-workspace hatchery-workspace">
           <section class="visual-stage hatchery-stage">
-            <app-dragon-hatchery-breeding-lab [studentId]="studentId()" [seed]="currentRun.seed" />
+            @defer (on immediate) {
+              <app-dragon-hatchery-breeding-lab
+                [studentId]="studentId()"
+                [seed]="currentRun.seed"
+              />
+            } @placeholder {
+              <div class="instrument-loading" role="status">Opening the hatchery…</div>
+            }
           </section>
         </main>
       } @else if (
@@ -178,12 +205,16 @@
           <section class="visual-stage" [class.arena-stage]="simulation.id === 'dragon-arena'">
             @if (simulation.id === 'dragon-arena') {
               @if (arenaChampion(); as champion) {
-                <app-dragon-arena
-                  class="arena-embed"
-                  [champion]="champion"
-                  [compact]="true"
-                  (battleFinished)="handleArenaTrial($event)"
-                />
+                @defer (on immediate) {
+                  <app-dragon-arena
+                    class="arena-embed"
+                    [champion]="champion"
+                    [compact]="true"
+                    (battleFinished)="handleArenaTrial($event)"
+                  />
+                } @placeholder {
+                  <div class="instrument-loading" role="status">Preparing the arena…</div>
+                }
               }
               <div class="arena-evidence" role="group" aria-label="Trial evidence targets">
                 @for (node of simulation.nodes; track node.id) {

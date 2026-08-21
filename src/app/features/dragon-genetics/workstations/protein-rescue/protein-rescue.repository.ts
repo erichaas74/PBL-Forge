@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   DRAGON_FOODS,
@@ -17,17 +21,12 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.protein-rescue.v1';
 export class ProteinRescueRepository {
   load(studentId: string): readonly ProteinRescueCaseRecord[] {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);
-    if (typeof localStorage === 'undefined') return [];
-    try {
-      const value = JSON.parse(
-        localStorage.getItem(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`) ?? 'null',
-      ) as Partial<StoredProteinRescueCases> | null;
-      return value?.schemaVersion === 1 && Array.isArray(value.records)
-        ? value.records.filter(isCaseRecord)
+    return readStoredJson(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`, [], (value) => {
+      const stored = value as Partial<StoredProteinRescueCases> | null;
+      return stored?.schemaVersion === 1 && Array.isArray(stored.records)
+        ? stored.records.filter(isCaseRecord)
         : [];
-    } catch {
-      return [];
-    }
+    });
   }
 
   save(studentId: string, record: ProteinRescueCaseRecord): readonly ProteinRescueCaseRecord[] {
@@ -36,21 +35,12 @@ export class ProteinRescueRepository {
       record,
       ...this.load(normalizedStudentId).filter((item) => item.id !== record.id),
     ].slice(0, 30);
-    if (typeof localStorage !== 'undefined') {
-      try {
-        const snapshot: StoredProteinRescueCases = {
-          schemaVersion: 1,
-          studentId: normalizedStudentId,
-          records,
-        };
-        localStorage.setItem(
-          `${STORAGE_KEY_PREFIX}.${normalizedStudentId}`,
-          JSON.stringify(snapshot),
-        );
-      } catch {
-        // The open instrument stays usable when device storage is unavailable or full.
-      }
-    }
+    const snapshot: StoredProteinRescueCases = {
+      schemaVersion: 1,
+      studentId: normalizedStudentId,
+      records,
+    };
+    writeStoredJson(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`, snapshot);
     return records;
   }
 }

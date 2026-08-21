@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../shared/assembly/persistence/json-local-storage';
 import { DRAGON_CAPSTONE_PATHS, DragonCapstonePathId } from './dragon-capstone-paths';
 import { DragonProjectSelectionSnapshot } from './dragon-project-selection.models';
 
@@ -8,29 +12,16 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.project-selection.v1';
 export class DragonProjectSelectionRepository {
   load(studentId: string, assignmentId: string): DragonProjectSelectionSnapshot {
     const empty = emptySnapshot(studentId, assignmentId);
-    if (typeof localStorage === 'undefined') return empty;
-    try {
-      const value = JSON.parse(
-        localStorage.getItem(storageKey(empty.studentId, empty.assignmentId)) ?? 'null',
-      ) as Partial<DragonProjectSelectionSnapshot> | null;
-      return value?.schemaVersion === 1 && isPathId(value.selectedPathId)
-        ? { ...empty, selectedPathId: value.selectedPathId }
+    return readStoredJson(storageKey(empty.studentId, empty.assignmentId), empty, (value) => {
+      const stored = value as Partial<DragonProjectSelectionSnapshot> | null;
+      return stored?.schemaVersion === 1 && isPathId(stored.selectedPathId)
+        ? { ...empty, selectedPathId: stored.selectedPathId }
         : empty;
-    } catch {
-      return empty;
-    }
+    });
   }
 
   save(snapshot: DragonProjectSelectionSnapshot): void {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(
-        storageKey(snapshot.studentId, snapshot.assignmentId),
-        JSON.stringify(snapshot),
-      );
-    } catch {
-      // Path selection remains active for the session when device storage is unavailable.
-    }
+    writeStoredJson(storageKey(snapshot.studentId, snapshot.assignmentId), snapshot);
   }
 }
 
@@ -53,4 +44,3 @@ function isPathId(value: unknown): value is DragonCapstonePathId | null {
     (typeof value === 'string' && DRAGON_CAPSTONE_PATHS.some((path) => path.id === value))
   );
 }
-

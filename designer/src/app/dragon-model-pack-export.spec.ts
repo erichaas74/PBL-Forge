@@ -1,6 +1,6 @@
 import { createDragonModelPack } from './dragon-model-pack-export';
 import { AssemblyState } from '@pbl/assembly/domain/assembly.models';
-import { DEFAULT_DRAGON_STYLE } from '@pbl/assembly/rendering/dragon-procedural-mesh.factory';
+import { DEFAULT_DRAGON_STYLE } from '@pbl/assembly/rendering/dragon-style';
 
 describe('createDragonModelPack', () => {
     it('strips Garage-only state and preserves phenotype parameters', () => {

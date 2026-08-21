@@ -2,7 +2,7 @@ import { cloneAssemblyBlueprint } from '@pbl/assembly/domain/assembly-clone';
 import { AssemblyBlueprint } from '@pbl/assembly/domain/assembly.models';
 import { DragonModelPackV1 } from '@pbl/assembly/model-pack/dragon-model-pack.models';
 import { parseDragonModelPack } from '@pbl/assembly/model-pack/dragon-model-pack.validation';
-import { DragonStyle } from '@pbl/assembly/rendering/dragon-procedural-mesh.factory';
+import { DragonStyle } from '@pbl/assembly/rendering/dragon-style';
 
 export interface DragonModelPackExportOptions {
   modelId: string;

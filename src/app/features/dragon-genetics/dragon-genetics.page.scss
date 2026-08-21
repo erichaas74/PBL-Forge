@@ -259,10 +259,14 @@ button.destination-sign {
 }
 
 .great-hall__art {
-  background-image: url('/assets/dragon-genetics/great-hall-home-v2.png');
-  background-position: center center;
-  background-size: cover;
   transform: scale(1.006);
+}
+
+.great-hall__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
 }
 
 .great-hall__shade {

@@ -1,4 +1,8 @@
 import { Injectable, signal } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
 import { DragonSex } from '../../simulation/domain/dragon-expressive-genome';
 import { DRAGON_PARENTS, DRAGON_TRAITS } from '../../simulation/domain/dragon-inheritance';
 import { DragonLabGenome, DragonTraitId } from '../../simulation/domain/dragon-lab.models';
@@ -66,7 +70,10 @@ export class AccountGeneticsLibraryService {
       cloneDragon({ ...dragon, kind: 'dragon', source: 'student' }),
     );
     const replacementIds = new Set(replacements.map((dragon) => dragon.id));
-    const dragons = [...stored.dragons.filter((dragon) => !replacementIds.has(dragon.id)), ...replacements];
+    const dragons = [
+      ...stored.dragons.filter((dragon) => !replacementIds.has(dragon.id)),
+      ...replacements,
+    ];
     saveStoredLibrary({ schemaVersion: 1, studentId: normalizedStudentId, dragons });
     this.revision.update((value) => value + 1);
     return this.recordsFor(normalizedStudentId);
@@ -112,25 +119,19 @@ function mergeDragons(
 
 function loadStoredLibrary(studentId: string): StoredAccountGeneticsLibrary {
   const empty: StoredAccountGeneticsLibrary = { schemaVersion: 1, studentId, dragons: [] };
-  if (typeof localStorage === 'undefined') return empty;
-  try {
-    const value = JSON.parse(
-      localStorage.getItem(`${STORAGE_KEY_PREFIX}.${studentId}`) ?? 'null',
-    ) as Partial<StoredAccountGeneticsLibrary> | null;
+  return readStoredJson(`${STORAGE_KEY_PREFIX}.${studentId}`, empty, (raw) => {
+    const value = raw as Partial<StoredAccountGeneticsLibrary> | null;
     if (value?.schemaVersion !== 1 || !Array.isArray(value.dragons)) return empty;
     return {
       schemaVersion: 1,
       studentId,
       dragons: value.dragons.filter(isAccountDragonRecord).map(cloneDragon),
     };
-  } catch {
-    return empty;
-  }
+  });
 }
 
 function saveStoredLibrary(snapshot: StoredAccountGeneticsLibrary): void {
-  if (typeof localStorage === 'undefined') return;
-  localStorage.setItem(`${STORAGE_KEY_PREFIX}.${snapshot.studentId}`, JSON.stringify(snapshot));
+  writeStoredJson(`${STORAGE_KEY_PREFIX}.${snapshot.studentId}`, snapshot);
 }
 
 function isAccountDragonRecord(value: unknown): value is AccountDragonRecord {

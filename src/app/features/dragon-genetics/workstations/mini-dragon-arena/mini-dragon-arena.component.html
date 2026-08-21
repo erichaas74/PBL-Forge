@@ -1,0 +1,282 @@
+<section class="companion-show mini-dragon-arena" aria-labelledby="show-arena-title">
+  <header class="show-head">
+    <div class="goal-block">
+      <span>SCIENTIFIC GOAL</span>
+      <h2 id="show-arena-title">Mini Dragon Show Arena</h2>
+      <p>{{ goal() }}</p>
+    </div>
+  <dl class="program-readout" aria-label="Breeding program readout">
+    <div>
+      <dt>Division</dt>
+      <dd>{{ showDivision()?.name || 'None' }}</dd>
+    </div>
+    <div>
+      <dt>Show runs</dt>
+      <dd>{{ showRuns().length }}</dd>
+    </div>
+    <div>
+      <dt>Registered breeds</dt>
+      <dd>{{ registry().length }}</dd>
+    </div>
+  </dl>
+  </header>
+
+  <p class="station-status" aria-live="polite" data-testid="status">{{ statusMessage() }}</p>
+
+  <nav class="station-links" aria-label="Mini dragon programme stations">
+    <a routerLink="/dragon-genetics/companion-show">Kennel →</a>
+    <a routerLink="/dragon-genetics/mini-dragon-training">Training Ground →</a>
+    <a routerLink="/dragon-genetics/mini-dragon-pedigree">Pedigree Lab →</a>
+  </nav>
+
+  <aside class="panel standard-bench arena-division">
+      <section class="division-board" aria-labelledby="division-title">
+        <header>
+          <span>SOCIETY DIVISION</span>
+          <h4 id="division-title">Which published combination will the judges seek?</h4>
+        </header>
+        <div class="division-choices">
+          @for (division of showDivisions; track division.id) {
+            <button
+              type="button"
+              [class.chosen]="showDivisionId() === division.id"
+              [attr.aria-pressed]="showDivisionId() === division.id"
+              [attr.data-testid]="'division-' + division.id"
+              (click)="setShowDivision(division.id)"
+            >
+              <strong>{{ division.name }}</strong>
+              <small>{{ division.motto }}</small>
+              <span>
+                @for (target of division.targets; track target.geneId) {
+                  <i>{{ standardLabel(target) }}</i>
+                }
+              </span>
+            </button>
+          }
+        </div>
+        <p>
+          Your breed standard is your goal. The chosen division is the fixed combination used by
+          Society judges, so breeding decisions can help one goal while making another harder.
+        </p>
+      </section>
+  </aside>
+
+  <section class="show-ring" aria-labelledby="show-ring-title">
+    <header>
+      <div>
+        <span>ROYAL MINI DRAGON SOCIETY</span>
+        <h3 id="show-ring-title">Show ring &amp; breed registry</h3>
+      </div>
+      <p>
+        A breed is recorded when your own litters show the standard is inherited, not when one
+        dragon looks right.
+      </p>
+    </header>
+
+    <div class="ring-body">
+      <div class="ring-stand">
+        <div class="champion-model" [class.empty]="!championSource()">
+          <app-specimen-viewport
+            #championViewport
+            [source]="championSource()"
+            [ariaLabel]="champion() ? champion()!.name + ' in the show ring' : 'Show ring is empty'"
+            [controls]="false"
+            [framePadding]="1.2"
+          />
+          @if (!champion()) {
+            <div class="empty-stand"><span>CHOOSE A BREED REPRESENTATIVE</span></div>
+          }
+        </div>
+        @if (championCandidates().length) {
+          <div class="candidate-row" role="group" aria-label="Dragons that meet the standard">
+            @for (candidate of championCandidates(); track candidate.id) {
+              <button
+                type="button"
+                class="candidate"
+                [class.chosen]="champion()?.id === candidate.id"
+                [attr.aria-pressed]="champion()?.id === candidate.id"
+                [style.--pup-color]="paintFor(candidate).color"
+                [attr.data-testid]="'champion-' + candidate.id"
+                (click)="selectChampion(candidate.id)"
+              >
+                <i aria-hidden="true"></i>{{ candidate.name }}
+              </button>
+            }
+          </div>
+        } @else {
+          <p class="candidate-empty">
+            @if (targets().length) {
+              No kennel dragon shows every characteristic in the standard yet.
+            } @else {
+              Write a standard, then dragons that meet it appear here.
+            }
+          </p>
+        }
+        @if (champion()) {
+          <ul class="ribbon-row" aria-label="Breed representative show card">
+            @for (result of championShowCard(); track result.trial.id) {
+              <li [class.placed]="result.outcome.places">
+                <b aria-hidden="true">{{ result.outcome.places ? '✦' : '·' }}</b>
+                <span>{{ result.trial.name }}</span>
+                <small>{{ result.outcome.label }}</small>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <div class="ring-evidence">
+        <div class="consistency-row">
+          <div class="consistency-card">
+            <span>BREEDS TRUE</span>
+            <strong data-testid="consistency">{{ consistency().percent }}%</strong>
+            <small>
+              {{ consistency().matchedCount }} of {{ consistency().pupCount }} young across
+              {{ consistency().litterCount }} cited litter{{
+                consistency().litterCount === 1 ? '' : 's'
+              }}
+            </small>
+          </div>
+          <div class="consistency-card ribbons">
+            <span>RIBBONS</span>
+            <strong>{{ championRibbons() }}</strong>
+            <small>taken by your breed representative</small>
+          </div>
+        </div>
+
+        <section class="judge-console" aria-labelledby="judge-console-title">
+          <header>
+            <span>50 / 50 JUDGING</span>
+            <h4 id="judge-console-title">
+              {{ showDivision()?.name ?? 'Choose a Society division' }}
+            </h4>
+          </header>
+          <div class="judge-balance" aria-label="Show score is half genetics and half training">
+            <span><b>50</b> inherited</span>
+            <i aria-hidden="true"></i>
+            <span><b>50</b> trained</span>
+          </div>
+          @if (showDivision(); as division) {
+            <p>{{ division.description }}</p>
+            <ul class="judge-targets" aria-label="Division target combination">
+              @for (target of division.targets; track target.geneId) {
+                <li>{{ standardLabel(target) }}</li>
+              }
+            </ul>
+          } @else {
+            <p>Choose a published combination on the Breed Standard bench.</p>
+          }
+
+          <button
+            type="button"
+            class="enter-show-button"
+            data-testid="enter-show"
+            [disabled]="!canEnterShow()"
+            (click)="enterShow()"
+          >
+            Enter current representative
+          </button>
+
+          @if (latestShowRun(); as run) {
+            <div class="judge-result" aria-live="polite">
+              <div>
+                <span>Inherited score</span>
+                <strong>{{ run.geneticScore }}<small>/50</small></strong>
+              </div>
+              <div>
+                <span>Training score</span>
+                <strong>{{ run.trainingScore }}<small>/50</small></strong>
+              </div>
+              <div class="total">
+                <span>{{ run.award }}</span>
+                <strong>{{ run.combinedScore }}<small>/100</small></strong>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="championship-routine-button"
+              data-testid="championship-routine"
+              [disabled]="championshipInProgress()"
+              (click)="performChampionshipRoutine()"
+            >
+              {{
+                championshipInProgress() ? 'Performing routine...' : 'Perform championship routine'
+              }}
+            </button>
+          }
+        </section>
+
+        <ul class="evidence-list" aria-label="Registry evidence">
+          @for (check of evidenceChecks(); track check.id) {
+            <li [class.met]="check.met">
+              <b aria-hidden="true">{{ check.met ? '✓' : '·' }}</b>
+              <span
+                ><strong>{{ check.label }}</strong
+                ><small>{{ check.detail }}</small></span
+              >
+            </li>
+          }
+        </ul>
+
+        <label class="claim-field">
+          <span>BREEDER STATEMENT</span>
+          <textarea
+            rows="4"
+            maxlength="600"
+            data-testid="claim"
+            placeholder="What does your evidence show about how reliably this breed is inherited?"
+            [value]="claim()"
+            (input)="setClaim($event)"
+          ></textarea>
+        </label>
+
+        <button
+          type="button"
+          class="register-button"
+          data-testid="register"
+          [disabled]="!canRegister()"
+          (click)="registerBreed()"
+        >
+          Record this breed
+        </button>
+      </div>
+    </div>
+
+    @if (registry().length) {
+      <ol class="registry-list" aria-label="Recorded breeds">
+        @for (entry of registry(); track entry.id) {
+          <li>
+            <header>
+              <strong>{{ entry.breedName }}</strong>
+              <span>{{ entry.consistencyPercent }}% of {{ entry.pupsObserved }} young</span>
+            </header>
+            <p class="registry-standard">
+              @for (target of entry.targets; track target.geneId) {
+                <span>{{ standardLabel(target) }}</span>
+              }
+            </p>
+            <p class="registry-claim">{{ entry.claim }}</p>
+            <p class="registry-score">
+              <strong>{{ entry.combinedScore }}/100 {{ entry.award }}</strong>
+              <span>{{ entry.geneticScore }} inherited + {{ entry.trainingScore }} trained</span>
+            </p>
+            <span class="registry-division">{{ divisionLabel(entry.showDivisionId) }}</span>
+            <small
+              >Representative {{ entry.championName }} · {{ entry.generations }} generations ·
+              {{ entry.ribbons }} ribbons · pairing inbreeding {{ entry.inbreedingPercent }}%</small
+            >
+          </li>
+        }
+      </ol>
+    }
+  </section>
+
+  <details class="observation-prompts">
+    <summary>Optional breeder prompts</summary>
+    <ul>
+      <li>Which trial results changed when you changed which trait you bred for?</li>
+      <li>Did the division you chose reward the same traits your own standard asks for?</li>
+      <li>How much of your champion’s score came from inheritance, and how much from training?</li>
+    </ul>
+  </details>
+</section>

@@ -7,7 +7,7 @@ import {
 } from './assembly-garage/data/presets/classic-dragon-test';
 import { DesignerDragonDraftStore } from './designer-dragon-draft.store';
 import { applyDesignerDraft } from './designer-part-overrides';
-import { setDragonStyleOverride } from '@pbl/assembly/rendering/dragon-procedural-mesh.factory';
+import { setDragonStyleOverride } from '@pbl/assembly/rendering/dragon-style';
 
 /** Dragon-only authoring surface. It has no dependency on genetics lessons or student records. */
 @Component({

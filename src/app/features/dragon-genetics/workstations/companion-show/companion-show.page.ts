@@ -1,28 +1,29 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonCapstoneProgressRepository } from '../../project/dragon-capstone-progress.repository';
 import { LOCAL_WORKSTATION_STUDENT_ID } from '../shared/dragon-workstation-context.models';
 import { DragonWorkstationContextService } from '../shared/dragon-workstation-context.service';
 import { CompanionShowComponent } from './companion-show.component';
-import { CompanionShowSnapshot } from './companion-show.models';
+import { MiniDragonKennelStore } from './mini-dragon-kennel.store';
 
-/** Full-screen app host for the portable Companion Dragon Show workstation. */
+/** Full-screen app host for the Mini Dragon Kennel station. */
 @Component({
   selector: 'app-companion-show-page',
   imports: [RouterLink, CompanionShowComponent],
   templateUrl: './companion-show.page.html',
-  styleUrl: './companion-show.page.scss',})
+  styleUrl: './companion-show.page.scss',
+})
 export class CompanionShowPage {
   private readonly context = inject(DragonWorkstationContextService);
+  private readonly store = inject(MiniDragonKennelStore);
   private readonly capstoneProgressRepository = inject(DragonCapstoneProgressRepository);
-  private readonly latestSnapshot = signal<CompanionShowSnapshot | null>(null);
   private syncSignature = '';
   readonly studentId = this.context.studentId;
 
   constructor() {
     effect(() => {
       if (!this.context.ready()) return;
-      const snapshot = this.latestSnapshot();
+      const snapshot = this.store.snapshot();
       if (!snapshot || snapshot.studentId === LOCAL_WORKSTATION_STUDENT_ID) return;
       const assignment = this.context.assignment();
       const signature = [
@@ -45,9 +46,5 @@ export class CompanionShowPage {
           console.error('Mini Dragon Show progress could not sync.', error),
         );
     });
-  }
-
-  recordSnapshot(snapshot: CompanionShowSnapshot): void {
-    this.latestSnapshot.set(snapshot);
   }
 }

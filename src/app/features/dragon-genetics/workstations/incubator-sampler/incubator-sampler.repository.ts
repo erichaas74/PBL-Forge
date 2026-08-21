@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
 import { DRAGON_TRAITS } from '../../simulation/domain/dragon-inheritance';
 import { DragonTraitId } from '../../simulation/domain/dragon-lab.models';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
@@ -11,24 +15,14 @@ export class IncubatorSamplerRepository {
   load(studentId: string): IncubatorSamplerSnapshot {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     const fallback = emptyIncubatorSnapshot(normalizedStudentId);
-    if (typeof localStorage === 'undefined') return fallback;
-    try {
-      const parsed = JSON.parse(
-        localStorage.getItem(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`) ?? 'null',
-      ) as unknown;
-      return normalizeSnapshot(parsed, fallback);
-    } catch {
-      return fallback;
-    }
+    return readStoredJson(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`, fallback, (value) =>
+      normalizeSnapshot(value, fallback),
+    );
   }
 
   save(snapshot: IncubatorSamplerSnapshot): void {
-    if (typeof localStorage === 'undefined') return;
     const studentId = normalizeWorkstationStudentId(snapshot.studentId);
-    localStorage.setItem(
-      `${STORAGE_KEY_PREFIX}.${studentId}`,
-      JSON.stringify({ ...snapshot, studentId }),
-    );
+    writeStoredJson(`${STORAGE_KEY_PREFIX}.${studentId}`, { ...snapshot, studentId });
   }
 }
 

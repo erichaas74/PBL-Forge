@@ -1,6 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { Vector3Data } from '@pbl/assembly/domain/assembly.models';
-import { DragonStyle } from '@pbl/assembly/rendering/dragon-procedural-mesh.factory';
+import { readStoredJson, writeStoredJson } from '@pbl/assembly/persistence/json-local-storage';
+import { DragonStyle } from '@pbl/assembly/rendering/dragon-style';
 
 /**
  * Values recorded while tuning a part, kept so they can be hardcoded later.
@@ -42,30 +43,32 @@ export class PartTuningStore {
     const records = this.records();
     if (!records.length) return '';
 
-    return records.map(record => {
-      const lines = [
-        `// ${record.label} (${record.partId}) — recorded ${record.recordedAt.slice(0, 16).replace('T', ' ')}`,
-      ];
-      if (record.note) lines.push(`// ${record.note}`);
+    return records
+      .map((record) => {
+        const lines = [
+          `// ${record.label} (${record.partId}) — recorded ${record.recordedAt.slice(0, 16).replace('T', ' ')}`,
+        ];
+        if (record.note) lines.push(`// ${record.note}`);
 
-      lines.push(
-        '// assembly-part-definitions.ts',
-        `dimensions: { x: ${round(record.dimensions.x)}, y: ${round(record.dimensions.y)}, `
-        + `z: ${round(record.dimensions.z)} },`,
-      );
-
-      if (record.styleSection && record.styleValues) {
-        const values = Object.entries(record.styleValues)
-          .map(([key, value]) => `${key}: ${round(value)}`)
-          .join(', ');
         lines.push(
-          `// dragon-procedural-mesh.factory.ts — DEFAULT_DRAGON_STYLE.${record.styleSection}`,
-          `${record.styleSection}: { ${values} },`,
+          '// assembly-part-definitions.ts',
+          `dimensions: { x: ${round(record.dimensions.x)}, y: ${round(record.dimensions.y)}, ` +
+            `z: ${round(record.dimensions.z)} },`,
         );
-      }
 
-      return lines.join('\n');
-    }).join('\n\n');
+        if (record.styleSection && record.styleValues) {
+          const values = Object.entries(record.styleValues)
+            .map(([key, value]) => `${key}: ${round(value)}`)
+            .join(', ');
+          lines.push(
+            `// dragon-style.ts — DEFAULT_DRAGON_STYLE.${record.styleSection}`,
+            `${record.styleSection}: { ${values} },`,
+          );
+        }
+
+        return lines.join('\n');
+      })
+      .join('\n\n');
   });
 
   add(record: Omit<PartTuningRecord, 'id' | 'recordedAt'>): void {
@@ -74,12 +77,12 @@ export class PartTuningStore {
       id: `${record.partId}-${Date.now().toString(36)}`,
       recordedAt: new Date().toISOString(),
     };
-    this.records.update(current => [...current, entry]);
+    this.records.update((current) => [...current, entry]);
     this.persist();
   }
 
   remove(id: string): void {
-    this.records.update(current => current.filter(record => record.id !== id));
+    this.records.update((current) => current.filter((record) => record.id !== id));
     this.persist();
   }
 
@@ -89,41 +92,34 @@ export class PartTuningStore {
   }
 
   private persist(): void {
-    try {
-      globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(this.records()));
-    } catch {
-      // Private mode or a full quota: the session keeps working, values are
-      // just not durable. Losing them is preferable to breaking the lab.
-    }
+    writeStoredJson(STORAGE_KEY, this.records());
   }
 }
 
 function readStored(): PartTuningRecord[] {
-  try {
-    const raw = globalThis.localStorage?.getItem(STORAGE_KEY)
-      ?? globalThis.localStorage?.getItem(LEGACY_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isRecord) : [];
-  } catch {
-    return [];
-  }
+  return readStoredJson([STORAGE_KEY, LEGACY_STORAGE_KEY], [], (parsed) =>
+    Array.isArray(parsed) ? parsed.filter(isRecord) : [],
+  );
 }
 
 function isRecord(value: unknown): value is PartTuningRecord {
   if (typeof value !== 'object' || value === null) return false;
   const candidate = value as Partial<PartTuningRecord>;
-  return typeof candidate.id === 'string'
-    && typeof candidate.partId === 'string'
-    && isVector(candidate.dimensions);
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.partId === 'string' &&
+    isVector(candidate.dimensions)
+  );
 }
 
 function isVector(value: unknown): value is Vector3Data {
   if (typeof value !== 'object' || value === null) return false;
   const candidate = value as Partial<Vector3Data>;
-  return typeof candidate.x === 'number'
-    && typeof candidate.y === 'number'
-    && typeof candidate.z === 'number';
+  return (
+    typeof candidate.x === 'number' &&
+    typeof candidate.y === 'number' &&
+    typeof candidate.z === 'number'
+  );
 }
 
 function round(value: number): number {

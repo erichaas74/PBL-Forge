@@ -1,5 +1,5 @@
 import { sampleDragonBodyRadius } from '@pbl/assembly/rendering/dragon-body-profile';
-import { DEFAULT_DRAGON_STYLE } from '@pbl/assembly/rendering/dragon-procedural-mesh.factory';
+import { DEFAULT_DRAGON_STYLE } from '@pbl/assembly/rendering/dragon-style';
 import { CLASSIC_DRAGON_TEST_PRESET } from './classic-dragon-test';
 
 describe('CLASSIC_DRAGON_TEST_PRESET', () => {

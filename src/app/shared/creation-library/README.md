@@ -19,7 +19,7 @@ The planned school-scoped shape is:
 - `schools/{schoolId}/creation-library/attack-moves/items/{assetId}`
 - `schools/{schoolId}/creation-library/test-scenarios/items/{assetId}`
 
-The original incomplete Firestore adapter is preserved under `migration-archive/unintegrated-creation-library`. It will return here only after PBL Forge has school membership, matching path helpers, and security-rule coverage. The live creation library currently uses built-in assets and browser storage.
+The earlier incomplete Firestore adapter was removed because it did not match the live school and security model. A future adapter should be rebuilt against the current path helpers and security-rule coverage. The live creation library currently uses built-in assets and browser storage.
 
 ## Game Usage
 

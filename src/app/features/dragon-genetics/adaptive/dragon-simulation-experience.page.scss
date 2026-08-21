@@ -213,6 +213,13 @@
   position: relative;
   min-width: 0;
 }
+.instrument-loading {
+  display: grid;
+  min-height: 18rem;
+  place-content: center;
+  color: var(--stone);
+  font-size: var(--text-base);
+}
 .stage-cue {
   position: absolute;
   z-index: 8;

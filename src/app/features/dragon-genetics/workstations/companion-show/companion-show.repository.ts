@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   MINI_DRAGON_GENES,
@@ -41,32 +45,20 @@ export class CompanionShowRepository {
   load(studentId: string): CompanionShowSnapshot {
     const normalizedStudentId = normalizeStudentId(studentId);
     const fallback = emptyCompanionShowSnapshot(normalizedStudentId);
-    if (typeof localStorage === 'undefined') return fallback;
-    try {
-      const current = localStorage.getItem(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`);
-      const version3 = localStorage.getItem(
+    return readStoredJson(
+      [
+        `${STORAGE_KEY_PREFIX}.${normalizedStudentId}`,
         `${VERSION_3_STORAGE_KEY_PREFIX}.${normalizedStudentId}`,
-      );
-      const previous = localStorage.getItem(`${VERSION_2_STORAGE_KEY_PREFIX}.${normalizedStudentId}`);
-      const parsed = JSON.parse(current ?? version3 ?? previous ?? 'null') as unknown;
-      return normalizeSnapshot(parsed, fallback);
-    } catch {
-      // Invalid or unavailable device data falls back to an empty program.
-      return fallback;
-    }
+        `${VERSION_2_STORAGE_KEY_PREFIX}.${normalizedStudentId}`,
+      ],
+      fallback,
+      (value) => normalizeSnapshot(value, fallback),
+    );
   }
 
   save(snapshot: CompanionShowSnapshot): void {
-    if (typeof localStorage === 'undefined') return;
     const studentId = normalizeStudentId(snapshot.studentId);
-    try {
-      localStorage.setItem(
-        `${STORAGE_KEY_PREFIX}.${studentId}`,
-        JSON.stringify({ ...snapshot, studentId }),
-      );
-    } catch {
-      // The workstation stays usable when browser storage is unavailable or full.
-    }
+    writeStoredJson(`${STORAGE_KEY_PREFIX}.${studentId}`, { ...snapshot, studentId });
   }
 }
 
@@ -95,10 +87,7 @@ export function emptyCompanionShowSnapshot(studentId: string): CompanionShowSnap
 }
 
 function normalizeSnapshot(value: unknown, fallback: CompanionShowSnapshot): CompanionShowSnapshot {
-  if (
-    !isRecord(value) ||
-    ![2, 3, 4].includes(value['schemaVersion'] as number)
-  ) return fallback;
+  if (!isRecord(value) || ![2, 3, 4].includes(value['schemaVersion'] as number)) return fallback;
   const litters = (Array.isArray(value['litters']) ? value['litters'] : [])
     .filter(isLitterRecord)
     // A litter is judged against the standard it was whelped under, so its own
@@ -128,9 +117,7 @@ function normalizeSnapshot(value: unknown, fallback: CompanionShowSnapshot): Com
     showRuns: Array.isArray(value['showRuns'])
       ? value['showRuns'].filter(isShowRun).map(normalizeShowRun)
       : [],
-    rareTraitGeneId: isRareTraitGeneId(value['rareTraitGeneId'])
-      ? value['rareTraitGeneId']
-      : null,
+    rareTraitGeneId: isRareTraitGeneId(value['rareTraitGeneId']) ? value['rareTraitGeneId'] : null,
     rareCandidateIds: stringList(value['rareCandidateIds']),
     citedLitterIds: stringList(value['citedLitterIds']),
     claim: typeof value['claim'] === 'string' ? value['claim'].slice(0, 600) : '',
@@ -207,25 +194,25 @@ function normalizeRegistryEntry(value: RegistryEntry): RegistryEntry {
 function isTrainingSession(value: unknown): value is MiniTrainingSessionRecord {
   return Boolean(
     isRecord(value) &&
-      typeof value['id'] === 'string' &&
-      typeof value['dragonId'] === 'string' &&
-      isTrainingSkillId(value['skillId']) &&
-      typeof value['practicedAtIso'] === 'string',
+    typeof value['id'] === 'string' &&
+    typeof value['dragonId'] === 'string' &&
+    isTrainingSkillId(value['skillId']) &&
+    typeof value['practicedAtIso'] === 'string',
   );
 }
 
 function isShowRun(value: unknown): value is MiniShowRunRecord {
   return Boolean(
     isRecord(value) &&
-      typeof value['id'] === 'string' &&
-      typeof value['dragonId'] === 'string' &&
-      isShowDivisionId(value['divisionId']) &&
-      typeof value['geneticScore'] === 'number' &&
-      typeof value['trainingScore'] === 'number' &&
-      typeof value['combinedScore'] === 'number' &&
-      typeof value['award'] === 'string' &&
-      isRecord(value['trainingLevels']) &&
-      typeof value['judgedAtIso'] === 'string',
+    typeof value['id'] === 'string' &&
+    typeof value['dragonId'] === 'string' &&
+    isShowDivisionId(value['divisionId']) &&
+    typeof value['geneticScore'] === 'number' &&
+    typeof value['trainingScore'] === 'number' &&
+    typeof value['combinedScore'] === 'number' &&
+    typeof value['award'] === 'string' &&
+    isRecord(value['trainingLevels']) &&
+    typeof value['judgedAtIso'] === 'string',
   );
 }
 
@@ -236,18 +223,13 @@ function normalizeShowRun(run: MiniShowRunRecord): MiniShowRunRecord {
     trainingScore: finiteScore(run.trainingScore),
     combinedScore: finiteScore(run.combinedScore),
     trainingLevels: Object.fromEntries(
-      MINI_TRAINING_SKILLS.map((skill) => [
-        skill.id,
-        finiteLevel(run.trainingLevels[skill.id]),
-      ]),
+      MINI_TRAINING_SKILLS.map((skill) => [skill.id, finiteLevel(run.trainingLevels[skill.id])]),
     ) as Record<MiniTrainingSkillId, number>,
   };
 }
 
 function isLitterSize(value: unknown): value is CompanionLitterSize {
-  return (
-    typeof value === 'number' && COMPANION_LITTER_SIZES.includes(value as CompanionLitterSize)
-  );
+  return typeof value === 'number' && COMPANION_LITTER_SIZES.includes(value as CompanionLitterSize);
 }
 
 function isGeneId(value: unknown): value is MiniGeneId {
@@ -255,9 +237,7 @@ function isGeneId(value: unknown): value is MiniGeneId {
 }
 
 function isRareTraitGeneId(value: unknown): value is MiniGeneId {
-  return (
-    isGeneId(value) && MINI_RARE_TRAIT_TARGETS.some((target) => target.geneId === value)
-  );
+  return isGeneId(value) && MINI_RARE_TRAIT_TARGETS.some((target) => target.geneId === value);
 }
 
 function isShowDivisionId(value: unknown): value is MiniShowDivisionId {

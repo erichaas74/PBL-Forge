@@ -23,9 +23,9 @@ import {
 import {
   DEFAULT_DRAGON_STYLE,
   DragonStyle,
-  WING_SHAPES,
   setDragonStyleOverride,
-} from '@pbl/assembly/rendering/dragon-procedural-mesh.factory';
+} from '@pbl/assembly/rendering/dragon-style';
+import { WING_SHAPES } from '@pbl/assembly/rendering/dragon-wing-profile';
 import { PartTuningStore } from './part-tuning.store';
 import { DesignerDragonDraftStore } from '../designer-dragon-draft.store';
 import { MINI_DRAGON_PART_DEFINITIONS } from './mini-dragon-part-definitions';

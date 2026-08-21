@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
 import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
+import {
   DragonArenaMissionSnapshot,
   DragonArenaScoreBreakdown,
   DragonArenaTraitEvidence,
@@ -14,27 +18,15 @@ export class DragonArenaMissionRepository {
   load(studentId: string): DragonArenaMissionSnapshot {
     const normalizedStudentId = studentId.trim() || 'local-student';
     const empty = emptySnapshot(normalizedStudentId);
-    if (typeof localStorage === 'undefined') return empty;
-    try {
-      const value = JSON.parse(
-        localStorage.getItem(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`) ?? 'null',
-      ) as unknown;
-      return normalizeSnapshot(value, normalizedStudentId) ?? empty;
-    } catch {
-      return empty;
-    }
+    return readStoredJson(
+      `${STORAGE_KEY_PREFIX}.${normalizedStudentId}`,
+      empty,
+      (value) => normalizeSnapshot(value, normalizedStudentId) ?? empty,
+    );
   }
 
   save(snapshot: DragonArenaMissionSnapshot): void {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(
-        `${STORAGE_KEY_PREFIX}.${snapshot.studentId}`,
-        JSON.stringify(snapshot),
-      );
-    } catch {
-      // A finished arena trial remains visible even if device storage is unavailable or full.
-    }
+    writeStoredJson(`${STORAGE_KEY_PREFIX}.${snapshot.studentId}`, snapshot);
   }
 }
 
@@ -47,10 +39,7 @@ function emptySnapshot(studentId: string): DragonArenaMissionSnapshot {
   };
 }
 
-function normalizeSnapshot(
-  value: unknown,
-  studentId: string,
-): DragonArenaMissionSnapshot | null {
+function normalizeSnapshot(value: unknown, studentId: string): DragonArenaMissionSnapshot | null {
   if (
     !isRecord(value) ||
     (value['schemaVersion'] !== 1 && value['schemaVersion'] !== 2) ||
@@ -88,10 +77,9 @@ function isTrial(value: unknown): value is DragonArenaTrialRecord {
   );
 }
 
-function isBaseTrial(value: unknown): value is Omit<
-  DragonArenaTrialRecord,
-  'score' | 'scoreBreakdown' | 'traitEvidence'
-> &
+function isBaseTrial(
+  value: unknown,
+): value is Omit<DragonArenaTrialRecord, 'score' | 'scoreBreakdown' | 'traitEvidence'> &
   Record<string, unknown> {
   if (!isRecord(value)) return false;
   return (

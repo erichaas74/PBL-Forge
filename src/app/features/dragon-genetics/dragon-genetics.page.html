@@ -28,7 +28,32 @@
     </header>
 
     <section class="great-hall" aria-labelledby="academy-title">
-      <div class="great-hall__art" aria-hidden="true"></div>
+      <picture class="great-hall__art" aria-hidden="true">
+        <source
+          type="image/avif"
+          srcset="
+            /assets/dragon-genetics/great-hall-960.avif  960w,
+            /assets/dragon-genetics/great-hall-1672.avif 1672w
+          "
+          sizes="100vw"
+        />
+        <source
+          type="image/webp"
+          srcset="
+            /assets/dragon-genetics/great-hall-960.webp  960w,
+            /assets/dragon-genetics/great-hall-1672.webp 1672w
+          "
+          sizes="100vw"
+        />
+        <img
+          src="/assets/dragon-genetics/great-hall-1672.jpg"
+          width="1672"
+          height="941"
+          alt=""
+          fetchpriority="high"
+          decoding="async"
+        />
+      </picture>
       <div class="great-hall__shade" aria-hidden="true"></div>
       <div class="embers" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 

@@ -3,7 +3,7 @@
 A workbench for the part meshes themselves, and the feedback loop for improving them.
 
 **What it does and does not change.** The feature sliders drive `setDragonStyleOverride`, a
-module-level hook in the shared procedural renderer, so they change how *every* part on that profile
+module-level hook in the shared `dragon-style.ts`, so they change how *every* part on that profile
 renders — all horned heads share one `style.head`. The dimension sliders save per definition and are
 what the Garage stamps and rebuilds at. Neither touches a part's **sockets**; those live in
 `snapPoints` and are edited in the [Snap Workshop](../snap-workshop/README.md). Nothing here writes
@@ -11,9 +11,8 @@ source — everything is a local draft plus a paste-ready snippet.
 
 ## Why it exists
 
-The dragon's anatomy is **generated code**, not authored art —
-[`dragon-procedural-mesh.factory.ts`](../../shared/assembly/rendering/dragon-procedural-mesh.factory.ts)
-builds every part from lathes, cones, and shape extrusions sized from `part.dimensions`. That makes
+The dragon's anatomy is **generated code**, not authored art. The shared rendering modules build
+every part from lathes, cones, and shape extrusions sized from `part.dimensions`. That makes
 it fast to edit and slow to evaluate: checking a change used to mean build, serve, navigate, and
 find a dragon carrying the part.
 
@@ -57,7 +56,7 @@ These are usually more useful than the overall X/Y/Z scale sliders, which only s
 the genetics pipeline rescales parts per genome, and a spike measured in world units would drift
 out of proportion with the body carrying it.
 
-The values drive `setDragonStyleOverride` in the shared procedural renderer,
+The values drive `setDragonStyleOverride` in the shared `dragon-style.ts`,
 a module-level hook that is `null` in production so `DEFAULT_DRAGON_STYLE` is what everyone else
 renders. It applies while the Parts Lab is open and is cleared when you navigate away. Record the
 chosen values, apply them to the designer catalog, then verify the assembled model in
@@ -65,27 +64,31 @@ chosen values, apply them to the designer catalog, then verify the assembled mod
 
 ## Building and adding meshes
 
-Dragon art is assembled procedurally by
-[`dragon-procedural-mesh.factory.ts`](../../shared/assembly/rendering/dragon-procedural-mesh.factory.ts).
+Dragon art is assembled procedurally by the shared rendering modules. The
+[`dragon-procedural-mesh.factory.ts`](../../shared/assembly/rendering/dragon-procedural-mesh.factory.ts)
+file is the profile router; each anatomy family lives in a focused `dragon-*-mesh.ts` module.
 Each `AssemblyPart` has a `visualProfile.profileId`, and
 `createDragonProceduralObject` routes that ID to the corresponding builder. The shared renderer
 uses that factory automatically for procedural dragon parts.
 
 ### 1. Choose the owning part
 
-Add geometry to the part that owns the feature. For example, a belly plate belongs in `buildBody`,
-teeth belong in `buildJaw`, and wing veins belong in `buildWing`. Do not add visual-only features
+Add geometry to the part that owns the feature. For example, a belly plate belongs in
+`buildDragonBody` in `dragon-body-mesh.ts`, teeth belong in `buildDragonJaw` in
+`dragon-jaw-mesh.ts`, talons belong in `buildDragonTalon` in `dragon-limb-mesh.ts`, and wing veins
+belong in `buildDragonWing` in `dragon-wing-mesh.ts`. Do not add visual-only features
 to the physics blueprint: `AssemblyPart.shape` and `AssemblyPart.dimensions` define collision,
 mass, and joints, while the procedural mesh is only what the player sees.
 
 ### 2. Build the simplest geometry first
 
-Use Three.js primitives through the local `mesh` helper, which enables shadows consistently:
+Use Three.js primitives through the shared `mesh` helper in `dragon-geometry.ts`, which enables
+shadows consistently:
 
 ```ts
 const belly = mesh(
   new THREE.SphereGeometry(1, 12, 8),
-  new THREE.MeshStandardMaterial({ color: palette.scaleDeep, roughness: 0.66 }),
+  bellyMaterial(palette),
 );
 belly.name = 'dragon-belly';
 belly.scale.set(dims.x * 0.38, dims.y * 0.3, dims.z * 0.34);
@@ -104,19 +107,19 @@ Every size and position should be a fraction of `part.dimensions`, usually named
 builder. Never use fixed world-space measurements for anatomy. The genetics pipeline changes those
 dimensions per dragon, so this keeps the new feature in proportion for every phenotype.
 
-Use `createDragonPalette(part.color)` materials rather than hard-coded dragon colors. The pigment
-locus updates `part.color`, and palette-derived materials preserve that genetic connection.
+Use the palette-derived helpers in `dragon-materials.ts` rather than hard-coded dragon colors.
+The pigment locus updates `part.color`, and the shared helpers preserve that genetic connection
+along with the project's texture, relief, roughness, and appearance-preservation rules.
 
 ### 4. Add a focused test
 
-Extend
-[`dragon-procedural-mesh.factory.spec.ts`](../../shared/assembly/rendering/dragon-procedural-mesh.factory.spec.ts)
-with a minimal `AssemblyPart` fixture for the profile being changed. Assert that the named child
-exists, has the intended geometry, and uses a dimension-derived scale or position. Run only that
-spec while iterating:
+Extend the owning builder's focused spec, such as
+[`dragon-jaw-mesh.spec.ts`](../../shared/assembly/rendering/dragon-jaw-mesh.spec.ts), with a minimal
+`AssemblyPart` fixture for the profile being changed. Assert that the named child exists, has the
+intended geometry, and uses a dimension-derived scale or position. Run only that spec while iterating:
 
 ```bash
-npx ng test --watch=false --browsers=ChromeHeadless --include="src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.spec.ts"
+npx ng test pbl-forge --watch=false --include="src/app/shared/assembly/rendering/dragon-jaw-mesh.spec.ts"
 ```
 
 ### 5. Inspect it in the app
@@ -153,7 +156,7 @@ after a mesh edit would otherwise wipe the session's work.
 // Classic Dragon Body (dragon-classic-body) — recorded 2026-07-31 22:34
 // assembly-part-definitions.ts
 dimensions: { x: 1.6, y: 0.72, z: 0.68 },
-// dragon-procedural-mesh.factory.ts — DEFAULT_DRAGON_STYLE.body
+// dragon-style.ts — DEFAULT_DRAGON_STYLE.body
 body: { spikeCount: 12, spikeSpread: 0.62, spikeHeight: 0.085, spikeRadius: 0.032, spikeLean: 0.32 },
 ```
 

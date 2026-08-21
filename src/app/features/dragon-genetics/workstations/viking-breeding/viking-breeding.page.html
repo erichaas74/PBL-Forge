@@ -1,0 +1,12 @@
+<main class="breeding-page viking-workstation">
+  <header class="page-header">
+    <a class="exit" routerLink="/dragon-genetics" aria-label="Return to Dragon Genetics mission map"
+      >←</a
+    >
+    <div>
+      <span>DRAGON GENETICS · SETTLEMENT BREEDING</span>
+      <h1>Working Dragons</h1>
+    </div>
+  </header>
+  <app-viking-breeding [studentId]="studentId()" [initialRoleId]="requestedRoleId()" />
+</main>

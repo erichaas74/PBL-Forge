@@ -8,7 +8,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { runInFirebaseContext } from '../../../core/firebase/firebase-context';
-import { FIREBASE_FIRESTORE } from '../../../core/firebase/firebase.providers';
+import { FIREBASE_FIRESTORE } from '../../../core/firebase/firebase-firestore.provider';
 import { SessionService } from '../../../core/firebase/session.service';
 import {
   DragonAssignment,
@@ -22,6 +22,10 @@ import {
 } from '../workstations/shared/genetics-notebook.models';
 import { normalizeAlleleVaultGeneIds } from '../workstations/allele-workbench/allele-vault.models';
 import { normalizeDragonClassJourneyPlan } from '../journey/config/dragon-journey.registry';
+import {
+  normalizeInquirySettings,
+  normalizeStudentInquiryOverride,
+} from '../inquiry/inquiry-policy';
 
 export const DEFAULT_DRAGON_ASSIGNMENT_ID = 'default';
 
@@ -182,10 +186,30 @@ function normalizeAssignment(id: string, value: Record<string, unknown>): Dragon
     simulationSettings: (value['simulationSettings'] ??
       {}) as DragonAssignment['simulationSettings'],
     journeyPlan: normalizeDragonClassJourneyPlan(value['journeyPlan']),
-    studentOverrides: (value['studentOverrides'] ?? {}) as DragonAssignment['studentOverrides'],
+    inquirySettings: normalizeInquirySettings(value['inquirySettings']),
+    studentOverrides: normalizeStudentOverrides(value['studentOverrides']),
     updatedAtIso:
       typeof value['updatedAtIso'] === 'string' ? value['updatedAtIso'] : new Date(0).toISOString(),
   } as DragonAssignment;
+}
+
+function normalizeStudentOverrides(value: unknown): DragonAssignment['studentOverrides'] {
+  if (typeof value !== 'object' || value === null) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([studentId, override]) => {
+      const raw = (typeof override === 'object' && override !== null ? override : {}) as Record<
+        string,
+        unknown
+      >;
+      return [
+        studentId,
+        {
+          ...(raw as DragonAssignment['studentOverrides'][string]),
+          inquiry: normalizeStudentInquiryOverride(raw['inquiry']),
+        },
+      ];
+    }),
+  );
 }
 
 function normalizeRun(value: Record<string, unknown>): DragonSimulationRun | null {

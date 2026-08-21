@@ -1,0 +1,12 @@
+<main class="expedition-page viking-workstation">
+  <header class="page-header">
+    <a class="exit" routerLink="/dragon-genetics" aria-label="Return to Dragon Genetics mission map"
+      >←</a
+    >
+    <div>
+      <span>DRAGON GENETICS · FIELD SURVEY</span>
+      <h1>Island Expedition</h1>
+    </div>
+  </header>
+  <app-island-expedition [studentId]="studentId()" [initialQuestId]="requestedQuestId()" />
+</main>

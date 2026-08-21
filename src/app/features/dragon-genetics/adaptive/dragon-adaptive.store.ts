@@ -15,7 +15,14 @@ import {
   DRAGON_SIMULATION_CONTENT_VERSION,
   isDragonSimulationId,
 } from './dragon-simulation.registry';
-import { evaluateSimulationAnswer, generateSimulationQuestions } from './dragon-question.generator';
+import {
+  evaluateSimulationAnswer,
+  planSimulationQuestions,
+  questionsForRun,
+} from './dragon-question.generator';
+import { buildStudentInquiryHistory } from '../inquiry/inquiry-history';
+import { DEFAULT_INQUIRY_SETTINGS, normalizeInquirySettings } from '../inquiry/inquiry-policy';
+import { StudentInquiryHistory } from '../inquiry/inquiry.models';
 import { DragonAdaptiveRepository } from './dragon-adaptive.repository';
 import { resolveSimulationSettings } from './dragon-assignment.resolver';
 import {
@@ -66,6 +73,24 @@ export class DragonAdaptiveStore {
   readonly ready = signal(false);
   readonly completedCount = computed(
     () => Object.values(this.runsSignal()).filter((run) => run?.complete).length,
+  );
+
+  /** Class question policy, concept settings, opt-outs, and teacher-authored items. */
+  readonly inquirySettings = computed(
+    () => this.assignmentSignal().inquirySettings ?? DEFAULT_INQUIRY_SETTINGS,
+  );
+
+  /**
+   * What this student has already shown, derived from runs and the genetics notebook that the app
+   * already persists. Selection reads this to weight concepts, cool down repeated items, gate on
+   * prerequisites, and move the instruction level.
+   */
+  readonly inquiryHistory = computed<StudentInquiryHistory>(() =>
+    buildStudentInquiryHistory(
+      this.session.user()?.uid ?? LOCAL_WORKSTATION_STUDENT_ID,
+      Object.values(this.runsSignal()).filter((run): run is DragonSimulationRun => !!run),
+      this.geneticsNotebookSignal(),
+    ),
   );
 
   constructor() {
@@ -127,7 +152,18 @@ export class DragonAdaptiveStore {
 
     const attemptNumber = (existing?.attemptNumber ?? 0) + 1;
     const seed = `${studentId}:${settings.assignmentId}:${definition.id}:${settings.assignmentVersion}:${attemptNumber}`;
-    const questions = generateSimulationQuestions(definition, settings, seed);
+    // Selection happens once, here. The chosen items are frozen onto the run so that answering a
+    // question — which changes the history selection reads — cannot reshuffle the run in progress.
+    const plan = planSimulationQuestions({
+      definition,
+      settings,
+      seed,
+      studentId,
+      history: this.inquiryHistory(),
+      inquirySettings: this.inquirySettings(),
+      studentOverride: this.assignmentSignal().studentOverrides[studentId]?.inquiry,
+    });
+    const questions = plan.questions;
     const now = new Date().toISOString();
     const run: DragonSimulationRun = {
       schemaVersion: 1,
@@ -136,12 +172,13 @@ export class DragonAdaptiveStore {
       assignmentId: settings.assignmentId,
       assignmentVersion: settings.assignmentVersion,
       contentVersion: DRAGON_SIMULATION_CONTENT_VERSION,
-      level: settings.level,
-      hintsAllowed: settings.hintsAllowed,
+      level: plan.resolved.level,
+      hintsAllowed: plan.resolved.hintsAllowed,
       seed,
       attemptNumber,
       currentQuestionIndex: 0,
       questionIds: questions.map((question) => question.id),
+      servedItemIds: questions.map((question) => question.templateId),
       responses: [],
       complete: false,
       score: 0,
@@ -153,24 +190,16 @@ export class DragonAdaptiveStore {
     return run;
   }
 
+  /**
+   * Rebuilds a run's questions from the item ids frozen onto it. Never re-runs selection: the
+   * student's history changes with each answer, and re-selecting mid-run would swap the questions
+   * underneath them.
+   */
   questionsFor(
     definition: DragonSimulationDefinition,
     run: DragonSimulationRun,
   ): GeneratedSimulationQuestion[] {
-    const settings: ResolvedSimulationSettings = {
-      assignmentId: run.assignmentId,
-      assignmentVersion: run.assignmentVersion,
-      ownerId: this.assignmentSignal().ownerId,
-      level: run.level,
-      enabled: true,
-      questionCount: run.questionIds.length,
-      hintsAllowed: run.hintsAllowed,
-    };
-    const generated = generateSimulationQuestions(definition, settings, run.seed);
-    const byId = new Map(generated.map((question) => [question.id, question]));
-    return run.questionIds
-      .map((id) => byId.get(id))
-      .filter((question): question is GeneratedSimulationQuestion => !!question);
+    return questionsForRun(definition, run, this.inquirySettings());
   }
 
   answer(
@@ -194,15 +223,17 @@ export class DragonAdaptiveStore {
       selectedOptionId,
       correct: evaluation.correct,
       misconceptionFlag: evaluation.misconceptionFlag,
+      conceptId: evaluation.conceptId,
       answeredAtIso: new Date().toISOString(),
     };
     const responses = [...run.responses, response];
     const next = {
       ...run,
       responses,
-      score: Math.round(
-        (100 * responses.filter((item) => item.correct).length) / run.questionIds.length,
-      ),
+      // A run can legitimately be short when the bank has few eligible items, so guard the divisor.
+      score: run.questionIds.length
+        ? Math.round((100 * responses.filter((item) => item.correct).length) / run.questionIds.length)
+        : 0,
       updatedAtIso: new Date().toISOString(),
     };
     this.putRun(next);
@@ -433,6 +464,7 @@ function loadLocalAssignment(): DragonAssignment {
       },
       simulationSettings: stored.simulationSettings ?? {},
       journeyPlan: normalizeDragonClassJourneyPlan(stored.journeyPlan),
+      inquirySettings: normalizeInquirySettings(stored.inquirySettings),
       studentOverrides: stored.studentOverrides ?? {},
     };
   } catch {

@@ -1,17 +1,37 @@
 # Dragon workstation inquiry architecture
 
-**Status: proposal. Nothing here is built yet.** This document designs one mechanism for adjusting
-both *what a workstation asks* and *how a workstation is used*, for a class, a lesson, or one
-student.
+**Status: built, except where noted.** This document designs one mechanism for adjusting both *what
+a workstation asks* and *how a workstation is used*, for a class, a lesson, or one student.
 
 Companion to [`DRAGON_STUDENT_WALKTHROUGH_PLAN.md`](DRAGON_STUDENT_WALKTHROUGH_PLAN.md), which
 defines the curriculum sequence that drives this mechanism.
 
+## Where it lives
+
+| Concern | Code |
+| --- | --- |
+| Probe vocabulary and manifest shape | [`workstations/shared/instrument-manifest.models.ts`](../src/app/features/dragon-genetics/workstations/shared/instrument-manifest.models.ts) |
+| Per-workstation manifests | `workstations/*/​*.manifest.ts` (13 of them) |
+| Concept graph | [`inquiry/concept.registry.ts`](../src/app/features/dragon-genetics/inquiry/concept.registry.ts) |
+| Authored bank | [`inquiry/inquiry-bank.ts`](../src/app/features/dragon-genetics/inquiry/inquiry-bank.ts) |
+| Instrument aggregation | [`inquiry/instrument.registry.ts`](../src/app/features/dragon-genetics/inquiry/instrument.registry.ts) |
+| Teacher policy and validation | [`inquiry/inquiry-policy.ts`](../src/app/features/dragon-genetics/inquiry/inquiry-policy.ts) |
+| History from prior student work | [`inquiry/inquiry-history.ts`](../src/app/features/dragon-genetics/inquiry/inquiry-history.ts) |
+| Selection | [`inquiry/inquiry-selection.ts`](../src/app/features/dragon-genetics/inquiry/inquiry-selection.ts) |
+| Five-layer resolver | [`inquiry/inquiry.resolver.ts`](../src/app/features/dragon-genetics/inquiry/inquiry.resolver.ts) |
+| Runtime adapter | [`adaptive/dragon-question.generator.ts`](../src/app/features/dragon-genetics/adaptive/dragon-question.generator.ts) |
+| Teacher controls | [`dragon-teacher.page.ts`](../src/app/features/dragon-genetics/dragon-teacher.page.ts) |
+
+Not yet built: teacher-facing item **authoring UI** (the schema, validation, and runtime accept
+authored items today, but nothing writes them from the browser), probe-item rendering, and the
+mastery ledger.
+
 ---
 
-## 1. What exists today
+## 1. What was there before
 
-Three separate mechanisms already do part of this job, and they do not know about each other.
+Kept because §2 and §10 refer to it, and because the reasoning explains why the shape changed.
+Three separate mechanisms each did part of this job and did not know about each other.
 
 ### 1.1 The adaptive registry — `levelChallenges`
 
@@ -40,9 +60,10 @@ module with them. §6 generalizes it.
 
 ---
 
-## 2. Six problems to fix
+## 2. The six problems this fixed
 
-These are the reasons a new architecture is warranted rather than an extension.
+These were the reasons a new architecture was warranted rather than an extension. §10 maps each one
+to the mechanism that now prevents it, and to the spec that holds it prevented.
 
 **1 — Two thirds of a 7th grader's questions are synthesized filler.** For `grade-7`,
 `generateSimulationQuestions` finds 1 eligible authored challenge, then pads to `questionCount: 3`
@@ -361,28 +382,32 @@ they extend the bank, and opt-outs handle removal.
 
 ## 9. Migration
 
-Each step is shippable and reversible.
+Steps 1–5 are done. Each step was shippable and reversible.
 
-**Step 1 — Concept registry.** Extract the ~20 existing `misconceptionFlag` strings into typed
+**Outcome so far:** 46 concepts, 84 authored items, 13 instrument manifests, 100% concept coverage
+at every level, and a minimum of 3 eligible authored items for any (instrument, level) pair — up
+from 37 items where every run was 1 authored question plus generated filler.
+
+**Step 1 — Concept registry (done).** Extract the ~20 existing `misconceptionFlag` strings into typed
 `Concept` records. Change `misconceptionFlag: string` to `conceptId: ConceptId`. Mechanical, no
 behavior change, immediately prevents typos and enables the first coverage report.
 
-**Step 2 — Manifests.** Add one manifest per workstation, starting with the six that have no
+**Step 2 — Manifests (done).** Add one manifest per workstation, starting with the six that have no
 `DragonSimulationId` today. Declares probes only; no behavior change.
 
-**Step 3 — Bank extraction.** Move the 37 `levelChallenges` into `InquiryItem` records with
+**Step 3 — Bank extraction (done).** Move the 37 `levelChallenges` into `InquiryItem` records with
 `kind: 'choice'`. Convert `focusNodeId` to `requiresProbe`. **Author `gradeBands` explicitly** rather
 than deriving them, and author `phase` explicitly — this is where problems 2 and 5 die. Expect the
 bank to look thin; that is the true state, previously masked by filler.
 
-**Step 4 — Resolver.** Implement `resolveSession` with L0 and L1 only, and make the adaptive
+**Step 4 — Resolver (done).** Implement `resolveSession` with L0 and L1 only, and make the adaptive
 experience page consume it. Behavior should be equivalent apart from the filler removal.
 
-**Step 5 — Probe items.** Add `kind: 'probe'` and the three record predicates. This is where the
+**Step 5 — Probe items (types and selection done; rendering not built).** Add `kind: 'probe'` and the three record predicates. This is where the
 walkthrough plan's checkpoints land, and where dedicated workstations become assessable without any
 in-lab UI.
 
-**Step 6 — L2/L3/L4** — act briefings, adaptation, live override — then the teacher authoring
+**Step 6 — L2/L3/L4** (L1, L3, and L4 done; L2 awaits the act registry) — act briefings, adaptation, live override — then the teacher authoring
 surface and the coverage report.
 
 `openLab` becomes `sessionMode` in Step 4 and can keep a deprecated alias for one release.
@@ -391,14 +416,19 @@ surface and the coverage report.
 
 ## 10. What this fixes
 
-| Problem | Fixed by |
-| --- | --- |
-| 1 — filler questions | §7 rule 6: ask fewer, report the gap |
-| 2 — AP sees grade-7 items | §3.3 `gradeBands` as a set; §7 rule 1 |
-| 3 — questions anchor to a fake diagram | §5 probes with real `anchorId`s |
-| 4 — six labs unaskable | §3.1 manifests; §5 capability join |
-| 5 — phase by arithmetic | §3.3 `phase` authored on the item |
-| 6 — misconceptions as strings | §3.2 concept graph |
+| Problem | Fixed by | Held by |
+| --- | --- | --- |
+| 1 — filler questions | §7 rule 6: ask fewer, report the gap | `never synthesizes filler to reach the requested count` |
+| 2 — AP sees grade-7 items | §3.3 `gradeBands` as a set; §7 rule 1 | `never asks a question from outside the resolved level band` |
+| 3 — questions anchor to a fake diagram | §5 probes with real `anchorId`s | `anchors a hint to a real element of the instrument` |
+| 4 — six labs unaskable | §3.1 manifests; §5 capability join | `addresses the six workstations the simulation registry could not reach` |
+| 5 — phase by arithmetic | §3.3 `phase` authored on the item | `delivers items in authored phase order` |
+| 6 — misconceptions as strings | §3.2 concept graph | `gives every concept id a record`, `has no prerequisite cycles` |
+
+One consequence worth restating: **selection depends on history, and history changes with every
+answer.** Item choice therefore happens once, at run creation, and the chosen ids are frozen onto
+the run as `servedItemIds`; rebuilding a run reads those back rather than re-selecting. Without that
+freeze, answering a question would reshuffle the questions underneath the student.
 
 ---
 

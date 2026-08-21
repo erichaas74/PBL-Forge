@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   ISLAND_IDS,
@@ -17,35 +21,21 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.island-diversity.v1';
 export class IslandDiversityRepository {
   load(studentId: string): IslandDiversityWorld {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);
-    if (typeof localStorage === 'undefined') return createInitialWorld(normalizedStudentId);
-    try {
-      const stored = JSON.parse(
-        localStorage.getItem(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`) ?? 'null',
-      ) as Partial<StoredIslandDiversityWorld> | null;
-      if (stored?.schemaVersion === 1 && isWorld(stored.world)) return stored.world;
-    } catch {
-      // Invalid or unavailable device data falls through to the released mock archipelago.
-    }
-    return createInitialWorld(normalizedStudentId);
+    const fallback = createInitialWorld(normalizedStudentId);
+    return readStoredJson(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`, fallback, (value) => {
+      const stored = value as Partial<StoredIslandDiversityWorld> | null;
+      return stored?.schemaVersion === 1 && isWorld(stored.world) ? stored.world : fallback;
+    });
   }
 
   save(studentId: string, world: IslandDiversityWorld): IslandDiversityWorld {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);
-    if (typeof localStorage !== 'undefined') {
-      try {
-        const stored: StoredIslandDiversityWorld = {
-          schemaVersion: 1,
-          studentId: normalizedStudentId,
-          world,
-        };
-        localStorage.setItem(
-          `${STORAGE_KEY_PREFIX}.${normalizedStudentId}`,
-          JSON.stringify(stored),
-        );
-      } catch {
-        // The simulation remains usable when browser storage is unavailable or full.
-      }
-    }
+    const stored: StoredIslandDiversityWorld = {
+      schemaVersion: 1,
+      studentId: normalizedStudentId,
+      world,
+    };
+    writeStoredJson(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`, stored);
     return world;
   }
 }

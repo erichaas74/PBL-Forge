@@ -1,157 +1,173 @@
 import {
   DragonSimulationDefinition,
+  DragonSimulationRun,
   GeneratedSimulationQuestion,
   InstructionLevel,
   ResolvedSimulationSettings,
 } from './dragon-simulation.models';
 import { LEVEL_PROFILES } from './dragon-simulation.registry';
+import {
+  ChoiceItem,
+  InquiryItem,
+  InquirySettings,
+  ResolvedInquiry,
+  StudentInquiryHistory,
+  StudentInquiryOverride,
+  isChoiceItem,
+} from '../inquiry/inquiry.models';
+import { classBank, resolveInquiry } from '../inquiry/inquiry.resolver';
+import { inquiryItem } from '../inquiry/inquiry-bank';
+import { dragonConcept } from '../inquiry/concept.registry';
+import { instrumentAnchor, instrumentManifest } from '../inquiry/instrument.registry';
+import { DEFAULT_INQUIRY_SETTINGS } from '../inquiry/inquiry-policy';
+import { hashSeed, shuffleDeterministic } from '../inquiry/inquiry-random';
 
-const LEVEL_ORDER: readonly InstructionLevel[] = [
-  'grade-7',
-  'grade-8',
-  'high-school',
-  'ap-biology',
-];
+/**
+ * Turns resolved inquiry into the question shape the adaptive runtime renders.
+ *
+ * Selection now happens **once**, when a run is created, and the chosen item ids are stored on the
+ * run as `servedItemIds`. Rebuilding a run's questions reads those ids back rather than re-running
+ * selection, because selection depends on the student's history and that history changes with every
+ * answer. Freezing the set is what keeps a run stable while a student works through it.
+ *
+ * Nothing here pads a short set. If the bank has fewer eligible items than the requested count, the
+ * run is shorter and `ResolvedInquiry.uncoveredConceptIds` reports the gap.
+ */
 
-export function generateSimulationQuestions(
-  definition: DragonSimulationDefinition,
-  settings: ResolvedSimulationSettings,
-  seed: string,
-): GeneratedSimulationQuestion[] {
-  const targetIndex = LEVEL_ORDER.indexOf(settings.level);
-  const eligibleLevels = LEVEL_ORDER.slice(0, targetIndex + 1);
-  const candidates = eligibleLevels.flatMap((level, levelIndex) => {
-    const challenge = definition.levelChallenges[level];
-    const section = definition.sections[levelIndex % definition.sections.length];
-    const shuffledOptions = shuffleDeterministic(challenge.options, `${seed}:${level}:options`);
-    return [{
-      id: `${definition.id}:${level}:${hashSeed(`${seed}:${level}`)}`,
-      templateId: `${definition.id}:${level}`,
-      simulationId: definition.id,
-      sectionId: section.id,
-      phase: section.phase,
-      level,
-      skill: definition.skill,
-      prompt: challenge.prompt,
-      options: shuffledOptions.map((option) => ({
-        ...option,
-        nodeId: option.id === challenge.correctOptionId ? challenge.focusNodeId : undefined,
-      })),
-      correctOptionId: challenge.correctOptionId,
-      explanation: challenge.explanation,
-      misconceptionFlag: challenge.misconceptionFlag,
-      interaction: levelIndex % 2 === 0 ? 'visual-choice' : 'evidence-select',
-      hint: settings.hintsAllowed
-        ? `Inspect “${definition.nodes.find((node) => node.id === challenge.focusNodeId)?.label ?? definition.nodes[0].label}” and compare it with the claim.`
-        : null,
-    } satisfies GeneratedSimulationQuestion];
-  });
-
-  const foundational = buildFoundationalQuestions(definition, settings, seed);
-  const targetChallenge = candidates.find((question) => question.level === settings.level)
-    ?? candidates[candidates.length - 1];
-  const supportingPool = shuffleDeterministic(
-    [...foundational, ...candidates.filter((question) => question !== targetChallenge)],
-    `${seed}:supporting-questions`,
-  );
-  const selected = [targetChallenge, ...supportingPool.slice(0, settings.questionCount - 1)];
-  return shuffleDeterministic(selected, `${seed}:questions`)
-    .map((question, index) => ({
-      ...question,
-      sectionId: definition.sections[index % definition.sections.length].id,
-      phase: definition.sections[index % definition.sections.length].phase,
-    }));
+export interface SimulationQuestionRequest {
+  definition: DragonSimulationDefinition;
+  settings: ResolvedSimulationSettings;
+  seed: string;
+  studentId: string;
+  history: StudentInquiryHistory;
+  inquirySettings?: InquirySettings;
+  studentOverride?: StudentInquiryOverride;
 }
 
-function buildFoundationalQuestions(
-  definition: DragonSimulationDefinition,
-  settings: ResolvedSimulationSettings,
-  seed: string,
-): GeneratedSimulationQuestion[] {
-  const correctNode = definition.nodes[hashSeed(seed) % definition.nodes.length];
-  const evidenceNode = definition.nodes[(definition.nodes.indexOf(correctNode) + 1) % definition.nodes.length];
-  const nodeOptions = shuffleDeterministic(
-    definition.nodes.slice(0, 3).map((node) => ({ id: node.id, label: node.label, nodeId: node.id })),
-    `${seed}:nodes`,
-  );
-  if (!nodeOptions.some((option) => option.id === correctNode.id)) {
-    nodeOptions[0] = { id: correctNode.id, label: correctNode.label, nodeId: correctNode.id };
-  }
+export interface SimulationQuestionPlan {
+  questions: GeneratedSimulationQuestion[];
+  resolved: ResolvedInquiry;
+}
 
-  return [
-    {
-      id: `${definition.id}:observe:${hashSeed(`${seed}:observe`)}`,
-      templateId: `${definition.id}:observe`,
-      simulationId: definition.id,
-      sectionId: 'observe',
-      phase: 'observe',
-      level: settings.level,
-      skill: definition.skill,
-      prompt: `Locate the part of the model labeled “${correctNode.label}.”`,
-      options: nodeOptions,
-      correctOptionId: correctNode.id,
-      explanation: correctNode.detail,
-      misconceptionFlag: 'visual-model-location',
-      interaction: 'visual-choice',
-      hint: settings.hintsAllowed ? `Look for the ${correctNode.symbol} symbol.` : null,
-    },
-    {
-      id: `${definition.id}:evidence:${hashSeed(`${seed}:evidence`)}`,
-      templateId: `${definition.id}:evidence`,
-      simulationId: definition.id,
-      sectionId: 'explain',
-      phase: 'explain',
-      level: settings.level,
-      skill: definition.skill,
-      prompt: `Which model record should be opened next to strengthen the explanation?`,
-      options: shuffleDeterministic([
-        { id: evidenceNode.id, label: evidenceNode.label, nodeId: evidenceNode.id },
-        { id: 'appearance-only', label: 'Appearance only' },
-        { id: 'arena-score', label: 'Arena score' },
-      ], `${seed}:evidence-options`),
-      correctOptionId: evidenceNode.id,
-      explanation: evidenceNode.detail,
-      misconceptionFlag: 'unsupported-evidence',
-      interaction: 'evidence-select',
-      hint: settings.hintsAllowed ? 'Choose a scientific record, not a value judgment.' : null,
-    },
-  ];
+export function planSimulationQuestions(
+  request: SimulationQuestionRequest,
+): SimulationQuestionPlan {
+  const { definition, settings, seed } = request;
+  const resolved = resolveInquiry({
+    instrumentId: definition.id,
+    studentId: request.studentId,
+    settings: request.inquirySettings ?? DEFAULT_INQUIRY_SETTINGS,
+    studentOverride: request.studentOverride,
+    baseLevel: settings.level,
+    baseQuestionCount: settings.questionCount,
+    baseHintsAllowed: settings.hintsAllowed,
+    history: request.history,
+    seed,
+  });
+
+  return {
+    resolved,
+    questions: resolved.items
+      .filter(isChoiceItem)
+      .map((item, index) =>
+        toQuestion(item, definition, resolved.level, resolved.hintsAllowed, seed, index),
+      ),
+  };
+}
+
+/**
+ * Rebuilds a run's questions from the item ids frozen onto it. Deterministic and history-free, so
+ * repeated renders during a run always produce the same questions in the same order.
+ */
+export function questionsForRun(
+  definition: DragonSimulationDefinition,
+  run: DragonSimulationRun,
+  inquirySettings?: InquirySettings,
+): GeneratedSimulationQuestion[] {
+  const bank = inquirySettings ? classBank(inquirySettings) : null;
+  const lookup = (id: string): InquiryItem | null =>
+    bank?.find((item) => item.id === id) ?? inquiryItem(id);
+
+  return (run.servedItemIds ?? [])
+    .map((id) => lookup(id))
+    .filter((item): item is InquiryItem => !!item)
+    .filter(isChoiceItem)
+    .map((item, index) =>
+      toQuestion(item, definition, run.level, run.hintsAllowed, run.seed, index),
+    );
+}
+
+function toQuestion(
+  item: ChoiceItem,
+  definition: DragonSimulationDefinition,
+  level: InstructionLevel,
+  hintsAllowed: boolean,
+  seed: string,
+  index: number,
+): GeneratedSimulationQuestion {
+  const section =
+    definition.sections.find((candidate) => candidate.phase === item.phase) ??
+    definition.sections[index % definition.sections.length];
+  const anchorId = instrumentAnchor(definition.id, item.requiresProbe);
+  const options = shuffleDeterministic(item.options, `${seed}:${item.id}:options`);
+  const concept = dragonConcept(item.conceptId);
+
+  return {
+    id: `${item.id}:${hashSeed(`${seed}:${item.id}`)}`,
+    // The bank item id, so a response can be mapped straight back to its concept.
+    templateId: item.id,
+    simulationId: definition.id,
+    sectionId: section.id,
+    phase: item.phase,
+    level,
+    skill: concept?.skillId ?? definition.skill,
+    prompt: item.prompt,
+    options: options.map((option) => ({
+      ...option,
+      // Correct options point at the real instrument element, not a generic diagram node.
+      nodeId: option.id === item.correctOptionId ? (anchorId ?? undefined) : undefined,
+    })),
+    correctOptionId: item.correctOptionId,
+    explanation: item.explanation,
+    misconceptionFlag: item.conceptId,
+    conceptId: item.conceptId,
+    requiresProbe: item.requiresProbe,
+    anchorId,
+    itemSource: item.source,
+    interaction: item.phase === 'explain' ? 'evidence-select' : 'visual-choice',
+    hint: hintsAllowed ? (item.hint ?? defaultHint(item, definition.id, anchorId)) : null,
+  };
+}
+
+/**
+ * A fallback hint that names a real place in the instrument. The previous generator pointed at a
+ * symbol on the generic visual model, which does not exist in a dedicated workstation.
+ */
+function defaultHint(
+  item: ChoiceItem,
+  instrumentId: string,
+  anchorId: string | null,
+): string | null {
+  const manifest = instrumentManifest(instrumentId);
+  if (!manifest || !anchorId) return null;
+  const readable = anchorId.replace(/-/g, ' ');
+  return `Open the ${readable} in the ${manifest.title} and compare what it shows with the claim.`;
 }
 
 export function evaluateSimulationAnswer(
   question: GeneratedSimulationQuestion,
   selectedOptionId: string,
-): { correct: boolean; misconceptionFlag: string | null } {
+): { correct: boolean; misconceptionFlag: string | null; conceptId: string } {
   const correct = selectedOptionId === question.correctOptionId;
-  return { correct, misconceptionFlag: correct ? null : question.misconceptionFlag };
-}
-
-export function hashSeed(value: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function shuffleDeterministic<T>(values: readonly T[], seed: string): T[] {
-  const result = [...values];
-  let state = hashSeed(seed) || 1;
-  const random = () => {
-    state += 0x6d2b79f5;
-    let next = state;
-    next = Math.imul(next ^ (next >>> 15), next | 1);
-    next ^= next + Math.imul(next ^ (next >>> 7), next | 61);
-    return ((next ^ (next >>> 14)) >>> 0) / 4294967296;
+  return {
+    correct,
+    misconceptionFlag: correct ? null : question.misconceptionFlag,
+    conceptId: question.conceptId,
   };
-  for (let index = result.length - 1; index > 0; index -= 1) {
-    const target = Math.floor(random() * (index + 1));
-    [result[index], result[target]] = [result[target], result[index]];
-  }
-  return result;
 }
 
 export function defaultQuestionCount(level: InstructionLevel): number {
   return LEVEL_PROFILES[level].questionCount;
 }
+
+export { hashSeed };

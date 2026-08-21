@@ -8,7 +8,7 @@ export async function buildDragonModelPack(workspace) {
       contents: `
         import { CLASSIC_DRAGON_TEST_PRESET } from './designer/src/app/assembly-garage/data/presets/classic-dragon-test.ts';
         import { createDragonModelPack } from './designer/src/app/dragon-model-pack-export.ts';
-        import { DEFAULT_DRAGON_STYLE } from './src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.ts';
+        import { DEFAULT_DRAGON_STYLE } from './src/app/shared/assembly/rendering/dragon-style.ts';
 
         export default createDragonModelPack(CLASSIC_DRAGON_TEST_PRESET.state, {
           modelId: 'classic-dragon',

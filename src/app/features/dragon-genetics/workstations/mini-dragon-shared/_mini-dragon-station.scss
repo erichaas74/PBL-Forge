@@ -2533,3 +2533,45 @@
     transition: none !important;
   }
 }
+
+/*
+ * Station chrome. The four mini dragon rooms are one programme seen from four
+ * places, so each carries the same live status line and the same way back to
+ * its siblings.
+ */
+.station-status {
+  margin: 0 0 1.25rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--show-line);
+  border-radius: 0.6rem;
+  background: rgb(240 168 205 / 8%);
+  color: var(--show-ink);
+  font-size: 0.9rem;
+}
+
+.station-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+
+  a {
+    padding: 0.45rem 0.85rem;
+    border: 1px solid var(--show-line);
+    border-radius: 999px;
+    color: var(--show-muted);
+    font-size: 0.85rem;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--show-accent);
+      color: var(--show-ink);
+    }
+  }
+}
+
+/* The arena keeps the division board it inherited from the standard bench. */
+.arena-division {
+  margin-bottom: 1.5rem;
+}

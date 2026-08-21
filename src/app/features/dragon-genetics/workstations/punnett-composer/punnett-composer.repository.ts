@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
 import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
+import {
   EXPRESSIVE_DRAGON_TRAITS,
   ExpressiveDragonTraitId,
 } from '../../simulation/domain/dragon-expressive-genome';
@@ -17,20 +21,14 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.punnett-composer.v1';
 export class PunnettComposerRepository {
   load(studentId: string): PunnettComposerSnapshot {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);
-    if (typeof localStorage === 'undefined') return createEmptyPunnettSnapshot(normalizedStudentId);
-    try {
-      const stored = JSON.parse(
-        localStorage.getItem(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`) ?? 'null',
-      );
-      return normalizePunnettSnapshot(stored, normalizedStudentId);
-    } catch {
-      return createEmptyPunnettSnapshot(normalizedStudentId);
-    }
+    const fallback = createEmptyPunnettSnapshot(normalizedStudentId);
+    return readStoredJson(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`, fallback, (value) =>
+      normalizePunnettSnapshot(value, normalizedStudentId),
+    );
   }
 
   save(snapshot: PunnettComposerSnapshot): void {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(`${STORAGE_KEY_PREFIX}.${snapshot.studentId}`, JSON.stringify(snapshot));
+    writeStoredJson(`${STORAGE_KEY_PREFIX}.${snapshot.studentId}`, snapshot);
   }
 }
 

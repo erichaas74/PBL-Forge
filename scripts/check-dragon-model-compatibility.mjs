@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { build } from 'esbuild';
 
 const workspace = path.resolve(import.meta.dirname, '..');
@@ -72,6 +72,12 @@ const factorySource = await readFile(
   path.join(workspace, 'src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.ts'),
   'utf8',
 );
+const renderingDirectory = path.join(workspace, 'src/app/shared/assembly/rendering');
+const renderingSources = await Promise.all(
+  (await readdir(renderingDirectory))
+    .filter(name => name.startsWith('dragon-') && name.endsWith('.ts') && !name.endsWith('.spec.ts'))
+    .map(name => readFile(path.join(renderingDirectory, name), 'utf8')),
+);
 
 const implementedProfiles = new Set(
   [...factorySource.matchAll(/case '([^']+)':/g)]
@@ -82,7 +88,8 @@ const supportedProfiles = new Set(module.default.supportedProfiles);
 assertSameSet('renderer profiles', implementedProfiles, supportedProfiles);
 
 const readParameters = new Set(
-  [...factorySource.matchAll(/visual(?:Number|String|Flag)\(part, '([^']+)'/g)]
+  renderingSources
+    .flatMap(source => [...source.matchAll(/visual(?:Number|String|Flag)\(part, '([^']+)'/g)])
     .map(match => match[1]),
 );
 const contractedParameters = new Set(

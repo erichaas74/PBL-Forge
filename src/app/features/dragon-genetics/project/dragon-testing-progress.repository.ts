@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../shared/assembly/persistence/json-local-storage';
 
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.testing-progress.v1';
 
@@ -19,17 +23,13 @@ export interface DragonTestingProgressSnapshot {
 export class DragonTestingProgressRepository {
   load(studentId: string, assignmentId: string): DragonTestingProgressSnapshot {
     const fallback = emptyDragonTestingProgress(studentId, assignmentId);
-    if (typeof localStorage === 'undefined') return fallback;
-    try {
-      const value = JSON.parse(localStorage.getItem(storageKey(fallback)) ?? 'null');
+    return readStoredJson(storageKey(fallback), fallback, (value) => {
       if (!isRecord(value) || value['schemaVersion'] !== 1) return fallback;
       return {
         ...fallback,
         completedAtByActivityId: stringRecord(value['completedAtByActivityId']),
       };
-    } catch {
-      return fallback;
-    }
+    });
   }
 
   complete(
@@ -46,13 +46,7 @@ export class DragonTestingProgressRepository {
         [activityId]: completedAtIso,
       },
     };
-    if (typeof localStorage !== 'undefined') {
-      try {
-        localStorage.setItem(storageKey(next), JSON.stringify(next));
-      } catch {
-        // The shortcut still returns completion for this session if storage is unavailable.
-      }
-    }
+    writeStoredJson(storageKey(next), next);
     return next;
   }
 }

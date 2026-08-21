@@ -1,0 +1,160 @@
+<section class="companion-show mini-dragon-pedigree" aria-labelledby="pedigree-lab-title">
+  <header class="show-head">
+    <div class="goal-block">
+      <span>SCIENTIFIC GOAL</span>
+      <h2 id="pedigree-lab-title">Mini Dragon Pedigree Lab</h2>
+      <p>{{ goal() }}</p>
+    </div>
+  <dl class="program-readout" aria-label="Breeding program readout">
+    <div>
+      <dt>Population</dt>
+      <dd>{{ pedigreePopulation().length }}</dd>
+    </div>
+    <div>
+      <dt>Generations</dt>
+      <dd>{{ pedigreeGenerations().length }}</dd>
+    </div>
+    <div>
+      <dt>Showing the form</dt>
+      <dd>{{ rareTraitFoundCount() }}</dd>
+    </div>
+    <div>
+      <dt>Flagged</dt>
+      <dd>{{ rareCandidateIds().length }}</dd>
+    </div>
+  </dl>
+  </header>
+
+  <p class="station-status" aria-live="polite" data-testid="status">{{ statusMessage() }}</p>
+
+  <nav class="station-links" aria-label="Mini dragon programme stations">
+    <a routerLink="/dragon-genetics/companion-show">Kennel →</a>
+    <a routerLink="/dragon-genetics/mini-dragon-training">Training Ground →</a>
+    <a routerLink="/dragon-genetics/mini-dragon-arena">Show Arena →</a>
+  </nav>
+
+  <section class="rare-pedigree" aria-labelledby="rare-pedigree-title">
+    <header>
+      <div>
+        <span>RARE TRAIT PEDIGREE HUNT</span>
+        <h3 id="rare-pedigree-title">Follow a hidden form through the family</h3>
+      </div>
+      <p>
+        Choose a recessive trait, compare parents and offspring, then flag the dragons whose family
+        records make them promising breeding candidates.
+      </p>
+    </header>
+
+    <div class="rare-trait-picker" aria-label="Rare recessive trait to trace">
+      @for (target of rareTraitTargets; track target.geneId) {
+        <button
+          type="button"
+          [class.selected]="rareTraitGeneId() === target.geneId"
+          [attr.aria-pressed]="rareTraitGeneId() === target.geneId"
+          [attr.data-testid]="'rare-trait-' + target.geneId"
+          (click)="setRareTraitGene(target.geneId)"
+        >
+          <small>{{ target.geneName }}</small>
+          <strong>{{ target.formLabel }}</strong>
+        </button>
+      }
+    </div>
+
+    @if (rareTraitTarget(); as target) {
+      <div class="pedigree-brief">
+        <div>
+          <span>BREEDER'S CLUE</span>
+          <p>{{ target.clue }}</p>
+        </div>
+        <strong>
+          {{ rareTraitFoundCount() }} recorded
+          {{ rareTraitFoundCount() === 1 ? 'dragon' : 'dragons' }} showing
+          {{ target.formLabel.toLowerCase() }}
+        </strong>
+      </div>
+
+      @if (pedigreePopulation().length) {
+        <div class="pedigree-chart" aria-label="Mini dragon family generations">
+          @for (group of pedigreeGenerations(); track group.generation) {
+            <section class="pedigree-generation">
+              <h4>Generation {{ group.generation }}</h4>
+              <div>
+                @for (dragon of group.dragons; track dragon.id) {
+                  <article
+                    class="pedigree-dragon"
+                    [class.flagged]="isRareCandidate(dragon.id)"
+                    [attr.data-evidence]="pedigreeEvidenceFor(dragon)?.id"
+                  >
+                    <header>
+                      <i [style.--pup-color]="paintFor(dragon).color" aria-hidden="true"></i>
+                      <div>
+                        <strong>{{ dragon.name }}</strong>
+                        <small>{{ pedigreeParentNames(dragon) }}</small>
+                      </div>
+                    </header>
+                    <p>
+                      <span>Visible {{ target.geneName }}</span
+                      >{{ pedigreeTraitLabel(dragon) }}
+                    </p>
+
+                    @if (isRareCandidate(dragon.id)) {
+                      @if (pedigreeEvidenceFor(dragon); as evidence) {
+                        <div class="pedigree-evidence" [attr.data-rank]="evidence.rank">
+                          <strong>{{ evidence.label }}</strong>
+                          <small>{{ evidence.detail }}</small>
+                        </div>
+                      }
+                    }
+
+                    <footer>
+                      <button
+                        type="button"
+                        class="candidate-toggle"
+                        [class.selected]="isRareCandidate(dragon.id)"
+                        [attr.aria-pressed]="isRareCandidate(dragon.id)"
+                        [attr.data-testid]="'rare-candidate-' + dragon.id"
+                        (click)="toggleRareCandidate(dragon.id)"
+                      >
+                        {{ isRareCandidate(dragon.id) ? 'Remove flag' : 'Flag candidate' }}
+                      </button>
+                      @if (isRareCandidate(dragon.id) && !isInKennel(dragon.id)) {
+                        <button type="button" (click)="keepPedigreeCandidate(dragon)">
+                          Keep for breeding
+                        </button>
+                      }
+                      @if (isRareCandidate(dragon.id) && isInKennel(dragon.id)) {
+                        <button type="button" (click)="assignToPair('dam', dragon.id)">
+                          Parent 1
+                        </button>
+                        <button type="button" (click)="assignToPair('sire', dragon.id)">
+                          Parent 2
+                        </button>
+                      }
+                    </footer>
+                  </article>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      } @else {
+        <p class="pedigree-empty">
+          Adopt two founders and whelp a litter. Their offspring will appear here as a family chart.
+        </p>
+      }
+    } @else {
+      <p class="pedigree-empty">
+        Start by choosing the rare form you hope to recover in a future litter.
+      </p>
+    }
+  </section>
+
+  <details class="observation-prompts">
+    <summary>Optional breeder prompts</summary>
+    <ul>
+      <li>Can a dragon that does not show the rare form still pass it to its young?</li>
+      <li>Which pairing would give you the clearest evidence about a carrier?</li>
+      <li>What did the family outcomes tell you that one dragon’s appearance could not?</li>
+    </ul>
+  </details>
+</section>

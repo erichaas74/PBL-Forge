@@ -4,7 +4,7 @@ This reusable authoring feature lives under `src/app/shared`. Dragon Genetics cu
 
 ## Structure
 
-- `../assembly/domain`: canonical blueprint contracts, vectors, roles, cloning, and snapping. The local model/utility files are compatibility exports.
+- `@pbl/assembly/domain`: canonical blueprint contracts, vectors, roles, cloning, and snapping. Designer code imports these shared modules directly.
 - `state/assembly-garage.store.ts`: Angular signal store for parts, joints, selection, and simulation state.
 - `../assembly/rendering`: reusable Three.js geometry and material factories.
 - `../assembly/physics`: reusable cannon-es body and shape factories.

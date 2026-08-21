@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
 import { DRAGON_TRAITS } from '../../simulation/domain/dragon-inheritance';
 import { DragonTraitId } from '../../simulation/domain/dragon-lab.models';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
@@ -16,11 +20,8 @@ export class DragonHatcheryBreedingRepository {
   load(studentId: string): DragonHatcheryBreedingSnapshot {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     const empty = emptySnapshot(normalizedStudentId);
-    if (typeof localStorage === 'undefined') return empty;
-    try {
-      const value = JSON.parse(
-        localStorage.getItem(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`) ?? 'null',
-      ) as Partial<DragonHatcheryBreedingSnapshot> | null;
+    return readStoredJson(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`, empty, (raw) => {
+      const value = raw as Partial<DragonHatcheryBreedingSnapshot> | null;
       if (!isSnapshot(value)) return empty;
       return {
         schemaVersion: 1,
@@ -32,21 +33,11 @@ export class DragonHatcheryBreedingRepository {
         pendingSpermSelection: value.pendingSpermSelection,
         fertilizations: value.fertilizations,
       };
-    } catch {
-      return empty;
-    }
+    });
   }
 
   save(snapshot: DragonHatcheryBreedingSnapshot): void {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(
-        `${STORAGE_KEY_PREFIX}.${snapshot.studentId}`,
-        JSON.stringify(snapshot),
-      );
-    } catch {
-      // The workstation remains usable if device storage is unavailable or full.
-    }
+    writeStoredJson(`${STORAGE_KEY_PREFIX}.${snapshot.studentId}`, snapshot);
   }
 }
 
@@ -68,14 +59,14 @@ function isSnapshot(
 ): value is DragonHatcheryBreedingSnapshot {
   return Boolean(
     value &&
-      value.schemaVersion === 1 &&
-      (value.eggParentId === null || typeof value.eggParentId === 'string') &&
-      (value.spermParentId === null || typeof value.spermParentId === 'string') &&
-      isTraitId(value.targetTraitId) &&
-      isSelectionOrNull(value.pendingEggSelection) &&
-      isSelectionOrNull(value.pendingSpermSelection) &&
-      Array.isArray(value.fertilizations) &&
-      value.fertilizations.every(isFertilization),
+    value.schemaVersion === 1 &&
+    (value.eggParentId === null || typeof value.eggParentId === 'string') &&
+    (value.spermParentId === null || typeof value.spermParentId === 'string') &&
+    isTraitId(value.targetTraitId) &&
+    isSelectionOrNull(value.pendingEggSelection) &&
+    isSelectionOrNull(value.pendingSpermSelection) &&
+    Array.isArray(value.fertilizations) &&
+    value.fertilizations.every(isFertilization),
   );
 }
 
@@ -122,9 +113,7 @@ function isDragonLabGenome(value: unknown): boolean {
   return DRAGON_TRAITS.every((trait) => {
     const pair = value[trait.id];
     return (
-      Array.isArray(pair) &&
-      pair.length === 2 &&
-      pair.every((allele) => typeof allele === 'string')
+      Array.isArray(pair) && pair.length === 2 && pair.every((allele) => typeof allele === 'string')
     );
   });
 }

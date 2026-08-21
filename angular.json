@@ -3,9 +3,7 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "schematicCollections": [
-      "angular-eslint"
-    ]
+    "schematicCollections": ["angular-eslint"]
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -32,9 +30,7 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.scss"
-            ]
+            "styles": ["src/styles.scss"]
           },
           "configurations": {
             "production": {
@@ -47,8 +43,13 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "3.6MB",
-                  "maximumError": "4.5MB"
+                  "maximumWarning": "450kB",
+                  "maximumError": "500kB"
+                },
+                {
+                  "type": "anyScript",
+                  "maximumWarning": "900kB",
+                  "maximumError": "1MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -93,10 +94,7 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html"
-            ]
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
         }
       }
@@ -133,8 +131,13 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "3.6MB",
-                  "maximumError": "4.5MB"
+                  "maximumWarning": "300kB",
+                  "maximumError": "350kB"
+                },
+                {
+                  "type": "anyScript",
+                  "maximumWarning": "900kB",
+                  "maximumError": "1MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -176,10 +179,7 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": [
-              "designer/src/**/*.ts",
-              "designer/src/**/*.html"
-            ]
+            "lintFilePatterns": ["designer/src/**/*.ts", "designer/src/**/*.html"]
           }
         }
       }

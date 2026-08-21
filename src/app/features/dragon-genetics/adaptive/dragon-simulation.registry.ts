@@ -10,8 +10,13 @@ import {
 } from './dragon-simulation.models';
 import { ALLELE_VAULT_GENES } from '../workstations/allele-workbench/allele-vault.models';
 import { DEFAULT_DRAGON_CLASS_JOURNEY_PLAN } from '../journey/config/dragon-journey.registry';
+import { DEFAULT_INQUIRY_SETTINGS } from '../inquiry/inquiry-policy';
 
-export const DRAGON_SIMULATION_CONTENT_VERSION = 1;
+/**
+ * Bumped to 2 when questions moved to the inquiry bank. Runs recorded before that carry no
+ * `servedItemIds`, so they cannot be rebuilt and are regenerated instead of rendering empty.
+ */
+export const DRAGON_SIMULATION_CONTENT_VERSION = 2;
 
 export const LEVEL_PROFILES: Record<InstructionLevel, InstructionLevelProfile> = {
   'grade-7': {
@@ -801,8 +806,9 @@ export const DEFAULT_DRAGON_ASSIGNMENT: DragonAssignment = {
   },
   simulationSettings: {},
   journeyPlan: DEFAULT_DRAGON_CLASS_JOURNEY_PLAN,
+  inquirySettings: DEFAULT_INQUIRY_SETTINGS,
   studentOverrides: {},
-  assignmentVersion: 4,
+  assignmentVersion: 5,
   updatedAtIso: new Date(0).toISOString(),
 };
 

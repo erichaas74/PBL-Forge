@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
 import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
+import {
   LOCAL_WORKSTATION_STUDENT_ID,
   normalizeWorkstationStudentId,
 } from '../shared/dragon-workstation-context.models';
@@ -19,27 +23,14 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.trait-evidence.v2';
 export class TraitEvidenceRepository {
   load(studentId: string): TraitEvidenceSnapshot {
     const fallback = emptyTraitEvidenceSnapshot(studentId);
-    if (typeof localStorage === 'undefined') return fallback;
-    try {
-      return normalizeSnapshot(
-        JSON.parse(localStorage.getItem(`${STORAGE_KEY_PREFIX}.${fallback.studentId}`) ?? 'null'),
-        fallback,
-      );
-    } catch {
-      return fallback;
-    }
+    return readStoredJson(`${STORAGE_KEY_PREFIX}.${fallback.studentId}`, fallback, (value) =>
+      normalizeSnapshot(value, fallback),
+    );
   }
 
   save(snapshot: TraitEvidenceSnapshot): void {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(
-        `${STORAGE_KEY_PREFIX}.${normalizeStudentId(snapshot.studentId)}`,
-        JSON.stringify({ ...snapshot, studentId: normalizeStudentId(snapshot.studentId) }),
-      );
-    } catch {
-      // The investigation remains usable if browser storage is unavailable.
-    }
+    const studentId = normalizeStudentId(snapshot.studentId);
+    writeStoredJson(`${STORAGE_KEY_PREFIX}.${studentId}`, { ...snapshot, studentId });
   }
 }
 

@@ -33,6 +33,11 @@ workstation are documented in
 - `island-diversity/` owns the seven-island population model, field genotype scans, individual
   relocation, protected-pair breeding, generation events, population metrics, and the persistent
   conservation ledger. It has its own route at `/dragon-genetics/island-diversity`.
+- `island-expedition/` owns the archipelago map, the ecology-driven **natural selection** model, and
+  the expedition briefs. It is a different question from `island-diversity/`: that lab asks how to
+  keep a population healthy, while this one asks *why the islands differ in the first place* and
+  sends students to find a phenotype or genotype by reasoning about where selection would have made
+  it common. It has its own route at `/dragon-genetics/island-expedition`. See the section below.
 - `pedigree-lab/` owns the historical dragon archive, the pedigree canvas, carrier deduction under a
   student-chosen inheritance model, the budgeted sequencing bay, and the breeding board. It is the
   only workstation with its own route (`/dragon-genetics/pedigree-lab`) rather than a registry entry.
@@ -54,6 +59,26 @@ workstation are documented in
 Generic assembly rendering remains in `src/app/shared/assembly`. Semantic visual contracts and
 cross-workstation renderer primitives remain in `src/app/shared/dragon-visuals`; feature-specific
 workstation components do not belong there.
+
+## Instrument manifests
+
+Each workstation owns a `*.manifest.ts` declaring the **probes** it offers — the named, addressable
+parts of the instrument a student can operate (`allele.pair`, `gene.locus`, `cross.predict`). The
+shared vocabulary and manifest shape live in `shared/instrument-manifest.models.ts`.
+
+A manifest is a capability declaration, not content: no prompts, no answers, no lesson text. The
+inquiry layer reads manifests so an authored question can bind to a *capability* rather than to a
+workstation id, which is what lets one question run in every lab offering that probe. The dependency
+runs one way — `inquiry/` imports manifests, and nothing under `workstations/` imports `inquiry/` or
+`journey/`.
+
+`sessionModes` is where the product rules are enforced mechanically. A workstation listing only
+`investigation` can never be sent question UI; `guided` is opt-in and today only the Hatchery module
+host declares it. Adding `guided` to a dedicated workstation is a product decision against
+[`DRAGON_GENETICS_WORKSTATION_RULES.md`](../../../../../docs/DRAGON_GENETICS_WORKSTATION_RULES.md),
+not a refactor.
+
+Architecture: [`docs/DRAGON_WORKSTATION_INQUIRY_ARCHITECTURE.md`](../../../../../docs/DRAGON_WORKSTATION_INQUIRY_ARCHITECTURE.md).
 
 ## The shared cell model
 
@@ -103,3 +128,68 @@ own gamete records, so what the animation shows separating is exactly what the f
 
 The viewport does not load catalogs, choose released records, persist state, or import a
 workstation domain model.
+
+## The island expedition selection model
+
+`island-expedition/` is the one workstation whose content is **computed rather than authored**, and
+that constraint is the reason it teaches anything.
+
+Every island is settled from the same founder stock, so every locus starts at
+`FOUNDER_DOMINANT_FREQUENCY` everywhere. Islands differ in exactly two ways: their `IslandEcology`
+(eight 0–3 factors a student can read off the map without spending any budget) and how many
+generations selection has been running. `island-expedition.selection.ts` turns ecology into relative
+fitness for each visible form, then advances allele frequency one generation at a time with ordinary
+one-locus population genetics. Genotype frequencies come from Hardy-Weinberg.
+
+Three rules follow, and they are what keep the lab honest:
+
+- **No file states an allele frequency.** A student who reasons *"heavy predators, cold climate, so
+  plating should be common"* and a student who flies a survey must reach the same answer, because
+  the survey samples the distribution the ecology produces. Nobody can quietly tune an island to
+  make a lesson come out nicely.
+- **Every locus needs a genuine trade-off.** A trait that won everywhere would make the islands
+  identical and leave nothing to reason about. `island-expedition.selection.spec.ts` fails if any
+  locus lacks an island favouring each direction.
+- **Content is checked against the model.** `island-expedition.quests.spec.ts` asserts every brief
+  has an island where its target is genuinely findable within budget, so retuning the ecology breaks
+  the spec rather than handing a student an impossible brief.
+
+Selection acts on the phenotype, so heterozygotes are shielded and a recessive allele never quite
+disappears. That is what makes carriers findable — and why the best island for a *carrier* is the
+weakly-selected one where allele frequency sits near half, not the one where the recessive form is
+commonest. The `hidden-line` brief exists to break exactly that misconception, and a spec asserts
+those two islands are never the same.
+
+## Artificial selection: the settlement breeding programme
+
+`viking-breeding/` is the deliberate companion to `island-expedition/`. Both model selection; they
+differ in who does the selecting and what the student does about it.
+
+| | `island-expedition/` | `viking-breeding/` |
+| --- | --- | --- |
+| Selective agent | the environment | a Viking settlement |
+| Species | classic lab dragon | mini dragon |
+| Student's job | **find** an animal selection already made | **build** a line over seasons |
+| Timescale | generations already elapsed | seasons the student runs |
+
+The mini dragon is the right species here because its thirteen genes span four inheritance
+patterns, and that is what makes an artificial-selection programme more than a Punnett square. The
+finding the workstation exists to produce is that **some commissions can never breed true**: a job
+asking for a form that only appears in a heterozygote — an incomplete-dominance blend or a
+codominant both-at-once — condemns the settlement to keeping two lines and crossing them every
+season. Selecting harder does not help, and no amount of student effort changes it.
+
+So `viking-breeding.domain.ts` distinguishes two things that are easy to conflate:
+
+- `bestAchievableLitterRate(role)` is **always 1**. Even a heterozygous target reaches every pup, by
+  crossing the two homozygous parent lines. The ceiling is not what separates these commissions.
+- `roleBreedsTrue(role)` is what separates them, and `crossPlan(role)` names the two lines a
+  settlement must maintain when the answer is no.
+
+Nothing surfaces that verdict until the student has delivered an animal. Before then they have to
+read it off their own litters, which is the point: two perfect trickster dragons still throw
+off-type pups, every season, forever.
+
+Founder stock is generated per commission with two guarantees the specs enforce — every allele the
+job needs is present somewhere in the stock, and no founder already satisfies the whole commission.
+The settlement supplies raw material, never the finished animal.

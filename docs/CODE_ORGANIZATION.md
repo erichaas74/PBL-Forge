@@ -12,7 +12,7 @@ The workspace contains two Angular applications. Student-facing PBL Forge code l
 
 ## Shared runtime
 
-- `src/app/shared/assembly`: game-neutral assembly contracts, cloning, physics, rendering, and viewport primitives.
+- `src/app/shared/assembly`: game-neutral assembly contracts, cloning, physics, rendering, viewport primitives, and the safe JSON storage boundary shared with Designer.
 - `src/app/shared/assembly-arena`: reusable battle physics, renderer, strategy runner, and controls.
 - `src/app/shared/creation-library`: built-in and browser-local assembly, move, and scenario assets.
 - `src/app/shared/dragon-visuals`: versioned semantic scene contracts, Angular signal bridge, replaceable visual-pack definitions, and declarative station/cutscene timelines. It must not import lesson, assessment, persistence, or routing code.

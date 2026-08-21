@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import {
   INHERITANCE_MODELS,
@@ -31,23 +35,13 @@ export class PedigreeLabRepository {
   load(studentId: string): PedigreeLabSnapshot {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);
     const empty = createEmptySnapshot(normalizedStudentId);
-    if (typeof localStorage === 'undefined') return empty;
-    try {
-      const stored = JSON.parse(
-        localStorage.getItem(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`) ?? 'null',
-      );
-      return normalizeSnapshot(stored, normalizedStudentId);
-    } catch {
-      return empty;
-    }
+    return readStoredJson(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`, empty, (value) =>
+      normalizeSnapshot(value, normalizedStudentId),
+    );
   }
 
   save(snapshot: PedigreeLabSnapshot): void {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(
-      `${STORAGE_KEY_PREFIX}.${snapshot.studentId}`,
-      JSON.stringify(snapshot),
-    );
+    writeStoredJson(`${STORAGE_KEY_PREFIX}.${snapshot.studentId}`, snapshot);
   }
 }
 
@@ -111,8 +105,7 @@ function normalizeInvestigation(value: unknown): PedigreeInvestigationRecord {
       .slice(0, 8),
     hatchRecords: asArray(value['hatchRecords']).filter(isHatchRecord).slice(0, 24),
     hatchlings: asArray(value['hatchlings']).filter(isHatchling).slice(0, 96),
-    recoveredAtIso:
-      typeof value['recoveredAtIso'] === 'string' ? value['recoveredAtIso'] : null,
+    recoveredAtIso: typeof value['recoveredAtIso'] === 'string' ? value['recoveredAtIso'] : null,
   };
 }
 

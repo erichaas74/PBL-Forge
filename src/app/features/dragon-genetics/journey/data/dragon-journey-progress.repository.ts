@@ -1,8 +1,12 @@
 import { EnvironmentInjector, inject, Injectable } from '@angular/core';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { runInFirebaseContext } from '../../../../core/firebase/firebase-context';
-import { FIREBASE_FIRESTORE } from '../../../../core/firebase/firebase.providers';
+import { FIREBASE_FIRESTORE } from '../../../../core/firebase/firebase-firestore.provider';
 import { SessionService } from '../../../../core/firebase/session.service';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
 import { DragonAssignment } from '../../adaptive/dragon-simulation.models';
 import { DragonJourneyProgressSnapshot, DragonLessonId } from '../domain/dragon-journey.models';
 import { dragonJourneyLesson, dragonJourneyPath } from '../config/dragon-journey.registry';
@@ -18,27 +22,15 @@ export class DragonJourneyProgressRepository {
 
   load(studentId: string, assignmentId: string): DragonJourneyProgressSnapshot {
     const fallback = emptyProgress(studentId, assignmentId);
-    if (typeof localStorage === 'undefined') return fallback;
-    try {
-      const value = JSON.parse(
-        localStorage.getItem(storageKey(fallback.studentId, fallback.assignmentId)) ?? 'null',
-      ) as unknown;
-      return normalizeProgress(value, fallback);
-    } catch {
-      return fallback;
-    }
+    return readStoredJson(
+      storageKey(fallback.studentId, fallback.assignmentId),
+      fallback,
+      (value) => normalizeProgress(value, fallback),
+    );
   }
 
   save(snapshot: DragonJourneyProgressSnapshot): void {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(
-        storageKey(snapshot.studentId, snapshot.assignmentId),
-        JSON.stringify(snapshot),
-      );
-    } catch {
-      // Resume state is best-effort; evidence repositories remain authoritative.
-    }
+    writeStoredJson(storageKey(snapshot.studentId, snapshot.assignmentId), snapshot);
   }
 
   async publish(

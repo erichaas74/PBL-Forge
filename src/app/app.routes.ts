@@ -58,10 +58,45 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'dragon-genetics/mini-dragon-training',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/mini-dragon-training/mini-dragon-training.page').then(
+        (m) => m.MiniDragonTrainingPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/mini-dragon-arena',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/mini-dragon-arena/mini-dragon-arena.page').then(
+        (m) => m.MiniDragonArenaPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/mini-dragon-pedigree',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/mini-dragon-pedigree/mini-dragon-pedigree.page').then(
+        (m) => m.MiniDragonPedigreePage,
+      ),
+  },
+  {
     path: 'dragon-genetics/island-diversity',
     loadComponent: () =>
       import('./features/dragon-genetics/workstations/island-diversity/island-diversity-manager.page').then(
         (m) => m.IslandDiversityManagerPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/island-expedition',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/island-expedition/island-expedition.page').then(
+        (m) => m.IslandExpeditionPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/viking-breeding',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/viking-breeding/viking-breeding.page').then(
+        (m) => m.VikingBreedingPage,
       ),
   },
   {

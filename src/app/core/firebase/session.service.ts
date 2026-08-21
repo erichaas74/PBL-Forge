@@ -8,24 +8,24 @@ import {
   signOut,
   User,
 } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 import { environment } from '../../../environments/environment';
-import { observeAuthState } from './firebase-observables';
-import { FIREBASE_AUTH, FIREBASE_FIRESTORE } from './firebase.providers';
+import { observeAuthState } from './firebase-auth-observable';
+import { FIREBASE_APP, FIREBASE_AUTH } from './firebase.providers';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   private readonly auth = inject(FIREBASE_AUTH);
-  private readonly firestore = inject(FIREBASE_FIRESTORE);
+  private readonly app = inject(FIREBASE_APP);
   private readonly initialization = this.initializeSession().catch((error: unknown) => {
     console.error('Firebase session initialization failed.', error);
   });
 
   readonly user = toSignal(observeAuthState(this.auth), { initialValue: null });
   readonly isLocal = environment.useEmulators;
-  readonly isLocalTeacher = computed(() =>
-    this.isLocal && this.user()?.email === 'teacher@pblforge.local');
+  readonly isLocalTeacher = computed(
+    () => this.isLocal && this.user()?.email === 'teacher@pblforge.local',
+  );
   readonly displayName = computed(() => {
     const currentUser = this.user();
     if (this.isLocal) {
@@ -53,11 +53,7 @@ export class SessionService {
 
   async signInAsLocalTeacher(): Promise<void> {
     if (!this.isLocal) return;
-    await signInWithEmailAndPassword(
-      this.auth,
-      'teacher@pblforge.local',
-      'dragon-demo-teacher',
-    );
+    await signInWithEmailAndPassword(this.auth, 'teacher@pblforge.local', 'dragon-demo-teacher');
   }
 
   private async initializeSession(): Promise<void> {
@@ -70,7 +66,9 @@ export class SessionService {
   }
 
   private async ensureUserProfile(user: User): Promise<void> {
-    const reference = doc(this.firestore, `users/${user.uid}`);
+    const { doc, getDoc, getFirestore, serverTimestamp, setDoc } =
+      await import('firebase/firestore');
+    const reference = doc(getFirestore(this.app), `users/${user.uid}`);
     const profile = await getDoc(reference);
     const publicProfile = {
       displayName: user.displayName ?? user.email ?? 'Student',

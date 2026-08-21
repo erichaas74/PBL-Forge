@@ -11,7 +11,7 @@ import { catchError, map, Observable, of, shareReplay } from 'rxjs';
 
 import { ActivityResponse, PblActivity, PblProject } from '../models/pbl.models';
 import { observeCollection, observeDocument } from './firebase-observables';
-import { FIREBASE_FIRESTORE } from './firebase.providers';
+import { FIREBASE_FIRESTORE } from './firebase-firestore.provider';
 
 const BUILT_IN_PROJECTS: readonly PblProject[] = [{
   id: 'dragon-genetics-lab',

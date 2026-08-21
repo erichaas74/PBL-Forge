@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
 import { starterPairPreset } from '../config/dragon-journey.registry';
 import { DragonJourneyRosterSnapshot, DragonLearningPathId } from '../domain/dragon-journey.models';
 
@@ -37,27 +41,16 @@ export class DragonJourneyRosterRepository {
     assignmentId: string,
     pathId: DragonLearningPathId,
   ): DragonJourneyRosterSnapshot | null {
-    if (typeof localStorage === 'undefined') return null;
-    try {
-      const value = JSON.parse(
-        localStorage.getItem(storageKey(studentId, assignmentId, pathId)) ?? 'null',
-      ) as unknown;
-      return normalizeRoster(value, studentId, assignmentId, pathId);
-    } catch {
-      return null;
-    }
+    return readStoredJson(storageKey(studentId, assignmentId, pathId), null, (value) =>
+      normalizeRoster(value, studentId, assignmentId, pathId),
+    );
   }
 
   save(snapshot: DragonJourneyRosterSnapshot): void {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(
-        storageKey(snapshot.studentId, snapshot.assignmentId, snapshot.pathId),
-        JSON.stringify(snapshot),
-      );
-    } catch {
-      // The journey remains usable for this session if device storage is unavailable.
-    }
+    writeStoredJson(
+      storageKey(snapshot.studentId, snapshot.assignmentId, snapshot.pathId),
+      snapshot,
+    );
   }
 }
 

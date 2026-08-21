@@ -15,20 +15,35 @@ student source must never import from `designer/`.
 
 ## Editing an existing part's shape
 
-1. Find the builder in
-   `src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.ts` —
-   `buildJaw`, `buildFoot`, `buildWing`, and so on.
+1. Find the owning builder. Every classic anatomy family lives in a focused
+   `dragon-*-mesh.ts` module; `dragon-procedural-mesh.factory.ts` only routes profile IDs.
+   The separate domesticated species follows the same ownership pattern in
+   `mini-dragon-*-mesh.ts`, with its factory also limited to routing.
 2. Change the numbers. Every one is a fraction of `dims`; `±0.5` on an axis is
    that face of the part.
 3. Save. `/parts-lab?family=dragon&part=<id>` hot-reloads.
 4. `npm run lint && npm run test:ci && npm run build`.
 
 Nothing else needs updating **unless** you rename a named child mesh, in which
-case fix `dragon-procedural-mesh.factory.spec.ts`, which looks them up by name.
+case fix the owning builder's focused spec (for example, `dragon-jaw-mesh.spec.ts`),
+which looks it up by name.
 
-Silhouettes are not in the factory. A head's shape lives in
-`dragon-head-profile.ts`, a wing's in `dragon-wing-profile.ts`, a body's in
-`dragon-body-profile.ts`. The factory only samples them.
+Silhouettes are not in the factory. A head's trait-adjusted shape lives in
+`dragon-head-shape.ts`, its cross-sections in `dragon-head-sections.ts`, and its
+feature mounts in `dragon-head-landmarks.ts`. A wing's shape lives in
+`dragon-wing-profile.ts`, and a body's in `dragon-body-profile.ts`. Their builders only
+sample them; `dragon-head-profile.ts` remains a compatibility export.
+Shared mesh creation, quality-tier segment counts, and tapered primitives live
+in `dragon-geometry.ts`; UV projection lives in `dragon-uv.ts`, with tile sizes
+in `dragon-texture-constants.ts`. Procedural map foundations live in
+`dragon-texture-generation.ts`; scale, keratin, and membrane maps each have a
+focused `dragon-*-textures.ts` owner.
+
+Head details are split between `dragon-head-sensory-features.ts`,
+`dragon-head-expressive-features.ts`, and `dragon-head-male-frill.ts`. Limb anatomy is
+split between `dragon-leg-mesh.ts`, `dragon-grasp-mesh.ts`, and `dragon-foot-mesh.ts`;
+the older `dragon-head-decorations.ts` and `dragon-limb-mesh.ts` files are orchestration
+or compatibility surfaces, not geometry owners.
 
 ## Adding a new part
 
@@ -48,20 +63,26 @@ The order matters — physics and sockets before looks.
    in the Snap Workshop (`/snap-workshop?part=<id>`), then paste its **Back into
    source** snippet into the definition.
 3. **Geometry**, if the part needs a new look:
-   - add a `build<Thing>` function to the factory,
+   - add a `build<Thing>` function to the appropriate builder module,
    - add its `profileId` to the switch in `createDragonProceduralObject`,
    - add the same id to `SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS` in
      `src/app/shared/assembly/model-pack/dragon-model-pack.models.ts` — the pack
      validator rejects unknown profiles and `npm run build` will fail,
-   - add a spec to `dragon-procedural-mesh.factory.spec.ts` asserting the named
-     children exist and are sized from `dimensions`.
-4. **Put it on a dragon**, if it belongs on the standard model: add an entry to
-   `CLASSIC_DRAGON_PARTS` in
-   `designer/src/app/assembly-garage/data/presets/classic-dragon-test.ts`.
-   ⚠️ `classic-dragon-test.spec.ts` **hardcodes the part and joint counts**
-   (`toBe(24)` / `toBe(23)`). Adding a part fails that test until you update both.
-5. **Verify:** `npm run lint`, `npm run test:ci`, `npm run test:designer:ci`,
-   `npm run build`, `npm run build:designer`.
+   - add a spec beside the owning builder asserting the named children exist
+     and are sized from `dimensions`.
+
+Shared feature controls and `DEFAULT_DRAGON_STYLE` live in
+`src/app/shared/assembly/rendering/dragon-style.ts`; builders only read them.
+Palette derivation lives in `src/app/shared/assembly/rendering/dragon-palette.ts`;
+biological surfaces live in `dragon-surface-materials.ts`, and luminous feature
+materials in `dragon-feature-materials.ts`. Geometry builders receive a palette and
+select the appropriate material helper through the `dragon-materials.ts` compatibility
+exports. 4. **Put it on a dragon**, if it belongs on the standard model: add an entry to
+`CLASSIC_DRAGON_PARTS` in
+`designer/src/app/assembly-garage/data/presets/classic-dragon-test.ts`.
+⚠️ `classic-dragon-test.spec.ts` **hardcodes the part and joint counts**
+(`toBe(24)` / `toBe(23)`). Adding a part fails that test until you update both. 5. **Verify:** `npm run lint`, `npm run test:ci`, `npm run test:designer:ci`,
+`npm run build`, `npm run build:designer`.
 
 ## Rules that break something real
 
@@ -71,7 +92,7 @@ The order matters — physics and sockets before looks.
    gene writes `part.color`.
 3. **Keep `.name` on child meshes.** Tests find them by name, not child order.
 4. **Never rename a `visualProfile.parameters` key.** They are read by the
-   factory, written by `dragon-inheritance.ts`, materialised by the pack
+   rendering implementation, written by `dragon-inheritance.ts`, materialised by the pack
    exporter, and asserted by `check-dragon-model-compatibility.mjs`. A rename
    throws no error — the part silently stops responding to its genes.
 5. **Geometry must fill its physics volume.** Sockets are positioned against the
@@ -139,12 +160,12 @@ three heads.
 
 **Say which of the four layers you mean:**
 
-| You want | Layer |
-| --- | --- |
-| Bigger, smaller, longer | `dimensions` — the catalog, or Parts Lab sliders |
-| Where it attaches | `snapPoints` — the Snap Workshop |
-| Feature counts and proportions | `DragonStyle` / `parameters` — sliders |
-| A different form | the builder — code |
+| You want                       | Layer                                            |
+| ------------------------------ | ------------------------------------------------ |
+| Bigger, smaller, longer        | `dimensions` — the catalog, or Parts Lab sliders |
+| Where it attaches              | `snapPoints` — the Snap Workshop                 |
+| Feature counts and proportions | `DragonStyle` / `parameters` — sliders           |
+| A different form               | the builder — code                               |
 
 **Describe the target, not the operation.** "The teeth should start further back
 and hang lower" beats "change line 864".
@@ -153,7 +174,7 @@ and hang lower" beats "change line 864".
 — all three heads read the same `style.head`. Per-part needs
 `visualProfile.parameters`.
 
-**Tell me if it must reach students.** The factory is shared, so a default change
+**Tell me if it must reach students.** The renderer is shared, so a default change
 ships to the game. A designer-only tweak belongs in the local draft instead.
 
 ## A good request looks like

@@ -1,9 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { Vector3Data } from '@pbl/assembly/domain/assembly.models';
-import {
-  DEFAULT_DRAGON_STYLE,
-  DragonStyle,
-} from '@pbl/assembly/rendering/dragon-procedural-mesh.factory';
+import { readStoredJson, writeStoredJson } from '@pbl/assembly/persistence/json-local-storage';
+import { DEFAULT_DRAGON_STYLE, DragonStyle } from '@pbl/assembly/rendering/dragon-style';
 
 /** Moved sockets for one definition, keyed by snap point id. */
 export type SnapOffsetMap = Record<string, Vector3Data>;
@@ -26,7 +24,7 @@ export class DesignerDragonDraftStore {
   readonly style = () => cloneStyle(this.draft().style);
 
   setStyle(style: DragonStyle): void {
-    this.draft.update(current => ({ ...current, style: cloneStyle(style) }));
+    this.draft.update((current) => ({ ...current, style: cloneStyle(style) }));
     this.persist();
   }
 
@@ -35,7 +33,7 @@ export class DesignerDragonDraftStore {
   }
 
   setDimensions(definitionId: string, dimensions: Vector3Data): void {
-    this.draft.update(current => ({
+    this.draft.update((current) => ({
       ...current,
       dimensionsByDefinitionId: {
         ...current.dimensionsByDefinitionId,
@@ -57,7 +55,7 @@ export class DesignerDragonDraftStore {
   }
 
   setSnapOffset(definitionId: string, snapPointId: string, localPosition: Vector3Data): void {
-    this.draft.update(current => ({
+    this.draft.update((current) => ({
       ...current,
       snapPointsByDefinitionId: {
         ...current.snapPointsByDefinitionId,
@@ -91,7 +89,7 @@ export class DesignerDragonDraftStore {
   }
 
   private writeSnapOffsets(definitionId: string, offsets: SnapOffsetMap): void {
-    this.draft.update(current => {
+    this.draft.update((current) => {
       const next = { ...current.snapPointsByDefinitionId };
 
       if (Object.keys(offsets).length) {
@@ -106,11 +104,7 @@ export class DesignerDragonDraftStore {
   }
 
   private persist(): void {
-    try {
-      globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(this.draft()));
-    } catch {
-      // A private/full browser keeps the current authoring session in memory.
-    }
+    writeStoredJson(STORAGE_KEY, this.draft());
   }
 }
 
@@ -120,10 +114,8 @@ export class DesignerDragonDraftStore {
  * lose that work to a schema bump.
  */
 function readDraft(): DesignerDragonDraftV2 {
-  try {
-    const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
-    if (!raw) return emptyDraft();
-    const value: unknown = JSON.parse(raw);
+  const fallback = emptyDraft();
+  return readStoredJson(STORAGE_KEY, fallback, (value) => {
     if (!isRecord(value) || !isRecord(value['style'])) return emptyDraft();
     const version = value['schemaVersion'];
     if (version !== 1 && version !== 2) return emptyDraft();
@@ -135,23 +127,25 @@ function readDraft(): DesignerDragonDraftV2 {
       dimensionsByDefinitionId: readVectorMap(candidate.dimensionsByDefinitionId),
       snapPointsByDefinitionId: readSnapMaps(candidate.snapPointsByDefinitionId),
     };
-  } catch {
-    return emptyDraft();
-  }
+  });
 }
 
 function readVectorMap(value: unknown): Record<string, Vector3Data> {
   if (!isRecord(value)) return {};
-  return Object.fromEntries(Object.entries(value)
-    .filter((entry): entry is [string, Vector3Data] => isVector(entry[1]))
-    .map(([id, vector]) => [id, { ...vector }]));
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter((entry): entry is [string, Vector3Data] => isVector(entry[1]))
+      .map(([id, vector]) => [id, { ...vector }]),
+  );
 }
 
 function readSnapMaps(value: unknown): Record<string, SnapOffsetMap> {
   if (!isRecord(value)) return {};
-  return Object.fromEntries(Object.entries(value)
-    .map(([id, offsets]): [string, SnapOffsetMap] => [id, readVectorMap(offsets)])
-    .filter(([, offsets]) => Object.keys(offsets).length));
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([id, offsets]): [string, SnapOffsetMap] => [id, readVectorMap(offsets)])
+      .filter(([, offsets]) => Object.keys(offsets).length),
+  );
 }
 
 function emptyDraft(): DesignerDragonDraftV2 {
@@ -181,8 +175,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isVector(value: unknown): value is Vector3Data {
-  return isRecord(value)
-    && typeof value['x'] === 'number' && Number.isFinite(value['x'])
-    && typeof value['y'] === 'number' && Number.isFinite(value['y'])
-    && typeof value['z'] === 'number' && Number.isFinite(value['z']);
+  return (
+    isRecord(value) &&
+    typeof value['x'] === 'number' &&
+    Number.isFinite(value['x']) &&
+    typeof value['y'] === 'number' &&
+    Number.isFinite(value['y']) &&
+    typeof value['z'] === 'number' &&
+    Number.isFinite(value['z'])
+  );
 }

@@ -1,7 +1,7 @@
 import { EnvironmentInjector, inject, Injectable } from '@angular/core';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { runInFirebaseContext } from '../../../core/firebase/firebase-context';
-import { FIREBASE_FIRESTORE } from '../../../core/firebase/firebase.providers';
+import { FIREBASE_FIRESTORE } from '../../../core/firebase/firebase-firestore.provider';
 import { SessionService } from '../../../core/firebase/session.service';
 import { DragonAssignment } from '../adaptive/dragon-simulation.models';
 

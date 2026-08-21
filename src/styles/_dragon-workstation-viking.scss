@@ -28,7 +28,12 @@
     linear-gradient(180deg, rgb(2 7 10 / 38%), rgb(3 8 11 / 88%)),
     radial-gradient(circle at 13% 12%, rgb(237 107 46 / 12%), transparent 30rem),
     radial-gradient(circle at 86% 8%, rgb(98 199 189 / 9%), transparent 34rem),
-    url('/assets/dragon-genetics/great-hall-home-v2.png') center top / cover fixed,
+    image-set(
+        url('/assets/dragon-genetics/great-hall-960.avif') type('image/avif'),
+        url('/assets/dragon-genetics/great-hall-960.webp') type('image/webp'),
+        url('/assets/dragon-genetics/great-hall-1672.jpg') type('image/jpeg')
+      )
+      center top / cover fixed,
     #071016 !important;
 }
 

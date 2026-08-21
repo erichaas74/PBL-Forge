@@ -1,5 +1,7 @@
 import { GeneticsSkill } from '../dragon-genetics.models';
 import { DragonClassJourneyPlan } from '../journey/domain/dragon-journey.models';
+// Type-only on both sides, so the inquiry layer and this module have no runtime cycle.
+import type { InquirySettings, StudentInquiryOverride } from '../inquiry/inquiry.models';
 
 export const INSTRUCTION_LEVELS = ['grade-7', 'grade-8', 'high-school', 'ap-biology'] as const;
 
@@ -98,6 +100,14 @@ export interface GeneratedSimulationQuestion {
   correctOptionId: string;
   explanation: string;
   misconceptionFlag: string;
+  /** The concept the item targets, and the unit the mastery report is keyed by. */
+  conceptId: string;
+  /** The probe the item requires, which is why it could be asked in this instrument. */
+  requiresProbe: string;
+  /** A real element inside the real instrument, when the hosting instrument declares one. */
+  anchorId: string | null;
+  /** `teacher` marks an item this class authored rather than one from the registry. */
+  itemSource: 'registry' | 'teacher';
   interaction: SimulationQuestionInteraction;
   hint: string | null;
 }
@@ -112,6 +122,8 @@ export interface DragonSimulationSetting {
 export interface DragonStudentOverride {
   defaultLevel?: InstructionLevel;
   simulationLevels?: Partial<Record<DragonSimulationId, InstructionLevel>>;
+  /** Concept focus, waived or pinned items, and policy tweaks for one student. */
+  inquiry?: StudentInquiryOverride;
 }
 
 export interface AlleleCatalogSetting {
@@ -129,6 +141,8 @@ export interface DragonAssignment {
   simulationSettings: Partial<Record<DragonSimulationId, DragonSimulationSetting>>;
   /** Code-validated lesson order, requirements, starter pair, and path choices for this class. */
   journeyPlan: DragonClassJourneyPlan;
+  /** Question policy, concept settings, opt-outs, and teacher-authored items for this class. */
+  inquirySettings: InquirySettings;
   studentOverrides: Record<string, DragonStudentOverride>;
   assignmentVersion: number;
   updatedAtIso: string;
@@ -146,11 +160,15 @@ export interface ResolvedSimulationSettings {
 
 export interface SimulationResponseRecord {
   questionId: string;
+  /** The inquiry bank item id. Legacy records carry `simulationId:level` instead. */
   templateId: string;
   sectionId: string;
   selectedOptionId: string;
   correct: boolean;
+  /** Retained for legacy records; new records also carry `conceptId`. */
   misconceptionFlag: string | null;
+  /** The concept this response is evidence about, written for every new record. */
+  conceptId?: string;
   answeredAtIso: string;
 }
 
@@ -167,6 +185,8 @@ export interface DragonSimulationRun {
   attemptNumber: number;
   currentQuestionIndex: number;
   questionIds: string[];
+  /** Bank item ids served in this run, so the cooldown counts items shown but not answered. */
+  servedItemIds?: string[];
   responses: SimulationResponseRecord[];
   complete: boolean;
   score: number;

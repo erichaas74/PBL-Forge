@@ -1,0 +1,250 @@
+<section class="breeding" aria-labelledby="breeding-goal">
+  <header class="goal-block">
+    <span>Scientific goal</span>
+    <h2 id="breeding-goal">{{ goal() }}</h2>
+    <button type="button" class="guide-toggle" (click)="toggleGuide()">
+      {{ guideOpen() ? 'Close guide' : 'Guide' }}
+    </button>
+  </header>
+
+  @if (guideOpen()) {
+    <aside class="guide" aria-label="Breeder's guide">
+      <p>
+        A settlement selects the animals it breeds from, the way an island's conditions do — except
+        you choose. Each season you pair two dragons, keep the pups worth keeping, and release the
+        rest. The line changes because of what you keep.
+      </p>
+      <p>
+        Looking at a dragon tells you its form, not the pair of alleles behind it. Two dragons that
+        look identical can throw very different litters, so watch what a pairing actually produces
+        rather than trusting how the parents look.
+      </p>
+      <p class="guide-note">
+        Some traits will settle down and stay. Others will keep throwing off-type pups no matter how
+        carefully you choose. Working out which is which is the job.
+      </p>
+    </aside>
+  }
+
+  <div class="commission-bar">
+    <label class="role-picker">
+      <span>Settlement</span>
+      <select [value]="activeRoleId()" (change)="selectRole($any($event.target).value)">
+        @for (option of roles; track option.id) {
+          <option [value]="option.id">{{ option.settlement }} — {{ option.title }}</option>
+        }
+      </select>
+    </label>
+    <p class="commission">{{ role().commission }}</p>
+    <dl class="allowances">
+      <div><dt>Season</dt><dd>{{ program().season }} / {{ role().seasons }}</dd></div>
+      <div><dt>Litters left</dt><dd>{{ littersLeftThisSeason() }}</dd></div>
+      <div><dt>Kennel</dt><dd>{{ kennel().length }} / {{ role().kennelCap }}</dd></div>
+    </dl>
+  </div>
+
+  <!-- The commission, trait by trait. Never says whether a trait can be fixed. -->
+  <section class="requirements" aria-label="What the settlement needs">
+    <ul>
+      @for (requirement of role().requirements; track requirement.geneId) {
+        <li>
+          <strong>{{ requiredFormLabel(requirement.geneId, requirement.formId) }}</strong>
+          <small>{{ geneName(requirement.geneId) }}</small>
+          <span>{{ requirement.reason }}</span>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <div class="breeding-body">
+    <!-- Kennel: every animal, with how much of the commission it meets. -->
+    <section class="kennel-panel" aria-label="Kennel">
+      <header>
+        <h3>Kennel</h3>
+        <p>
+          {{ metrics().matchingCount }} of {{ kennel().length }} meet the commission ·
+          {{ metrics().foundersRepresented }} founder lines left
+        </p>
+      </header>
+      <ul class="kennel">
+        @for (animal of kennel(); track animal.id) {
+          <li
+            [class.matched]="matches(animal)"
+            [class.staged]="isDam(animal) || isSire(animal)"
+            [class.delivered]="program().deliveredDragonId === animal.id"
+          >
+            <button type="button" class="animal-head" (click)="inspect(animal)">
+              <strong>{{ animal.name }}</strong>
+              <small>{{ animal.sex }} · gen {{ animal.generation }}</small>
+              <span class="score">
+                {{ scoreFor(animal) }}/{{ role().requirements.length }} traits
+              </span>
+            </button>
+
+            <div class="animal-actions">
+              <button type="button" (click)="stage(animal)">
+                {{ isDam(animal) || isSire(animal) ? 'Unstage' : 'Stage' }}
+              </button>
+              @if (matches(animal) && !program().deliveredDragonId) {
+                <button type="button" class="primary" (click)="deliver(animal)">Deliver</button>
+              }
+              <button type="button" class="quiet" (click)="release(animal)">Release</button>
+            </div>
+
+            @if (inspectedId() === animal.id) {
+              <ul class="traits">
+                @for (requirement of role().requirements; track requirement.geneId) {
+                  <li [class.met]="meetsRequirement(animal, requirement.geneId, requirement.formId)">
+                    <span>{{ geneName(requirement.geneId) }}</span>
+                    <em>{{ formLabel(animal, requirement.geneId) }}</em>
+                    <small
+                      >{{
+                        meetsRequirement(animal, requirement.geneId, requirement.formId)
+                          ? formIsCertain(requirement.geneId, requirement.formId)
+                            ? 'as asked'
+                            : 'as asked — may still carry another allele'
+                          : 'not as asked'
+                      }}</small
+                    >
+                  </li>
+                }
+              </ul>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+
+    <!-- Breeding pen: the prediction lands here, before the litter exists. -->
+    <section class="pen-panel" aria-label="Breeding pen">
+      <h3>Breeding pen</h3>
+      <div class="pen">
+        <div class="slot" [class.filled]="!!dam()">
+          <span>Dam</span>
+          <strong>{{ dam()?.name ?? 'none staged' }}</strong>
+        </div>
+        <span class="pen-cross" aria-hidden="true">×</span>
+        <div class="slot" [class.filled]="!!sire()">
+          <span>Sire</span>
+          <strong>{{ sire()?.name ?? 'none staged' }}</strong>
+        </div>
+      </div>
+
+      @if (pairingRate() !== null) {
+        <p class="forecast">
+          Expect about
+          <strong>{{ (pairingRate()! * litterSize) | number: '1.0-1' }}</strong>
+          of {{ litterSize }} pups to meet the commission
+          ({{ (pairingRate()! * 100) | number: '1.0-0' }}%).
+        </p>
+        <ul class="odds">
+          @for (row of pairingOdds(); track row.requirement.geneId) {
+            <li [class.weak]="row.probability < 0.5">
+              <span>{{ row.formLabel }}</span>
+              <strong>{{ (row.probability * 100) | number: '1.0-0' }}%</strong>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty">Stage a female and a male to see what the pairing should produce.</p>
+      }
+
+      <div class="pen-actions">
+        <button
+          type="button"
+          class="primary"
+          [disabled]="!dam() || !sire() || littersLeftThisSeason() <= 0"
+          (click)="breed()"
+        >
+          Breed litter
+        </button>
+        <button type="button" [disabled]="program().season >= role().seasons" (click)="nextSeason()">
+          Next season
+        </button>
+        <button type="button" class="quiet" (click)="restart()">New stock</button>
+      </div>
+
+      @if (message(); as note) {
+        <p class="message" role="status">{{ note }}</p>
+      }
+
+      <label class="plan">
+        <span>Your breeding plan</span>
+        <textarea
+          rows="3"
+          [value]="program().plan"
+          placeholder="Which animals are you keeping, and what are you trying to fix?"
+          (change)="commitPlan($event)"
+        ></textarea>
+      </label>
+    </section>
+
+    <!-- Response to selection: the line's own history. -->
+    <section class="response-panel" aria-label="Response to selection">
+      <h3>Season by season</h3>
+      @if (!response().length) {
+        <p class="empty">No litters bred yet.</p>
+      } @else {
+        <ul class="response">
+          @for (row of response(); track row.season) {
+            <li>
+              <span>Season {{ row.season }}</span>
+              <span class="track" aria-hidden="true">
+                <i [style.width.%]="row.matchRate * 100"></i>
+              </span>
+              <strong>{{ (row.matchRate * 100) | number: '1.0-0' }}%</strong>
+            </li>
+          }
+        </ul>
+        <p class="response-note">
+          Share of each season's pups meeting the whole commission.
+        </p>
+      }
+
+      <dl class="line-state">
+        <div>
+          <dt>Best pairing available</dt>
+          <dd>{{ (metrics().bestPairingRate * 100) | number: '1.0-0' }}%</dd>
+        </div>
+        <div>
+          <dt>Founder lines left</dt>
+          <dd>{{ metrics().foundersRepresented }}</dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+
+  <!-- The finding, only after the settlement has its animal. -->
+  @if (verdict(); as result) {
+    <section class="verdict" aria-label="Settlement report">
+      <h3>{{ role().settlement }} has its {{ role().title.toLowerCase() }}</h3>
+      @if (result.breedsTrue) {
+        <p class="holds">
+          Every trait this commission asks for can be fixed. Bred from two animals that both meet it,
+          the line will keep producing it — {{ role().settlement }} can raise its own stock from here.
+        </p>
+      } @else {
+        <p class="never-holds">
+          This line will never breed true. The commission asks for a form that only appears when a
+          dragon carries two different alleles, so two matching parents always throw off-type pups.
+          {{ role().settlement }} must keep two separate lines and cross them every season:
+        </p>
+        <ul class="cross-lines">
+          @for (line of result.crossLines; track line.geneId) {
+            <li>
+              <strong>{{ line.geneName }}</strong>
+              <span
+                >{{ line.parentFormLabels[0] }} × {{ line.parentFormLabels[1] }} →
+                {{ line.requiredFormLabel }}</span
+              >
+            </li>
+          }
+        </ul>
+      }
+      <p class="seasons-used">Delivered in season {{ result.seasonsUsed }}.</p>
+      @if (program().plan) {
+        <blockquote>{{ program().plan }}</blockquote>
+      }
+    </section>
+  }
+</section>

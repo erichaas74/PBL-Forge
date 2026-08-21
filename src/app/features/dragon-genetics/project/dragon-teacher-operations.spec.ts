@@ -1,5 +1,6 @@
 import { DragonAssignment, DragonSimulationDefinition, DragonSimulationId, } from '../adaptive/dragon-simulation.models';
 import { DEFAULT_DRAGON_CLASS_JOURNEY_PLAN } from '../journey/config/dragon-journey.registry';
+import { DEFAULT_INQUIRY_SETTINGS } from '../inquiry/inquiry-policy';
 import { buildDragonTeacherOperations, DragonStudentProgressDocument, } from './dragon-teacher-operations';
 
 describe('Dragon teacher operations', () => {
@@ -109,6 +110,7 @@ function assignment(enabled: Partial<Record<DragonSimulationId, boolean>> = {}):
         title: 'Dragon Genetics',
         defaultLevel: 'grade-7',
         alleleCatalog: { availableGeneIds: [] },
+        inquirySettings: DEFAULT_INQUIRY_SETTINGS,
         simulationSettings: Object.fromEntries(Object.entries(enabled).map(([simulationId, isEnabled]) => [
             simulationId,
             { enabled: isEnabled },

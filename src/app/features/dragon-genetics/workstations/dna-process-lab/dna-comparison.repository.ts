@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import {
+  readStoredJson,
+  writeStoredJson,
+} from '../../../../shared/assembly/persistence/json-local-storage';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import { PersistedDnaLabState } from './dna-process.models';
 
@@ -8,24 +12,13 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.dna-comparison-lab.v2';
 @Injectable({ providedIn: 'root' })
 export class DnaComparisonRepository {
   load(studentId: string): PersistedDnaLabState {
-    if (typeof localStorage === 'undefined') return {};
-    try {
-      const parsed = JSON.parse(
-        localStorage.getItem(this.storageKey(studentId)) ?? '{}',
-      ) as unknown;
-      return isRecord(parsed) ? parsed : {};
-    } catch {
-      return {};
-    }
+    return readStoredJson(this.storageKey(studentId), {}, (value) =>
+      isRecord(value) ? value : {},
+    );
   }
 
   save(studentId: string, state: PersistedDnaLabState): void {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(this.storageKey(studentId), JSON.stringify(state));
-    } catch {
-      // The comparison bench remains usable when device storage is unavailable.
-    }
+    writeStoredJson(this.storageKey(studentId), state);
   }
 
   private storageKey(studentId: string): string {
