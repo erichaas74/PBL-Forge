@@ -304,7 +304,7 @@ export class MiniDragonKennelStore {
   readonly divisionTargetLabels = computed(
     () => this.showDivision()?.targets.map((target) => standardTargetLabel(target)) ?? [],
   );
-  readonly trainingDragon = computed(() => {
+  readonly trainingDragon = computed<CompanionDragon | null>(() => {
     const kennel = this.kennelById();
     return (
       kennel.get(this.selectedTrainingDragonId() ?? '') ??
