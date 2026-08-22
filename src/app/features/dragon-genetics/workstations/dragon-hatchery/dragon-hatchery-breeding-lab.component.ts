@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
   untracked,
 } from '@angular/core';
@@ -93,6 +94,7 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
 
   readonly studentId = input.required<string>();
   readonly seed = input('dragon-hatchery');
+  readonly fertilizationSaved = output<HatcheryFertilizationRecord>();
 
   readonly eggParentId = signal<string | null>(null);
   readonly spermParentId = signal<string | null>(null);
@@ -120,11 +122,13 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
   readonly spermParent = computed(() => this.findDragon(this.spermParentId()));
   readonly parentsReady = computed(() => Boolean(this.eggParent() && this.spermParent()));
   readonly targetTrait = computed(() => getTrait(this.targetTraitId()));
-  readonly selectedPair = computed<readonly [DragonParentProfile, DragonParentProfile] | null>(() => {
-    const eggParent = this.eggParent();
-    const spermParent = this.spermParent();
-    return eggParent && spermParent ? [eggParent, spermParent] : null;
-  });
+  readonly selectedPair = computed<readonly [DragonParentProfile, DragonParentProfile] | null>(
+    () => {
+      const eggParent = this.eggParent();
+      const spermParent = this.spermParent();
+      return eggParent && spermParent ? [eggParent, spermParent] : null;
+    },
+  );
   readonly canFertilize = computed(() => Boolean(this.eggSelection() && this.spermSelection()));
   /**
    * The fusion visual exists only once both gametes are in. It then takes over
@@ -153,9 +157,7 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
     }),
   );
   readonly eggGameteChromosomes = computed(() =>
-    this.eggSelection()
-      ? meiosisGameteViewportItems(this.eggSelection()!.gamete.chromosomes)
-      : [],
+    this.eggSelection() ? meiosisGameteViewportItems(this.eggSelection()!.gamete.chromosomes) : [],
   );
   readonly spermGameteChromosomes = computed(() =>
     this.spermSelection()
@@ -187,7 +189,8 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
       (item) => item.id === this.selectedEggChromosome(),
     );
     return (
-      chromosome?.model.loci.find((locus) => locus.label === this.targetTrait().geneSymbol)?.label ??
+      chromosome?.model.loci.find((locus) => locus.label === this.targetTrait().geneSymbol)
+        ?.label ??
       chromosome?.model.loci[0]?.label ??
       null
     );
@@ -198,9 +201,7 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
     );
     const locus = this.selectedEggLocus();
     const eggLocus = chromosome?.model.loci.find((candidate) => candidate.label === locus);
-    const spermLocus = chromosome?.pairedModel?.loci.find(
-      (candidate) => candidate.label === locus,
-    );
+    const spermLocus = chromosome?.pairedModel?.loci.find((candidate) => candidate.label === locus);
     if (!chromosome || !eggLocus || !spermLocus) return null;
     const trait = DRAGON_TRAITS.find((candidate) => candidate.geneSymbol === locus);
     return {
@@ -256,7 +257,6 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
     }
     this.assignParent(role, record);
   }
-
 
   inspectParentMeiosis(role: ParentRole): void {
     if (!this.parentsReady() || this.clutch().length) return;
@@ -360,6 +360,7 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
     this.fertilizations.update((current) => [...current, record]);
     this.statusMessage.set(`Egg ${sequence} is forming as the selected gamete nuclei combine.`);
     this.persist();
+    this.fertilizationSaved.emit(record);
     this.fusionTimer = setTimeout(() => {
       this.fertilizationState.set('egg');
       this.eggSelection.set(null);
@@ -421,7 +422,9 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
     this.resetGameteInspection();
     this.babyDragonRevealed.set(false);
     this.activeRole.set('female');
-    this.statusMessage.set(`${dragon.name} loaded as the ${role === 'female' ? 'egg' : 'sperm'} parent.`);
+    this.statusMessage.set(
+      `${dragon.name} loaded as the ${role === 'female' ? 'egg' : 'sperm'} parent.`,
+    );
     this.persist();
   }
 
@@ -539,9 +542,8 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
 
   inspectFertilizedChromosome(chromosomeId: string): void {
     this.inspectedEggChromosome.set(chromosomeId);
-    const firstLocus = this.formedEggChromosomes().find(
-      (item) => item.id === chromosomeId,
-    )?.model.loci[0]?.label;
+    const firstLocus = this.formedEggChromosomes().find((item) => item.id === chromosomeId)?.model
+      .loci[0]?.label;
     this.inspectedEggLocus.set(firstLocus ?? null);
   }
 
@@ -559,10 +561,7 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
       role === 'female' ? this.eggGameteChromosomes() : this.spermGameteChromosomes();
     const target = `Chr ${this.targetTrait().chromosomeModel}`;
     return (
-      selected ??
-      chromosomes.find((item) => item.id === target)?.id ??
-      chromosomes[0]?.id ??
-      null
+      selected ?? chromosomes.find((item) => item.id === target)?.id ?? chromosomes[0]?.id ?? null
     );
   }
 
@@ -572,11 +571,10 @@ export class DragonHatcheryBreedingLabComponent implements OnDestroy {
     if (selected) return selected;
     const chromosomes =
       role === 'female' ? this.eggGameteChromosomes() : this.spermGameteChromosomes();
-    const chromosome = chromosomes.find(
-      (item) => item.id === this.inspectedGameteChromosome(role),
-    );
+    const chromosome = chromosomes.find((item) => item.id === this.inspectedGameteChromosome(role));
     return (
-      chromosome?.model.loci.find((locus) => locus.label === this.targetTrait().geneSymbol)?.label ??
+      chromosome?.model.loci.find((locus) => locus.label === this.targetTrait().geneSymbol)
+        ?.label ??
       chromosome?.model.loci[0]?.label ??
       null
     );

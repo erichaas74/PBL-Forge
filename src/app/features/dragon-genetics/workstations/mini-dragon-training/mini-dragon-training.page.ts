@@ -1,6 +1,7 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonCapstoneProgressRepository } from '../../project/dragon-capstone-progress.repository';
+import { DragonJourneyNavigationService } from '../../journey/dragon-journey-navigation.service';
 import { LOCAL_WORKSTATION_STUDENT_ID } from '../shared/dragon-workstation-context.models';
 import { DragonWorkstationContextService } from '../shared/dragon-workstation-context.service';
 import { MiniDragonKennelStore } from '../companion-show/mini-dragon-kennel.store';
@@ -19,6 +20,7 @@ export class MiniDragonTrainingPage {
   private readonly capstoneProgressRepository = inject(DragonCapstoneProgressRepository);
   private syncSignature = '';
   readonly studentId = this.context.studentId;
+  readonly workstationExitUrl = inject(DragonJourneyNavigationService).workstationExitUrl;
 
   constructor() {
     effect(() => {

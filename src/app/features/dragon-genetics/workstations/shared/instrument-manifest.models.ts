@@ -105,6 +105,11 @@ export function probeAnchor(manifest: InstrumentManifest, probeId: ProbeId): str
   return manifest.probes.find((probe) => probe.id === probeId)?.anchorId ?? null;
 }
 
+/** Selector used by optional guides to find an anchor on a real instrument element. */
+export function guideAnchorSelector(anchorId: string): string {
+  return `[data-guide-anchors~="${anchorId}"]`;
+}
+
 export function isProbeId(value: string): value is ProbeId {
   return (PROBE_IDS as readonly string[]).includes(value);
 }

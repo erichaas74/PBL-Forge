@@ -160,6 +160,23 @@
   line-height: 1.35;
 }
 
+.wise-guide__place .wise-guide__live {
+  margin-top: 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border-left: 3px solid #64b6ab;
+  border-radius: 0 0.35rem 0.35rem 0;
+  color: #d9eee9;
+  background: rgb(71 151 142 / 14%);
+}
+
+.wise-guide__live strong {
+  display: inline;
+  margin-right: 0.25rem;
+  color: #8dd9cd;
+  font-family: inherit;
+  font-size: inherit;
+}
+
 .wise-guide__conversation {
   padding: 0.9rem 1rem;
   overflow: auto;
@@ -310,6 +327,22 @@
 
   .wise-guide__place {
     padding-block: 0.55rem;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 1200px) {
+  .wise-guide-launcher {
+    width: 3.2rem;
+    padding-inline: 0.78rem;
+  }
+
+  .wise-guide-launcher > span:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 

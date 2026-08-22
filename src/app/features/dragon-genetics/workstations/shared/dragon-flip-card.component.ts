@@ -47,6 +47,8 @@ export class DragonFlipCardComponent {
   readonly footerLeft = input('');
   readonly footerRight = input('');
   readonly bloodType = input<DragonCardBloodType | null>(null);
+  /** Hidden when the surrounding deck provides its own flip control. */
+  readonly showFlipControl = input(true);
 
   readonly bloodTypeLabel = computed(() =>
     this.bloodType() ? `Blood type ${this.bloodType()}` : 'Blood type not tested',

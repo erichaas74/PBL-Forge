@@ -1,0 +1,256 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.mini-card-shell {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  height: 100%;
+  perspective: 60rem;
+}
+
+.mini-card-scene {
+  position: relative;
+  min-height: 17.5rem;
+  transform-style: preserve-3d;
+}
+
+.mini-card {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.55rem 0.6rem;
+  overflow: hidden;
+  border: 1px solid var(--show-line, rgb(226 196 240 / 16%));
+  border-radius: 0.85rem;
+  background:
+    radial-gradient(circle at 50% 6%, color-mix(in srgb, var(--pup-color) 30%, transparent), transparent 62%),
+    var(--show-panel, linear-gradient(170deg, #241a30 0%, #1a1425 68%, #150f1e 100%));
+  backface-visibility: hidden;
+  color: var(--show-ink, #f4ecf6);
+  transition: transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.mini-card--front {
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  transform: rotateY(0deg);
+}
+
+.mini-card--back {
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  transform: rotateY(180deg);
+}
+
+.is-flipped .mini-card--front {
+  transform: rotateY(-180deg);
+}
+
+.is-flipped .mini-card--back {
+  transform: rotateY(0deg);
+}
+
+.is-selected .mini-card {
+  border-color: var(--show-accent, #f0a8cd);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--show-accent, #f0a8cd) 60%, transparent);
+}
+
+.on-standard .mini-card--front {
+  border-color: color-mix(in srgb, var(--show-good, #86dfae) 70%, transparent);
+}
+
+.is-disabled {
+  opacity: 0.55;
+}
+
+.mini-card header {
+  display: grid;
+  gap: 0.05rem;
+}
+
+.mini-card header span,
+.mini-card header small,
+.mini-card footer span {
+  color: var(--show-muted, #b8a6c4);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mini-card header strong {
+  font-size: var(--text-md);
+}
+
+.mini-card__portrait {
+  /*
+   * The thumbnail bakes onto the shared surface tokens, which are pale. This
+   * room is a lamplit hall, so the tokens are retuned here rather than the tile
+   * being recoloured — the dragon stays lit exactly as the show stand lights it.
+   */
+  --surface-raised: rgb(60 44 78 / 85%);
+  --surface-sunken: rgb(28 20 40 / 92%);
+
+  position: relative;
+  display: grid;
+  height: 6.6rem;
+  border-radius: 0.7rem;
+  overflow: hidden;
+  place-items: center;
+}
+
+.mini-card__portrait app-specimen-thumb {
+  /* The tile is square by default; here the card owns the height. */
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.mini-card__standby {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--pup-color);
+  color: #1a1425;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  place-items: center;
+}
+
+.mini-card__rosette {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.3rem;
+  color: var(--show-good, #86dfae);
+}
+
+.mini-card__title {
+  margin: 0;
+  color: var(--show-muted, #b8a6c4);
+  font-size: var(--text-xs);
+}
+
+.mini-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.55rem;
+  margin: 0;
+}
+
+.mini-card__stats div {
+  display: grid;
+  gap: 0.05rem;
+}
+
+.mini-card__stats dt {
+  color: var(--show-muted, #b8a6c4);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+}
+
+.mini-card__stats dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.mini-card__traits,
+.mini-card__features {
+  display: grid;
+  gap: 0.18rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.mini-card__traits li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 0.12rem 0.3rem;
+  border-left: 2px solid transparent;
+  border-radius: 0.3rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.mini-card__traits li.matched {
+  border-left-color: var(--show-good, #86dfae);
+}
+
+.mini-card__traits li.missed {
+  border-left-color: var(--show-accent, #f0a8cd);
+}
+
+.mini-card__traits small,
+.mini-card__features small {
+  grid-column: 1;
+  color: var(--show-muted, #b8a6c4);
+  font-size: var(--text-xs);
+}
+
+.mini-card__traits strong {
+  grid-column: 1;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.mini-card__traits b {
+  grid-row: span 2;
+}
+
+.mini-card__note {
+  margin: 0;
+  color: var(--show-muted, #b8a6c4);
+  font-size: var(--text-xs);
+}
+
+.mini-card__features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
+}
+
+.mini-card__features li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.mini-card__features span {
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.mini-card__features small {
+  grid-column: auto;
+}
+
+.mini-card__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.3rem;
+}
+
+.mini-card__actions button {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--show-line, rgb(226 196 240 / 16%));
+  border-radius: 999px;
+  background: rgb(255 255 255 / 6%);
+  color: var(--show-ink, #f4ecf6);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mini-card__actions button:disabled {
+  cursor: not-allowed;
+}
+
+.is-selected .mini-card__select {
+  border-color: var(--show-accent, #f0a8cd);
+  background: var(--show-accent, #f0a8cd);
+  color: #21132a;
+}

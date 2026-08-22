@@ -1,10 +1,9 @@
-import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
-import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
+import { provideRouter } from '@angular/router';
 import { stubSpecimenViewportRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { CompanionShowComponent } from './companion-show.component';
 
-describe('CompanionShowComponent', () => {
+describe('CompanionShowComponent (Mini Dragon Kennel)', () => {
     const studentId = 'companion-show-component-spec';
     const storageKey = `pbl-forge.dragon-genetics.companion-show.v4.${studentId}`;
 
@@ -13,6 +12,7 @@ describe('CompanionShowComponent', () => {
         stubSpecimenViewportRendering();
         await TestBed.configureTestingModule({
             imports: [CompanionShowComponent],
+      providers: [provideRouter([])],
         }).compileComponents();
     });
 
@@ -67,63 +67,6 @@ describe('CompanionShowComponent', () => {
         expect(card.every((result) => result.outcome.label.length > 0)).toBe(true);
         // The card is a consequence of the genome, not a stored score.
         expect(component.ribbonsFor(component.selectedPup()!.genome)).toBe(card.filter((result) => result.outcome.places).length);
-        fixture.destroy();
-    });
-
-    it('keeps learned practice separate and creates a 50/50 judged show record', async () => {
-        const fixture = createComponent();
-        const component = fixture.componentInstance;
-
-        component.adoptFounder('dam', 'mini-biscuit');
-        component.setTarget('coat', 'coat:sleek');
-        component.selectChampion('mini-biscuit');
-        component.setShowDivision('sky-circuit');
-        fixture.detectChanges();
-        const trainingViewport = fixture.debugElement.query(By.css('.training-model app-specimen-viewport')).componentInstance as SpecimenViewportComponent;
-        vi.spyOn(trainingViewport, 'playMotion').mockResolvedValue();
-        await component.practiceTraining('course-cue');
-        fixture.detectChanges();
-
-        expect(component.trainingLevel('course-cue')).toBe(1);
-        expect(component.champion()?.genome).toEqual(component.trainingDragon()?.genome);
-
-        component.enterShow();
-        fixture.detectChanges();
-        const run = component.latestShowRun();
-        expect(run).not.toBeNull();
-        expect(run!.geneticScore).toBeLessThanOrEqual(50);
-        expect(run!.trainingScore).toBe(3.1);
-        expect(run!.combinedScore).toBeCloseTo(run!.geneticScore + run!.trainingScore, 1);
-
-        const routineButton = fixture.nativeElement.querySelector('[data-testid="championship-routine"]') as HTMLButtonElement | null;
-        expect(routineButton).not.toBeNull();
-        const championViewport = fixture.debugElement.query(By.css('.champion-model app-specimen-viewport')).componentInstance as SpecimenViewportComponent;
-        vi.spyOn(championViewport, 'playMotion').mockResolvedValue();
-        await component.performChampionshipRoutine();
-        expect(championViewport.playMotion).toHaveBeenCalled();
-        fixture.destroy();
-    });
-
-    it('builds a rare-trait pedigree from offspring and moves a flagged candidate to breeding', () => {
-        const fixture = createComponent();
-        const component = fixture.componentInstance;
-
-        component.adoptFounder('dam', 'mini-biscuit');
-        component.adoptFounder('sire', 'mini-pepper');
-        component.whelp();
-        component.setRareTraitGene('coat');
-        const pup = component.nurseryPups()[0];
-        const candidate = component.pedigreePopulation().find((dragon) => dragon.id === pup.id)!;
-
-        expect(component.pedigreePopulation().length).toBe(8);
-        expect(component.pedigreeGenerations().map((group) => group.generation)).toEqual([0, 1]);
-        component.toggleRareCandidate(candidate.id);
-        expect(component.pedigreeEvidenceFor(candidate)).not.toBeNull();
-        component.keepPedigreeCandidate(candidate);
-        component.assignToPair('dam', candidate.id);
-
-        expect(component.isInKennel(candidate.id)).toBe(true);
-        expect(component.dam()?.id).toBe(candidate.id);
         fixture.destroy();
     });
 
@@ -252,6 +195,14 @@ describe('CompanionShowComponent', () => {
         const keptName = component.kennel().find((dragon) => dragon.origin === 'bred')?.name;
         first.destroy();
 
+        // A reload is a new injector, not just a new fixture: the store is
+        // root-scoped, so reusing this one would prove nothing about storage.
+        TestBed.resetTestingModule();
+        stubSpecimenViewportRendering();
+        TestBed.configureTestingModule({
+            imports: [CompanionShowComponent],
+            providers: [provideRouter([])],
+        });
         const second = createComponent();
         const restored = second.componentInstance;
 

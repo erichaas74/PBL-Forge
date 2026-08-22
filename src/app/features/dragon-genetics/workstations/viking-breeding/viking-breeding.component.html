@@ -1,4 +1,8 @@
-<section class="breeding" aria-labelledby="breeding-goal">
+<section
+  class="breeding"
+  aria-labelledby="breeding-goal"
+  data-guide-anchors="kennel-panel traits pen-panel response-panel plan line-state"
+>
   <header class="goal-block">
     <span>Scientific goal</span>
     <h2 id="breeding-goal">{{ goal() }}</h2>
@@ -37,9 +41,18 @@
     </label>
     <p class="commission">{{ role().commission }}</p>
     <dl class="allowances">
-      <div><dt>Season</dt><dd>{{ program().season }} / {{ role().seasons }}</dd></div>
-      <div><dt>Litters left</dt><dd>{{ littersLeftThisSeason() }}</dd></div>
-      <div><dt>Kennel</dt><dd>{{ kennel().length }} / {{ role().kennelCap }}</dd></div>
+      <div>
+        <dt>Season</dt>
+        <dd>{{ program().season }} / {{ role().seasons }}</dd>
+      </div>
+      <div>
+        <dt>Litters left</dt>
+        <dd>{{ littersLeftThisSeason() }}</dd>
+      </div>
+      <div>
+        <dt>Kennel</dt>
+        <dd>{{ kennel().length }} / {{ role().kennelCap }}</dd>
+      </div>
     </dl>
   </div>
 
@@ -94,18 +107,18 @@
             @if (inspectedId() === animal.id) {
               <ul class="traits">
                 @for (requirement of role().requirements; track requirement.geneId) {
-                  <li [class.met]="meetsRequirement(animal, requirement.geneId, requirement.formId)">
+                  <li
+                    [class.met]="meetsRequirement(animal, requirement.geneId, requirement.formId)"
+                  >
                     <span>{{ geneName(requirement.geneId) }}</span>
                     <em>{{ formLabel(animal, requirement.geneId) }}</em>
-                    <small
-                      >{{
-                        meetsRequirement(animal, requirement.geneId, requirement.formId)
-                          ? formIsCertain(requirement.geneId, requirement.formId)
-                            ? 'as asked'
-                            : 'as asked — may still carry another allele'
-                          : 'not as asked'
-                      }}</small
-                    >
+                    <small>{{
+                      meetsRequirement(animal, requirement.geneId, requirement.formId)
+                        ? formIsCertain(requirement.geneId, requirement.formId)
+                          ? 'as asked'
+                          : 'as asked — may still carry another allele'
+                        : 'not as asked'
+                    }}</small>
                   </li>
                 }
               </ul>
@@ -133,15 +146,16 @@
       @if (pairingRate() !== null) {
         <p class="forecast">
           Expect about
-          <strong>{{ (pairingRate()! * litterSize) | number: '1.0-1' }}</strong>
-          of {{ litterSize }} pups to meet the commission
-          ({{ (pairingRate()! * 100) | number: '1.0-0' }}%).
+          <strong>{{ pairingRate()! * litterSize | number: '1.0-1' }}</strong>
+          of {{ litterSize }} pups to meet the commission ({{
+            pairingRate()! * 100 | number: '1.0-0'
+          }}%).
         </p>
         <ul class="odds">
           @for (row of pairingOdds(); track row.requirement.geneId) {
             <li [class.weak]="row.probability < 0.5">
               <span>{{ row.formLabel }}</span>
-              <strong>{{ (row.probability * 100) | number: '1.0-0' }}%</strong>
+              <strong>{{ row.probability * 100 | number: '1.0-0' }}%</strong>
             </li>
           }
         </ul>
@@ -158,7 +172,11 @@
         >
           Breed litter
         </button>
-        <button type="button" [disabled]="program().season >= role().seasons" (click)="nextSeason()">
+        <button
+          type="button"
+          [disabled]="program().season >= role().seasons"
+          (click)="nextSeason()"
+        >
           Next season
         </button>
         <button type="button" class="quiet" (click)="restart()">New stock</button>
@@ -192,19 +210,17 @@
               <span class="track" aria-hidden="true">
                 <i [style.width.%]="row.matchRate * 100"></i>
               </span>
-              <strong>{{ (row.matchRate * 100) | number: '1.0-0' }}%</strong>
+              <strong>{{ row.matchRate * 100 | number: '1.0-0' }}%</strong>
             </li>
           }
         </ul>
-        <p class="response-note">
-          Share of each season's pups meeting the whole commission.
-        </p>
+        <p class="response-note">Share of each season's pups meeting the whole commission.</p>
       }
 
       <dl class="line-state">
         <div>
           <dt>Best pairing available</dt>
-          <dd>{{ (metrics().bestPairingRate * 100) | number: '1.0-0' }}%</dd>
+          <dd>{{ metrics().bestPairingRate * 100 | number: '1.0-0' }}%</dd>
         </div>
         <div>
           <dt>Founder lines left</dt>
@@ -220,8 +236,9 @@
       <h3>{{ role().settlement }} has its {{ role().title.toLowerCase() }}</h3>
       @if (result.breedsTrue) {
         <p class="holds">
-          Every trait this commission asks for can be fixed. Bred from two animals that both meet it,
-          the line will keep producing it — {{ role().settlement }} can raise its own stock from here.
+          Every trait this commission asks for can be fixed. Bred from two animals that both meet
+          it, the line will keep producing it — {{ role().settlement }} can raise its own stock from
+          here.
         </p>
       } @else {
         <p class="never-holds">

@@ -2,6 +2,7 @@ import { Component, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonActivityProgressRepository } from '../../project/dragon-activity-progress.repository';
 import { DragonProjectHubFacade } from '../../project/dragon-project-hub.facade';
+import { DragonJourneyNavigationService } from '../../journey/dragon-journey-navigation.service';
 import { LOCAL_WORKSTATION_STUDENT_ID } from '../shared/dragon-workstation-context.models';
 import { DragonWorkstationContextService } from '../shared/dragon-workstation-context.service';
 import { supportedClaimCount, traitEvidenceStatus } from './trait-evidence.domain';
@@ -22,6 +23,7 @@ export class TraitEvidencePage {
   private syncSignature = '';
 
   readonly studentId = this.context.studentId;
+  readonly workstationExitUrl = inject(DragonJourneyNavigationService).workstationExitUrl;
 
   constructor() {
     effect(() => {

@@ -47,6 +47,8 @@ export class DragonCardDeckSelectorComponent {
       ),
   );
 
+  readonly isActiveFlipped = computed(() => this.flippedDragonId() === this.activeId());
+
   readonly labelFor = (dragon: AccountDragonRecord): string => dragon.name;
   readonly subtitleFor = (dragon: AccountDragonRecord): string => dragon.title;
 

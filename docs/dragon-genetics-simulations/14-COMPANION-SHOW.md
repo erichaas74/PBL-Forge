@@ -1,7 +1,10 @@
 # 14 — Mini Dragon Show
 
 **Curriculum:** selective breeding, inheritance patterns, breeding true, inbreeding ·
-**Route:** `/dragon-genetics/companion-show`
+**Routes:** `/dragon-genetics/companion-show` (kennel) ·
+`/dragon-genetics/mini-dragon-training` (training ground) ·
+`/dragon-genetics/mini-dragon-arena` (show arena) ·
+`/dragon-genetics/mini-dragon-pedigree` (pedigree lab)
 
 ## Why this exists
 
@@ -21,6 +24,21 @@ establish a breed is to accumulate breeding evidence. Pushing consistency up inv
 relatives, which the bloodline meter reads straight off the pedigree. The final show makes a second
 distinction explicit: inherited anatomy creates natural aptitude, but learned cue responses belong
 to one trained animal and are never passed to its young.
+
+## Four rooms, one programme
+
+The module is a single breeding programme seen from four stations rather than one long page. A
+student writes a standard and breeds in the **kennel**, teaches cues in the **training ground**,
+traces a hidden recessive in the **pedigree lab**, and is judged in the **show arena**.
+
+Splitting it this way is not only about page length. Each room states one claim and holds the
+evidence for it, and the claims are easier to separate when the rooms are: practice recorded in the
+training ground never reaches the young bred in the kennel, and the arena's score is visibly half
+from one room and half from the other.
+
+The state does not split. `mini-dragon-kennel.store.ts` owns the whole programme as one
+`CompanionShowSnapshot` under one repository key, so a dragon trained in one room is the same dragon
+entered in the ring in another, and saved progress and the capstone sync are unchanged by the split.
 
 ## The species
 

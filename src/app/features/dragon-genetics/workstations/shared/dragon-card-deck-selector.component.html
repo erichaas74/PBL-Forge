@@ -8,7 +8,18 @@
   [disabled]="disabled()"
   [ariaLabel]="ariaLabel()"
   (activeItemChange)="selectDragon($event)"
-/>
+>
+  <button
+    deckActions
+    type="button"
+    class="deck-flip"
+    [disabled]="disabled() || !activeId()"
+    [attr.aria-pressed]="isActiveFlipped()"
+    (click)="toggleCard(activeId())"
+  >
+    {{ isActiveFlipped() ? '↺ Show the dragon' : '⟳ Flip for chromosomes' }}
+  </button>
+</app-fanned-card-deck>
 
 <ng-template #dragonCard let-dragon let-active="active" let-renderPortrait="renderPortrait">
   @if (cardViews().get(dragon.id); as card) {
@@ -23,6 +34,7 @@
         [footerLeft]="dragon.source === 'foundation' ? 'Foundation dragon' : 'Student dragon'"
         [footerRight]="dragon.sex === 'female' ? 'XX' : 'XY'"
         [bloodType]="bloodTypeByDragonId()[dragon.id] ?? null"
+        [showFlipControl]="false"
         (flipRequested)="toggleCard(dragon.id)"
         (chromosomeSelected)="selectChromosome(dragon.id, $event)"
       />

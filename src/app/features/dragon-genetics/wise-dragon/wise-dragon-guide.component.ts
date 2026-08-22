@@ -23,6 +23,7 @@ import {
 } from './wise-dragon-guide.content';
 import { WiseDragonGuideService } from './wise-dragon-guide.service';
 import { WISE_DRAGON_MOTIONS } from './wise-dragon.motion';
+import { WorkstationGuideStateService } from './workstation-guide-state.service';
 
 interface GuideTurn {
   id: number;
@@ -34,7 +35,8 @@ interface GuideTurn {
   selector: 'app-wise-dragon-guide',
   imports: [SpecimenViewportComponent],
   templateUrl: './wise-dragon-guide.component.html',
-  styleUrl: './wise-dragon-guide.component.scss',  providers: [...provideDragonSpecimenProfile()],
+  styleUrl: './wise-dragon-guide.component.scss',
+  providers: [...provideDragonSpecimenProfile()],
 })
 export class WiseDragonGuideComponent implements OnDestroy {
   @ViewChild('launcher') private launcher?: ElementRef<HTMLButtonElement>;
@@ -44,6 +46,7 @@ export class WiseDragonGuideComponent implements OnDestroy {
 
   private readonly router = inject(Router);
   readonly guide = inject(WiseDragonGuideService);
+  readonly liveGuide = inject(WorkstationGuideStateService);
   private turnId = 0;
   private activeContextId = '';
 
@@ -62,6 +65,10 @@ export class WiseDragonGuideComponent implements OnDestroy {
     { initialValue: this.router.url },
   );
   readonly context = computed(() => resolveWiseDragonGuideContext(this.currentUrl()));
+  readonly liveState = computed(() => {
+    const state = this.liveGuide.state();
+    return state?.contextId === this.context().id ? state : null;
+  });
 
   constructor() {
     effect(() => {
@@ -70,6 +77,7 @@ export class WiseDragonGuideComponent implements OnDestroy {
       this.activeContextId = context.id;
       this.turns.set([this.turn('wise-dragon', context.welcome)]);
       this.question.set('');
+      this.liveGuide.enter(context.id);
     });
     effect(() => {
       if (!this.guide.open()) return;

@@ -1,28 +1,32 @@
-<section class="companion-show mini-dragon-pedigree" aria-labelledby="pedigree-lab-title">
+<section
+  class="companion-show mini-dragon-pedigree"
+  aria-labelledby="pedigree-lab-title"
+  data-guide-anchors="kennel-pedigree"
+>
   <header class="show-head">
     <div class="goal-block">
       <span>SCIENTIFIC GOAL</span>
       <h2 id="pedigree-lab-title">Mini Dragon Pedigree Lab</h2>
       <p>{{ goal() }}</p>
     </div>
-  <dl class="program-readout" aria-label="Breeding program readout">
-    <div>
-      <dt>Population</dt>
-      <dd>{{ pedigreePopulation().length }}</dd>
-    </div>
-    <div>
-      <dt>Generations</dt>
-      <dd>{{ pedigreeGenerations().length }}</dd>
-    </div>
-    <div>
-      <dt>Showing the form</dt>
-      <dd>{{ rareTraitFoundCount() }}</dd>
-    </div>
-    <div>
-      <dt>Flagged</dt>
-      <dd>{{ rareCandidateIds().length }}</dd>
-    </div>
-  </dl>
+    <dl class="program-readout" aria-label="Breeding program readout">
+      <div>
+        <dt>Population</dt>
+        <dd>{{ pedigreePopulation().length }}</dd>
+      </div>
+      <div>
+        <dt>Generations</dt>
+        <dd>{{ pedigreeGenerations().length }}</dd>
+      </div>
+      <div>
+        <dt>Showing the form</dt>
+        <dd>{{ rareTraitFoundCount() }}</dd>
+      </div>
+      <div>
+        <dt>Flagged</dt>
+        <dd>{{ rareCandidateIds().length }}</dd>
+      </div>
+    </dl>
   </header>
 
   <p class="station-status" aria-live="polite" data-testid="status">{{ statusMessage() }}</p>

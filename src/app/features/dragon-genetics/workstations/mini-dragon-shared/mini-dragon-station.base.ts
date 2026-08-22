@@ -1,4 +1,6 @@
-import { Directive, effect, inject, input, untracked } from '@angular/core';
+import { Directive, computed, effect, inject, input, untracked } from '@angular/core';
+import { CompanionDragon } from '../companion-show/companion-show.models';
+import { MiniDragonCardView, buildMiniDragonCardView } from './mini-dragon-card';
 import { MiniDragonKennelStore } from '../companion-show/mini-dragon-kennel.store';
 
 /**
@@ -95,6 +97,41 @@ export abstract class MiniDragonStationComponent {
   readonly canEnterShow = this.store.canEnterShow;
   readonly evidenceChecks = this.store.evidenceChecks;
   readonly canRegister = this.store.canRegister;
+
+  /**
+   * One card per kennel dragon, rebuilt only when the kennel or the standard
+   * changes.
+   *
+   * Every station picks dragons out of the same kennel, so the cards are derived
+   * here rather than in each template. It has to be a computed and not a helper
+   * method: a card carries the specimen source its portrait bakes from, and a
+   * fresh object on every change detection pass would re-bake every thumbnail.
+   */
+  readonly kennelCards = computed(
+    () =>
+      new Map(
+        this.kennel().map(
+          (dragon) =>
+            [
+              dragon.id,
+              buildMiniDragonCardView(dragon, {
+                matches: this.matchesFor(dragon.genome),
+                ribbons: this.ribbonsFor(dragon.genome),
+              }),
+            ] as const,
+        ),
+      ),
+  );
+
+  cardFor(dragon: CompanionDragon): MiniDragonCardView {
+    return (
+      this.kennelCards().get(dragon.id) ??
+      buildMiniDragonCardView(dragon, {
+        matches: this.matchesFor(dragon.genome),
+        ribbons: this.ribbonsFor(dragon.genome),
+      })
+    );
+  }
 
   readonly selectBreedReference = this.store.selectBreedReference.bind(this.store);
   readonly applyBreedStandard = this.store.applyBreedStandard.bind(this.store);

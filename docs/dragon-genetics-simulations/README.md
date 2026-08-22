@@ -23,7 +23,7 @@ adaptive shell.
 | Shared | Dragon Hatchery          | Dedicated workstation               | [11](11-DRAGON-HATCHERY.md)                 |
 | Arena  | Dragon Arena Combat      | Dedicated experience                | [12](12-DRAGON-ARENA-COMBAT.md)             |
 | 13     | Blood Compatibility Lab  | Dedicated workstation               | [13](13-DRAGON-BLOOD-TYPE-COMPATIBILITY.md) |
-| 14     | Mini Dragon Show         | Dedicated workstation               | [14](14-COMPANION-SHOW.md)                  |
+| 14     | Mini Dragon Programme    | Four dedicated workstations         | [14](14-COMPANION-SHOW.md)                  |
 
 The Mini Dragon Show is the open-workstation alternative to the arena, and the only station built on
 a **second species**: the domesticated mini dragon has its own anatomy, its own six loci across five
@@ -35,7 +35,7 @@ All active feature-specific workstation files live under
 [`src/app/features/dragon-genetics/workstations`](../../src/app/features/dragon-genetics/workstations/README.md):
 
 - `allele-workbench/` contains the active allele investigation.
-- `companion-show/` contains the mini dragon species — genetics, anatomy, rare-trait pedigree hunting, learned training, and 50/50 show judging — plus the
+- `companion-show/` contains the mini dragon species — genetics and anatomy — and the kennel station; `mini-dragon-training/`, `mini-dragon-arena/` and `mini-dragon-pedigree/` are the three sibling rooms over the same programme, plus the
   breed standard, kennel, litter, bloodline, and registry model.
 - `dna-process-lab/` contains DNA comparison, mutation, and repair tools.
 - `dragon-hatchery/` contains the complete Hatchery feature slice.

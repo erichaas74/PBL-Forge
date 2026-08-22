@@ -1,24 +1,28 @@
-<section class="companion-show mini-dragon-arena" aria-labelledby="show-arena-title">
+<section
+  class="companion-show mini-dragon-arena"
+  aria-labelledby="show-arena-title"
+  data-guide-anchors="show-ring breed-registry"
+>
   <header class="show-head">
     <div class="goal-block">
       <span>SCIENTIFIC GOAL</span>
       <h2 id="show-arena-title">Mini Dragon Show Arena</h2>
       <p>{{ goal() }}</p>
     </div>
-  <dl class="program-readout" aria-label="Breeding program readout">
-    <div>
-      <dt>Division</dt>
-      <dd>{{ showDivision()?.name || 'None' }}</dd>
-    </div>
-    <div>
-      <dt>Show runs</dt>
-      <dd>{{ showRuns().length }}</dd>
-    </div>
-    <div>
-      <dt>Registered breeds</dt>
-      <dd>{{ registry().length }}</dd>
-    </div>
-  </dl>
+    <dl class="program-readout" aria-label="Breeding program readout">
+      <div>
+        <dt>Division</dt>
+        <dd>{{ showDivision()?.name || 'None' }}</dd>
+      </div>
+      <div>
+        <dt>Show runs</dt>
+        <dd>{{ showRuns().length }}</dd>
+      </div>
+      <div>
+        <dt>Registered breeds</dt>
+        <dd>{{ registry().length }}</dd>
+      </div>
+    </dl>
   </header>
 
   <p class="station-status" aria-live="polite" data-testid="status">{{ statusMessage() }}</p>
@@ -30,35 +34,35 @@
   </nav>
 
   <aside class="panel standard-bench arena-division">
-      <section class="division-board" aria-labelledby="division-title">
-        <header>
-          <span>SOCIETY DIVISION</span>
-          <h4 id="division-title">Which published combination will the judges seek?</h4>
-        </header>
-        <div class="division-choices">
-          @for (division of showDivisions; track division.id) {
-            <button
-              type="button"
-              [class.chosen]="showDivisionId() === division.id"
-              [attr.aria-pressed]="showDivisionId() === division.id"
-              [attr.data-testid]="'division-' + division.id"
-              (click)="setShowDivision(division.id)"
-            >
-              <strong>{{ division.name }}</strong>
-              <small>{{ division.motto }}</small>
-              <span>
-                @for (target of division.targets; track target.geneId) {
-                  <i>{{ standardLabel(target) }}</i>
-                }
-              </span>
-            </button>
-          }
-        </div>
-        <p>
-          Your breed standard is your goal. The chosen division is the fixed combination used by
-          Society judges, so breeding decisions can help one goal while making another harder.
-        </p>
-      </section>
+    <section class="division-board" aria-labelledby="division-title">
+      <header>
+        <span>SOCIETY DIVISION</span>
+        <h4 id="division-title">Which published combination will the judges seek?</h4>
+      </header>
+      <div class="division-choices">
+        @for (division of showDivisions; track division.id) {
+          <button
+            type="button"
+            [class.chosen]="showDivisionId() === division.id"
+            [attr.aria-pressed]="showDivisionId() === division.id"
+            [attr.data-testid]="'division-' + division.id"
+            (click)="setShowDivision(division.id)"
+          >
+            <strong>{{ division.name }}</strong>
+            <small>{{ division.motto }}</small>
+            <span>
+              @for (target of division.targets; track target.geneId) {
+                <i>{{ standardLabel(target) }}</i>
+              }
+            </span>
+          </button>
+        }
+      </div>
+      <p>
+        Your breed standard is your goal. The chosen division is the fixed combination used by
+        Society judges, so breeding decisions can help one goal while making another harder.
+      </p>
+    </section>
   </aside>
 
   <section class="show-ring" aria-labelledby="show-ring-title">
@@ -88,19 +92,18 @@
           }
         </div>
         @if (championCandidates().length) {
-          <div class="candidate-row" role="group" aria-label="Dragons that meet the standard">
+          <div
+            class="mini-card-rack candidate-rack"
+            role="group"
+            aria-label="Dragons that meet the standard"
+          >
             @for (candidate of championCandidates(); track candidate.id) {
-              <button
-                type="button"
-                class="candidate"
-                [class.chosen]="champion()?.id === candidate.id"
-                [attr.aria-pressed]="champion()?.id === candidate.id"
-                [style.--pup-color]="paintFor(candidate).color"
-                [attr.data-testid]="'champion-' + candidate.id"
-                (click)="selectChampion(candidate.id)"
-              >
-                <i aria-hidden="true"></i>{{ candidate.name }}
-              </button>
+              <app-mini-dragon-card
+                [card]="cardFor(candidate)"
+                [selected]="champion()?.id === candidate.id"
+                selectLabel="Show this one"
+                (cardSelected)="selectChampion($event)"
+              />
             }
           </div>
         } @else {

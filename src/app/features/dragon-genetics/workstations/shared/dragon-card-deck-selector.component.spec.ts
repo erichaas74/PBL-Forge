@@ -56,6 +56,23 @@ describe('DragonCardDeckSelectorComponent', () => {
         expect(drop.getAttribute('aria-label')).toBe('Blood type AB');
     });
 
+    it('flips the active card from the deck control below the stack', () => {
+        const element = fixture.nativeElement as HTMLElement;
+        const flip = element.querySelector<HTMLButtonElement>('.deck-flip')!;
+
+        expect(flip.textContent).toContain('Flip for chromosomes');
+        flip.click();
+        fixture.detectChanges();
+
+        expect(element.querySelector('.is-active .dragon-card-shell')?.classList).toContain('is-flipped');
+        expect(flip.getAttribute('aria-pressed')).toBe('true');
+        expect(flip.textContent).toContain('Show the dragon');
+
+        flip.click();
+        fixture.detectChanges();
+        expect(element.querySelector('.is-active .dragon-card-shell')?.classList).not.toContain('is-flipped');
+    });
+
     it('flips the active card and keeps chromosome selection on its back', () => {
         const element = fixture.nativeElement as HTMLElement;
         element.querySelector<HTMLElement>('.is-active .dragon-card--front')!.click();

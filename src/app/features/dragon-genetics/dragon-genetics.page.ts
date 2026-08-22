@@ -3,7 +3,6 @@ import { Router, RouterLink } from '@angular/router';
 import {
   ProjectActivityViewModel,
   ProjectHubViewModel,
-  ProjectNextAction,
 } from '../project/domain/project-hub.models';
 import { DragonProjectHubFacade } from './project/dragon-project-hub.facade';
 import { DragonArenaSagaPreviewComponent } from './project/dragon-arena-saga-preview.component';
@@ -66,15 +65,6 @@ export class DragonGeneticsPage {
 
   toggleSagaPreview(pathId: string): void {
     this.expandedSagaPathId.update((current) => (current === pathId ? null : pathId));
-  }
-
-  actionLabel(action: ProjectNextAction): string {
-    return {
-      'needs-revision': 'Revise',
-      resume: 'Continue',
-      start: 'Enter lab',
-      extension: 'Explore',
-    }[action.reason];
   }
 
   statusLabel(activity: ProjectActivityViewModel): string {

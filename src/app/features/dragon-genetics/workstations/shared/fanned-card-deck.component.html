@@ -54,7 +54,42 @@
       <p class="fanned-deck__empty">No dragon cards are available.</p>
     }
   </div>
+  <div class="fanned-deck__controls">
+    @if (items().length > 1) {
+      <button
+        type="button"
+        class="fanned-deck__step"
+        [disabled]="disabled()"
+        aria-label="Show the previous dragon card"
+        (click)="move(-1)"
+      >
+        <span aria-hidden="true">&#9664;</span>
+      </button>
+    }
+    <p class="fanned-deck__status" aria-live="polite">
+      <strong>{{ activeLabel() }}</strong>
+      @if (items().length > 1) {
+        <small>Card {{ activeIndex() + 1 }} of {{ items().length }}</small>
+      }
+    </p>
+    @if (items().length > 1) {
+      <button
+        type="button"
+        class="fanned-deck__step"
+        [disabled]="disabled()"
+        aria-label="Show the next dragon card"
+        (click)="move(1)"
+      >
+        <span aria-hidden="true">&#9654;</span>
+      </button>
+    }
+  </div>
+  <div class="fanned-deck__actions">
+    <ng-content select="[deckActions]" />
+  </div>
   @if (items().length > 1) {
-    <p class="fanned-deck__hint">Drag, swipe, or select an exposed card to shuffle the deck.</p>
+    <p class="fanned-deck__hint">
+      Use the arrows, drag the deck, or tap a side card to bring a dragon to the front.
+    </p>
   }
 </section>

@@ -1,24 +1,28 @@
-<section class="companion-show mini-dragon-training" aria-labelledby="training-ground-title">
+<section
+  class="companion-show mini-dragon-training"
+  aria-labelledby="training-ground-title"
+  data-guide-anchors="training-log"
+>
   <header class="show-head">
     <div class="goal-block">
       <span>SCIENTIFIC GOAL</span>
       <h2 id="training-ground-title">Mini Dragon Training Ground</h2>
       <p>{{ goal() }}</p>
     </div>
-  <dl class="program-readout" aria-label="Breeding program readout">
-    <div>
-      <dt>Kennel</dt>
-      <dd>{{ kennel().length }}</dd>
-    </div>
-    <div>
-      <dt>Sessions</dt>
-      <dd>{{ trainingSessions().length }}</dd>
-    </div>
-    <div>
-      <dt>In training</dt>
-      <dd>{{ trainingDragon()?.name || "None" }}</dd>
-    </div>
-  </dl>
+    <dl class="program-readout" aria-label="Breeding program readout">
+      <div>
+        <dt>Kennel</dt>
+        <dd>{{ kennel().length }}</dd>
+      </div>
+      <div>
+        <dt>Sessions</dt>
+        <dd>{{ trainingSessions().length }}</dd>
+      </div>
+      <div>
+        <dt>In training</dt>
+        <dd>{{ trainingDragon()?.name || 'None' }}</dd>
+      </div>
+    </dl>
   </header>
 
   <p class="station-status" aria-live="polite" data-testid="status">{{ statusMessage() }}</p>
@@ -45,20 +49,14 @@
       <aside class="training-roster" aria-label="Kennel dragons available for training">
         <span>TRAINING DRAGON</span>
         @if (kennel().length) {
-          <div>
+          <div class="mini-card-rack">
             @for (dragon of kennel(); track dragon.id) {
-              <button
-                type="button"
-                [class.selected]="trainingDragon()?.id === dragon.id"
-                [attr.aria-pressed]="trainingDragon()?.id === dragon.id"
-                (click)="selectTrainingDragon(dragon.id)"
-              >
-                <i [style.--pup-color]="paintFor(dragon).color" aria-hidden="true"></i>
-                <span
-                  ><strong>{{ dragon.name }}</strong
-                  ><small>Generation {{ dragon.generation }}</small></span
-                >
-              </button>
+              <app-mini-dragon-card
+                [card]="cardFor(dragon)"
+                [selected]="trainingDragon()?.id === dragon.id"
+                selectLabel="Train"
+                (cardSelected)="selectTrainingDragon($event)"
+              />
             }
           </div>
         } @else {
@@ -140,7 +138,10 @@
     <summary>Optional breeder prompts</summary>
     <ul>
       <li>Do the young of a well-trained dragon start out any better at these skills?</li>
-      <li>Which half of a show score can a breeder change by choosing parents, and which half only by practice?</li>
+      <li>
+        Which half of a show score can a breeder change by choosing parents, and which half only by
+        practice?
+      </li>
       <li>If a champion never practiced, what would its judge card look like?</li>
     </ul>
   </details>

@@ -149,7 +149,6 @@ export class DragonPedigreeLabComponent {
   readonly zoom = signal(1);
   readonly traceMode = signal(false);
   readonly archiveOpen = signal(true);
-  readonly guideOpen = signal(false);
   readonly testGeneId = signal<PedigreeGeneId | null>(null);
   readonly stagedDragonId = signal<string | null>(null);
   readonly message = signal('');

@@ -1,28 +1,32 @@
-<section class="companion-show" aria-labelledby="companion-show-title">
+<section
+  class="companion-show"
+  aria-labelledby="companion-show-title"
+  data-guide-anchors="standard-desk coat-locus-panel pairing-board litter-tray"
+>
   <header class="show-head">
     <div class="goal-block">
       <span>SCIENTIFIC GOAL</span>
       <h2 id="companion-show-title">Mini Dragon Kennel</h2>
       <p>{{ goal() }}</p>
     </div>
-  <dl class="program-readout" aria-label="Breeding program readout">
-    <div>
-      <dt>Kennel</dt>
-      <dd>{{ kennel().length }}</dd>
-    </div>
-    <div>
-      <dt>Generations</dt>
-      <dd>{{ generations() }}</dd>
-    </div>
-    <div>
-      <dt>Litters</dt>
-      <dd>{{ materializedLitters().length }}</dd>
-    </div>
-    <div>
-      <dt>Founder lines</dt>
-      <dd>{{ founderLines() }}</dd>
-    </div>
-  </dl>
+    <dl class="program-readout" aria-label="Breeding program readout">
+      <div>
+        <dt>Kennel</dt>
+        <dd>{{ kennel().length }}</dd>
+      </div>
+      <div>
+        <dt>Generations</dt>
+        <dd>{{ generations() }}</dd>
+      </div>
+      <div>
+        <dt>Litters</dt>
+        <dd>{{ materializedLitters().length }}</dd>
+      </div>
+      <div>
+        <dt>Founder lines</dt>
+        <dd>{{ founderLines() }}</dd>
+      </div>
+    </dl>
   </header>
 
   <p class="station-status" aria-live="polite" data-testid="status">{{ statusMessage() }}</p>
@@ -162,7 +166,6 @@
           (input)="setBreedName($event)"
         />
       </label>
-
 
       <div class="standard-rows">
         @for (row of standardRows(); track row.geneId) {
@@ -615,8 +618,12 @@
     <summary>Optional breeder prompts</summary>
     <ul>
       <li>Which visible traits held from one generation to the next, and which did not?</li>
-      <li>What happened to the bloodline reading as you kept breeding your best dragons together?</li>
-      <li>How many litters of evidence would convince you that your breed is inherited reliably?</li>
+      <li>
+        What happened to the bloodline reading as you kept breeding your best dragons together?
+      </li>
+      <li>
+        How many litters of evidence would convince you that your breed is inherited reliably?
+      </li>
     </ul>
   </details>
 </section>

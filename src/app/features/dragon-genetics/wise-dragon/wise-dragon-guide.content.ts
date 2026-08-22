@@ -1,5 +1,6 @@
 import { DRAGON_SIMULATIONS } from '../adaptive/dragon-simulation.registry';
 import { DRAGON_PROJECT_HUB_DEFINITION } from '../project/dragon-project-hub.definition';
+import { dragonJourneyLesson, dragonJourneyPath } from '../journey/config/dragon-journey.registry';
 import { answerGeneticsConcept } from './wise-dragon-answers';
 
 export interface WiseDragonGuideContext {
@@ -10,25 +11,27 @@ export interface WiseDragonGuideContext {
   operations: string;
   evidence: string;
   explanation: string;
+  saved: string;
 }
 
 export interface WiseDragonQuickQuestion {
-  id: 'try' | 'notice' | 'explain';
+  id: 'start' | 'choices' | 'notice' | 'saved';
   label: string;
   question: string;
 }
 
 export const WISE_DRAGON_QUICK_QUESTIONS: readonly WiseDragonQuickQuestion[] = [
-  { id: 'try', label: 'What can I try?', question: 'What can I try on this page?' },
+  { id: 'start', label: 'Where can I start?', question: 'Where can I start on this page?' },
+  { id: 'choices', label: 'Show my choices', question: 'What can I change or try?' },
   {
     id: 'notice',
     label: 'What should I notice?',
     question: 'What evidence should I notice?',
   },
   {
-    id: 'explain',
-    label: 'Help me explain',
-    question: 'How can I explain what I observed?',
+    id: 'saved',
+    label: 'What gets saved?',
+    question: 'What evidence gets saved?',
   },
 ];
 
@@ -36,6 +39,7 @@ interface GuideDetails {
   operations: string;
   evidence: string;
   explanation: string;
+  saved?: string;
 }
 
 const PROJECT_GUIDE: GuideDetails = {
@@ -163,6 +167,48 @@ const GUIDE_DETAILS: Readonly<Record<string, GuideDetails>> = {
     explanation:
       'Identify which champion features came from inheritance and which performance changed through training, then cite the matching record for each.',
   },
+  'mini-dragon-pedigree': {
+    operations:
+      'Choose a rare form, compare dragons across generations, and flag any candidate whose family record supports your reasoning. You can revise flags at any time.',
+    evidence:
+      'Compare parents, siblings, and offspring. A dragon that does not show a recessive form may still be a useful carrier candidate.',
+    explanation:
+      'Name the family relationship and outcome that makes your flagged candidate stronger than a choice based only on appearance.',
+    saved: 'Flagged candidates are saved to the shared mini-dragon breeding record.',
+  },
+  'mini-dragon-training': {
+    operations:
+      'Choose a mini dragon and any available training activity. Repeat or compare sessions to see what practice changes.',
+    evidence:
+      'Use training logs for learned performance and pedigree or phenotype records for inherited features. Keep those evidence types separate.',
+    explanation:
+      'Describe what changed after practice without claiming that a learned score was inherited.',
+    saved: 'Completed training sessions are saved to that dragon’s shared kennel record.',
+  },
+  'mini-dragon-arena': {
+    operations:
+      'Choose an eligible mini dragon, run the show card, inspect the judges’ evidence, and register a breed only when the record supports it.',
+    evidence:
+      'Compare phenotype, pedigree consistency, and training performance. No single score proves the whole breed claim.',
+    explanation:
+      'Cite one inherited record and one performance record, then explain the limit of each.',
+    saved: 'Show runs and completed registry entries are saved to the shared breeding program.',
+  },
+  'viking-breeding': {
+    operations:
+      'Inspect the kennel, choose a pairing, make a prediction, and compare the resulting line with the breeding goal.',
+    evidence: 'Track parent traits, predicted outcomes, and actual offspring across generations.',
+    explanation:
+      'Use before-and-after line evidence to justify the next pairing rather than choosing by appearance alone.',
+  },
+  'island-expedition': {
+    operations:
+      'Scan an island population, inspect its dossier and dragons, then make and record a prediction.',
+    evidence:
+      'Compare trait frequencies, allele evidence, and environmental conditions across islands.',
+    explanation:
+      'Connect the population pattern to evidence while keeping correlation separate from proof of cause.',
+  },
 };
 
 export function resolveWiseDragonGuideContext(url: string): WiseDragonGuideContext {
@@ -180,6 +226,44 @@ export function resolveWiseDragonGuideContext(url: string): WiseDragonGuideConte
     path === '/dragon-genetics/allele-workbench-reference'
       ? '/dragon-genetics/allele-workbench'
       : path;
+  const journeyMatch = canonicalPath.match(
+    /^\/dragon-genetics\/journey\/([^/]+)(?:\/lesson\/([^/]+))?$/,
+  );
+  if (journeyMatch) {
+    const journeyPath = dragonJourneyPath(decodeURIComponent(journeyMatch[1]));
+    const lesson = dragonJourneyLesson(
+      journeyMatch[2] ? decodeURIComponent(journeyMatch[2]) : null,
+    );
+    if (journeyPath && lesson?.pathId === journeyPath.id) {
+      const choices = lesson.workstationVisits
+        .map((visit) => `${visit.title}: ${visit.launchHint}`)
+        .join(' ');
+      const requirements = lesson.requirements.map((requirement) => requirement.label).join('; ');
+      return createContext(`journey-${lesson.id}`, lesson.title, lesson.learningGoal, {
+        operations: choices,
+        evidence: `This lesson is ready when your work shows: ${requirements}.`,
+        explanation: lesson.learningGoal,
+        saved:
+          'Return to this lesson after working. Its evidence check reads your saved workstation records automatically.',
+      });
+    }
+    if (journeyPath) {
+      return createContext(
+        `journey-${journeyPath.id}`,
+        journeyPath.title,
+        journeyPath.description,
+        {
+          operations:
+            'Open any available lesson. The highlighted lesson is your suggested next place, and completed lessons remain available for review.',
+          evidence:
+            'Each lesson names the evidence it needs. A lesson changes to complete only after that evidence has been saved.',
+          explanation:
+            'Use the lesson goal to connect a workstation observation to the larger breeding story.',
+          saved: 'Lesson and path progress are calculated from your shared evidence records.',
+        },
+      );
+    }
+  }
   const activity = DRAGON_PROJECT_HUB_DEFINITION.activities.find(
     (candidate) => candidate.route === canonicalPath,
   );
@@ -212,6 +296,9 @@ export function answerWiseDragonGuideQuestion(
     /\b(button|control|drag|drop|click|start)\b/.test(normalized)
   ) {
     return context.operations;
+  }
+  if (/\b(save|saved|record|progress|finish|complete)\b/.test(normalized)) {
+    return context.saved;
   }
   if (/\b(notice|observe|look for|evidence|compare|result)\b/.test(normalized)) {
     return context.evidence;
@@ -248,6 +335,9 @@ function createContext(
     title,
     goal,
     welcome: `I am here with you in ${title}. Ask about the controls, the genetics, or how to turn an observation into evidence.`,
+    saved:
+      details.saved ??
+      'The workstation saves its own evidence records. Journey progress updates from those records.',
     ...details,
   };
 }

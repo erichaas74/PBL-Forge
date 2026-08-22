@@ -32,6 +32,18 @@ describe('Dragon journey registry', () => {
     expect(showVisits.filter((id) => id === 'companion-show').length).toBeGreaterThan(1);
   });
 
+  it('requires student-created evidence before the first and pedigree Show lessons complete', () => {
+    const first = DRAGON_LESSONS.find((lesson) => lesson.id === 'show-meet-pair');
+    const pedigree = DRAGON_LESSONS.find((lesson) => lesson.id === 'show-read-pedigree');
+
+    expect(first?.requirements).toContainEqual(
+      expect.objectContaining({ metric: 'companion.standard-targets', minimum: 1 }),
+    );
+    expect(pedigree?.requirements).toContainEqual(
+      expect.objectContaining({ metric: 'companion.pedigree-candidates', minimum: 1 }),
+    );
+  });
+
   it('normalizes unsafe class settings and preserves the capstone', () => {
     const normalized = normalizeDragonClassJourneyPlan({
       schemaVersion: 1,

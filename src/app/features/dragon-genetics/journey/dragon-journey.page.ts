@@ -16,7 +16,10 @@ export class DragonJourneyPage {
 
   constructor() {
     const pathId = this.route.snapshot.paramMap.get('pathId');
-    if (pathId) this.journey.choosePath(pathId);
+    if (pathId && !this.journey.choosePath(pathId)) {
+      this.redirectToSelectedJourney();
+      return;
+    }
     this.journey.refresh();
   }
 
@@ -29,5 +32,13 @@ export class DragonJourneyPage {
     if (lesson.complete) return 'Complete';
     if (lesson.active) return 'Recommended next';
     return lesson.required ? 'Required' : 'Optional';
+  }
+
+  private redirectToSelectedJourney(): void {
+    const selectedPathId = this.journey.selectedPathId();
+    const commands = selectedPathId
+      ? ['/dragon-genetics/journey', selectedPathId]
+      : ['/dragon-genetics/journey'];
+    void this.router.navigate(commands, { replaceUrl: true });
   }
 }

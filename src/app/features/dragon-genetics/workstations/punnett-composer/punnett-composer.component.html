@@ -1,4 +1,8 @@
-<section class="punnett-workstation" aria-labelledby="punnett-goal">
+<section
+  class="punnett-workstation"
+  aria-labelledby="punnett-goal"
+  data-guide-anchors="gamete-tray punnett-grid ratio-readout cell-inspector"
+>
   <header class="instrument-header">
     <div>
       <span>SCIENTIFIC GOAL</span>
@@ -71,9 +75,7 @@
           <article class="test-model" [class.parent-two-source]="side === 'parent2'">
             <header>
               <small>{{
-                side === 'parent1'
-                  ? 'TEST CELL · XX · LEFT AXIS'
-                  : 'TEST CELL · XY · TOP AXIS'
+                side === 'parent1' ? 'TEST CELL · XX · LEFT AXIS' : 'TEST CELL · XY · TOP AXIS'
               }}</small>
               <strong>{{ side === 'parent1' ? parent1()?.name : parent2()?.name }}</strong>
             </header>

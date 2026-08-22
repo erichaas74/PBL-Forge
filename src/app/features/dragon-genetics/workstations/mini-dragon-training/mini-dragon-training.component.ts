@@ -2,6 +2,7 @@ import { Component, ViewChild, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import { MiniDragonStationComponent } from '../mini-dragon-shared/mini-dragon-station.base';
+import { MiniDragonCardComponent } from '../mini-dragon-shared/mini-dragon-card.component';
 import { MiniTrainingSkillId } from '../companion-show/companion-show.models';
 import { MINI_TRAINING_MOTIONS } from '../companion-show/mini-dragon.training-motions';
 
@@ -14,7 +15,7 @@ import { MINI_TRAINING_MOTIONS } from '../companion-show/mini-dragon.training-mo
  */
 @Component({
   selector: 'app-mini-dragon-training',
-  imports: [RouterLink, SpecimenViewportComponent],
+  imports: [RouterLink, SpecimenViewportComponent, MiniDragonCardComponent],
   templateUrl: './mini-dragon-training.component.html',
   styleUrl: './mini-dragon-training.component.scss',
 })

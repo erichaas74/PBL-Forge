@@ -1,4 +1,8 @@
-<section class="trait-lab" aria-labelledby="trait-lab-title">
+<section
+  class="trait-lab"
+  aria-labelledby="trait-lab-title"
+  data-guide-anchors="specimen-board evidence-rack claim-builder"
+>
   <header class="goal-line">
     <div>
       <span>Scientific goal</span>
@@ -32,7 +36,12 @@
       (activeItemChange)="selectDragonById($event.id)"
     />
 
-    <ng-template #traitDragonCard let-dragon let-active="active" let-renderPortrait="renderPortrait">
+    <ng-template
+      #traitDragonCard
+      let-dragon
+      let-active="active"
+      let-renderPortrait="renderPortrait"
+    >
       @if (dragonCardViews.get(dragon.id); as cardView) {
         @if (cardGenomeViews.get(dragon.id); as genomeView) {
           <app-dragon-flip-card

@@ -126,6 +126,17 @@ export class DragonAdaptiveStore {
     definition: DragonSimulationDefinition,
     forceNew = false,
   ): Promise<DragonSimulationRun> {
+    // Paint a resumable device run before authentication and Firestore finish hydrating. Dedicated
+    // workstations only need the run shell to mount, so waiting here made a healthy local lab look
+    // blank for several seconds on slower classroom connections.
+    const cached = this.runsSignal()[definition.id];
+    if (!forceNew && cached) {
+      this.putRun(cached);
+    } else if (!forceNew) {
+      const provisionalStudentId = this.session.user()?.uid ?? LOCAL_WORKSTATION_STUDENT_ID;
+      const provisionalSettings = this.settingsFor(definition.id, provisionalStudentId);
+      this.putRun(this.createRun(definition, provisionalSettings, provisionalStudentId, 1), false);
+    }
     await this.awaitCurrentHydration();
     const user = await this.session.ensureUser();
     const studentId = user?.uid ?? LOCAL_WORKSTATION_STUDENT_ID;
@@ -150,41 +161,7 @@ export class DragonAdaptiveStore {
       return existing;
     }
 
-    const attemptNumber = (existing?.attemptNumber ?? 0) + 1;
-    const seed = `${studentId}:${settings.assignmentId}:${definition.id}:${settings.assignmentVersion}:${attemptNumber}`;
-    // Selection happens once, here. The chosen items are frozen onto the run so that answering a
-    // question — which changes the history selection reads — cannot reshuffle the run in progress.
-    const plan = planSimulationQuestions({
-      definition,
-      settings,
-      seed,
-      studentId,
-      history: this.inquiryHistory(),
-      inquirySettings: this.inquirySettings(),
-      studentOverride: this.assignmentSignal().studentOverrides[studentId]?.inquiry,
-    });
-    const questions = plan.questions;
-    const now = new Date().toISOString();
-    const run: DragonSimulationRun = {
-      schemaVersion: 1,
-      simulationId: definition.id,
-      studentId,
-      assignmentId: settings.assignmentId,
-      assignmentVersion: settings.assignmentVersion,
-      contentVersion: DRAGON_SIMULATION_CONTENT_VERSION,
-      level: plan.resolved.level,
-      hintsAllowed: plan.resolved.hintsAllowed,
-      seed,
-      attemptNumber,
-      currentQuestionIndex: 0,
-      questionIds: questions.map((question) => question.id),
-      servedItemIds: questions.map((question) => question.templateId),
-      responses: [],
-      complete: false,
-      score: 0,
-      startedAtIso: now,
-      updatedAtIso: now,
-    };
+    const run = this.createRun(definition, settings, studentId, (existing?.attemptNumber ?? 0) + 1);
     this.putRun(run);
     await this.persist(run);
     return run;
@@ -232,7 +209,9 @@ export class DragonAdaptiveStore {
       responses,
       // A run can legitimately be short when the bank has few eligible items, so guard the divisor.
       score: run.questionIds.length
-        ? Math.round((100 * responses.filter((item) => item.correct).length) / run.questionIds.length)
+        ? Math.round(
+            (100 * responses.filter((item) => item.correct).length) / run.questionIds.length,
+          )
         : 0,
       updatedAtIso: new Date().toISOString(),
     };
@@ -253,6 +232,22 @@ export class DragonAdaptiveStore {
       ...run,
       currentQuestionIndex: last ? run.currentQuestionIndex : run.currentQuestionIndex + 1,
       complete: last,
+      updatedAtIso: new Date().toISOString(),
+    };
+    this.putRun(next);
+    void this.persist(next);
+    return next;
+  }
+
+  /** Mark a dedicated open investigation complete after it saves its own authentic evidence. */
+  completeInvestigation(simulationId: DragonSimulationId): DragonSimulationRun | null {
+    const run = this.runsSignal()[simulationId];
+    if (!run || run.complete) return run ?? null;
+    const next: DragonSimulationRun = {
+      ...run,
+      currentQuestionIndex: Math.max(0, run.questionIds.length - 1),
+      complete: true,
+      score: 100,
       updatedAtIso: new Date().toISOString(),
     };
     this.putRun(next);
@@ -360,10 +355,51 @@ export class DragonAdaptiveStore {
     }
   }
 
-  private putRun(run: DragonSimulationRun): void {
+  private createRun(
+    definition: DragonSimulationDefinition,
+    settings: ResolvedSimulationSettings,
+    studentId: string,
+    attemptNumber: number,
+  ): DragonSimulationRun {
+    const seed = `${studentId}:${settings.assignmentId}:${definition.id}:${settings.assignmentVersion}:${attemptNumber}`;
+    const plan = planSimulationQuestions({
+      definition,
+      settings,
+      seed,
+      studentId,
+      history: this.inquiryHistory(),
+      inquirySettings: this.inquirySettings(),
+      studentOverride: this.assignmentSignal().studentOverrides[studentId]?.inquiry,
+    });
+    const now = new Date().toISOString();
+    return {
+      schemaVersion: 1,
+      simulationId: definition.id,
+      studentId,
+      assignmentId: settings.assignmentId,
+      assignmentVersion: settings.assignmentVersion,
+      contentVersion: DRAGON_SIMULATION_CONTENT_VERSION,
+      level: plan.resolved.level,
+      hintsAllowed: plan.resolved.hintsAllowed,
+      seed,
+      attemptNumber,
+      currentQuestionIndex: 0,
+      questionIds: plan.questions.map((question) => question.id),
+      servedItemIds: plan.questions.map((question) => question.templateId),
+      responses: [],
+      complete: false,
+      score: 0,
+      startedAtIso: now,
+      updatedAtIso: now,
+    };
+  }
+
+  private putRun(run: DragonSimulationRun, saveOnDevice = true): void {
     this.runsSignal.update((runs) => {
       const next = { ...runs, [run.simulationId]: run };
-      saveLocalRuns(next, this.session.user()?.uid ?? LOCAL_WORKSTATION_STUDENT_ID);
+      if (saveOnDevice) {
+        saveLocalRuns(next, this.session.user()?.uid ?? LOCAL_WORKSTATION_STUDENT_ID);
+      }
       return next;
     });
   }
@@ -392,16 +428,7 @@ export class DragonAdaptiveStore {
   private completeAlleleWorkbenchIfReady(notebook: GeneticsNotebookSnapshot): void {
     const available = this.availableAlleleGeneIds();
     if (!available.length || !available.every((geneId) => !!notebook.discoveries[geneId])) return;
-    const run = this.runsSignal()['allele-workbench'];
-    if (!run || run.complete) return;
-    const next = {
-      ...run,
-      complete: true,
-      score: 100,
-      updatedAtIso: new Date().toISOString(),
-    };
-    this.putRun(next);
-    void this.persist(next);
+    this.completeInvestigation('allele-workbench');
   }
 
   private async persistGeneticsNotebook(notebook: GeneticsNotebookSnapshot): Promise<void> {

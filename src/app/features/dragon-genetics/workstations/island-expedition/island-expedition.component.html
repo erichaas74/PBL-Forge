@@ -1,4 +1,8 @@
-<section class="expedition" aria-labelledby="expedition-goal">
+<section
+  class="expedition"
+  aria-labelledby="expedition-goal"
+  data-guide-anchors="field-panel dossier-panel prediction-panel dragon-detail dragon-list"
+>
   <header class="goal-block">
     <span>Scientific goal</span>
     <h2 id="expedition-goal">{{ goal() }}</h2>
@@ -17,7 +21,9 @@
       </p>
       <ul>
         @for (locus of loci; track locus.id) {
-          <li><strong>{{ locus.name }}.</strong> {{ locus.ecologyHint }}</li>
+          <li>
+            <strong>{{ locus.name }}.</strong> {{ locus.ecologyHint }}
+          </li>
         }
       </ul>
       <p class="guide-note">
@@ -38,8 +44,14 @@
     </label>
     <p class="brief-text">{{ activeQuest().brief }}</p>
     <dl class="budgets">
-      <div><dt>Survey flights</dt><dd>{{ surveysLeft() }} / {{ activeQuest().surveyBudget }}</dd></div>
-      <div><dt>Sequencing</dt><dd>{{ sequencesLeft() }} / {{ activeQuest().sequenceBudget }}</dd></div>
+      <div>
+        <dt>Survey flights</dt>
+        <dd>{{ surveysLeft() }} / {{ activeQuest().surveyBudget }}</dd>
+      </div>
+      <div>
+        <dt>Sequencing</dt>
+        <dd>{{ sequencesLeft() }} / {{ activeQuest().sequenceBudget }}</dd>
+      </div>
     </dl>
   </div>
 
@@ -126,7 +138,12 @@
 
         <div class="dossier-actions">
           <button type="button" (click)="predictSelectedIsland()">Predict this island</button>
-          <button type="button" class="primary" [disabled]="surveysLeft() <= 0" (click)="runSurvey()">
+          <button
+            type="button"
+            class="primary"
+            [disabled]="surveysLeft() <= 0"
+            (click)="runSurvey()"
+          >
             Survey ({{ activeQuest().sampleSize }} dragons)
           </button>
         </div>
@@ -181,8 +198,7 @@
     <header>
       <h3>Field records</h3>
       <p>
-        {{ surveyedDragons().length }} examined ·
-        {{ confirmedMatches().length }} confirmed ·
+        {{ surveyedDragons().length }} examined · {{ confirmedMatches().length }} confirmed ·
         {{ candidateMatches().length }} unresolved
       </p>
     </header>
@@ -201,7 +217,13 @@
               <strong>{{ match.dragon.name }}</strong>
               <small>{{ match.dragon.sex }}</small>
               <span class="status">
-                {{ match.confirmed ? 'Matches brief' : match.candidate ? 'Needs sequencing' : 'Ruled out' }}
+                {{
+                  match.confirmed
+                    ? 'Matches brief'
+                    : match.candidate
+                      ? 'Needs sequencing'
+                      : 'Ruled out'
+                }}
               </span>
             </button>
 
@@ -259,8 +281,8 @@
           </p>
           @if (result.tier !== 'best') {
             <p>
-              The strongest island for this brief was <strong>{{ result.bestIslandName }}</strong>,
-              where about {{ (result.bestProbability * 100).toFixed(0) }}% of dragons match.
+              The strongest island for this brief was <strong>{{ result.bestIslandName }}</strong
+              >, where about {{ (result.bestProbability * 100).toFixed(0) }}% of dragons match.
             </p>
           }
           <p class="habit">

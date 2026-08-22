@@ -19,3 +19,29 @@ app-fanned-card-deck.compact {
     --fanned-deck-mobile-card-width: min(18rem, calc(100% - 4.2rem));
   }
 }
+
+.deck-flip {
+  padding: 0.5rem 1.05rem;
+  border: 1px solid rgb(241 197 93 / 62%);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgb(52 78 82 / 96%), rgb(17 30 35 / 96%));
+  color: #ffe9ae;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.deck-flip:hover:not(:disabled),
+.deck-flip:focus-visible {
+  background: linear-gradient(180deg, rgb(68 98 100 / 98%), rgb(24 40 45 / 98%));
+  transform: translateY(-1px);
+}
+
+.deck-flip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

@@ -1,10 +1,4 @@
-import {
-  Component,
-  computed,
-  effect,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -45,8 +39,11 @@ import {
 } from './dragon-simulation.registry';
 import { DragonSimulationVisualComponent } from '../workstations/simulation-visual/dragon-simulation-visual.component';
 import { GenomeMicroscopeComponent } from '../workstations/genome-microscope/genome-microscope.component';
+import { GenomeMicroscopeEvidence } from '../workstations/genome-microscope/genome-microscope.models';
 import { PunnettComposerComponent } from '../workstations/punnett-composer/punnett-composer.component';
 import { IncubatorSamplerComponent } from '../workstations/incubator-sampler/incubator-sampler.component';
+import { DragonJourneyNavigationService } from '../journey/dragon-journey-navigation.service';
+import { WorkstationGuideStateService } from '../wise-dragon/workstation-guide-state.service';
 
 const DEDICATED_WORKSTATION_IDS = new Set<DragonSimulationId>([
   'allele-workbench',
@@ -79,6 +76,8 @@ export class DragonSimulationExperiencePage {
   private readonly workstationContext = inject(DragonWorkstationContextService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  readonly workstationExitUrl = inject(DragonJourneyNavigationService).workstationExitUrl;
+  private readonly liveGuide = inject(WorkstationGuideStateService);
   private readonly simulationId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('simulationId'))),
     { initialValue: this.route.snapshot.paramMap.get('simulationId') },
@@ -259,8 +258,8 @@ export class DragonSimulationExperiencePage {
   });
   readonly selectedNodeId = signal<string | null>(null);
   readonly hintOpen = signal(false);
-  readonly guideOpen = signal(false);
   readonly alleleClaimFeedback = signal<AlleleClaimFeedback | null>(null);
+  private readonly genomeEvidenceLevels = signal<ReadonlySet<string>>(new Set());
   readonly levels = INSTRUCTION_LEVELS;
   readonly levelLabels = INSTRUCTION_LEVEL_LABELS;
   readonly levelProfiles = LEVEL_PROFILES;
@@ -274,9 +273,10 @@ export class DragonSimulationExperiencePage {
       }
       this.selectedNodeId.set(null);
       this.hintOpen.set(false);
-      this.guideOpen.set(false);
       this.arenaTrial.set(null);
       this.alleleClaimFeedback.set(null);
+      this.genomeEvidenceLevels.set(new Set());
+      this.liveGuide.enter(definition.id);
       void this.store.prepareRun(definition);
     });
   }
@@ -300,6 +300,36 @@ export class DragonSimulationExperiencePage {
       (option) => option.nodeId === nodeId || option.id === nodeId,
     );
     if (matchingOption) this.answer(question, matchingOption.id);
+  }
+
+  handleGenomeEvidence(evidence: GenomeMicroscopeEvidence): void {
+    this.genomeEvidenceLevels.update((levels) => new Set([...levels, evidence.level]));
+    const levels = this.genomeEvidenceLevels();
+    this.liveGuide.changed(
+      'genome-microscope',
+      `You inspected the ${evidence.level} level. Compare it with a neighboring scale.`,
+    );
+    if (levels.has('chromosome') && levels.has('gene')) {
+      this.store.completeInvestigation('genome-microscope');
+      this.liveGuide.saved(
+        'genome-microscope',
+        'Your chromosome-to-gene investigation is recorded for the journey.',
+      );
+    }
+  }
+
+  handleDnaEvidence(nodeId: 'replication' | 'transcription' | 'mutation' | 'repair'): void {
+    this.selectNode(nodeId);
+    this.store.completeInvestigation('dna-process-lab');
+    this.liveGuide.saved(
+      'dna-process-lab',
+      `Your ${nodeId} model evidence is recorded for the journey.`,
+    );
+  }
+
+  completeDedicatedInvestigation(simulationId: DragonSimulationId): void {
+    this.store.completeInvestigation(simulationId);
+    this.liveGuide.saved(simulationId, 'This investigation produced a saved evidence record.');
   }
 
   handleAlleleWorkbenchInteraction(event: AlleleWorkbenchInteraction): void {

@@ -33,6 +33,12 @@
       <span>Here with you in</span>
       <strong>{{ context().title }}</strong>
       <p>{{ context().goal }}</p>
+      @if (liveState(); as state) {
+        <p class="wise-guide__live" [attr.data-kind]="state.kind" aria-live="polite">
+          <strong>{{ state.kind === 'saved' ? 'Evidence saved' : 'Right now' }}</strong>
+          {{ state.message }}
+        </p>
+      }
     </section>
 
     <div #conversation class="wise-guide__conversation" role="log" aria-live="polite">

@@ -18,12 +18,29 @@ workstation are documented in
 - `companion-show/` owns the **mini dragon** — a separate species from the four-gene lab dragon, with
   its own six loci across five inheritance patterns (`mini-dragon.genetics.ts`), its own genome →
   blueprint builder (`mini-dragon.anatomy.ts`), and its own judged show-ring trials
-  (`mini-dragon.events.ts`) — plus the student-written breed standard, the kennel and its pedigree,
-  litters and the nursery, the pedigree-only bloodline meter, and the breed registry. It is the
-  open-workstation alternative to the arena and has its own route at
-  `/dragon-genetics/companion-show`. Its anatomy is rendered by
+  (`mini-dragon.events.ts`). The folder holds the species and the **kennel** station: the
+  student-written breed standard, pairing, litters and the nursery, the pedigree-only bloodline
+  meter, and the breed registry record. Its route is `/dragon-genetics/companion-show`, and its
+  anatomy is rendered by
   `src/app/shared/assembly/rendering/mini-dragon-procedural-mesh.factory.ts`, which shares nothing
   with the classic dragon factory.
+
+  One breeding programme, four rooms. `companion-show/mini-dragon-kennel.store.ts` is the single
+  root-scoped owner of that programme — one `CompanionShowSnapshot`, one repository key — and the
+  three sibling stations below are separate routes over the same state. Each station borrows the
+  slice its template names through `mini-dragon-shared/mini-dragon-station.base.ts`, and each calls
+  `ensureRestored()` on mount, which is a no-op after the first, so walking between rooms never
+  rewinds work in progress. A station folder owns only what is genuinely its own: its viewport, its
+  motions, its manifest.
+- `mini-dragon-training/` owns the training ground: practice sessions recorded against a *dragon*
+  and never against its genome, which is the room's whole argument. Route
+  `/dragon-genetics/mini-dragon-training`.
+- `mini-dragon-arena/` owns the show arena: the Society division board, the 50/50 judge console, the
+  championship routine, and breed registration. Route `/dragon-genetics/mini-dragon-arena`.
+- `mini-dragon-pedigree/` owns the pedigree lab: tracing one hidden recessive form through every pup
+  ever whelped, kept or not. Route `/dragon-genetics/mini-dragon-pedigree`.
+- `mini-dragon-shared/` holds what all four rooms share: the station base directive and the station
+  stylesheet.
 - `dna-process-lab/` owns DNA sequence comparison, mutation, and repair tools.
 - `dragon-hatchery/` owns account-parent loading, five-pair meiosis and gamete selection, selected
   fertilization records, parent canvases, the egg bench, Hatchery renderer, and scene adapter.

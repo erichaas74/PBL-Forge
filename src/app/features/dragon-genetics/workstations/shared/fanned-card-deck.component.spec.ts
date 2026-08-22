@@ -64,6 +64,22 @@ describe('FannedCardDeckComponent', () => {
         expect(host.activeId()).toBe('d');
     });
 
+    it('steps through the deck with the previous and next buttons', async () => {
+        const element = fixture.nativeElement as HTMLElement;
+        const [previous, next] = Array.from(element.querySelectorAll<HTMLButtonElement>('.fanned-deck__step'));
+
+        expect(element.querySelector('.fanned-deck__status')?.textContent).toContain('Card 2 of 4');
+
+        next.click();
+        await fixture.whenStable();
+        expect(host.activeId()).toBe('c');
+
+        previous.click();
+        previous.click();
+        await fixture.whenStable();
+        expect(host.activeId()).toBe('a');
+    });
+
     it('shuffles forward and backward when a drag crosses the swipe threshold', () => {
         const surface = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.fanned-deck')!;
         swipe(host.deck, surface, 200, 120);

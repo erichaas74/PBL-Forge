@@ -31,6 +31,7 @@ export type DragonJourneyMetric =
   | 'companion.selected-parents'
   | 'companion.litters'
   | 'companion.kept-dragons'
+  | 'companion.pedigree-candidates'
   | 'companion.training-sessions'
   | 'companion.show-runs'
   | 'companion.registry-entries'

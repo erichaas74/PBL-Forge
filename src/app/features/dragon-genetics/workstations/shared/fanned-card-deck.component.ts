@@ -3,6 +3,7 @@ import {
   TemplateRef,
   computed,
   input,
+  linkedSignal,
   output,
   signal,
 } from '@angular/core';
@@ -41,6 +42,12 @@ export class FannedCardDeckComponent<T extends FannedDeckItem = FannedDeckItem> 
   readonly activeIndex = computed(() => {
     const index = this.items().findIndex((item) => item.id === this.activeId());
     return index < 0 ? 0 : index;
+  });
+  private readonly navigationIndex = linkedSignal(() => this.activeIndex());
+
+  readonly activeLabel = computed(() => {
+    const item = this.items()[this.activeIndex()];
+    return item ? this.labelFor()(item) : '';
   });
 
   private dragStart: { x: number; y: number; pointerId: number } | null = null;
@@ -89,7 +96,10 @@ export class FannedCardDeckComponent<T extends FannedDeckItem = FannedDeckItem> 
     if (this.disabled()) return;
     const items = this.items();
     if (items.length < 2) return;
-    const nextIndex = (this.activeIndex() + direction + items.length) % items.length;
+    const nextIndex = (this.navigationIndex() + direction + items.length) % items.length;
+    // Keep rapid keyboard/button taps moving from the last requested card while the parent input
+    // catches up on the next change-detection pass.
+    this.navigationIndex.set(nextIndex);
     this.activeItemChange.emit(items[nextIndex]);
   }
 

@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
@@ -80,6 +81,7 @@ export class IncubatorSamplerComponent implements OnDestroy {
   readonly goal = input(
     'Investigate how visible inherited traits appear and change across offspring and generations.',
   );
+  readonly batchSaved = output<IncubatorBatchRecord>();
 
   readonly traits = DRAGON_TRAITS;
   readonly sampleSizes = [4, 8, 12, 25, 50, 100] as const;
@@ -327,6 +329,7 @@ export class IncubatorSamplerComponent implements OnDestroy {
         .join(' · ')}.`,
     );
     this.persist();
+    this.batchSaved.emit(batch.record);
   }
 
   breedFromBucket(result: IncubatorPhenotypeResult): void {

@@ -41,4 +41,23 @@ describe('Wise Dragon page guide content', () => {
     expect(answer).toContain('will not reveal an untested result');
     expect(answer).toContain('what the page showed');
   });
+
+  it('uses the lesson goal and evidence requirements on journey lesson routes', () => {
+    const context = resolveWiseDragonGuideContext(
+      '/dragon-genetics/journey/mini-dragon-show/lesson/show-read-pedigree',
+    );
+
+    expect(context.id).toBe('journey-show-read-pedigree');
+    expect(context.title).toBe('Read the emerging pedigree');
+    expect(context.evidence).toContain('Flag a candidate using pedigree evidence');
+    expect(context.operations).toContain('Mini Dragon Pedigree Lab');
+  });
+
+  it('explains what a workstation saves', () => {
+    const context = resolveWiseDragonGuideContext('/dragon-genetics/mini-dragon-training');
+    const answer = answerWiseDragonGuideQuestion(context, 'What evidence gets saved?');
+
+    expect(answer).toContain('training sessions');
+    expect(answer).toContain('shared kennel record');
+  });
 });

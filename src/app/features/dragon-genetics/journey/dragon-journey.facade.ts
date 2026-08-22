@@ -269,6 +269,7 @@ export class DragonJourneyFacade {
       'companion.litters': companion.litters.length,
       'companion.kept-dragons': new Set(companion.litters.flatMap((litter) => litter.keptPupIds))
         .size,
+      'companion.pedigree-candidates': companion.rareCandidateIds.length,
       'companion.training-sessions': companion.trainingSessions.length,
       'companion.show-runs': companion.showRuns.length,
       'companion.registry-entries': companion.registry.length,

@@ -32,7 +32,7 @@
         <source
           type="image/avif"
           srcset="
-            /assets/dragon-genetics/great-hall-960.avif  960w,
+            /assets/dragon-genetics/great-hall-960.avif   960w,
             /assets/dragon-genetics/great-hall-1672.avif 1672w
           "
           sizes="100vw"
@@ -40,7 +40,7 @@
         <source
           type="image/webp"
           srcset="
-            /assets/dragon-genetics/great-hall-960.webp  960w,
+            /assets/dragon-genetics/great-hall-960.webp   960w,
             /assets/dragon-genetics/great-hall-1672.webp 1672w
           "
           sizes="100vw"
@@ -83,30 +83,27 @@
             <strong>Choose your saga</strong>
             <span aria-hidden="true">→</span>
           </a>
-        } @else if (view.nextAction; as next) {
-          @if (next.kind === 'activity') {
-            <div class="quest-scroll__copy">
-              <p class="quest-scroll__label">Today’s Quest</p>
-              <h2 id="quest-title">{{ next.title }}</h2>
-              <p>{{ next.objective }}</p>
-            </div>
-            <a class="quest-action" [routerLink]="next.route">
-              <span>{{ actionLabel(next) }}</span>
-              <strong>Begin quest</strong>
-              <span aria-hidden="true">→</span>
-            </a>
-          } @else {
-            <div class="quest-scroll__copy">
-              <p class="quest-scroll__label">The Saga Forge Awaits</p>
-              <h2 id="quest-title">{{ next.title }}</h2>
-              <p>{{ next.objective }}</p>
-            </div>
-            <a class="quest-action" href="#saga-paths">
-              <span>Final project</span>
-              <strong>Choose your saga</strong>
-              <span aria-hidden="true">↓</span>
-            </a>
-          }
+        } @else if (journey.nextLesson(); as next) {
+          <div class="quest-scroll__copy">
+            <p class="quest-scroll__label">
+              {{ next.complete ? 'Journey record' : 'Recommended next' }}
+            </p>
+            <h2 id="quest-title">{{ next.definition.title }}</h2>
+            <p>{{ next.definition.learningGoal }}</p>
+          </div>
+          <a
+            class="quest-action"
+            [routerLink]="[
+              '/dragon-genetics/journey',
+              next.definition.pathId,
+              'lesson',
+              next.definition.id,
+            ]"
+          >
+            <span>{{ next.complete ? 'Review' : 'Continue journey' }}</span>
+            <strong>{{ next.complete ? 'Open lesson record' : 'Open next lesson' }}</strong>
+            <span aria-hidden="true">→</span>
+          </a>
         } @else {
           <div class="quest-scroll__copy">
             <p class="quest-scroll__label">Required Training Complete</p>
@@ -127,9 +124,9 @@
         aria-label="Required academy work complete"
         aria-valuemin="0"
         aria-valuemax="100"
-        [attr.aria-valuenow]="view.progressPercent"
+        [attr.aria-valuenow]="journey.progressPercent()"
         [attr.aria-valuetext]="
-          view.completedRequiredCount + ' of ' + view.requiredActivityCount + ' required complete'
+          journey.completedLessonCount() + ' of ' + journey.lessons().length + ' lessons complete'
         "
       >
         <p>Academy Progress</p>
@@ -149,22 +146,23 @@
               }
             </g>
             <circle class="astrolabe__track" cx="64" cy="64" r="44" />
-            @if (view.progressPercent > 0) {
+            @if (journey.progressPercent() > 0) {
               <circle
                 class="astrolabe__arc"
                 cx="64"
                 cy="64"
                 r="44"
-                [style.stroke-dasharray]="dialDash(view.progressPercent)"
+                [style.stroke-dasharray]="dialDash(journey.progressPercent())"
               />
             }
             <path class="astrolabe__needle" d="M64 61 L64 25 L68 59 Z" />
             <circle class="astrolabe__hub" cx="64" cy="64" r="5" />
           </svg>
-          <strong>{{ view.progressPercent }}%</strong>
+          <strong>{{ journey.progressPercent() }}%</strong>
         </div>
         <span
-          >{{ view.completedRequiredCount }} of {{ view.requiredActivityCount }} seals earned</span
+          >{{ journey.completedLessonCount() }} of {{ journey.lessons().length }} lessons
+          complete</span
         >
       </div>
 

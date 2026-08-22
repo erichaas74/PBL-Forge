@@ -2575,3 +2575,33 @@
 .arena-division {
   margin-bottom: 1.5rem;
 }
+
+/*
+ * The kennel as cards.
+ *
+ * Selection in these rooms is a judgement about an animal, so the rack gives each
+ * dragon enough width to show its portrait and its standard line rather than
+ * listing names. It stays a fluid grid: the training roster is a narrow aside and
+ * the arena rack sits under the show stand.
+ */
+.mini-card-rack {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.training-roster {
+  min-height: 0;
+}
+
+.training-roster .mini-card-rack {
+  min-height: 0;
+  max-height: 30rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.candidate-rack {
+  margin-top: 0.6rem;
+}

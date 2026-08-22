@@ -1,4 +1,8 @@
-<section class="pedigree-lab" aria-labelledby="pedigree-goal">
+<section
+  class="pedigree-lab"
+  aria-labelledby="pedigree-goal"
+  data-guide-anchors="pedigree-canvas deduction-panel sequencing-bay"
+>
   <header class="instrument-header">
     <div class="goal-block">
       <span>SCIENTIFIC GOAL</span>
@@ -15,40 +19,8 @@
         <strong>{{ testsRemaining() }} / {{ investigation().dnaTestBudget }}</strong>
         <span>{{ testsSpent() }} spent</span>
       </div>
-      <button
-        class="guide-toggle"
-        type="button"
-        [attr.aria-expanded]="guideOpen()"
-        (click)="guideOpen.set(!guideOpen())"
-      >
-        Guide
-      </button>
     </div>
   </header>
-
-  @if (guideOpen()) {
-    <aside class="guide-panel" aria-label="Optional pedigree investigation guide">
-      <header>
-        <strong>Available lab actions</strong>
-        <button type="button" aria-label="Close guide" (click)="guideOpen.set(false)">×</button>
-      </header>
-      <ul>
-        <li>Open any bloodline in the archive and read the register in any order.</li>
-        <li>
-          Selecting a dragon redraws the canvas around their own line. The whole-bloodline button
-          brings the rest back.
-        </li>
-        <li>
-          Choose an inheritance model. The console then lists the records that model cannot
-          explain.
-        </li>
-        <li>
-          Sequencing is limited. Deduce what the pedigree already forces before spending a run.
-        </li>
-        <li>Stage two living dragons on the breeding board and record a prediction before hatching.</li>
-      </ul>
-    </aside>
-  }
 
   @if (message()) {
     <p class="lab-message" role="status" aria-live="polite">{{ message() }}</p>
@@ -119,8 +91,7 @@
             <dt>Last recorded</dt>
             <dd>
               @if (stats().lastObservedYear !== null) {
-                Year {{ stats().lastObservedYear }} ·
-                {{ stats().yearsSinceObserved }} years ago
+                Year {{ stats().lastObservedYear }} · {{ stats().yearsSinceObserved }} years ago
               } @else {
                 Never recorded
               }
@@ -162,7 +133,10 @@
                 <i aria-hidden="true">{{ entry.dragon.sex === 'male' ? '□' : '○' }}</i>
                 <span class="register-name">
                   <strong>{{ entry.dragon.name }}</strong>
-                  <small>Gen {{ entry.dragon.generation }} · age {{ archiveYear - entry.dragon.birthYear }}</small>
+                  <small
+                    >Gen {{ entry.dragon.generation }} · age
+                    {{ archiveYear - entry.dragon.birthYear }}</small
+                  >
                 </span>
                 @if (entry.state; as state) {
                   <span class="register-status">
@@ -234,7 +208,9 @@
             }
             @if (result.contradictions.length) {
               <div class="conflict" role="status">
-                <strong>{{ result.contradictions.length }} record(s) this model cannot explain</strong>
+                <strong
+                  >{{ result.contradictions.length }} record(s) this model cannot explain</strong
+                >
                 <ul>
                   @for (conflict of contradictions(); track conflict.dragonId) {
                     <li>
@@ -261,15 +237,39 @@
       <header class="canvas-controls">
         <div class="control-group" role="group" aria-label="Pedigree depth">
           <small>ANCESTORS</small>
-          <button type="button" (click)="collapseAncestors()" aria-label="Show fewer ancestor generations">−</button>
+          <button
+            type="button"
+            (click)="collapseAncestors()"
+            aria-label="Show fewer ancestor generations"
+          >
+            −
+          </button>
           <b>{{ ancestorDepth() }}</b>
-          <button type="button" (click)="expandAncestors()" aria-label="Show more ancestor generations">+</button>
+          <button
+            type="button"
+            (click)="expandAncestors()"
+            aria-label="Show more ancestor generations"
+          >
+            +
+          </button>
         </div>
         <div class="control-group" role="group" aria-label="Descendant depth">
           <small>DESCENDANTS</small>
-          <button type="button" (click)="collapseDescendants()" aria-label="Show fewer descendant generations">−</button>
+          <button
+            type="button"
+            (click)="collapseDescendants()"
+            aria-label="Show fewer descendant generations"
+          >
+            −
+          </button>
           <b>{{ descendantDepth() }}</b>
-          <button type="button" (click)="expandDescendants()" aria-label="Show more descendant generations">+</button>
+          <button
+            type="button"
+            (click)="expandDescendants()"
+            aria-label="Show more descendant generations"
+          >
+            +
+          </button>
         </div>
         <div class="control-group" role="group" aria-label="Canvas zoom">
           <small>ZOOM</small>
@@ -309,9 +309,7 @@
           preserveAspectRatio="xMidYMid meet"
         >
           @for (row of rows(); track row.generation) {
-            <text class="row-label" x="12" [attr.y]="row.y - 44">
-              GEN {{ row.generation }}
-            </text>
+            <text class="row-label" x="12" [attr.y]="row.y - 44">GEN {{ row.generation }}</text>
             <line
               class="row-rule"
               x1="0"
@@ -464,7 +462,9 @@
                 </strong>
               </div>
             } @else {
-              <p class="evidence-empty">Choose an inheritance model to deduce this dragon's genotype.</p>
+              <p class="evidence-empty">
+                Choose an inheritance model to deduce this dragon's genotype.
+              </p>
             }
             @if (riskGene(); as risk) {
               <div class="evidence-row risk">
@@ -472,8 +472,8 @@
                 <strong>{{ observed(dragon, risk.id) ?? 'Record lost' }}</strong>
                 @if (selectedRiskState(); as riskState) {
                   <span>
-                    {{ statusLabels[riskState.status] }} for {{ risk.recessivePhenotype.toLowerCase() }},
-                    read as autosomal recessive
+                    {{ statusLabels[riskState.status] }} for
+                    {{ risk.recessivePhenotype.toLowerCase() }}, read as autosomal recessive
                   </span>
                 }
               </div>
@@ -538,7 +538,9 @@
               }
             </button>
             @if (sequencedGenotype(dragon.id); as genotype) {
-              <p class="sequenced-result">Sequencer result: <b>{{ genotype }}</b></p>
+              <p class="sequenced-result">
+                Sequencer result: <b>{{ genotype }}</b>
+              </p>
             }
           </div>
 
@@ -742,7 +744,9 @@
                 <strong>{{ log.motherName }} × {{ log.fatherName }}</strong>
                 <span>
                   clutch {{ log.attempt }} · predicted {{ log.predictedPercent }}% · observed
-                  {{ log.observedPercent }}% ({{ log.recoveredCount }}/{{ log.hatchlingIds.length }})
+                  {{ log.observedPercent }}% ({{ log.recoveredCount }}/{{
+                    log.hatchlingIds.length
+                  }})
                 </span>
                 <span>
                   inbreeding {{ (log.inbreedingCoefficient * 100).toFixed(1) }}%

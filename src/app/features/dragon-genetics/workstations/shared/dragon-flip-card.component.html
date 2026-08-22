@@ -117,13 +117,15 @@
     </section>
   </div>
 
-  <button
-    type="button"
-    class="dragon-card__flip"
-    [disabled]="!active()"
-    [attr.aria-pressed]="flipped()"
-    (click)="requestFlip()"
-  >
-    {{ flipped() ? 'Show dragon front' : 'Flip for chromosomes' }}
-  </button>
+  @if (showFlipControl()) {
+    <button
+      type="button"
+      class="dragon-card__flip"
+      [disabled]="!active()"
+      [attr.aria-pressed]="flipped()"
+      (click)="requestFlip()"
+    >
+      {{ flipped() ? 'Show dragon front' : 'Flip for chromosomes' }}
+    </button>
+  }
 </div>

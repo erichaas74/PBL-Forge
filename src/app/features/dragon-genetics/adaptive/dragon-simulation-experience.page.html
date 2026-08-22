@@ -3,8 +3,12 @@
     <header class="experience-header">
       <a
         class="exit"
-        routerLink="/dragon-genetics"
-        aria-label="Return to Dragon Genetics mission map"
+        [routerLink]="workstationExitUrl()"
+        [attr.aria-label]="
+          workstationExitUrl() === '/dragon-genetics'
+            ? 'Return to Dragon Genetics mission map'
+            : 'Return to journey lesson'
+        "
         >←</a
       >
       <span class="academy-crest" aria-hidden="true">ᛞ</span>
@@ -19,16 +23,6 @@
           <span>{{ levelProfiles[currentRun.level].shortLabel }}</span>
           <small>{{ levelProfiles[currentRun.level].reasoningLabel }}</small>
         </div>
-      }
-      @if (simulation.id === 'allele-workbench') {
-        <button
-          class="guide-toggle"
-          type="button"
-          [attr.aria-expanded]="guideOpen()"
-          (click)="guideOpen.set(!guideOpen())"
-        >
-          Guide
-        </button>
       }
       <app-genetics-notebook
         [genes]="availableAlleleGenes()"
@@ -65,22 +59,6 @@
             }
           </select>
         </label>
-      </aside>
-    }
-
-    @if (simulation.id === 'allele-workbench' && guideOpen()) {
-      <aside class="guide-panel" aria-label="Optional allele investigation guide">
-        <header>
-          <strong>Investigation guide</strong>
-          <button type="button" aria-label="Close guide" (click)="guideOpen.set(false)">×</button>
-        </header>
-        <p>Use the instrument in any order. These are available lab actions, not required steps.</p>
-        <ul>
-          <li>Open any released gene record and compare its allele samples.</li>
-          <li>Load any two alleles into the sockets and run expression.</li>
-          <li>Expression results are recorded automatically in the genetics chart.</li>
-          <li>After all unique pairs for a gene are tested, use the evidence to submit a claim.</li>
-        </ul>
       </aside>
     }
 
@@ -135,7 +113,11 @@
         <main class="experience-workspace punnett-workspace">
           <section class="visual-stage punnett-stage">
             @defer (on immediate) {
-              <app-punnett-composer [studentId]="studentId()" [goal]="simulation.goal" />
+              <app-punnett-composer
+                [studentId]="studentId()"
+                [goal]="simulation.goal"
+                (crossSaved)="completeDedicatedInvestigation('punnett-composer')"
+              />
             } @placeholder {
               <div class="instrument-loading" role="status">Preparing chromosome tiles…</div>
             }
@@ -145,7 +127,11 @@
         <main class="experience-workspace incubator-workspace">
           <section class="visual-stage incubator-stage">
             @defer (on immediate) {
-              <app-incubator-sampler [studentId]="studentId()" [goal]="simulation.goal" />
+              <app-incubator-sampler
+                [studentId]="studentId()"
+                [goal]="simulation.goal"
+                (batchSaved)="completeDedicatedInvestigation('incubator-sampler')"
+              />
             } @placeholder {
               <div class="instrument-loading" role="status">Warming the incubator…</div>
             }
@@ -160,6 +146,7 @@
                 [genes]="availableAlleleGenes()"
                 [alleles]="availableAlleles()"
                 (modelSelected)="selectNode($event)"
+                (evidenceChanged)="handleGenomeEvidence($event)"
               />
             } @placeholder {
               <div class="instrument-loading" role="status">Focusing the microscope…</div>
@@ -177,7 +164,7 @@
                 [chromosomeModel]="transferredDnaChromosomeModel()"
                 [genes]="availableAlleleGenes()"
                 [alleles]="availableAlleles()"
-                (modelSelected)="selectNode($event)"
+                (modelSelected)="handleDnaEvidence($event)"
               />
             } @placeholder {
               <div class="instrument-loading" role="status">Loading the DNA analyzer…</div>
@@ -191,6 +178,7 @@
               <app-dragon-hatchery-breeding-lab
                 [studentId]="studentId()"
                 [seed]="currentRun.seed"
+                (fertilizationSaved)="completeDedicatedInvestigation('dragon-hatchery')"
               />
             } @placeholder {
               <div class="instrument-loading" role="status">Opening the hatchery…</div>
