@@ -1,11 +1,11 @@
-import { Injectable, signal } from '@angular/core';
+import { Service, signal } from '@angular/core';
 
 /**
  * Synthesized battle sounds — Web Audio oscillators and filtered noise, no audio
  * files to load. The context is created lazily on the first user action so the
  * browser autoplay policy is satisfied.
  */
-@Injectable()
+@Service({ autoProvided: false })
 export class DragonArenaSoundService {
   readonly enabled = signal(readStoredSoundEnabled());
 

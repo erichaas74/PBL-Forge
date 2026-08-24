@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { DragonWorkstationContextService } from '../shared/dragon-workstation-context.service';
 import { DragonPedigreeLabComponent } from './dragon-pedigree-lab.component';
+import { DragonJourneyNavigationService } from '../../journey/dragon-journey-navigation.service';
 
 /**
  * App host for the portable Pedigree Lab instrument.
@@ -21,6 +22,7 @@ export class DragonPedigreeLabPage {
   private readonly route = inject(ActivatedRoute);
 
   readonly studentId = this.context.studentId;
+  readonly workstationExitUrl = inject(DragonJourneyNavigationService).workstationExitUrl;
   /** `?investigation=frost-scale` — how the mission map links straight to a bloodline. */
   readonly requestedInvestigationId = toSignal(
     this.route.queryParamMap.pipe(map((params) => params.get('investigation'))),

@@ -29,6 +29,13 @@ import { WING_SHAPES } from '@pbl/assembly/rendering/dragon-wing-profile';
 import { PartTuningStore } from './part-tuning.store';
 import { DesignerDragonDraftStore } from '../designer-dragon-draft.store';
 import { MINI_DRAGON_PART_DEFINITIONS } from './mini-dragon-part-definitions';
+import {
+  DragonVisualParameterDefinition,
+  editableDragonParametersForProfile,
+} from '@pbl/assembly/model-pack/dragon-visual-parameter-registry';
+import { applyDesignerDraft } from '../designer-part-overrides';
+import { buildPartAcceptanceReport, partGroup } from './part-acceptance';
+import { exactPartPreviewFrame } from './part-preview-frame';
 
 /**
  * A workbench for the part meshes themselves.
@@ -66,6 +73,10 @@ export interface StyleControl {
   value: number;
 }
 
+export interface PartParameterControl extends DragonVisualParameterDefinition {
+  value: number;
+}
+
 const ANGLE_VIEWS: readonly AngleView[] = [
   { id: 'three-quarter', label: 'Three-quarter', direction: { x: 0.86, y: 0.42, z: 1 } },
   { id: 'side', label: 'Side', direction: { x: 0, y: 0.08, z: 1 } },
@@ -88,83 +99,6 @@ const NEUTRAL_COLOR = '#8d6a52';
  * controls feel live.
  */
 const COMMIT_DELAY_MS = 90;
-
-/** Which style section each part profile exposes, and the ranges worth dragging. */
-const STYLE_CONTROLS: Readonly<Record<string, readonly Omit<StyleControl, 'value'>[]>> = {
-  'dragon-body': [
-    { section: 'body', key: 'spikeCount', label: 'Spike count', min: 0, max: 16, step: 1 },
-    { section: 'body', key: 'spikeSpread', label: 'Ridge length', min: 0.1, max: 0.95, step: 0.01 },
-    { section: 'body', key: 'spikeHeight', label: 'Spike height', min: 0.01, max: 0.3, step: 0.005 },
-    { section: 'body', key: 'spikeRadius', label: 'Spike thickness', min: 0.005, max: 0.12, step: 0.002 },
-    { section: 'body', key: 'spikeLean', label: 'Spike lean', min: -1, max: 1, step: 0.02 },
-  ],
-  'dragon-upper-jaw': jawControls(),
-  'dragon-lower-jaw': jawControls(),
-  // Skull silhouette first, then the horns that sit on it. The shape values are
-  // the base `DragonHeadShape`; a head's own proportions bend them from there,
-  // so dragging these tunes the whole family rather than one specimen.
-  'dragon-head-horned': [
-    { section: 'head', key: 'cranium', label: 'Braincase', min: 0.6, max: 1.4, step: 0.02 },
-    { section: 'head', key: 'browRidge', label: 'Brow ridge', min: 0, max: 0.5, step: 0.01 },
-    { section: 'head', key: 'muzzleDepth', label: 'Muzzle depth', min: 0.4, max: 1.6, step: 0.02 },
-    { section: 'head', key: 'muzzleWidth', label: 'Muzzle width', min: 0.4, max: 1.6, step: 0.02 },
-    { section: 'head', key: 'muzzleDrop', label: 'Muzzle droop', min: 0, max: 2, step: 0.05 },
-    { section: 'head', key: 'cheek', label: 'Cheek flare', min: 0.6, max: 1.4, step: 0.02 },
-    { section: 'head', key: 'eyeAxial', label: 'Eye position', min: -0.3, max: 0.4, step: 0.01 },
-    { section: 'head', key: 'hornLength', label: 'Horn length', min: 0.2, max: 3.5, step: 0.05 },
-    { section: 'head', key: 'hornRadius', label: 'Horn thickness', min: 0.04, max: 0.5, step: 0.01 },
-    { section: 'head', key: 'browLength', label: 'Brow spike', min: 0, max: 1.5, step: 0.05 },
-  ],
-  'dragon-foot': [
-    { section: 'foot', key: 'talonCount', label: 'Talon count', min: 1, max: 7, step: 1 },
-    { section: 'foot', key: 'talonLength', label: 'Talon length', min: 0.1, max: 1.6, step: 0.02 },
-    { section: 'foot', key: 'talonRadius', label: 'Talon thickness', min: 0.1, max: 1, step: 0.02 },
-  ],
-  'dragon-tail-club': [
-    { section: 'tailClub', key: 'spikeCount', label: 'Spike count', min: 1, max: 12, step: 1 },
-    { section: 'tailClub', key: 'spikeLength', label: 'Spike length', min: 0.1, max: 2, step: 0.05 },
-    { section: 'tailClub', key: 'spikeRadius', label: 'Spike thickness', min: 0.04, max: 0.5, step: 0.01 },
-  ],
-  'dragon-grasp-hand': [
-    { section: 'grasp', key: 'fingerCount', label: 'Finger count', min: 2, max: 5, step: 1 },
-    { section: 'grasp', key: 'fingerLength', label: 'Finger length', min: 0.4, max: 2.2, step: 0.05 },
-    { section: 'grasp', key: 'fingerRadius', label: 'Finger thickness', min: 0.1, max: 0.7, step: 0.02 },
-    { section: 'grasp', key: 'palmLength', label: 'Wrist offset', min: 0.2, max: 0.9, step: 0.02 },
-    { section: 'grasp', key: 'fingerSplay', label: 'Finger splay', min: 0, max: 0.7, step: 0.02 },
-    jointBallControl(),
-  ],
-  'dragon-grasp-arm': [jointBallControl()],
-  // The joint balls that close a hinge. One control, on every part that carries
-  // one, because a hip that needs a wider ball almost certainly means the knees
-  // and the tail links do too.
-  'dragon-leg': [jointBallControl()],
-  'dragon-tail': [jointBallControl()],
-  'dragon-wing': wingControls(),
-  'dragon-secondary-wing': wingControls(),
-};
-
-function jointBallControl(): Omit<StyleControl, 'value'> {
-  return { section: 'joint', key: 'ball', label: 'Joint ball', min: 0.6, max: 1.8, step: 0.02 };
-}
-
-function jawControls(): readonly Omit<StyleControl, 'value'>[] {
-  return [
-    { section: 'jaw', key: 'toothCount', label: 'Teeth per side', min: 0, max: 12, step: 1 },
-    { section: 'jaw', key: 'toothHeight', label: 'Tooth length', min: 0.2, max: 3, step: 0.05 },
-    { section: 'jaw', key: 'toothRadius', label: 'Tooth thickness', min: 0.02, max: 0.4, step: 0.01 },
-    { section: 'jaw', key: 'toothStart', label: 'Front tooth position', min: -0.2, max: 0.5, step: 0.01 },
-    { section: 'jaw', key: 'noseHornLength', label: 'Nose horn', min: 0, max: 2, step: 0.05 },
-  ];
-}
-
-function wingControls(): readonly Omit<StyleControl, 'value'>[] {
-  return [
-    { section: 'wing', key: 'camber', label: 'Camber', min: 0, max: 0.35, step: 0.005 },
-    { section: 'wing', key: 'fingerSag', label: 'Finger sag', min: 0, max: 0.35, step: 0.005 },
-    { section: 'wing', key: 'dihedral', label: 'Dihedral', min: -0.1, max: 0.35, step: 0.005 },
-    { section: 'wing', key: 'scallop', label: 'Trailing scallop', min: 0, max: 0.4, step: 0.005 },
-  ];
-}
 
 @Component({
   selector: 'app-parts-lab-page',
@@ -204,6 +138,9 @@ export class PartsLabPage implements OnDestroy {
   readonly scaleZ = signal(1);
   readonly tileSize = signal(176);
   readonly copied = signal(false);
+  readonly search = signal('');
+  readonly group = signal('All');
+  readonly compareId = signal<string | null>(null);
 
   /** Live feature proportions, seeded from the shipped defaults. */
   readonly style = signal<DragonStyle>(cloneStyle(this.designerDraft.style()));
@@ -221,6 +158,16 @@ export class PartsLabPage implements OnDestroy {
       return MINI_DRAGON_PART_DEFINITIONS;
     }
     return ASSEMBLY_PART_DEFINITIONS.filter(definition => definition.family === family);
+  });
+
+  readonly groups = computed(() => ['All', ...new Set(this.definitions().map(partGroup))]);
+  readonly filteredDefinitions = computed(() => {
+    const query = this.search().trim().toLowerCase();
+    const group = this.group();
+    return this.definitions().filter(definition =>
+      (group === 'All' || partGroup(definition) === group)
+      && (!query || `${definition.label} ${definition.id} ${definition.visualProfile?.profileId ?? ''}`
+        .toLowerCase().includes(query)));
   });
 
   readonly collectionLabel = computed(() =>
@@ -246,14 +193,45 @@ export class PartsLabPage implements OnDestroy {
   readonly styleControls = computed<StyleControl[]>(() => {
     const profile = this.profileId();
     const style = this.style();
-    const definitions = Object.prototype.hasOwnProperty.call(STYLE_CONTROLS, profile)
-      ? STYLE_CONTROLS[profile]
-      : [];
+    return editableDragonParametersForProfile(profile)
+      .filter(definition => definition.species === 'classic' && definition.styleSection)
+      .map(definition => {
+        const section = definition.styleSection!;
+        const key = definition.key === 'jointBall' ? 'ball' : definition.key;
+        return {
+          section,
+          key,
+          label: definition.label,
+          min: definition.min!,
+          max: definition.max!,
+          step: definition.step ?? 0.01,
+          value: readStyleValue(style, section, key),
+        };
+      });
+  });
 
-    return definitions.map(control => ({
-      ...control,
-      value: readStyleValue(style, control.section, control.key),
-    }));
+  readonly parameterControls = computed<PartParameterControl[]>(() => {
+    const definition = this.selected();
+    if (!definition) return [];
+    const values = this.designerDraft.parametersFor(definition.id, definition.visualProfile?.parameters);
+    return editableDragonParametersForProfile(this.profileId())
+      .filter(parameter => parameter.species === 'mini')
+      .map(parameter => ({
+        ...parameter,
+        value: typeof values[parameter.key] === 'number'
+          ? values[parameter.key] as number
+          : parameter.defaultValue as number,
+      }));
+  });
+
+  readonly comparison = computed(() => {
+    const id = this.compareId();
+    return id ? this.definitions().find(definition => definition.id === id) ?? null : null;
+  });
+
+  readonly acceptance = computed(() => {
+    const definition = this.selected();
+    return definition ? buildPartAcceptanceReport(applyDesignerDraft(definition, this.designerDraft)) : null;
   });
 
   readonly isWing = computed(() => {
@@ -273,6 +251,8 @@ export class PartsLabPage implements OnDestroy {
   readonly angleStrip = signal<{ view: AngleView; image: string | null; pending: boolean }[]>([]);
   private contactBakeGeneration = 0;
   private angleBakeGeneration = 0;
+  private thumbnailBakesInFlight = 0;
+  private destroyed = false;
 
   readonly scaledDimensions = computed(() => {
     const definition = this.selected();
@@ -322,9 +302,12 @@ export class PartsLabPage implements OnDestroy {
       if (!stage || this.mounted()) return;
 
       this.renderer.mount(stage.nativeElement, {
-        // The lab is where quality is judged, so it gets the full pipeline even
-        // though the embedded viewers run at 'low'.
-        quality: 'high',
+        // Procedural geometry still follows the machine's resolved detail tier,
+        // while this live canvas uses the direct antialiased path. The stage
+        // shares the page with a sequential thumbnail baker; giving both
+        // contexts post-processing targets made Chromium drop the authoring
+        // view during a contact-sheet bake.
+        quality: 'low',
         interactive: true,
         showGroundShadow: true,
         pose: { droopRadians: 0 },
@@ -340,13 +323,13 @@ export class PartsLabPage implements OnDestroy {
       if (!this.mounted() || !definition) return;
       const color = this.useDefinitionColor() ? null : this.color();
 
+      const blueprint = this.blueprintFor(definition, scale, color);
       this.renderer.show(
-        describeSpecimen(
-          definition.id,
-          this.blueprintFor(definition, scale, color),
-          { label: definition.label },
-        ),
-        { pose: { droopRadians: 0 } },
+        describeSpecimen(definition.id, blueprint, { label: definition.label }),
+        {
+          pose: { droopRadians: 0 },
+          frame: exactPartPreviewFrame(blueprint.parts[0]),
+        },
       );
     });
 
@@ -355,11 +338,12 @@ export class PartsLabPage implements OnDestroy {
       const size = this.tileSize();
       const color = this.color();
       const useDefinition = this.useDefinitionColor();
-      const definitions = this.definitions();
+      const definitions = this.filteredDefinitions();
       this.commitVersion();
 
       const generation = ++this.contactBakeGeneration;
       this.tiles.set(definitions.map(definition => ({ definition, image: null, pending: true })));
+      this.thumbnailBakesInFlight += 1;
       void this.bakeContactSheet(definitions, size, color, useDefinition, generation);
     });
 
@@ -379,16 +363,19 @@ export class PartsLabPage implements OnDestroy {
 
       const generation = ++this.angleBakeGeneration;
       this.angleStrip.set(ANGLE_VIEWS.map(view => ({ view, image: null, pending: true })));
+      this.thumbnailBakesInFlight += 1;
       void this.bakeAngleStrip(definition, blueprint, scale, color, generation);
     });
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.contactBakeGeneration += 1;
     this.angleBakeGeneration += 1;
     if (this.commitTimer) clearTimeout(this.commitTimer);
     // Leave the shipped defaults behind for the rest of the app.
     setDragonStyleOverride(null);
+    this.thumbnails.releaseContext();
     this.renderer.dispose();
   }
 
@@ -399,20 +386,34 @@ export class PartsLabPage implements OnDestroy {
     useDefinition: boolean,
     generation: number,
   ): Promise<void> {
-    for (let index = 0; index < definitions.length; index += 1) {
-      await nextAnimationFrame();
-      if (generation !== this.contactBakeGeneration) return;
-      const definition = definitions[index];
-      const image = this.thumbnails.bake(
-        describeSpecimen(
-          this.cacheKeyFor(definition, useDefinition ? 'own' : color),
-          this.blueprintFor(definition, { x: 1, y: 1, z: 1 }, useDefinition ? null : color),
-          { label: definition.label },
-        ),
-        { size, transparent: true, pose: { droopRadians: 0 } },
-      );
-      this.tiles.update(tiles => tiles.map((tile, tileIndex) =>
-        tileIndex === index ? { ...tile, image, pending: false } : tile));
+    try {
+      for (let index = 0; index < definitions.length; index += 1) {
+        await nextAnimationFrame();
+        if (generation !== this.contactBakeGeneration) return;
+        const definition = definitions[index];
+        const blueprint = this.blueprintFor(
+          definition,
+          { x: 1, y: 1, z: 1 },
+          useDefinition ? null : color,
+        );
+        const image = this.thumbnails.bake(
+          describeSpecimen(
+            this.cacheKeyFor(definition, useDefinition ? 'own' : color),
+            blueprint,
+            { label: definition.label },
+          ),
+          {
+            size,
+            transparent: true,
+            pose: { droopRadians: 0 },
+            frame: exactPartPreviewFrame(blueprint.parts[0]),
+          },
+        );
+        this.tiles.update(tiles => tiles.map((tile, tileIndex) =>
+          tileIndex === index ? { ...tile, image, pending: false } : tile));
+      }
+    } finally {
+      this.finishThumbnailBake();
     }
   }
 
@@ -423,21 +424,39 @@ export class PartsLabPage implements OnDestroy {
     color: string | null,
     generation: number,
   ): Promise<void> {
-    for (let index = 0; index < ANGLE_VIEWS.length; index += 1) {
-      await nextAnimationFrame();
-      if (generation !== this.angleBakeGeneration) return;
-      const view = ANGLE_VIEWS[index];
-      const image = this.thumbnails.bake(
-        describeSpecimen(
-          `${this.cacheKeyFor(definition, color ?? 'own')}:${scaleKey(scale)}`,
-          blueprint,
-          { label: definition.label },
-        ),
-        { size: 190, transparent: true, viewDirection: view.direction, pose: { droopRadians: 0 } },
-      );
-      this.angleStrip.update(entries => entries.map((entry, entryIndex) =>
-        entryIndex === index ? { ...entry, image, pending: false } : entry));
+    try {
+      for (let index = 0; index < ANGLE_VIEWS.length; index += 1) {
+        await nextAnimationFrame();
+        if (generation !== this.angleBakeGeneration) return;
+        const view = ANGLE_VIEWS[index];
+        const image = this.thumbnails.bake(
+          describeSpecimen(
+            `${this.cacheKeyFor(definition, color ?? 'own')}:${scaleKey(scale)}`,
+            blueprint,
+            { label: definition.label },
+          ),
+          {
+            size: 190,
+            transparent: true,
+            viewDirection: view.direction,
+            pose: { droopRadians: 0 },
+            frame: exactPartPreviewFrame(blueprint.parts[0]),
+          },
+        );
+        this.angleStrip.update(entries => entries.map((entry, entryIndex) =>
+          entryIndex === index ? { ...entry, image, pending: false } : entry));
+      }
+    } finally {
+      this.finishThumbnailBake();
     }
+  }
+
+  /** Keep baked PNGs, retire the temporary context, then refresh the live view. */
+  private finishThumbnailBake(): void {
+    this.thumbnailBakesInFlight = Math.max(0, this.thumbnailBakesInFlight - 1);
+    if (this.thumbnailBakesInFlight > 0 || this.destroyed) return;
+    this.thumbnails.releaseContext();
+    if (this.mounted()) this.renderer.recover();
   }
 
   select(definition: AssemblyPartDefinition): void {
@@ -468,6 +487,19 @@ export class PartsLabPage implements OnDestroy {
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
+  }
+
+  onSearch(event: Event): void {
+    this.search.set((event.target as HTMLInputElement).value);
+  }
+
+  setGroup(event: Event): void {
+    this.group.set((event.target as HTMLSelectElement).value);
+  }
+
+  compare(definition: AssemblyPartDefinition, event: Event): void {
+    event.stopPropagation();
+    this.compareId.set(this.compareId() === definition.id ? null : definition.id);
   }
 
   resetScale(): void {
@@ -503,6 +535,21 @@ export class PartsLabPage implements OnDestroy {
     if (!Number.isFinite(value)) return;
 
     this.style.update(current => writeStyleValue(current, control.section, control.key, value));
+    this.scheduleCommit();
+  }
+
+  onPartParameter(control: PartParameterControl, event: Event): void {
+    const definition = this.selected();
+    const value = Number((event.target as HTMLInputElement).value);
+    if (!definition || !Number.isFinite(value)) return;
+    this.designerDraft.setParameter(definition.id, control.key, value);
+    this.scheduleCommit();
+  }
+
+  resetPartParameters(): void {
+    const definition = this.selected();
+    if (!definition) return;
+    this.designerDraft.resetParameters(definition.id);
     this.scheduleCommit();
   }
 
@@ -588,7 +635,7 @@ export class PartsLabPage implements OnDestroy {
    */
   private cacheKeyFor(definition: AssemblyPartDefinition, colorKey: string): string {
     const profile = definition.visualProfile?.profileId ?? '';
-    const styled = Object.prototype.hasOwnProperty.call(STYLE_CONTROLS, profile);
+    const styled = editableDragonParametersForProfile(profile).length > 0;
     return `${definition.id}:${colorKey}${styled ? `:s${this.commitVersion()}` : ''}`;
   }
 
@@ -598,7 +645,8 @@ export class PartsLabPage implements OnDestroy {
     scale: Vector3Data,
     color: string | null,
   ): AssemblyBlueprint {
-    const part = createPartFromDefinition(definition, { x: 0, y: 0, z: 0 }, definition.id);
+    const authored = applyDesignerDraft(definition, this.designerDraft);
+    const part = createPartFromDefinition(authored, { x: 0, y: 0, z: 0 }, definition.id);
     part.dimensions = {
       x: definition.dimensions.x * scale.x,
       y: definition.dimensions.y * scale.y,

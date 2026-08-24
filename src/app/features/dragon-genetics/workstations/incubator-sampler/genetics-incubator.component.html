@@ -1,0 +1,84 @@
+<section class="genetics-incubator" aria-labelledby="incubator-title">
+  <header>
+    <span>{{ program().displayName }} · Open investigation</span>
+    <h1 id="incubator-title">Breeding Incubator</h1>
+    <p>{{ goal() }}</p>
+  </header>
+
+  <section class="incubator-layout">
+    <div class="card-library">
+      <app-genetics-card-deck
+        [bundles]="cardBundles()"
+        [selectedSpecimenId]="selectedCandidateId()"
+        [revealedGeneIds]="revealedGeneIds()"
+        [selectableGeneIds]="selectableGeneIds()"
+        ariaLabel="Available parent dragon cards"
+        (specimenSelected)="selectCandidate($event)"
+        (geneSelected)="selectedGeneId.set($event)"
+      />
+      <div class="parent-actions">
+        <button type="button" [disabled]="!selectedCandidate()" (click)="loadParent(0)">Load as Parent A</button>
+        <button type="button" [disabled]="!selectedCandidate()" (click)="loadParent(1)">Load as Parent B</button>
+      </div>
+    </div>
+
+    <section class="incubator-bench" aria-label="Loaded parents and breeding controls">
+      <div class="parent-slots">
+        @for (parent of [parentA(), parentB()]; track $index; let index = $index) {
+          <article [class.empty]="!parent">
+            <small>Parent {{ index === 0 ? 'A' : 'B' }}</small>
+            @if (parent) {
+              <app-specimen-viewport
+                [source]="parent.renderSource"
+                [ariaLabel]="parent.name + ' parent specimen'"
+                [interactive]="false"
+                [controls]="false"
+                [transparent]="true"
+              />
+              <strong>{{ parent.name }}</strong>
+            } @else {
+              <span>Choose a card</span>
+            }
+          </article>
+        }
+      </div>
+
+      <div class="incubator-controls">
+        <label>Visible trait
+          <select [value]="selectedGeneId()" (change)="setGene($event)">
+            @for (gene of genes(); track gene.id) { <option [value]="gene.id">{{ gene.name }}</option> }
+          </select>
+        </label>
+        <label>Eggs in sample
+          <select (change)="setSampleSize($event)">
+            @for (size of [4, 8, 12, 25, 50, 100]; track size) {
+              <option [value]="size" [selected]="size === sampleSize()">{{ size }}</option>
+            }
+          </select>
+        </label>
+        <button type="button" class="run-batch" [disabled]="!parentsReady()" (click)="runBatch()">
+          Hatch and sort offspring
+        </button>
+      </div>
+      <p class="status" role="status">{{ statusMessage() }}</p>
+    </section>
+  </section>
+
+  @if (latestBatch(); as batch) {
+    <section class="bucket-yard" aria-labelledby="bucket-title">
+      <header><span>Offspring receiving yard</span><h2 id="bucket-title">{{ geneName(batch.geneId) }} · {{ batch.size }} hatchlings</h2></header>
+      <div class="buckets">
+        @for (bucket of batch.buckets; track bucket.id) {
+          <article>
+            <span>{{ bucket.label }}</span>
+            <strong>{{ bucket.count }}</strong>
+            <small>{{ bucket.percentage }}% of this batch</small>
+            <div class="hatchlings" aria-hidden="true">
+              @for (id of bucket.offspringIds.slice(0, 12); track id) { <i>◆</i> }
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+</section>

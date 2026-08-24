@@ -54,6 +54,25 @@ describe('GenomeMicroscopeComponent', () => {
         expect(microscope.level()).toBe('nucleus');
     });
 
+    it('holds a focused workstation at its assigned level while preserving its exploration tools', () => {
+        fixture.componentRef.setInput('initialLevel', 'gene');
+        fixture.componentRef.setInput('levelScope', ['gene']);
+        fixture.componentRef.setInput('scientificGoal', 'Compare gene locations.');
+        fixture.detectChanges();
+
+        const element = fixture.nativeElement as HTMLElement;
+        expect(microscope.level()).toBe('gene');
+        expect(microscope.focusedLevelOnly()).toBe(true);
+        expect(element.querySelector('.scale-map')).toBeNull();
+        expect(element.querySelector('.gene-level')).not.toBeNull();
+        expect(element.querySelector('.microscope-title')?.textContent).toContain(
+            'Compare gene locations.',
+        );
+
+        microscope.zoomIn();
+        expect(microscope.level()).toBe('gene');
+    });
+
     it('adds an interactive chromosome-unpacking level between chromosome and gene', () => {
         microscope.selectChromosome('Chr 1');
         expect(microscope.level()).toBe('chromosome');

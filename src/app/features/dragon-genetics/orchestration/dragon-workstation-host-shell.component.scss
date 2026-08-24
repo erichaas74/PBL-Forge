@@ -1,0 +1,85 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #101b1a;
+}
+
+.workstation-host__navigation,
+.mission-ribbon {
+  position: relative;
+  z-index: 5;
+  box-sizing: border-box;
+  width: min(100% - 2rem, 90rem);
+  margin-inline: auto;
+}
+
+.workstation-host__navigation {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem clamp(0rem, 18vw, 17rem) 0.9rem 0;
+  color: #eaf4ed;
+  font-weight: 800;
+}
+
+.workstation-host__navigation a {
+  color: inherit;
+}
+
+.mission-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.85rem clamp(1rem, 18vw, 17rem) 0.85rem 1rem;
+  border: 1px solid #b6ce8c;
+  border-radius: 0.75rem;
+  background: #eef5dd;
+  color: #24363b;
+  box-shadow: 0 0.4rem 1.25rem #0003;
+}
+
+.mission-ribbon small,
+.mission-ribbon strong {
+  display: block;
+}
+
+.mission-ribbon small {
+  margin-bottom: 0.2rem;
+  color: #4d7e32;
+  font-weight: 800;
+}
+
+.mission-ribbon button {
+  flex: 0 0 auto;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #63774c;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@media (max-width: 40rem) {
+  .workstation-host__navigation,
+  .mission-ribbon {
+    width: min(100% - 1rem, 90rem);
+  }
+
+  .workstation-host__navigation span {
+    display: none;
+  }
+
+  .workstation-host__navigation {
+    padding-right: 0;
+  }
+
+  .mission-ribbon {
+    align-items: flex-start;
+    padding-right: 1rem;
+  }
+}

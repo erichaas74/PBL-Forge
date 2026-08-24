@@ -1,0 +1,8 @@
+<main class="workstation-page">
+  <nav><a [routerLink]="returnUrl()">← Return to Dragon Genetics</a></nav>
+  <app-dragon-dna-repair-lab
+    [studentId]="context.studentId()"
+    [genes]="context.availableGenes()"
+    [alleles]="context.availableAlleles()"
+  />
+</main>

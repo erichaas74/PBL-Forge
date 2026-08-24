@@ -1,5 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { stubSpecimenThumbnailRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
+import { By } from '@angular/platform-browser';
+import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
+import {
+    stubSpecimenThumbnailRendering,
+    stubSpecimenViewportRendering,
+} from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { DRAGON_PARENTS } from '../../simulation/domain/dragon-inheritance';
 import { AccountDragonRecord } from './account-genetics-library.models';
 import { DragonCardDeckSelectorComponent } from './dragon-card-deck-selector.component';
@@ -19,6 +24,7 @@ describe('DragonCardDeckSelectorComponent', () => {
 
     beforeEach(() => {
         stubSpecimenThumbnailRendering();
+        stubSpecimenViewportRendering();
         TestBed.configureTestingModule({ imports: [DragonCardDeckSelectorComponent] });
         fixture = TestBed.createComponent(DragonCardDeckSelectorComponent);
         selector = fixture.componentInstance;
@@ -36,7 +42,12 @@ describe('DragonCardDeckSelectorComponent', () => {
         expect(element.querySelectorAll('.fanned-deck__slot').length).toBe(DRAGONS.length);
         expect(element.querySelector('.is-active')?.textContent).toContain(DRAGONS[0].name);
         expect(element.querySelector('app-specimen-thumb')).not.toBeNull();
-        expect(element.querySelector('app-specimen-viewport')).toBeNull();
+        expect(element.querySelector('.is-active app-specimen-viewport')).not.toBeNull();
+        const viewport = fixture.debugElement.query(
+            By.css('.is-active app-specimen-viewport'),
+        ).componentInstance as SpecimenViewportComponent;
+        expect(viewport.interactive()).toBe(false);
+        expect(viewport.animated()).toBe(true);
         element.querySelector<HTMLElement>('.is-next .fanned-deck__peek')!.click();
 
         expect(selector.dragonSelected.emit).toHaveBeenCalledWith(DRAGONS[1]);
@@ -44,8 +55,9 @@ describe('DragonCardDeckSelectorComponent', () => {
 
     it('shows an unknown blood drop until a laboratory result is supplied', () => {
         const element = fixture.nativeElement as HTMLElement;
-        const drop = element.querySelector<HTMLElement>('.is-active .dragon-card__blood-type')!;
+        const drop = element.querySelector<HTMLElement>('.is-active .dragon-card--back .dragon-card__blood-type')!;
 
+        expect(element.querySelector('.is-active .dragon-card--front .dragon-card__blood-type')).toBeNull();
         expect(drop.textContent).toContain('?');
         expect(drop.getAttribute('aria-label')).toBe('Blood type not tested');
 
@@ -59,6 +71,9 @@ describe('DragonCardDeckSelectorComponent', () => {
     it('flips the active card from the deck control below the stack', () => {
         const element = fixture.nativeElement as HTMLElement;
         const flip = element.querySelector<HTMLButtonElement>('.deck-flip')!;
+        const viewport = fixture.debugElement.query(
+            By.css('.is-active app-specimen-viewport'),
+        ).componentInstance as SpecimenViewportComponent;
 
         expect(flip.textContent).toContain('Flip for chromosomes');
         flip.click();
@@ -67,10 +82,12 @@ describe('DragonCardDeckSelectorComponent', () => {
         expect(element.querySelector('.is-active .dragon-card-shell')?.classList).toContain('is-flipped');
         expect(flip.getAttribute('aria-pressed')).toBe('true');
         expect(flip.textContent).toContain('Show the dragon');
+        expect(viewport.animated()).toBe(false);
 
         flip.click();
         fixture.detectChanges();
         expect(element.querySelector('.is-active .dragon-card-shell')?.classList).not.toContain('is-flipped');
+        expect(viewport.animated()).toBe(true);
     });
 
     it('flips the active card and keeps chromosome selection on its back', () => {
@@ -85,6 +102,56 @@ describe('DragonCardDeckSelectorComponent', () => {
         fixture.detectChanges();
 
         expect(selector.selectedChromosome(DRAGONS[0].id)).toBe('Chr 3');
-        expect(element.querySelector('.is-active .dragon-card__gene-heading')?.textContent).toContain('Chromosome pair 3');
+        expect(element.querySelector('.is-active .dragon-card__gene-heading')).toBeNull();
     });
+
+    it('allows chromosome browsing even while a forge gene is selected', () => {
+        fixture.componentRef.setInput('selectedGeneId', 'wings');
+        fixture.detectChanges();
+        const element = fixture.nativeElement as HTMLElement;
+        element.querySelector<HTMLElement>('.is-active .dragon-card--front')!.click();
+        fixture.detectChanges();
+
+        element
+            .querySelector<HTMLButtonElement>('.is-active .chromosome-in-cell[data-chromosome="Chr 3"]')!
+            .click();
+        fixture.detectChanges();
+
+        expect(selector.selectedChromosome(DRAGONS[0].id)).toBe('Chr 3');
+
+        fixture.componentRef.setInput('selectedGeneId', 'horns');
+        fixture.detectChanges();
+        expect(selector.selectedChromosome(DRAGONS[0].id)).toBe('Chr 2');
+    });
+
+    it('keeps gene references unknown until the notebook contains a discovery', () => {
+        const element = fixture.nativeElement as HTMLElement;
+        element.querySelector<HTMLElement>('.is-active .dragon-card--front')!.click();
+        fixture.detectChanges();
+
+        const reference = element.querySelector('.is-active .gene-reference')?.textContent ?? '';
+        expect(reference).toContain('Genotype:');
+        expect(reference).toContain('Phenotype');
+        expect(reference.match(/\?/g)?.length).toBe(2);
+    });
+
+    it('shades and disables catalog genes the workstation cannot investigate', () => {
+        fixture.componentRef.setInput('selectedGeneId', 'wings');
+        fixture.componentRef.setInput('selectableGeneIds', ['wings', 'fire', 'scales', 'horns']);
+        fixture.detectChanges();
+
+        const element = fixture.nativeElement as HTMLElement;
+        element.querySelector<HTMLElement>('.is-active .dragon-card--front')!.click();
+        fixture.detectChanges();
+
+        const genes = Array.from(
+          element.querySelectorAll<HTMLButtonElement>('.is-active .dragon-card__gene'),
+        );
+        const unavailable = genes.filter((gene) => gene.classList.contains('is-unavailable'));
+        expect(unavailable.length).toBeGreaterThan(0);
+        expect(unavailable.every((gene) => gene.disabled)).toBe(true);
+        expect(unavailable[0].textContent).toContain('Not available here');
+        expect(genes.find((gene) => !gene.classList.contains('is-unavailable'))?.disabled).toBe(false);
+    });
+
 });

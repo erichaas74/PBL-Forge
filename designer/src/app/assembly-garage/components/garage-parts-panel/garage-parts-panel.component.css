@@ -199,3 +199,19 @@ h2 {
   border-radius: 50%;
   background: #243447;
 }
+.catalog-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #d8dee5;
+}
+
+.catalog-filters label { display: grid; gap: 0.25rem; font-size: 0.8rem; font-weight: 700; }
+.catalog-filters input, .catalog-filters select {
+  min-width: 0;
+  border: 1px solid #b9c4ce;
+  border-radius: 0.4rem;
+  padding: 0.4rem;
+  background: white;
+}

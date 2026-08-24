@@ -17,6 +17,7 @@ import { DragonTraitGenotype } from './simulation/domain/dragon-lab.models';
 import { createExpressiveDragonBenchBuild } from './simulation/domain/dragon-specimen.profile';
 import {
   MINI_DRAGON_GENES,
+  MINI_DEFAULT_FORM_IDS,
   MiniGeneDefinition,
   MiniGeneId,
   MiniPhenotypeForm,
@@ -27,6 +28,13 @@ import {
   MINI_PATTERN_LABELS,
   miniDragonSpecimenSource,
 } from './workstations/companion-show/mini-dragon.specimen';
+import {
+  MINI_DRAGON_BREEDS,
+  MiniBreedId,
+} from './workstations/companion-show/mini-dragon.breeds';
+import {
+  MINI_DRAGON_REFERENCE_FORMS,
+} from '../../shared/assembly/rendering/mini-dragon-breed-morphology';
 
 interface GenotypeChoice {
   genotype: DragonTraitGenotype;
@@ -45,19 +53,11 @@ export type BenchSpecies = 'lab' | 'mini';
  * dominance is visible on the animal the moment the page loads.
  */
 const DEFAULT_MINI_FORMS: Readonly<Record<MiniGeneId, string>> = {
-  coat: 'coat:sleek',
+  ...MINI_DEFAULT_FORM_IDS,
   plumage: 'plumage:fringe',
-  horns: 'horns:curled',
   wings: 'wings:broad',
-  pattern: 'pattern:ash-gold',
   ember: 'ember:rose',
-  size: 'size:standard',
-  ears: 'ears:petal',
-  muzzle: 'muzzle:medium',
-  legs: 'legs:medium',
-  tail: 'tail:pom',
   crest: 'crest:crown-frill',
-  frame: 'frame:balanced',
 };
 
 /**
@@ -66,7 +66,7 @@ const DEFAULT_MINI_FORMS: Readonly<Record<MiniGeneId, string>> = {
  * Two species share the bench, and the toggle between them is the point rather
  * than a convenience: the lab dragon models one relationship — a dominant
  * allele is enough — thirteen times over, while the mini dragon runs four
- * different inheritance patterns across thirteen genes. Seeing them on the same
+ * different inheritance patterns across twenty-four genes. Seeing them on the same
  * instrument, framed and lit the same way, is what makes the second species
  * read as a different *genetics* rather than a different art style.
  */
@@ -81,13 +81,14 @@ export class DragonTestBenchPage {
   readonly copy = DRAGON_BENCH_COPY;
   readonly motions = DRAGON_BENCH_MOTIONS;
   readonly miniGenes = MINI_DRAGON_GENES;
+  readonly miniBreeds = MINI_DRAGON_BREEDS;
 
   readonly species = signal<BenchSpecies>('lab');
   readonly profile = signal<ExpressiveDragonProfile>(cloneProfile(DEFAULT_EXPRESSIVE_DRAGON));
   readonly miniForms = signal<Readonly<Record<MiniGeneId, string>>>({ ...DEFAULT_MINI_FORMS });
   /**
    * Which individual of that genotype. Bumping it redraws the same genome as a
-   * different animal, because ear tufts, eye size, snout, plume and toe count
+   * different animal, because ear tufts, cheek tufts, plume shape and toe count
    * are hashed off the id and inherited from nobody.
    */
   private readonly miniIndividual = signal(1);
@@ -179,6 +180,18 @@ export class DragonTestBenchPage {
    */
   selectMiniForm(geneId: MiniGeneId, form: MiniPhenotypeForm): void {
     this.miniForms.update((current) => ({ ...current, [geneId]: form.id }));
+  }
+
+  /** Loads a published breed as an editable starting point, never as a locked model. */
+  selectMiniBreed(breedId: MiniBreedId): void {
+    this.miniForms.set({ ...MINI_DRAGON_REFERENCE_FORMS[breedId] });
+    this.nextMiniIndividual();
+  }
+
+  isMiniBreedSelected(breedId: MiniBreedId): boolean {
+    const current = this.miniForms();
+    const reference = MINI_DRAGON_REFERENCE_FORMS[breedId];
+    return this.miniGenes.every((gene) => current[gene.id] === reference[gene.id]);
   }
 
   isMiniFormSelected(geneId: MiniGeneId, form: MiniPhenotypeForm): boolean {

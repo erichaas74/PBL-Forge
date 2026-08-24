@@ -1,0 +1,57 @@
+<main class="editor-page">
+  <header>
+    <a routerLink="/teacher">← Teacher dashboard</a>
+    <p>Dragon Genetics · Teacher planning</p>
+    <h1>Shared lesson plan</h1>
+    <span>Both student paths use this exact lesson order, science, workstations, and question set.</span>
+  </header>
+
+  <section class="context-summary" aria-label="Path contexts">
+    @for (pathId of pathIds; track pathId) {
+      @let path = lessonPlan.document().paths[pathId];
+      <div><strong>{{ path.title }}</strong><span>{{ path.goal }}</span></div>
+    }
+  </section>
+
+  <section class="editor-list" aria-labelledby="plan-lessons-title">
+    <div class="section-heading">
+      <div><p>Revision {{ lessonPlan.document().revision }}</p><h2 id="plan-lessons-title">Lessons</h2></div>
+      <button type="button" (click)="addLesson()">Add next lesson</button>
+    </div>
+
+    @if (lessonPlan.document().lessons.length) {
+      <ol>
+        @for (lesson of lessonPlan.document().lessons; track lesson.id; let order = $index) {
+          <li>
+            <div class="lesson-order"><strong>{{ order + 1 }}</strong><button type="button" [disabled]="$first" (click)="moveLesson(lesson.id, -1)" [attr.aria-label]="'Move ' + lesson.title + ' earlier'">↑</button><button type="button" [disabled]="$last" (click)="moveLesson(lesson.id, 1)" [attr.aria-label]="'Move ' + lesson.title + ' later'">↓</button></div>
+            <div class="lesson-fields">
+              <label>Lesson title<input [value]="lesson.title" (change)="updateText(lesson, 'title', $event)" /></label>
+              <label>Shared learning goal<textarea [value]="lesson.learningGoal" (change)="updateText(lesson, 'learningGoal', $event)"></textarea></label>
+              <label>Student guide<textarea [value]="lesson.guide" (change)="updateText(lesson, 'guide', $event)"></textarea></label>
+              <div class="lesson-meta"><span>{{ lesson.workstations.length }} workstations</span><span>{{ lesson.questions.length }} questions</span><label><input type="checkbox" [checked]="lesson.published" (click)="togglePublished(lesson)" /> Published to students</label></div>
+              <details class="microscope-picker">
+                <summary>Focused microscope workstations</summary>
+                <p>Attach any independently explorable microscope level to this lesson.</p>
+                <div>
+                  @for (workstation of microscopeWorkstations; track workstation.id) {
+                    <button
+                      type="button"
+                      [class.attached]="microscopeAttached(lesson, workstation)"
+                      [attr.aria-pressed]="microscopeAttached(lesson, workstation)"
+                      (click)="toggleMicroscope(lesson, workstation)"
+                    >
+                      {{ microscopeAttached(lesson, workstation) ? 'Remove' : 'Attach' }}
+                      {{ workstation.title }}
+                    </button>
+                  }
+                </div>
+              </details>
+            </div>
+          </li>
+        }
+      </ol>
+    } @else {
+      <div class="empty-plan"><strong>No lessons have been defined.</strong><span>Add the first lesson when you are ready to build it.</span></div>
+    }
+  </section>
+</main>

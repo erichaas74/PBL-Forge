@@ -11,6 +11,7 @@ const WINGED: DragonLabGenome = {
     fire: ['F', 'f'],
     scales: ['S', 's'],
     horns: ['H', 'h'],
+    legs: ['L', 'l'], claws: ['C', 'c'], crest: ['R', 'r'], spikes: ['P', 'p'],
 };
 
 const WINGLESS: DragonLabGenome = {
@@ -18,6 +19,7 @@ const WINGLESS: DragonLabGenome = {
     fire: ['f', 'f'],
     scales: ['s', 's'],
     horns: ['h', 'h'],
+    legs: ['l', 'l'], claws: ['c', 'c'], crest: ['r', 'r'], spikes: ['p', 'p'],
 };
 
 function registry(): SpecimenProfileRegistry {

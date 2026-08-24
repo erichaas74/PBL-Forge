@@ -12,7 +12,11 @@ import {
 } from '@pbl/assembly/domain/assembly.models';
 import { createAssemblyId } from '@pbl/assembly/domain/assembly-id';
 import { quaternionFromAxisAngle } from '@pbl/assembly/domain/vector-data';
-import { dragonBodySurfacePoint } from '@pbl/assembly/rendering/dragon-body-profile';
+import {
+  DragonBodyArchetype,
+  dragonBodySurfacePoint,
+  sampleDragonBodyCenterY,
+} from '@pbl/assembly/rendering/dragon-body-profile';
 import { dragonHeadJawMountFor } from '@pbl/assembly/rendering/dragon-head-profile';
 import { wingClawAnchor, wingRootMount } from '@pbl/assembly/rendering/dragon-wing-profile';
 import { inferAssemblyPartRoles } from '@pbl/assembly/domain/assembly-clone';
@@ -344,18 +348,87 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     ],
   ),
   dragonBody(
+    'dragon-regal-body',
+    'Regal Dragon Body',
+    { x: 3.2, y: 1.08, z: 1.5 },
+    4.7,
+    '#b45309',
+    (dimensions, archetype) => [
+      neckSocket(dimensions, archetype),
+      tailSocket(dimensions, archetype),
+      ...legSockets(dimensions, 'front', 0.27, archetype),
+      ...legSockets(dimensions, 'rear', -0.29, archetype),
+      ...wingSockets(dimensions, 0.14, 'primary', archetype),
+    ],
+  ),
+  dragonBody(
+    'dragon-bulwark-body',
+    'Bulwark Dragon Body',
+    { x: 2.8, y: 1.32, z: 1.86 },
+    6.4,
+    '#7f1d1d',
+    (dimensions, archetype) => [
+      neckSocket(dimensions, archetype),
+      tailSocket(dimensions, archetype),
+      ...legSockets(dimensions, 'front', 0.24, archetype),
+      ...legSockets(dimensions, 'rear', -0.27, archetype),
+      ...wingSockets(dimensions, 0.1, 'primary', archetype),
+    ],
+  ),
+  dragonBody(
+    'dragon-courser-body',
+    'Sky Courser Dragon Body',
+    { x: 3.45, y: 1.08, z: 1.2 },
+    3.9,
+    '#2563eb',
+    (dimensions, archetype) => [
+      neckSocket(dimensions, archetype),
+      tailSocket(dimensions, archetype),
+      ...legSockets(dimensions, 'front', 0.27, archetype),
+      ...legSockets(dimensions, 'rear', -0.31, archetype),
+      ...wingSockets(dimensions, 0.19, 'primary', archetype),
+    ],
+  ),
+  dragonBody(
+    'dragon-prowler-body',
+    'Marsh Prowler Dragon Body',
+    { x: 3.65, y: 0.82, z: 1.56 },
+    4.5,
+    '#3f6212',
+    (dimensions, archetype) => [
+      neckSocket(dimensions, archetype),
+      tailSocket(dimensions, archetype),
+      ...legSockets(dimensions, 'front', 0.28, archetype),
+      ...legSockets(dimensions, 'rear', -0.31, archetype),
+      ...wingSockets(dimensions, 0.12, 'primary', archetype),
+    ],
+  ),
+  dragonBody(
     'dragon-four-wing-body',
-    'Four Wing Body',
+    'Double-Wing Dragon Body',
     { x: 3.225, y: 1.02, z: 1.5 },
     4.8,
     '#0891b2',
-    dimensions => [
-      neckSocket(dimensions),
-      tailSocket(dimensions),
-      ...legSockets(dimensions, 'front', 0.27),
-      ...legSockets(dimensions, 'rear', -0.3),
-      ...wingSockets(dimensions, 0.24),
-      ...wingSockets(dimensions, -0.07, 'secondary'),
+    (dimensions, archetype) => [
+      neckSocket(dimensions, archetype),
+      tailSocket(dimensions, archetype),
+      ...legSockets(dimensions, 'front', 0.27, archetype),
+      ...legSockets(dimensions, 'rear', -0.3, archetype),
+      ...wingSockets(dimensions, 0.24, 'primary', archetype),
+      ...wingSockets(dimensions, -0.07, 'secondary', archetype),
+    ],
+  ),
+  dragonBody(
+    'dragon-serpent-body',
+    'Long Serpent Dragon Body',
+    { x: 5.1, y: 0.74, z: 1.02 },
+    4.6,
+    '#0f766e',
+    (dimensions, archetype) => [
+      neckSocket(dimensions, archetype),
+      tailSocket(dimensions, archetype),
+      ...legSockets(dimensions, 'front', 0.31, archetype),
+      ...legSockets(dimensions, 'rear', -0.34, archetype),
     ],
   ),
   dragonPart('dragon-horned-head', 'Horned Head', 'sphere', HORNED_HEAD_DIMENSIONS, 0.75, '#f97316', {
@@ -470,6 +543,33 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
       socket('dragon-foot-socket', 'Foot socket', { x: 0, y: -0.3, z: 0 }, 'dragon-foot-root'),
     ],
   }),
+  ...dragonLegVariantSet('bulwark', 'Bulwark', {
+    frontUpper: { x: 0.33, y: 0.56, z: 0.33 },
+    rearUpper: { x: 0.39, y: 0.62, z: 0.39 },
+    frontLower: { x: 0.29, y: 0.52, z: 0.29 },
+    rearLower: { x: 0.33, y: 0.55, z: 0.33 },
+    massScale: 1.45,
+    splay: 0.08,
+    color: '#7f1d1d',
+  }),
+  ...dragonLegVariantSet('courser', 'Sky Courser', {
+    frontUpper: { x: 0.19, y: 0.82, z: 0.19 },
+    rearUpper: { x: 0.22, y: 0.91, z: 0.22 },
+    frontLower: { x: 0.15, y: 0.76, z: 0.15 },
+    rearLower: { x: 0.18, y: 0.8, z: 0.18 },
+    massScale: 0.82,
+    splay: 0.04,
+    color: '#1d4ed8',
+  }),
+  ...dragonLegVariantSet('prowler', 'Marsh Prowler', {
+    frontUpper: { x: 0.27, y: 0.43, z: 0.27 },
+    rearUpper: { x: 0.31, y: 0.47, z: 0.31 },
+    frontLower: { x: 0.23, y: 0.4, z: 0.23 },
+    rearLower: { x: 0.26, y: 0.43, z: 0.26 },
+    massScale: 1.05,
+    splay: 0.28,
+    color: '#3f6212',
+  }),
   /*
    * The grasping forelimb: upper arm, forearm, hand.
    *
@@ -523,6 +623,30 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     childSnapPosition: { x: -0.036, y: 0.06, z: 0 },
     behavior: BREAKABLE_LIGHT,
   }),
+  dragonPart('dragon-bulwark-clawed-foot', 'Bulwark Wide Clawed Foot', 'box', { x: 0.51, y: 0.2, z: 0.47 }, 0.34, '#7f1d1d', {
+    parentSnapId: 'dragon-foot-socket',
+    childSnapId: 'dragon-foot-root',
+    jointType: 'fixed',
+    axis: { x: 0, y: 1, z: 0 },
+    childSnapPosition: { x: -0.045, y: 0.071, z: 0 },
+    behavior: BREAKABLE_LIGHT,
+  }),
+  dragonPart('dragon-courser-clawed-foot', 'Sky Courser Talon Foot', 'box', { x: 0.36, y: 0.15, z: 0.27 }, 0.17, '#1d4ed8', {
+    parentSnapId: 'dragon-foot-socket',
+    childSnapId: 'dragon-foot-root',
+    jointType: 'fixed',
+    axis: { x: 0, y: 1, z: 0 },
+    childSnapPosition: { x: -0.032, y: 0.054, z: 0 },
+    behavior: BREAKABLE_LIGHT,
+  }),
+  dragonPart('dragon-prowler-clawed-foot', 'Marsh Prowler Splayed Foot', 'box', { x: 0.46, y: 0.16, z: 0.45 }, 0.27, '#3f6212', {
+    parentSnapId: 'dragon-foot-socket',
+    childSnapId: 'dragon-foot-root',
+    jointType: 'fixed',
+    axis: { x: 0, y: 1, z: 0 },
+    childSnapPosition: { x: -0.041, y: 0.057, z: 0 },
+    behavior: BREAKABLE_LIGHT,
+  }),
   dragonPart('dragon-left-wing', 'Left Wing', 'box', WING_DIMENSIONS, 0.55, '#a855f7', {
     parentSnapId: 'dragon-left-wing-socket',
     childSnapId: 'dragon-wing-root',
@@ -545,6 +669,27 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
       socket('dragon-wing-claw-socket', 'Wing claw socket', wingClawAnchor(WING_DIMENSIONS, 1), 'dragon-wing-claw-root'),
     ],
   }),
+  ...dragonWingVariantSet(
+    'bulwark',
+    'Bulwark Broad',
+    { x: 0.52, y: 0.14, z: 1.95 },
+    0.72,
+    '#991b1b',
+  ),
+  ...dragonWingVariantSet(
+    'courser',
+    'Sky Courser Tapered',
+    { x: 0.31, y: 0.15, z: 2.55 },
+    0.5,
+    '#3b82f6',
+  ),
+  ...dragonWingVariantSet(
+    'prowler',
+    'Marsh Prowler Compact',
+    { x: 0.44, y: 0.13, z: 1.62 },
+    0.48,
+    '#4d7c0f',
+  ),
   dragonPart('dragon-left-secondary-wing', 'Left Second Wing', 'box', SECONDARY_WING_DIMENSIONS, 0.45, '#22d3ee', {
     parentSnapId: 'dragon-left-secondary-wing-socket',
     childSnapId: 'dragon-wing-root',
@@ -793,15 +938,12 @@ function dragonBody(
   dimensions: Vector3Data,
   mass: number,
   color: string,
-  buildSnapPoints: (dimensions: Vector3Data) => AssemblySnapDefinition[],
+  buildSnapPoints: (
+    dimensions: Vector3Data,
+    archetype: DragonBodyArchetype,
+  ) => AssemblySnapDefinition[],
 ): AssemblyPartDefinition {
-  const archetype = id.includes('wyvern')
-    ? 'wyvern'
-    : id.includes('drake')
-      ? 'drake'
-      : id.includes('four-wing')
-        ? 'four-wing'
-        : 'classic';
+  const archetype = bodyArchetypeFromId(id);
   return {
     id,
     label,
@@ -816,8 +958,24 @@ function dragonBody(
       'procedural',
       { bodyArchetype: archetype },
     ),
-    snapPoints: buildSnapPoints(dimensions),
+    snapPoints: buildSnapPoints(dimensions, archetype),
   };
+}
+
+function bodyArchetypeFromId(id: string): DragonBodyArchetype {
+  for (const archetype of [
+    'wyvern',
+    'drake',
+    'four-wing',
+    'regal',
+    'bulwark',
+    'courser',
+    'prowler',
+    'serpent',
+  ] as const) {
+    if (id.includes(archetype)) return archetype;
+  }
+  return 'classic';
 }
 
 /**
@@ -829,8 +987,9 @@ function legSockets(
   dimensions: Vector3Data,
   pair: 'front' | 'rear',
   axialFraction: number,
+  archetype: DragonBodyArchetype = 'classic',
 ): AssemblySnapDefinition[] {
-  const point = dragonBodySurfacePoint(dimensions, axialFraction, HIP_ANGLE);
+  const point = dragonBodySurfacePoint(dimensions, axialFraction, HIP_ANGLE, archetype);
   const name = pair === 'front' ? 'Front' : 'Rear';
 
   return [
@@ -843,8 +1002,9 @@ function wingSockets(
   dimensions: Vector3Data,
   axialFraction: number,
   variant: 'primary' | 'secondary' = 'primary',
+  archetype: DragonBodyArchetype = 'classic',
 ): AssemblySnapDefinition[] {
-  const point = dragonBodySurfacePoint(dimensions, axialFraction, WING_ROOT_ANGLE);
+  const point = dragonBodySurfacePoint(dimensions, axialFraction, WING_ROOT_ANGLE, archetype);
   const infix = variant === 'secondary' ? '-secondary' : '';
   const name = variant === 'secondary' ? 'second wing' : 'wing socket';
 
@@ -882,20 +1042,34 @@ function jawSocket(
   );
 }
 
-function neckSocket(dimensions: Vector3Data): AssemblySnapDefinition {
+function neckSocket(
+  dimensions: Vector3Data,
+  archetype: DragonBodyArchetype = 'classic',
+): AssemblySnapDefinition {
   return socket(
     'dragon-head-socket',
     'Head socket',
-    { x: dimensions.x * 0.49, y: dimensions.y * 0.06, z: 0 },
+    {
+      x: dimensions.x * 0.49,
+      y: sampleDragonBodyCenterY(0.49, archetype) * dimensions.y + dimensions.y * 0.06,
+      z: 0,
+    },
     'dragon-neck',
   );
 }
 
-function tailSocket(dimensions: Vector3Data): AssemblySnapDefinition {
+function tailSocket(
+  dimensions: Vector3Data,
+  archetype: DragonBodyArchetype = 'classic',
+): AssemblySnapDefinition {
   return socket(
     'dragon-tail-socket',
     'Tail socket',
-    { x: -dimensions.x * 0.49, y: 0, z: 0 },
+    {
+      x: -dimensions.x * 0.49,
+      y: sampleDragonBodyCenterY(-0.49, archetype) * dimensions.y,
+      z: 0,
+    },
     'dragon-tail-root',
   );
 }
@@ -910,6 +1084,144 @@ function dragonPart(
   options: AttachPartOptions,
 ): AssemblyPartDefinition {
   return attachablePart('dragon', id, label, shape, dimensions, mass, color, options);
+}
+
+interface DragonLegVariantConfig {
+  frontUpper: Vector3Data;
+  rearUpper: Vector3Data;
+  frontLower: Vector3Data;
+  rearLower: Vector3Data;
+  massScale: number;
+  splay: number;
+  color: string;
+}
+
+/**
+ * A fitted walking chain for one torso family. The renderer stays shared and
+ * reads the authored dimensions; only the joint envelope and proportions are
+ * separate catalog parts.
+ */
+function dragonLegVariantSet(
+  idPrefix: string,
+  labelPrefix: string,
+  config: DragonLegVariantConfig,
+): AssemblyPartDefinition[] {
+  const upper = (
+    pair: 'front' | 'rear',
+    side: 'left' | 'right',
+    dimensions: Vector3Data,
+  ): AssemblyPartDefinition => {
+    const titlePair = pair === 'front' ? 'Front' : 'Rear';
+    const titleSide = side === 'left' ? 'Left' : 'Right';
+    const splay = config.splay * (side === 'left' ? 1 : -1);
+    const kneeId = `dragon-${pair}-knee-socket`;
+
+    return dragonPart(
+      `dragon-${idPrefix}-${pair}-${side}-leg`,
+      `${labelPrefix} ${titlePair} ${titleSide} Upper Leg`,
+      'cylinder',
+      dimensions,
+      (pair === 'front' ? 0.4 : 0.48) * config.massScale,
+      config.color,
+      {
+        parentSnapId: `dragon-${pair}-${side}-leg-socket`,
+        childSnapId: 'dragon-leg-hip',
+        jointType: 'hinge',
+        axis: { x: 0, y: 0, z: 1 },
+        childSnapPosition: { x: 0, y: dimensions.y * 0.4, z: 0 },
+        childRotation: quaternionFromAxisAngle({ x: 1, y: 0, z: 0 }, splay),
+        behavior: LEG_SPRING_HINGE,
+        extraSnapPoints: [
+          socket(
+            kneeId,
+            `${titlePair} knee socket`,
+            { x: 0, y: -dimensions.y * 0.5, z: 0 },
+            'dragon-knee-root',
+          ),
+        ],
+      },
+    );
+  };
+
+  const lower = (
+    pair: 'front' | 'rear',
+    dimensions: Vector3Data,
+  ): AssemblyPartDefinition => dragonPart(
+    `dragon-${idPrefix}-${pair}-lower-leg`,
+    `${labelPrefix} ${pair === 'front' ? 'Front' : 'Rear'} Lower Leg`,
+    'cylinder',
+    dimensions,
+    (pair === 'front' ? 0.3 : 0.38) * config.massScale,
+    config.color,
+    {
+      parentSnapId: `dragon-${pair}-knee-socket`,
+      childSnapId: 'dragon-knee-root',
+      jointType: 'hinge',
+      axis: { x: 0, y: 0, z: 1 },
+      childSnapPosition: { x: 0, y: dimensions.y * 0.41, z: 0 },
+      childRotation: quaternionFromAxisAngle(
+        { x: 0, y: 0, z: 1 },
+        pair === 'front' ? 0.38 : -0.48,
+      ),
+      behavior: LEG_SPRING_HINGE,
+      extraSnapPoints: [
+        socket(
+          'dragon-foot-socket',
+          'Foot socket',
+          { x: 0, y: -dimensions.y * 0.5, z: 0 },
+          'dragon-foot-root',
+        ),
+      ],
+    },
+  );
+
+  return [
+    upper('front', 'left', config.frontUpper),
+    upper('front', 'right', config.frontUpper),
+    upper('rear', 'left', config.rearUpper),
+    upper('rear', 'right', config.rearUpper),
+    lower('front', config.frontLower),
+    lower('rear', config.rearLower),
+  ];
+}
+
+function dragonWingVariantSet(
+  idPrefix: string,
+  labelPrefix: string,
+  dimensions: Vector3Data,
+  mass: number,
+  color: string,
+): AssemblyPartDefinition[] {
+  return (['left', 'right'] as const).map(side => {
+    const sideSign = side === 'left' ? 1 : -1;
+    const tipSign = side === 'left' ? -1 : 1;
+    const titleSide = side === 'left' ? 'Left' : 'Right';
+
+    return dragonPart(
+      `dragon-${idPrefix}-${side}-wing`,
+      `${labelPrefix} ${titleSide} Wing`,
+      'box',
+      dimensions,
+      mass,
+      color,
+      {
+        parentSnapId: `dragon-${side}-wing-socket`,
+        childSnapId: 'dragon-wing-root',
+        jointType: 'hinge',
+        axis: { x: sideSign, y: 0, z: 0 },
+        childSnapPosition: wingRootMount(dimensions, sideSign),
+        behavior: WING_FLAP_MOTOR,
+        extraSnapPoints: [
+          socket(
+            'dragon-wing-claw-socket',
+            'Wing claw socket',
+            wingClawAnchor(dimensions, tipSign),
+            'dragon-wing-claw-root',
+          ),
+        ],
+      },
+    );
+  });
 }
 
 function attachablePart(

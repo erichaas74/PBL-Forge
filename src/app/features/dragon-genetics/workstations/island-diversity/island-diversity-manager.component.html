@@ -461,9 +461,10 @@
       <label>
         {{ selectedDefinition().name }} field note
         <textarea
+          #noteControl
           rows="4"
           [value]="noteDraft()"
-          (input)="updateNote($any($event.target).value)"
+          (input)="updateNote(noteControl.value)"
           placeholder="Record the population evidence, tradeoff, and management outcome you are tracking."
         ></textarea>
       </label>

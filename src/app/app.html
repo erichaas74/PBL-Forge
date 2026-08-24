@@ -1,35 +1,64 @@
-<a class="skip-link" href="#main-content">Skip to main content</a>
+<a class="skip-link" href="#main-content" (click)="skipToMain($event)">Skip to main content</a>
 
 @if (!immersive()) {
   <header class="site-header">
-    <a class="brand" routerLink="/catalog" aria-label="PBL Forge home">
+    <a class="brand" routerLink="/dragon-genetics" aria-label="Dragon Genetics home">
       <span class="brand-mark" aria-hidden="true">PF</span>
       <span>
-        <strong>PBL Forge</strong>
-        <small>Build curiosity into action</small>
+        <strong>Dragon Genetics</strong>
+        <small>Build a bloodline with evidence</small>
       </span>
     </a>
 
     <nav aria-label="Main navigation">
-      <a routerLink="/catalog" routerLinkActive="active">Explore</a>
-      <a routerLink="/teacher" routerLinkActive="active">Teacher studio</a>
+      <a routerLink="/dragon-genetics" routerLinkActive="active">Student learning path</a>
+      @if (session.isTeacher()) {
+        <a routerLink="/teacher" routerLinkActive="active">Teacher dashboard</a>
+      }
     </nav>
 
     <div class="session">
       <span class="status-dot" aria-hidden="true"></span>
       <span>{{ session.displayName() }}</span>
-      @if (!session.user() && !session.isLocal) {
-        <button type="button" (click)="signIn()">Sign in</button>
-      }
-      @if (session.isLocalTeacher()) {
-        <button type="button" (click)="returnToStudent()">Student mode</button>
+      @if (!session.user()) {
+        @if (session.isLocal) {
+          <button type="button" (click)="signInDemoStudent()">Demo student</button>
+          <button type="button" (click)="signInDemoTeacher()">Demo teacher</button>
+        } @else {
+          <button type="button" (click)="signIn()">Sign in</button>
+        }
+      } @else {
+        <button type="button" (click)="returnToStudent()">Sign out</button>
       }
     </div>
   </header>
 }
 
-<main id="main-content" [class.immersive]="immersive()">
-  <router-outlet />
+<main id="main-content" tabindex="-1" [class.immersive]="immersive()">
+  @if (!session.ready()) {
+    <section class="access-gate" role="status">
+      <p>Dragon Genetics</p>
+      <h1>Checking your session…</h1>
+    </section>
+  } @else if (!session.user()) {
+    <section class="access-gate" aria-labelledby="access-title">
+      <p>Testing access</p>
+      <h1 id="access-title">Sign in to Dragon Genetics</h1>
+      <span>Use the shared student account while the application is in testing.</span>
+      <div>
+        @if (session.isLocal) {
+          <button type="button" (click)="signInDemoStudent()">Continue as demo student</button>
+          <button type="button" class="secondary" (click)="signInDemoTeacher()">
+            Continue as demo teacher
+          </button>
+        } @else {
+          <button type="button" (click)="signIn()">Sign in with Google</button>
+        }
+      </div>
+    </section>
+  } @else {
+    <router-outlet />
+  }
 </main>
 
 @defer (when showDragonTestingShortcut()) {
@@ -46,7 +75,7 @@
 
 @if (!immersive()) {
   <footer>
-    <span>PBL Forge</span>
-    <span>Learning experiences designed for student agency.</span>
+    <span>Dragon Genetics</span>
+    <span>Investigate inheritance. Build evidence. Breed responsibly.</span>
   </footer>
 }

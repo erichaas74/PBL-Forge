@@ -5,6 +5,7 @@ import {
 } from '../workstations/shared/instrument-manifest.models';
 import { TRAIT_EVIDENCE_MANIFEST } from '../workstations/trait-evidence/trait-evidence.manifest';
 import { GENOME_MICROSCOPE_MANIFEST } from '../workstations/genome-microscope/genome-microscope.manifest';
+import { MICROSCOPE_LEVEL_MANIFESTS } from '../workstations/genome-microscope/microscope-level-workstations';
 import { ALLELE_WORKBENCH_MANIFEST } from '../workstations/allele-workbench/allele-workbench.manifest';
 import { PUNNETT_COMPOSER_MANIFEST } from '../workstations/punnett-composer/punnett-composer.manifest';
 import { INCUBATOR_SAMPLER_MANIFEST } from '../workstations/incubator-sampler/incubator-sampler.manifest';
@@ -44,6 +45,7 @@ const DRAGON_ARENA_MANIFEST: InstrumentManifest = {
 export const INSTRUMENT_MANIFESTS: readonly InstrumentManifest[] = [
   TRAIT_EVIDENCE_MANIFEST,
   GENOME_MICROSCOPE_MANIFEST,
+  ...MICROSCOPE_LEVEL_MANIFESTS,
   ALLELE_WORKBENCH_MANIFEST,
   PUNNETT_COMPOSER_MANIFEST,
   INCUBATOR_SAMPLER_MANIFEST,

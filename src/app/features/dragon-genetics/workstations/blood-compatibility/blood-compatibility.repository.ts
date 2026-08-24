@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -19,7 +19,7 @@ import {
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.blood-emergencies.v1';
 
 /** Replaceable device-backed persistence boundary for saved emergency transfusion records. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class BloodCompatibilityRepository {
   load(studentId: string): readonly BloodEmergencyRecord[] {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);

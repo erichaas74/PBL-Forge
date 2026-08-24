@@ -33,7 +33,7 @@
   <div class="commission-bar">
     <label class="role-picker">
       <span>Settlement</span>
-      <select [value]="activeRoleId()" (change)="selectRole($any($event.target).value)">
+      <select #roleControl [value]="activeRoleId()" (change)="selectRole(roleControl.value)">
         @for (option of roles; track option.id) {
           <option [value]="option.id">{{ option.settlement }} — {{ option.title }}</option>
         }

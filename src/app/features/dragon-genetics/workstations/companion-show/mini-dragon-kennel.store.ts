@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Service, computed, inject, signal } from '@angular/core';
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
 import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-context.models';
 import { MiniTrialResult } from './mini-dragon.events';
@@ -110,7 +110,7 @@ export const MIN_CLAIM_LENGTH = 40;
  * Persistence is unchanged: one `CompanionShowSnapshot`, one repository key, so
  * saved progress and the capstone sync carry over untouched.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class MiniDragonKennelStore {
   private readonly repository = inject(CompanionShowRepository);
 

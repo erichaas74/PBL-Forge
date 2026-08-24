@@ -65,4 +65,86 @@ export function addDragonHeadExpressiveFeatures(
       group.add(spine);
     }
   }
+
+  if (visualFlag(part, 'wiseAvatar')) {
+    addWiseDragonRegalia(group, dims, palette, shape);
+  }
+}
+
+/** Spectacles and a keratin beard identify the elder without introducing non-assembly assets. */
+function addWiseDragonRegalia(
+  group: THREE.Group,
+  dims: { x: number; y: number; z: number },
+  palette: DragonPalette,
+  shape: DragonHeadShape,
+): void {
+  const gold = avatarMaterial('#d7ad55', 0.72, 0.35);
+  const lens = avatarMaterial('#8de1d4', 0.28, 0.08, 0.28);
+  const eyeRadius = dims.y * 0.135;
+  const sockets = [-1, 1].map((side) => ({
+    side,
+    point: dragonHeadSurfacePoint(dims, shape.eyeAxial, side * 1.12, shape),
+  }));
+
+  for (const { side, point } of sockets) {
+    const suffix = side < 0 ? 'left' : 'right';
+    const ring = mesh(
+      new THREE.TorusGeometry(eyeRadius, dims.y * 0.013, detail(8), detail(22)),
+      gold,
+    );
+    ring.name = `wise-dragon-spectacle-${suffix}`;
+    ring.position.set(point.x, point.y, point.z + side * dims.z * 0.035);
+    group.add(ring);
+
+    const glass = mesh(new THREE.CircleGeometry(eyeRadius * 0.86, detail(22)), lens);
+    glass.name = `wise-dragon-lens-${suffix}`;
+    glass.position.copy(ring.position);
+    glass.position.z += side * dims.z * 0.006;
+    if (side < 0) glass.rotation.y = Math.PI;
+    group.add(glass);
+  }
+
+  const bridgeLength = Math.abs(sockets[1].point.z - sockets[0].point.z) - eyeRadius * 1.55;
+  const bridge = mesh(
+    new THREE.CylinderGeometry(dims.y * 0.012, dims.y * 0.012, bridgeLength, detail(8)),
+    gold,
+  );
+  bridge.name = 'wise-dragon-spectacle-bridge';
+  bridge.rotation.x = Math.PI / 2;
+  bridge.position.set(
+    (sockets[0].point.x + sockets[1].point.x) / 2,
+    (sockets[0].point.y + sockets[1].point.y) / 2,
+    0,
+  );
+  group.add(bridge);
+
+  const beardMaterial = hornMaterial(palette);
+  for (const [index, lateral] of [-0.34, -0.17, 0, 0.17, 0.34].entries()) {
+    const length = dims.y * (lateral === 0 ? 0.52 : Math.abs(lateral) < 0.3 ? 0.42 : 0.3);
+    const beard = buildHorn(length, dims.y * 0.035, beardMaterial, palette, 0.04);
+    beard.name = `wise-dragon-beard-tine-${index + 1}`;
+    beard.position.set(dims.x * 0.04, -dims.y * 0.43, lateral * dims.z);
+    beard.rotation.set(0, 0, Math.PI);
+    group.add(beard);
+  }
+}
+
+function avatarMaterial(
+  color: string,
+  roughness: number,
+  metalness: number,
+  opacity = 1,
+): THREE.MeshStandardMaterial {
+  const material = new THREE.MeshStandardMaterial({
+    color,
+    emissive: opacity < 1 ? new THREE.Color(color).multiplyScalar(0.18) : undefined,
+    roughness,
+    metalness,
+    transparent: opacity < 1,
+    opacity,
+    depthWrite: opacity >= 1,
+    side: THREE.DoubleSide,
+  });
+  material.userData['preserveAppearance'] = true;
+  return material;
 }

@@ -49,6 +49,11 @@ interface DnaAnimationSnapshot {
   styleUrl: './dna-sequence-analysis.component.scss',
 })
 export class DnaSequenceAnalysisComponent {
+  readonly mutationActions: readonly DnaMutationAction[] = [
+    'substitution',
+    'insertion',
+    'deletion',
+  ];
   readonly baseColors = DRAGON_DNA_BASE_COLORS;
   readonly analysisCase = input<DnaAnalysisCase>(DEFAULT_DNA_ANALYSIS_CASE);
   readonly evidenceCompleted = output<DnaEvidenceResult>();

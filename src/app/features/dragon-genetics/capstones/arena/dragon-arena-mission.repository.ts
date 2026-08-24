@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -10,10 +10,11 @@ import {
   DragonArenaTrialRecord,
 } from './dragon-arena-mission.models';
 import { scoreDragonArenaTrial } from './dragon-arena-evidence';
+import { ARENA_BUILD_TRAITS } from '../../simulation/domain/dragon-inheritance';
 
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.arena-mission.v1';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonArenaMissionRepository {
   load(studentId: string): DragonArenaMissionSnapshot {
     const normalizedStudentId = studentId.trim() || 'local-student';
@@ -106,7 +107,7 @@ function isScoreBreakdown(value: unknown): value is DragonArenaScoreBreakdown {
 function isTraitEvidence(value: unknown): value is DragonArenaTraitEvidence {
   return (
     isRecord(value) &&
-    ['wings', 'fire', 'scales', 'horns'].includes(String(value['traitId'])) &&
+    ARENA_BUILD_TRAITS.some((trait) => trait.id === value['traitId']) &&
     typeof value['traitName'] === 'string' &&
     typeof value['genotype'] === 'string' &&
     typeof value['phenotype'] === 'string' &&

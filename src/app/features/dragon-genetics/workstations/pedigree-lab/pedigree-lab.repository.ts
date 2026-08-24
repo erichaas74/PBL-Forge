@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -30,7 +30,7 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.pedigree-lab.v1';
  * clutch they hatched. Swapping in a database later replaces this class and
  * nothing else.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class PedigreeLabRepository {
   load(studentId: string): PedigreeLabSnapshot {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);

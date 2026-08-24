@@ -49,8 +49,8 @@
   height: 2.75rem;
   place-items: center;
   border-radius: 0.8rem 0.8rem 0.8rem 0.2rem;
-  background: var(--ember);
-  color: var(--ink);
+  background: var(--ember-deep);
+  color: white;
   font-family: var(--font-display);
   font-weight: 850;
   letter-spacing: -0.04em;
@@ -85,7 +85,7 @@ nav {
 nav a {
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--ink-soft);
   font-size: 0.86rem;
   font-weight: 750;
   text-decoration: none;
@@ -133,6 +133,56 @@ main {
 
 main.immersive {
   min-height: 100dvh;
+}
+
+.access-gate {
+  display: grid;
+  width: min(38rem, calc(100% - 2rem));
+  min-height: 24rem;
+  margin: 4rem auto;
+  padding: 3rem;
+  place-content: center;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  text-align: center;
+}
+
+.access-gate p,
+.access-gate h1,
+.access-gate span {
+  margin: 0;
+}
+
+.access-gate p {
+  color: var(--ember-dark);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.access-gate div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.access-gate button {
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--ink);
+  border-radius: 0.65rem;
+  background: var(--ink);
+  color: white;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.access-gate button.secondary {
+  background: white;
+  color: var(--ink);
 }
 
 footer {

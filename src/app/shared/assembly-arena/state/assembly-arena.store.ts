@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Service, signal } from '@angular/core';
 import { CreationLibraryService } from '../../creation-library/services/creation-library.service';
 import { CreationAssemblyAsset } from '../../creation-library/models/creation-library.models';
 import {
@@ -35,7 +35,7 @@ import {
 
 const MAX_EVENTS = 7;
 
-@Injectable()
+@Service({ autoProvided: false })
 export class AssemblyArenaStore {
   private matchId = 0;
   private readonly creationLibrary = inject(CreationLibraryService);

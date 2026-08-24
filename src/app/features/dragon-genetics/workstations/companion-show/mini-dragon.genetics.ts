@@ -5,7 +5,7 @@
  * reason it exists — its own *inheritance patterns*. The lab dragon models one
  * relationship four times: one dominant allele is enough, and the heterozygote
  * is invisible. A breeding program that only ever replays that square teaches one
- * idea. These thirteen genes cover four different relationships, so a student writing
+ * idea. These twenty-four genes cover four different relationships, so a student writing
  * a breed standard meets a different problem at each locus.
  *
  * Nothing here is ever rendered to a student as a symbol. The workstation shows
@@ -21,12 +21,29 @@ export type MiniGeneId =
   | 'pattern'
   | 'ember'
   | 'size'
+  | 'eyes'
   | 'ears'
   | 'muzzle'
   | 'legs'
   | 'tail'
   | 'crest'
-  | 'frame';
+  | 'frame'
+  | 'brow'
+  | 'whiskers'
+  | 'chin'
+  | 'dewlap'
+  | 'ruff'
+  | 'shoulders'
+  | 'belly'
+  | 'flank-fins'
+  | 'hip-fins'
+  | 'tail-sail';
+
+/** Loci present in persisted genomes before the anatomy expansion. */
+export const LEGACY_MINI_GENE_IDS = [
+  'coat', 'plumage', 'horns', 'wings', 'pattern', 'ember', 'size', 'ears', 'muzzle',
+  'legs', 'tail', 'crest', 'frame',
+] as const satisfies readonly MiniGeneId[];
 
 export type MiniInheritancePattern =
   'complete-dominance' | 'incomplete-dominance' | 'codominance' | 'multiple-alleles';
@@ -180,16 +197,17 @@ export const MINI_DRAGON_GENES: readonly MiniGeneDefinition[] = [
   },
   {
     id: 'tail',
-    name: 'Tail tip',
+    name: 'Tail form',
     pattern: 'multiple-alleles',
-    alleles: ['Ts', 'Tf', 'Tp'],
+    alleles: ['Ts', 'Td', 'Tf', 'Tp'],
     forms: [
       form('tail:star', 'Round star club'),
+      form('tail:split', 'Twin long tails'),
       form('tail:fork', 'Twin-fork paddle'),
       form('tail:pom', 'Soft pom tail'),
     ],
     observation:
-      'Three tail-tip forms circulate in the kennel, with the star form highest in the series.',
+      'Four tail forms circulate in the kennel. The twin-tail form grows one shared base before dividing into two complete tails.',
   },
   {
     id: 'crest',
@@ -216,7 +234,161 @@ export const MINI_DRAGON_GENES: readonly MiniGeneDefinition[] = [
     observation:
       'Body length and roundness blend, creating long, balanced, and dumpling silhouettes.',
   },
+  {
+    id: 'brow',
+    name: 'Brow plates',
+    pattern: 'incomplete-dominance',
+    alleles: ['Q', 'q'],
+    forms: [
+      form('brow:crowned', 'Crowned brow plates'),
+      form('brow:soft', 'Soft brow pads'),
+      form('brow:smooth', 'Smooth brow'),
+    ],
+    observation: 'Brow armor blends from a pronounced crown through soft pads to a smooth face.',
+  },
+  {
+    id: 'whiskers',
+    name: 'Whiskers',
+    pattern: 'incomplete-dominance',
+    alleles: ['V', 'v'],
+    forms: [
+      form('whiskers:long', 'Long storybook whiskers'),
+      form('whiskers:short', 'Short whiskers'),
+      form('whiskers:none', 'Whiskerless'),
+    ],
+    observation: 'Whisker length produces a visible middle form in mixed young.',
+  },
+  {
+    id: 'chin',
+    name: 'Chin tuft',
+    pattern: 'complete-dominance',
+    alleles: ['J', 'j'],
+    forms: [form('chin:plume', 'Feathered chin plume'), form('chin:smooth', 'Smooth chin')],
+    observation: 'A chin plume can hide the smooth-chin form in a carrier.',
+  },
+  {
+    id: 'dewlap',
+    name: 'Dewlap',
+    pattern: 'incomplete-dominance',
+    alleles: ['D', 'd'],
+    forms: [
+      form('dewlap:full', 'Full velvet dewlap'),
+      form('dewlap:half', 'Half dewlap'),
+      form('dewlap:none', 'Clean throat'),
+    ],
+    observation: 'Throat-sail depth blends into full, half, and clean-throat forms.',
+  },
+  {
+    id: 'ruff',
+    name: 'Neck ruff',
+    pattern: 'codominance',
+    alleles: ['N', 'n'],
+    forms: [
+      form('ruff:mane', 'Soft mane ruff'),
+      form('ruff:mane-petal', 'Mane-and-petal collar'),
+      form('ruff:petal', 'Petal collar'),
+    ],
+    observation: 'Mixed dragons display both the mane and petal textures around the collar.',
+  },
+  {
+    id: 'shoulders',
+    name: 'Shoulder plates',
+    pattern: 'complete-dominance',
+    alleles: ['H', 'h'],
+    forms: [form('shoulders:shield', 'Shield shoulder plates'), form('shoulders:soft', 'Soft shoulders')],
+    observation: 'Shielded shoulders can carry the soft-shoulder form without showing it.',
+  },
+  {
+    id: 'belly',
+    name: 'Belly scutes',
+    pattern: 'incomplete-dominance',
+    alleles: ['U', 'u'],
+    forms: [
+      form('belly:plated', 'Broad belly scutes'),
+      form('belly:pebbled', 'Pebbled belly scutes'),
+      form('belly:soft', 'Soft unplated belly'),
+    ],
+    observation: 'Belly armor blends from broad plates through small pebbles to a soft belly.',
+  },
+  {
+    id: 'flank-fins',
+    name: 'Flank fins',
+    pattern: 'incomplete-dominance',
+    alleles: ['X', 'x'],
+    forms: [
+      form('flank-fins:sail', 'Tall flank sails'),
+      form('flank-fins:petal', 'Petal flank fins'),
+      form('flank-fins:none', 'Smooth flanks'),
+    ],
+    observation: 'Side fins have a petal-sized middle form between tall sails and smooth flanks.',
+  },
+  {
+    id: 'hip-fins',
+    name: 'Hip fins',
+    pattern: 'incomplete-dominance',
+    alleles: ['I', 'i'],
+    forms: [
+      form('hip-fins:sail', 'Broad hip sails'),
+      form('hip-fins:petal', 'Petal hip fins'),
+      form('hip-fins:none', 'Smooth hips'),
+    ],
+    observation: 'Hip-fin size blends into sail, petal, and smooth forms.',
+  },
+  {
+    id: 'tail-sail',
+    name: 'Tail sail',
+    pattern: 'incomplete-dominance',
+    alleles: ['Y', 'y'],
+    forms: [
+      form('tail-sail:ribbon', 'Ribbon tail sail'),
+      form('tail-sail:ridge', 'Low tail ridge'),
+      form('tail-sail:none', 'Smooth tail'),
+    ],
+    observation: 'Tail webbing blends from a high ribbon through a low ridge to a smooth tail.',
+  },
+  // Kept after the original 23 loci so adding this inherited trait does not
+  // perturb the deterministic founder-stock streams used by older activities.
+  {
+    id: 'eyes',
+    name: 'Eye size',
+    pattern: 'incomplete-dominance',
+    alleles: ['O', 'o'],
+    forms: [
+      form('eyes:large', 'Large storybook eyes'),
+      form('eyes:medium', 'Medium bright eyes'),
+      form('eyes:small', 'Small keen eyes'),
+    ],
+    observation: 'Eye size blends, so mixed young have eyes midway between the large and small forms.',
+  },
 ];
+
+/** Neutral forms applied when a persisted thirteen-gene dragon has no newer loci yet. */
+export const MINI_DEFAULT_FORM_IDS: Readonly<Record<MiniGeneId, string>> = {
+  coat: 'coat:sleek',
+  plumage: 'plumage:bare',
+  horns: 'horns:curled',
+  wings: 'wings:small',
+  pattern: 'pattern:ash-gold',
+  ember: 'ember:pale',
+  size: 'size:standard',
+  eyes: 'eyes:medium',
+  ears: 'ears:petal',
+  muzzle: 'muzzle:medium',
+  legs: 'legs:medium',
+  tail: 'tail:pom',
+  crest: 'crest:frill',
+  frame: 'frame:balanced',
+  brow: 'brow:soft',
+  whiskers: 'whiskers:short',
+  chin: 'chin:smooth',
+  dewlap: 'dewlap:half',
+  ruff: 'ruff:mane-petal',
+  shoulders: 'shoulders:soft',
+  belly: 'belly:pebbled',
+  'flank-fins': 'flank-fins:petal',
+  'hip-fins': 'hip-fins:petal',
+  'tail-sail': 'tail-sail:ridge',
+};
 
 export const MINI_GENE_IDS: readonly MiniGeneId[] = MINI_DRAGON_GENES.map((gene) => gene.id);
 
@@ -257,7 +429,7 @@ export function normalizeMiniGenotype(geneId: MiniGeneId, genotype: MiniGenotype
  */
 export function expressMiniGene(geneId: MiniGeneId, genome: MiniGenome): MiniPhenotypeForm {
   const gene = miniGene(geneId);
-  const [first, second] = normalizeMiniGenotype(geneId, genome[geneId]);
+  const [first, second] = normalizeMiniGenotype(geneId, miniGenomeGenotype(genome, geneId));
 
   switch (gene.pattern) {
     case 'complete-dominance':
@@ -323,11 +495,24 @@ export function miniGenotypeForForm(geneId: MiniGeneId, formId: string): MiniGen
   }
 }
 
-/** One genome per gene from a chosen visible form, for every locus. */
-export function miniGenomeFromForms(forms: Readonly<Record<MiniGeneId, string>>): MiniGenome {
+/** One genome per gene, using neutral defaults for any form the caller omits. */
+export function miniGenomeFromForms(
+  forms: Readonly<Partial<Record<MiniGeneId, string>>>,
+): MiniGenome {
   return Object.fromEntries(
-    MINI_DRAGON_GENES.map((gene) => [gene.id, miniGenotypeForForm(gene.id, forms[gene.id])]),
+    MINI_DRAGON_GENES.map((gene) => [
+      gene.id,
+      miniGenotypeForForm(gene.id, forms[gene.id] ?? MINI_DEFAULT_FORM_IDS[gene.id]),
+    ]),
   ) as MiniGenome;
+}
+
+/** Reads a newer locus safely from a legacy thirteen-gene persisted genome. */
+export function miniGenomeGenotype(genome: MiniGenome, geneId: MiniGeneId): MiniGenotype {
+  const value = (genome as Readonly<Partial<Record<MiniGeneId, MiniGenotype>>>)[geneId];
+  return isValidMiniGenotype(geneId, value)
+    ? value
+    : miniGenotypeForForm(geneId, MINI_DEFAULT_FORM_IDS[geneId]);
 }
 
 // ---------------------------------------------------------------------------
@@ -344,8 +529,8 @@ export function breedMiniGenomes(dam: MiniGenome, sire: MiniGenome, seed: string
     MINI_DRAGON_GENES.map((gene) => [
       gene.id,
       normalizeMiniGenotype(gene.id, [
-        drawAllele(dam[gene.id], `${seed}:${gene.id}:dam`),
-        drawAllele(sire[gene.id], `${seed}:${gene.id}:sire`),
+        drawAllele(miniGenomeGenotype(dam, gene.id), `${seed}:${gene.id}:dam`),
+        drawAllele(miniGenomeGenotype(sire, gene.id), `${seed}:${gene.id}:sire`),
       ]),
     ]),
   ) as MiniGenome;
@@ -357,7 +542,10 @@ function drawAllele(genotype: MiniGenotype, seed: string): string {
 
 export function cloneMiniGenome(genome: MiniGenome): MiniGenome {
   return Object.fromEntries(
-    MINI_GENE_IDS.map((geneId) => [geneId, [genome[geneId][0], genome[geneId][1]]]),
+    MINI_GENE_IDS.map((geneId) => {
+      const pair = miniGenomeGenotype(genome, geneId);
+      return [geneId, [pair[0], pair[1]]];
+    }),
   ) as unknown as MiniGenome;
 }
 
@@ -366,12 +554,18 @@ export function isMiniGenome(value: unknown): value is MiniGenome {
   const record = value as Record<string, unknown>;
   return MINI_DRAGON_GENES.every((gene) => {
     const pair = record[gene.id];
-    return (
-      Array.isArray(pair) &&
-      pair.length === 2 &&
-      pair.every((allele) => typeof allele === 'string' && gene.alleles.includes(allele))
-    );
+    const wasRequiredByLegacySchema = (LEGACY_MINI_GENE_IDS as readonly string[]).includes(gene.id);
+    return pair === undefined && !wasRequiredByLegacySchema
+      ? true
+      : isValidMiniGenotype(gene.id, pair);
   });
+}
+
+function isValidMiniGenotype(geneId: MiniGeneId, value: unknown): value is MiniGenotype {
+  const gene = miniGene(geneId);
+  return Array.isArray(value)
+    && value.length === 2
+    && value.every((allele) => typeof allele === 'string' && gene.alleles.includes(allele));
 }
 
 // ---------------------------------------------------------------------------
@@ -387,6 +581,12 @@ export interface MiniCoatPaint {
    */
   patchColor: string;
   emberColor: string;
+  /** High-contrast, non-inherited display colour used by ornaments and membranes. */
+  accentColor: string;
+  /** Stable non-inherited layout; it changes placement, never inherited coat identity. */
+  patternStyle: string;
+  /** The inherited back-scale form also owns the coat's tactile material family. */
+  surfaceStyle: string;
 }
 
 const ASH_HUE = 24;
@@ -397,6 +597,21 @@ const EMBER_COLORS: Readonly<Record<string, string>> = {
   'ember:blue': '#63c8ff',
   'ember:pale': '#ffe9c2',
 };
+
+/**
+ * Saturated display colours deliberately span the whole wheel. They are
+ * individual variation, like freckles, and are never used to identify an
+ * inherited locus.
+ */
+const MINI_DISPLAY_ACCENTS = [
+  '#00d9ff', '#2166ff', '#7047eb', '#bd3cff', '#ff3aa7', '#ff4057',
+  '#ff681f', '#ffb000', '#f0e323', '#8edb28', '#00c875', '#00b7a8',
+  '#ff78d1', '#7cf4ff', '#b9ff4a', '#ff8b63',
+] as const;
+
+const MINI_PATTERN_STYLES = [
+  'saddle', 'blaze', 'bands', 'constellation', 'harlequin', 'freckles',
+] as const;
 
 /**
  * How a mini dragon is painted.
@@ -410,16 +625,32 @@ const EMBER_COLORS: Readonly<Record<string, string>> = {
 export function miniCoatPaint(genome: MiniGenome, individualId: string): MiniCoatPaint {
   const patternForm = miniPhenotypeFormId('pattern', genome);
   const emberForm = miniPhenotypeFormId('ember', genome);
-  const lightness = 30 + (stableHash(`${individualId}:light`) % 13);
-  const saturation = 34 + (stableHash(`${individualId}:sat`) % 22);
+  const coatForm = miniPhenotypeFormId('coat', genome);
+  const lightness = 22 + (stableHash(`${individualId}:light`) % 35);
+  const saturation = 20 + (stableHash(`${individualId}:sat`) % 45);
 
-  const ash = `hsl(${ASH_HUE}, ${Math.round(saturation * 0.5)}%, ${lightness - 8}%)`;
-  const gold = `hsl(${GOLD_HUE}, ${saturation + 24}%, ${lightness + 12}%)`;
+  const ash = `hsl(${ASH_HUE}, ${Math.round(saturation * 0.55)}%, ${Math.max(14, lightness - 8)}%)`;
+  const gold = `hsl(${GOLD_HUE}, ${Math.min(100, saturation + 35)}%, ${Math.min(66, lightness + 10)}%)`;
 
   const color = patternForm === 'pattern:ash' ? ash : gold;
   const patchColor = patternForm === 'pattern:ash-gold' ? ash : color;
 
-  return { color, patchColor, emberColor: EMBER_COLORS[emberForm] ?? '#ffe9c2' };
+  const accentColor = MINI_DISPLAY_ACCENTS[
+    stableHash(`${individualId}:display-accent`) % MINI_DISPLAY_ACCENTS.length
+  ];
+  const patternStyle = MINI_PATTERN_STYLES[
+    stableHash(`${individualId}:marking-layout`) % MINI_PATTERN_STYLES.length
+  ];
+  const surfaceStyle = coatForm === 'coat:fluffy' ? 'bumpy' : 'sleek';
+
+  return {
+    color,
+    patchColor,
+    emberColor: EMBER_COLORS[emberForm] ?? '#ffe9c2',
+    accentColor,
+    patternStyle,
+    surfaceStyle,
+  };
 }
 
 /**
@@ -433,7 +664,6 @@ export function miniCoatPaint(genome: MiniGenome, individualId: string): MiniCoa
  */
 export interface MiniIndividualFeatures {
   earTuft: number;
-  eyeSize: number;
   cheekTuft: number;
   plumeFan: number;
   toeCount: number;
@@ -442,7 +672,6 @@ export interface MiniIndividualFeatures {
 export function miniIndividualFeatures(individualId: string): MiniIndividualFeatures {
   return {
     earTuft: 0.35 + (stableHash(`${individualId}:ear`) % 60) / 100,
-    eyeSize: 0.45 + (stableHash(`${individualId}:eye`) % 50) / 100,
     cheekTuft: 0.35 + (stableHash(`${individualId}:cheek`) % 55) / 100,
     plumeFan: 0.4 + (stableHash(`${individualId}:plume`) % 55) / 100,
     toeCount: 3 + (stableHash(`${individualId}:toes`) % 2),
@@ -455,7 +684,6 @@ export function miniIndividualFeatureList(
   const features = miniIndividualFeatures(individualId);
   return [
     { label: 'Ear tufts', value: band(features.earTuft, ['Short', 'Full', 'Long']) },
-    { label: 'Eyes', value: band(features.eyeSize, ['Round', 'Large', 'Enormous']) },
     { label: 'Cheek tufts', value: band(features.cheekTuft, ['Neat', 'Full', 'Rosy']) },
     { label: 'Tail plume', value: band(features.plumeFan, ['Narrow', 'Open', 'Sweeping']) },
     { label: 'Toes', value: `${features.toeCount} per paw` },
@@ -491,8 +719,10 @@ function genome(
   crest: MiniGenotype,
   frame: MiniGenotype,
   plumage: MiniGenotype,
+  expanded: Readonly<Partial<Record<MiniGeneId, MiniGenotype>>> = {},
 ): MiniGenome {
   return {
+    ...miniGenomeFromForms({}),
     coat,
     plumage,
     horns,
@@ -506,7 +736,28 @@ function genome(
     tail,
     crest,
     frame,
+    ...expanded,
   };
+}
+
+function expandedGenotypes(
+  form: 'first' | 'mixed' | 'second',
+): Readonly<Partial<Record<MiniGeneId, MiniGenotype>>> {
+  const legacy = new Set<string>(LEGACY_MINI_GENE_IDS);
+  return Object.fromEntries(
+    MINI_DRAGON_GENES
+      .filter((gene) => !legacy.has(gene.id))
+      .map((gene) => {
+        const first = gene.alleles[0];
+        const second = gene.alleles[1];
+        const pair: MiniGenotype = form === 'first'
+          ? [first, first]
+          : form === 'second'
+            ? [second, second]
+            : [first, second];
+        return [gene.id, pair];
+      }),
+  );
 }
 
 /**
@@ -538,6 +789,7 @@ export const MINI_FOUNDERS: readonly MiniFounderDefinition[] = [
       ['K', 'K'],
       ['B', 'B'],
       ['P', 'p'],
+      expandedGenotypes('mixed'),
     ),
   },
   {
@@ -554,10 +806,11 @@ export const MINI_FOUNDERS: readonly MiniFounderDefinition[] = [
       ['E', 'e'],
       ['M', 'm'],
       ['L', 'l'],
-      ['Tf', 'Tf'],
+      ['Td', 'Td'],
       ['K', 'R'],
       ['B', 'b'],
       ['P', 'P'],
+      expandedGenotypes('first'),
     ),
   },
   {
@@ -578,6 +831,7 @@ export const MINI_FOUNDERS: readonly MiniFounderDefinition[] = [
       ['R', 'R'],
       ['b', 'b'],
       ['p', 'p'],
+      expandedGenotypes('second'),
     ),
   },
   {
@@ -598,6 +852,7 @@ export const MINI_FOUNDERS: readonly MiniFounderDefinition[] = [
       ['K', 'R'],
       ['B', 'b'],
       ['P', 'p'],
+      expandedGenotypes('mixed'),
     ),
   },
   {
@@ -618,6 +873,7 @@ export const MINI_FOUNDERS: readonly MiniFounderDefinition[] = [
       ['K', 'K'],
       ['b', 'b'],
       ['p', 'p'],
+      expandedGenotypes('first'),
     ),
   },
   {
@@ -638,6 +894,7 @@ export const MINI_FOUNDERS: readonly MiniFounderDefinition[] = [
       ['R', 'R'],
       ['B', 'B'],
       ['P', 'P'],
+      expandedGenotypes('second'),
     ),
   },
 ];

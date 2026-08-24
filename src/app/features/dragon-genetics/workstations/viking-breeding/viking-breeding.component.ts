@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import {
   MiniGeneId,
   expressMiniGene,
@@ -46,7 +46,6 @@ import { VikingBreedingRepository, createProgram } from './viking-breeding.repos
   imports: [DecimalPipe],
   templateUrl: './viking-breeding.component.html',
   styleUrl: './viking-breeding.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VikingBreedingComponent {
   private readonly repository = inject(VikingBreedingRepository);

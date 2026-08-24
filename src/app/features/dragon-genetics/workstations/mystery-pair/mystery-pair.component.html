@@ -1,0 +1,85 @@
+<section class="mystery-lab" aria-labelledby="mystery-title">
+  <header class="lab-heading">
+    <div><span>Open investigation</span><h1 id="mystery-title">{{ investigation().title }}</h1><p>{{ investigation().purpose }}</p></div>
+    <output>{{ notebookEntries().length }} notebook {{ notebookEntries().length === 1 ? 'entry' : 'entries' }}</output>
+  </header>
+
+  <details class="walkthrough">
+    <summary><span aria-hidden="true">◇</span><strong>Show an example investigation</strong><small>Optional walkthrough · does not change your notebook</small></summary>
+    <div class="walkthrough-body">
+      <header><span>Example only</span><h2>From two mystery cards to one evidence claim</h2><p>You may follow these actions once, use them in another order, or close this guide and investigate on your own.</p></header>
+      <ol>
+        <li><b>1</b><div><strong>Open both specimen cards</strong><span>Rotate each 3D dragon and look for a difference worth investigating.</span></div></li>
+        <li><b>2</b><div><strong>Choose the same comparison for both</strong><span>For example, compare wing structure or run the same behavior cue.</span></div></li>
+        <li><b>3</b><div><strong>Check a useful evidence source</strong><span>Use what the model did together with a hatch, family, trial, or training record.</span></div></li>
+        <li><b>4</b><div><strong>Report the difference in your notebook</strong><span>State what differed, your current classification, and the evidence supporting it.</span></div></li>
+      </ol>
+      <div class="example-entry" aria-label="Example Genetics Notebook entry">
+        <header><span>Example chart entry</span><strong>{{ investigation().comparisons[3].label }}</strong></header>
+        <dl>
+          <div><dt>Difference observed</dt><dd>Specimen A: {{ investigation().comparisons[3].firstResult }} Specimen B: {{ investigation().comparisons[3].secondResult }}</dd></div>
+          <div><dt>Current classification</dt><dd>Learned behavior</dd></div>
+          <div><dt>Evidence</dt><dd>The response differed during the same cue trial, and the training records show different practice histories.</dd></div>
+        </dl>
+        <small>This example is not saved and is not an answer for every comparison.</small>
+      </div>
+    </div>
+  </details>
+
+  <section class="pair" aria-label="Mystery dragon pair">
+    @for (specimen of investigation().specimens; track specimen.id; let index = $index) {
+      <article class="specimen-card" [class.open]="isOpen(specimen.id)">
+        <header><span>Mystery specimen {{ index === 0 ? 'A' : 'B' }}</span>@if (isOpen(specimen.id)) { <strong>{{ specimen.name }}</strong><small>{{ specimen.recordLabel }}</small> }</header>
+        @if (isOpen(specimen.id)) {
+          <app-specimen-viewport
+            [source]="specimen.source"
+            [ariaLabel]="specimen.name + ' interactive 3D specimen'"
+            controlsPlacement="below"
+          />
+        } @else {
+          <button type="button" class="open-card" (click)="openCard(specimen.id)"><span aria-hidden="true">?</span><strong>Open specimen card</strong><small>Reveal the live 3D dragon</small></button>
+        }
+      </article>
+    }
+  </section>
+
+  <section class="comparison-bench" aria-labelledby="comparison-title">
+    <header><div><span>Comparison bench</span><h2 id="comparison-title">What differences matter?</h2></div><p>Choose any characteristic or behavior. Repeat comparisons whenever useful.</p></header>
+    <div class="comparison-buttons">
+      @for (comparison of investigation().comparisons; track comparison.id) {
+        <button type="button" [class.active]="activeComparisonId() === comparison.id" (click)="runComparison(comparison)">
+          <small>{{ comparison.kind }}</small><strong>{{ comparison.label }}</strong><span>{{ runningComparisonId() === comparison.id ? 'Observing…' : 'Compare both' }}</span>
+        </button>
+      }
+    </div>
+    @if (activeComparison(); as comparison) {
+      <div class="comparison-result" aria-live="polite">
+        <div><span>Specimen A</span><strong>{{ investigation().specimens[0].name }}</strong><p>{{ comparison.firstResult }}</p></div>
+        <div><span>Specimen B</span><strong>{{ investigation().specimens[1].name }}</strong><p>{{ comparison.secondResult }}</p></div>
+        <small>Possible evidence source: {{ comparison.evidenceHint }}</small>
+      </div>
+    }
+  </section>
+
+  <section class="notebook" aria-labelledby="notebook-title">
+    <header><div><span>Genetics Notebook</span><h2 id="notebook-title">Report the differences you found</h2></div><p>Your claims remain editable. The notebook does not reveal an answer while you investigate.</p></header>
+    @if (activeComparison(); as comparison) {
+      <form (submit)="$event.preventDefault(); saveEntry()">
+        <strong>{{ comparison.label }}</strong>
+        <label>Difference I observed<textarea [formField]="notebookForm.observation" placeholder="Describe what was different between the two dragons."></textarea></label>
+        <label>My current classification<select [formField]="notebookForm.classification"><option value="genetic">Genetic characteristic</option><option value="learned">Learned behavior</option></select></label>
+        <label>Evidence for my claim<textarea [formField]="notebookForm.evidence" placeholder="Name the model, trial, or record that supports your conclusion."></textarea></label>
+        <button type="submit" [disabled]="!notebookForm().valid()">Save notebook entry</button>
+      </form>
+    } @else {
+      <div class="notebook-empty">Choose a comparison when you are ready to record a difference.</div>
+    }
+    @if (notebookEntries().length) {
+      <ul>
+        @for (entry of notebookEntries(); track entry.id) {
+          <li><button type="button" (click)="editEntry(entry.comparisonId)"><span>{{ comparisonLabel(entry.comparisonId) }}</span><strong>{{ entry.classification === 'genetic' ? 'Genetic characteristic' : 'Learned behavior' }}</strong><p>{{ entry.observation }}</p><small>{{ entry.evidence }}</small></button></li>
+        }
+      </ul>
+    }
+  </section>
+</section>

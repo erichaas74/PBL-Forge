@@ -1,0 +1,11 @@
+<main class="meiosis-page">
+  <nav><a [routerLink]="returnUrl()">← Return to Meiosis and Dragon Eggs</a></nav>
+  @if (pathId() === 'mini-show') {
+    <app-mini-meiosis-hatchery />
+  } @else {
+    <app-dragon-hatchery-breeding-lab
+      [studentId]="studentId()"
+      [seed]="hatcherySeed()"
+    />
+  }
+</main>

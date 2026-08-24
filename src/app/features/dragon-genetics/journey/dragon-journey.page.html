@@ -1,7 +1,9 @@
 <main class="journey" [attr.data-path]="journey.selectedPathId()">
   <header class="journey-header">
-    <a routerLink="/dragon-genetics">← Dragon Genetics</a>
-    <p>Breeding journey</p>
+    @if (!isProjectHome) {
+      <a [routerLink]="backUrl">← {{ backLabel }}</a>
+    }
+    <p>{{ isProjectHome ? 'Dragon Genetics learning path' : 'Breeding journey' }}</p>
     @if (journey.selectedPath(); as path) {
       <h1>{{ path.title }}</h1>
       <span>{{ path.description }}</span>

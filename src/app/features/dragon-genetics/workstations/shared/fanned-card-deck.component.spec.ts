@@ -91,6 +91,14 @@ describe('FannedCardDeckComponent', () => {
         expect(host.activeId()).toBe('b');
     });
 
+    it('suppresses the compatibility click immediately after a drag', () => {
+        const surface = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.fanned-deck')!;
+
+        swipe(host.deck, surface, 200, 120);
+
+        expect(host.deck.isClickSuppressed()).toBe(true);
+    });
+
     it('keeps the centred stack for decks of up to ten cards', () => {
         host.items.set(Array.from({ length: 10 }, (_, index) => ({ id: `dragon-${index}` })));
         host.activeId.set('dragon-5');

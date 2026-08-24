@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -17,7 +17,7 @@ import {
 
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.punnett-composer.v1';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class PunnettComposerRepository {
   load(studentId: string): PunnettComposerSnapshot {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);

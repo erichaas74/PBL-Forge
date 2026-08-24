@@ -29,6 +29,7 @@ import {
   AlleleVaultGene,
 } from '../allele-workbench/allele-vault.models';
 import { AccountDragonRecord } from '../shared/account-genetics-library.models';
+import { LOCAL_WORKSTATION_STUDENT_ID } from '../shared/dragon-workstation-context.models';
 import {
   CellChromosomeLocusSelection,
   CellChromosomeViewportComponent,
@@ -100,12 +101,16 @@ const EMPTY_ALLELE_COPY: AlleleCopyView = {
   styleUrl: './genome-microscope.component.scss',
 })
 export class GenomeMicroscopeComponent {
+  readonly studentId = input(LOCAL_WORKSTATION_STUDENT_ID);
   readonly dragons = input<readonly AccountDragonRecord[]>([]);
+  readonly specimenSources = input<Readonly<Record<string, SpecimenSource>>>({});
   readonly genes = input<readonly AlleleVaultGene[]>(ALLELE_VAULT_GENES);
   readonly alleles = input<readonly AlleleVaultAllele[]>(ALLELE_VAULT_ALLELES);
   readonly autosomeChromosomes =
     input<readonly AlleleVaultGene['chromosome'][]>(DRAGON_AUTOSOME_LABELS);
   readonly initialLevel = input<GenomeMicroscopeLevel>('dragon');
+  readonly levelScope = input<readonly GenomeMicroscopeLevel[]>(GENOME_MICROSCOPE_LEVELS);
+  readonly scientificGoal = input('Connect a dragon to the information inside its cells.');
   readonly showSpecimenLoader = input(true);
   readonly showGuideControl = input(true);
 
@@ -113,17 +118,24 @@ export class GenomeMicroscopeComponent {
   readonly evidenceChanged = output<GenomeMicroscopeEvidence>();
 
   readonly levels = GENOME_MICROSCOPE_LEVEL_DEFINITIONS;
+  readonly visibleLevels = computed(() => {
+    const allowed = new Set(this.levelScope());
+    return this.levels.filter((definition) => allowed.has(definition.id));
+  });
+  readonly focusedLevelOnly = computed(() => this.visibleLevels().length === 1);
   readonly level = linkedSignal<GenomeMicroscopeLevel>(() => {
     const requested = this.initialLevel();
-    return this.isMolecularLevel(requested) && !this.genes().length ? 'chromosome-set' : requested;
+    const firstAllowed = this.visibleLevels()[0]?.id ?? requested;
+    const initial = this.levelScope().includes(requested) ? requested : firstAllowed;
+    return this.isMolecularLevel(initial) && !this.genes().length ? 'chromosome-set' : initial;
   });
   readonly loadedDragonId = linkedSignal<string | null>(() => this.dragons()[0]?.id ?? null);
   readonly selectedChromosome = signal('Chr 1');
   readonly selectedGeneId = signal<string | null>(null);
   readonly selectedAlleleCopy = signal<0 | 1>(0);
   readonly guideOpen = signal(false);
-  readonly dragonDeckOpen = signal(true);
-  readonly visitedLevels = signal<readonly GenomeMicroscopeLevel[]>(['dragon']);
+  readonly dragonDeckOpen = linkedSignal(() => this.initialLevel() === 'dragon');
+  readonly visitedLevels = linkedSignal<readonly GenomeMicroscopeLevel[]>(() => [this.level()]);
   readonly enzymeResult = signal<EnzymeReactionResult | null>(null);
 
   readonly loadedDragon = computed(
@@ -131,7 +143,7 @@ export class GenomeMicroscopeComponent {
   );
   readonly loadedDragonSource = computed<SpecimenSource | null>(() => {
     const dragon = this.loadedDragon();
-    return dragon ? dragonParentSource(dragon) : null;
+    return dragon ? this.specimenSources()[dragon.id] ?? dragonParentSource(dragon) : null;
   });
   readonly specimenSex = computed<GenomeMicroscopeSex>(() => this.loadedDragon()?.sex ?? 'female');
 
@@ -222,14 +234,16 @@ export class GenomeMicroscopeComponent {
     chromosomePairViewportItems(this.chromosomePairs()),
   );
 
-  readonly currentLevelIndex = computed(() => GENOME_MICROSCOPE_LEVELS.indexOf(this.level()));
+  readonly currentLevelIndex = computed(() =>
+    this.visibleLevels().findIndex((definition) => definition.id === this.level()),
+  );
   readonly currentLevel = computed(
     () => this.levels.find((candidate) => candidate.id === this.level()) ?? this.levels[0],
   );
   readonly canZoomOut = computed(() => this.currentLevelIndex() > 0);
   readonly canZoomIn = computed(
     () =>
-      this.currentLevelIndex() < GENOME_MICROSCOPE_LEVELS.length - 1 &&
+      this.currentLevelIndex() < this.visibleLevels().length - 1 &&
       !(this.level() === 'chromosome' && !this.genesForSelectedChromosome().length),
   );
   readonly specimenGenotype = computed(() => {
@@ -261,7 +275,7 @@ export class GenomeMicroscopeComponent {
     this.selectedChromosome.set(this.autosomeChromosomes()[0] ?? 'Chr 1');
     this.selectedGeneId.set(null);
     this.selectedAlleleCopy.set(0);
-    this.selectLevel('dragon');
+    this.selectLevel(this.levelAvailable('dragon') ? 'dragon' : this.level());
   }
 
   selectLevel(level: GenomeMicroscopeLevel): void {
@@ -273,12 +287,12 @@ export class GenomeMicroscopeComponent {
   }
 
   zoomIn(): void {
-    const next = GENOME_MICROSCOPE_LEVELS[this.currentLevelIndex() + 1];
+    const next = this.visibleLevels()[this.currentLevelIndex() + 1]?.id;
     if (next && this.canZoomIn()) this.selectLevel(next);
   }
 
   zoomOut(): void {
-    const previous = GENOME_MICROSCOPE_LEVELS[this.currentLevelIndex() - 1];
+    const previous = this.visibleLevels()[this.currentLevelIndex() - 1]?.id;
     if (previous) this.selectLevel(previous);
   }
 
@@ -340,7 +354,10 @@ export class GenomeMicroscopeComponent {
   }
 
   levelAvailable(level: GenomeMicroscopeLevel): boolean {
-    return !this.isMolecularLevel(level) || this.genes().length > 0;
+    return (
+      this.levelScope().includes(level) &&
+      (!this.isMolecularLevel(level) || this.genes().length > 0)
+    );
   }
 
   private buildAlleleCopies(): readonly AlleleCopyView[] {

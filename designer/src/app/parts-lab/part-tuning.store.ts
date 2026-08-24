@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Service, computed, signal } from '@angular/core';
 import { Vector3Data } from '@pbl/assembly/domain/assembly.models';
 import { readStoredJson, writeStoredJson } from '@pbl/assembly/persistence/json-local-storage';
 import { DragonStyle } from '@pbl/assembly/rendering/dragon-style';
@@ -31,7 +31,7 @@ export interface PartTuningRecord {
 const STORAGE_KEY = 'dragon-designer.parts-lab.tuning.v1';
 const LEGACY_STORAGE_KEY = 'pbl-forge.parts-lab.tuning';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class PartTuningStore {
   private readonly records = signal<PartTuningRecord[]>(readStored());
 

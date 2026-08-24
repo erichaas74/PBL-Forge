@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -40,7 +40,7 @@ const VERSION_3_STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.companion-show.v
 const VERSION_2_STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.companion-show.v2';
 
 /** Replaceable device-backed persistence boundary for one student's breeding program. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class CompanionShowRepository {
   load(studentId: string): CompanionShowSnapshot {
     const normalizedStudentId = normalizeStudentId(studentId);

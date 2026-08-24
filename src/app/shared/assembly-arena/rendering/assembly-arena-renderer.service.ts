@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
@@ -159,7 +159,7 @@ interface FireEffect {
   light: THREE.PointLight;
 }
 
-@Injectable()
+@Service({ autoProvided: false })
 export class AssemblyArenaRendererService {
   private host: HTMLElement | null = null;
   private scene: THREE.Scene | null = null;

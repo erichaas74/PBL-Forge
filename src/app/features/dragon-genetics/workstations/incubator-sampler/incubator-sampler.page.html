@@ -1,0 +1,7 @@
+<main class="workstation-page">
+  <nav><a [routerLink]="returnUrl()">← Return to Dragon Genetics</a></nav>
+  <app-incubator-sampler
+    [studentId]="context.studentId()"
+    [revealedGeneIds]="revealedGeneIds()"
+  />
+</main>

@@ -1,0 +1,48 @@
+:host {
+  position: fixed;
+  z-index: 20;
+  right: 1rem;
+  bottom: 1rem;
+  width: min(24rem, calc(100vw - 2rem));
+}
+
+.evidence-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem;
+  border: 1px solid #b6ce8c;
+  border-radius: 0.75rem;
+  background: #eef5dd;
+  color: #24363b;
+  box-shadow: 0 0.75rem 2rem #0006;
+}
+
+.evidence-card small {
+  color: #4d7e32;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.evidence-card div {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.evidence-card button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #63774c;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.evidence-card .capture {
+  background: #3f672c;
+  color: #fff;
+}

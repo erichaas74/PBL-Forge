@@ -711,6 +711,14 @@ select:focus-visible {
   text-align: center;
 }
 
+.focused-workstation .focus-action {
+  display: none;
+}
+
+.focused-workstation .microscope-controls {
+  grid-template-columns: 1fr;
+}
+
 @media (max-width: 980px) {
   .microscope-header {
     align-items: stretch;

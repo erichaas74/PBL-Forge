@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Service, signal } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -31,7 +31,7 @@ const FOUNDATION_SEX: Readonly<Record<string, DragonSex>> = {
  * in dragons saved on this device. Chromosome records are always derived from each dragon's genome
  * and the shared trait catalog, so a workstation cannot drift from the specimen it loads.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class AccountGeneticsLibraryService {
   private readonly revision = signal(0);
 

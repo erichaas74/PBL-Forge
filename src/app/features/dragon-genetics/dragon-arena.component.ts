@@ -1,7 +1,6 @@
 import {
   Component,
   ElementRef,
-  HostListener,
   OnChanges,
   SimpleChanges,
   computed,
@@ -69,6 +68,11 @@ const MAX_CARDS_PER_TURN = 3;
 
 @Component({
   selector: 'app-dragon-arena',
+  host: {
+    '(window:keydown)': 'onKeyDown($event)',
+    '(window:keyup)': 'onKeyUp($event)',
+    '(window:blur)': 'clearControls()',
+  },
   imports: [ArenaViewportComponent],
   providers: [
     AssemblyArenaStore,
@@ -478,7 +482,6 @@ export class DragonArenaComponent implements OnChanges {
   // Keyboard and manual controls (real-time mode).
   // ---------------------------------------------------------------------------
 
-  @HostListener('window:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
     if (this.ignoresKey(event) || this.arena.state().playMode === 'turn-based') return;
     if (this.applyKey(event.key.toLowerCase(), true)) event.preventDefault();
@@ -489,7 +492,6 @@ export class DragonArenaComponent implements OnChanges {
    * keyboard must still clear its control when it comes up, even if focus moved
    * to a control outside the arena in between. Otherwise the dragon runs on.
    */
-  @HostListener('window:keyup', ['$event'])
   onKeyUp(event: KeyboardEvent): void {
     if (!isTypingTarget(event.target)) {
       this.applyKey(event.key.toLowerCase(), false);
@@ -514,7 +516,6 @@ export class DragonArenaComponent implements OnChanges {
       && !this.host.nativeElement.contains(target);
   }
 
-  @HostListener('window:blur')
   clearControls(): void {
     this.controls.set(new Set());
     // Buffered moves are cleared too: a bite requested just as the window lost

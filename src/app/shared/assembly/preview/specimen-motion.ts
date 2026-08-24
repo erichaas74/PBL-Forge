@@ -1,4 +1,5 @@
 import { AssemblyBlueprint } from '../domain/assembly.models';
+import { SpecimenFacialExpression } from '../rendering/specimen-facial-animation';
 import { SpecimenBend, SpecimenPose } from './specimen-pose';
 
 /**
@@ -14,6 +15,8 @@ export interface SpecimenMotionDefinition {
   /** Informative pose held when the student requests reduced motion. */
   reducedMotionPhase?: number;
   poseAt(blueprint: AssemblyBlueprint, phase: number, restingDroopRadians: number): SpecimenPose;
+  /** Optional face animation synchronized to a finite gesture, such as speech. */
+  expressionAt?(phase: number): SpecimenFacialExpression;
 }
 
 /**
@@ -37,4 +40,6 @@ export interface SpecimenIdleMotion {
   periodSeconds: number;
   /** Extra bends for a phase in 0..1, which wraps. */
   bendsAt(phase: number): readonly SpecimenBend[];
+  /** Optional generated-face expression layered over the articulated pose. */
+  expressionAt?(phase: number): SpecimenFacialExpression;
 }

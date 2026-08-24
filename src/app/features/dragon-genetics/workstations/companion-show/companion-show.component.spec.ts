@@ -163,9 +163,11 @@ describe('CompanionShowComponent (Mini Dragon Kennel)', () => {
             'pattern:gold',
             'muzzle:long',
             'legs:waddler',
-            'tail:pom',
+            'tail:split',
             'crest:crown-frill',
             'frame:long',
+            'whiskers:long',
+            'chin:plume',
         ]);
         expect(component.kennel()).toEqual([]);
         expect(component.selectedBreedPlans().some((plan) => plan.kind === 'splitting')).toBe(true);
@@ -179,7 +181,7 @@ describe('CompanionShowComponent (Mini Dragon Kennel)', () => {
             targets?: readonly unknown[];
         };
         expect(saved.breedName).toBe('Imperial Serpent Dragon');
-        expect(saved.targets?.length).toBe(8);
+        expect(saved.targets?.length).toBe(10);
         fixture.destroy();
     });
 

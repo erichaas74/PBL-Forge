@@ -1,4 +1,4 @@
-import { EnvironmentInjector, inject, Injectable } from '@angular/core';
+import { EnvironmentInjector, inject, Service } from '@angular/core';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { runInFirebaseContext } from '../../../core/firebase/firebase-context';
 import { FIREBASE_FIRESTORE } from '../../../core/firebase/firebase-firestore.provider';
@@ -16,7 +16,7 @@ import {
 } from './dragon-capstone-progress.models';
 
 /** Publishes compact capstone outcomes without moving full workstation records off the device. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonCapstoneProgressRepository {
   private readonly firestore = inject(FIREBASE_FIRESTORE);
   private readonly session = inject(SessionService);

@@ -1,4 +1,4 @@
-import { EnvironmentInjector, inject, Injectable } from '@angular/core';
+import { EnvironmentInjector, inject, Service } from '@angular/core';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { runInFirebaseContext } from '../../../core/firebase/firebase-context';
 import { FIREBASE_FIRESTORE } from '../../../core/firebase/firebase-firestore.provider';
@@ -12,7 +12,7 @@ export interface DragonActivityProgressSummary {
 }
 
 /** Publishes compact open-workstation progress without uploading the full student record. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonActivityProgressRepository {
   private readonly firestore = inject(FIREBASE_FIRESTORE);
   private readonly session = inject(SessionService);

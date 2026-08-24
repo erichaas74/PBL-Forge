@@ -1,3 +1,4 @@
+import { NgOptimizedImage } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
@@ -9,6 +10,7 @@ import { DragonArenaSagaPreviewComponent } from './project/dragon-arena-saga-pre
 import { MiniDragonSagaPreviewComponent } from './project/mini-dragon-saga-preview.component';
 import { WiseDragonGuideService } from './wise-dragon/wise-dragon-guide.service';
 import { DragonJourneyFacade } from './journey/dragon-journey.facade';
+import { DragonPathContextId } from './lesson-plan/dragon-lesson-plan.models';
 
 /** Radius of the progress dial's arc, in the face's 128-unit viewBox. */
 const DIAL_RADIUS = 44;
@@ -16,7 +18,12 @@ const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS;
 
 @Component({
   selector: 'app-dragon-genetics-page',
-  imports: [RouterLink, DragonArenaSagaPreviewComponent, MiniDragonSagaPreviewComponent],
+  imports: [
+    NgOptimizedImage,
+    RouterLink,
+    DragonArenaSagaPreviewComponent,
+    MiniDragonSagaPreviewComponent,
+  ],
   templateUrl: './dragon-genetics.page.html',
   styleUrl: './dragon-genetics.page.scss',
 })
@@ -49,9 +56,15 @@ export class DragonGeneticsPage {
 
   selectPath(event: Event): void {
     const control = event.currentTarget as HTMLSelectElement | HTMLButtonElement;
-    const pathId = control.value;
-    if (!pathId || !this.journey.choosePath(pathId)) return;
-    void this.router.navigate(['/dragon-genetics/journey', pathId]);
+    const pathId = this.lessonPlanPathId(control.value);
+    if (!pathId) return;
+    void this.router.navigate(['/dragon-genetics/path', pathId]);
+  }
+
+  lessonPlanPathId(pathId: string | null): DragonPathContextId | null {
+    if (pathId === 'dragon-arena') return 'arena';
+    if (pathId === 'mini-dragon-show') return 'mini-show';
+    return pathId === 'arena' || pathId === 'mini-show' ? pathId : null;
   }
 
   pathOffered(pathId: string): boolean {

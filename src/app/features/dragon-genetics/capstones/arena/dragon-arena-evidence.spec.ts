@@ -53,6 +53,7 @@ function champion(): StudentDragonRecord {
             fire: ['f', 'f'],
             scales: ['S', 's'],
             horns: ['H', 'h'],
+            legs: ['L', 'l'], claws: ['C', 'c'], crest: ['R', 'r'], spikes: ['P', 'p'],
         },
         parentIds: ['parent-a', 'parent-b'],
         generation: 1,

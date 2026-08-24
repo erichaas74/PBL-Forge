@@ -1,4 +1,5 @@
 import { AccountGeneticsLibraryService } from './account-genetics-library.service';
+import { DRAGON_TRAITS } from '../../simulation/domain/dragon-inheritance';
 
 describe('AccountGeneticsLibraryService', () => {
     const studentId = 'account-library-spec-student';
@@ -19,7 +20,7 @@ describe('AccountGeneticsLibraryService', () => {
         expect(snapshot.dragons.length).toBe(4);
         expect(snapshot.dragons.filter((dragon) => dragon.sex === 'female').length).toBe(2);
         expect(snapshot.dragons.filter((dragon) => dragon.sex === 'male').length).toBe(2);
-        expect(snapshot.chromosomes.length).toBe(snapshot.dragons.length * 4);
+        expect(snapshot.chromosomes.length).toBe(snapshot.dragons.length * DRAGON_TRAITS.length);
         const ember = snapshot.dragons.find((dragon) => dragon.id === 'ember')!;
         const emberChr1 = snapshot.chromosomes.find((record) => record.id === 'ember:chr-1')!;
         expect(emberChr1.dragonId).toBe(ember.id);

@@ -92,6 +92,11 @@ export class FannedCardDeckComponent<T extends FannedDeckItem = FannedDeckItem> 
     this.activeItemChange.emit(item);
   }
 
+  /** Lets card content avoid treating the click generated after a drag as an activation. */
+  isClickSuppressed(): boolean {
+    return performance.now() < this.suppressClickUntil;
+  }
+
   move(direction: -1 | 1): void {
     if (this.disabled()) return;
     const items = this.items();
@@ -125,7 +130,6 @@ export class FannedCardDeckComponent<T extends FannedDeckItem = FannedDeckItem> 
   handlePointerDown(event: PointerEvent): void {
     if (this.disabled() || this.items().length < 2 || isInteractiveTarget(event.target)) return;
     this.dragStart = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
-    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
   }
 
   handlePointerMove(event: PointerEvent): void {
@@ -137,7 +141,10 @@ export class FannedCardDeckComponent<T extends FannedDeckItem = FannedDeckItem> 
       this.cancelDrag();
       return;
     }
-    if (Math.abs(x) > 7) this.dragging.set(true);
+    if (Math.abs(x) > 7 && !this.dragging()) {
+      this.dragging.set(true);
+      (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+    }
     if (!this.dragging()) return;
     event.preventDefault();
     this.dragX.set(Math.max(-110, Math.min(110, x)));

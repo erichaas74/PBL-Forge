@@ -59,8 +59,9 @@
                   <label>
                     <span class="sr-only">Match for {{ item.label }}</span>
                     <select
+                      #matchControl
                       [value]="matches()[item.id]"
-                      (change)="setMatch(item.id, $any($event.target).value)"
+                      (change)="setMatch(item.id, matchControl.value)"
                     >
                       <option value="">Choose a system…</option>
                       @for (answer of activity.right; track answer.id) {
@@ -86,10 +87,11 @@
               <label for="reflection">Build your explanation</label>
               <p>Use a claim, specific evidence, and the tradeoff you considered.</p>
               <textarea
+                #reflectionControl
                 id="reflection"
                 rows="11"
                 [value]="reflection()"
-                (input)="setReflection($any($event.target).value)"
+                (input)="setReflection(reflectionControl.value)"
                 placeholder="Start with: I would prioritize…"
               ></textarea>
               <div class="writing-meta">

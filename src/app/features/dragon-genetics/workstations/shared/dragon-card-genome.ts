@@ -14,10 +14,10 @@ import { CellModelChromosome } from './cell-model.component';
 import { DRAGON_AUTOSOME_LABELS } from './dragon-chromosome.catalog';
 import { buildDragonChromosomePairs, chromosomePairViewportItems } from './dragon-chromosome-pairs';
 
-export type DragonCardChromosomeId = AlleleVaultGene['chromosome'];
+export type DragonCardChromosomeId = string;
 
 export interface DragonCardGeneReadout {
-  id: AlleleVaultGene['id'];
+  id: string;
   name: string;
   sampleCode: string;
   genotype: string;
@@ -38,7 +38,10 @@ export function buildDragonCardGenomeView(
   sex: DragonSex,
 ): DragonCardGenomeView {
   const profile = dragonParentExpressiveProfile(dragon, sex);
-  const chromosomeIds: readonly DragonCardChromosomeId[] = [...DRAGON_AUTOSOME_LABELS, 'Chr X'];
+  const chromosomeIds: readonly AlleleVaultGene['chromosome'][] = [
+    ...DRAGON_AUTOSOME_LABELS,
+    'Chr X',
+  ];
   const pairs = buildDragonChromosomePairs({
     genes: ALLELE_VAULT_GENES,
     alleles: ALLELE_VAULT_ALLELES,

@@ -1,10 +1,11 @@
 import { DragonBattleResult, StudentDragonRecord } from '../../dragon-genetics.models';
 import {
-  DRAGON_TRAITS,
+  ARENA_BUILD_TRAITS,
+  arenaGenotype,
   genotypeLabel,
-  showsDominantPhenotype,
+  showsArenaDominant,
 } from '../../simulation/domain/dragon-inheritance';
-import { DragonTraitId } from '../../simulation/domain/dragon-lab.models';
+import { ArenaBuildTraitId } from '../../simulation/domain/dragon-lab.models';
 import {
   DragonArenaScoreBreakdown,
   DragonArenaTraitEvidence,
@@ -26,20 +27,22 @@ export function scoreDragonArenaTrial(result: DragonBattleResult): DragonArenaSc
   };
 }
 
-/** Records what the champion's four inherited traits actually change in this arena model. */
+/** Records every available inherited build trait and what it changes in this arena model. */
 export function buildDragonArenaTraitEvidence(
   champion: StudentDragonRecord,
 ): DragonArenaTraitEvidence[] {
-  return DRAGON_TRAITS.map((trait) => traitEvidence(champion, trait.id));
+  return ARENA_BUILD_TRAITS
+    .filter((trait) => arenaGenotype(champion.genome, trait.id) !== undefined)
+    .map((trait) => traitEvidence(champion, trait.id));
 }
 
 function traitEvidence(
   champion: StudentDragonRecord,
-  traitId: DragonTraitId,
+  traitId: ArenaBuildTraitId,
 ): DragonArenaTraitEvidence {
-  const trait = DRAGON_TRAITS.find((candidate) => candidate.id === traitId)!;
-  const genotype = champion.genome[traitId];
-  const dominant = showsDominantPhenotype(genotype, traitId);
+  const trait = ARENA_BUILD_TRAITS.find((candidate) => candidate.id === traitId)!;
+  const genotype = arenaGenotype(champion.genome, traitId)!;
+  const dominant = showsArenaDominant(champion.genome, traitId);
   const shared = {
     traitId,
     traitName: trait.name,
@@ -63,18 +66,42 @@ function traitEvidence(
         arenaEffect: dominant ? 'Fire breath available.' : 'Fire breath unavailable.',
       };
     case 'horns':
+    case 'armor':
+    case 'temperament':
       return {
         ...shared,
         kind: 'defense',
         arenaEffect: dominant
-          ? 'Higher armor-density profile.'
-          : 'Lower armor-density profile.',
+          ? 'Higher armor, mass, or damage expression in the Arena build.'
+          : 'Lighter defensive or combat expression in the Arena build.',
       };
     case 'scales':
+    case 'legs':
+    case 'claws':
+    case 'crest':
+    case 'spikes':
+    case 'tail':
+    case 'body-color':
+    case 'glow':
+    case 'fangs':
+    case 'eye-color':
+    case 'body-type':
+    case 'secondary-wings':
+    case 'wing-shape':
+    case 'wing-camber':
+    case 'body-size':
+    case 'tail-length':
+    case 'head-size':
+    case 'snout':
+    case 'ear-frill':
       return {
         ...shared,
         kind: 'appearance',
-        arenaEffect: 'Visible pattern only; no arena modifier.',
+        arenaEffect: traitId === 'secondary-wings' && dominant
+          ? 'Adds a second jointed wing pair: 26 physical parts instead of 24.'
+          : ['scales', 'legs', 'claws', 'crest', 'spikes'].includes(traitId)
+            ? 'Visible pattern only; no arena modifier.'
+            : 'Visible anatomy carried by the champion build.',
       };
   }
 }

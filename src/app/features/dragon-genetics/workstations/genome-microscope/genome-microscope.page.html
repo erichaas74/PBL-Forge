@@ -1,0 +1,9 @@
+<main class="workstation-page">
+  <nav><a [routerLink]="returnUrl()">← Return to Dragon Genetics</a></nav>
+  <app-genome-microscope
+    [studentId]="context.studentId()"
+    [dragons]="context.availableDragons()"
+    [genes]="context.availableGenes()"
+    [alleles]="context.availableAlleles()"
+  />
+</main>

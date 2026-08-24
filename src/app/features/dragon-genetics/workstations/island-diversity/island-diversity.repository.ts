@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -17,7 +17,7 @@ import { createInitialWorld } from './island-diversity.domain';
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.island-diversity.v1';
 
 /** Replaceable device-backed persistence boundary for the student's archipelago. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class IslandDiversityRepository {
   load(studentId: string): IslandDiversityWorld {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);

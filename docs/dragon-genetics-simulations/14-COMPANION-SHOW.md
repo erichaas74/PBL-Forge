@@ -63,7 +63,7 @@ Its parameter keys are all `mini`-prefixed (`miniDorsalBumps`, `miniFeatherCover
 Both factories are asked in `three-assembly-mesh.factory.ts`; neither answers for the other's profile
 ids, and a spec asserts that.
 
-### The thirteen genes
+### The twenty-four genes
 
 | Gene | Pattern | Visible forms | Channel on the animal |
 | --- | --- | --- | --- |
@@ -77,9 +77,19 @@ ids, and a spec asserts that.
 | Ears | **incomplete dominance** | Sail · Petal · Button | ear height changes by roughly 4× |
 | Muzzle | **incomplete dominance** | Storybook · Round short · Button-pug | the entire face projection |
 | Leg length | **incomplete dominance** | Stilt · Medium · Waddler | standing height changes by roughly 3× |
-| Tail tip | **multiple alleles** | Star club · Twin fork · Soft pom | completely different tail-tip geometry |
+| Tail form | **multiple alleles** | Star club · Twin long tails · Twin-fork paddle · Soft pom | one shared base can branch into two complete articulated tails, in addition to three distinct tip forms |
 | Head crest | **codominance** | Crown · Crown-and-frill · Side frill | crown bumps and petal frills can appear together |
 | Body frame | **incomplete dominance** | Noodle · Balanced · Dumpling | torso length, height, and width |
+| Brow plates | **incomplete dominance** | Crowned · Soft · Smooth | paired armor pads above the eyes |
+| Whiskers | **incomplete dominance** | Long · Short · None | curved facial whiskers |
+| Chin tuft | complete dominance (plume dominant) | Plume · Smooth | a distinct feathered chin cluster |
+| Dewlap | **incomplete dominance** | Full · Half · None | a velvet throat sail |
+| Neck ruff | **codominance** | Mane · Mane-and-petal · Petal | a textured collar with both forms visible together |
+| Shoulder plates | complete dominance (shield dominant) | Shield · Soft | paired shoulder armor |
+| Belly scutes | **incomplete dominance** | Broad · Pebbled · Soft | ventral plate size and coverage |
+| Flank fins | **incomplete dominance** | Sail · Petal · None | paired side fins along the torso |
+| Hip fins | **incomplete dominance** | Sail · Petal · None | paired rear-body fins |
+| Tail sail | **incomplete dominance** | Ribbon · Ridge · None | a webbed sail following the tail |
 
 Every gene gets a different *kind* of visual change, so no two can be confused for one another.
 
@@ -153,7 +163,7 @@ that at least one trial cannot be predicted from a single visible characteristic
 ## Open investigation behavior
 
 - The standard is empty at first. Choosing a form adds it; choosing the same form again removes it.
-  Any subset of the thirteen genes is a legal standard.
+  Any subset of the twenty-four genes is a legal standard.
 - Either parent stand accepts a click on a founder's `Parent 1` / `Parent 2` button, a drag of a
   founder card, a drag of a kennel card, or the same buttons on a kennel card. Every drag has a
   button equivalent.

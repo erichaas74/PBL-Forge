@@ -24,6 +24,7 @@ import { AssemblyRendererService } from '@pbl/assembly/assembly-renderer.service
 })
 export class GarageViewportComponent implements AfterViewInit, OnDestroy {
   readonly state = input.required<AssemblyState>();
+  readonly frameRequest = input(0);
   readonly selectedPartId = input<string | null>(null);
   readonly partSelected = output<string>();
   readonly partMoved = output<PartMoveEvent>();
@@ -38,6 +39,7 @@ export class GarageViewportComponent implements AfterViewInit, OnDestroy {
   private hasMounted = false;
   private physicsDirty = true;
   private blueprintSignature = '';
+  private lastFrameRequest = -1;
   private readonly renderer = inject(AssemblyRendererService);
   private readonly physics = inject(AssemblyPhysicsService);
   private dragState: {
@@ -50,6 +52,7 @@ export class GarageViewportComponent implements AfterViewInit, OnDestroy {
   } | null = null;
   private readonly stateSync = effect(() => {
     const state = this.state();
+    const frameRequest = this.frameRequest();
     const signature = physicsSignature(state);
     if (signature !== this.blueprintSignature) {
       this.blueprintSignature = signature;
@@ -57,8 +60,12 @@ export class GarageViewportComponent implements AfterViewInit, OnDestroy {
     }
 
     if (this.hasMounted) {
-      this.renderer.syncAssembly(state, true);
+      this.renderer.syncAssembly(state, true, this.selectedPartId());
       this.renderer.syncSelection(this.selectedPartId());
+      if (frameRequest !== this.lastFrameRequest) {
+        this.lastFrameRequest = frameRequest;
+        this.renderer.frameAssembly();
+      }
       if (state.isSimulating) {
         this.ensurePhysicsReady();
         this.startLoop();
@@ -71,6 +78,7 @@ export class GarageViewportComponent implements AfterViewInit, OnDestroy {
     const selectedPartId = this.selectedPartId();
 
     if (this.hasMounted) {
+      this.renderer.syncAssembly(this.state(), true, selectedPartId);
       this.renderer.syncSelection(selectedPartId);
     }
   });
@@ -78,8 +86,10 @@ export class GarageViewportComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     this.hasMounted = true;
     this.renderer.mount(this.viewportRef.nativeElement);
-    this.renderer.syncAssembly(this.state());
+    this.renderer.syncAssembly(this.state(), true, this.selectedPartId());
     this.renderer.syncSelection(this.selectedPartId());
+    this.lastFrameRequest = this.frameRequest();
+    this.renderer.frameAssembly();
     if (this.state().isSimulating) {
       this.ensurePhysicsReady();
       this.startLoop();

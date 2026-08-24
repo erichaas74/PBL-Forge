@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Service, signal } from '@angular/core';
 
 export interface WorkstationGuideLiveState {
   contextId: string;
@@ -7,7 +7,7 @@ export interface WorkstationGuideLiveState {
 }
 
 /** Small shared channel for instruments to tell the optional guide what just happened. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class WorkstationGuideStateService {
   private readonly stateSignal = signal<WorkstationGuideLiveState | null>(null);
   readonly state = this.stateSignal.asReadonly();

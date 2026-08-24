@@ -14,7 +14,9 @@ import {
   eyeMaterial,
   hornMaterial,
   pupilMaterial,
+  scaleMaterial,
 } from './dragon-materials';
+import { markSpecimenEyelid } from './specimen-facial-animation';
 import { DragonHeadStyle } from './dragon-style';
 import { visualString } from './dragon-visual-parameter-readers';
 
@@ -30,6 +32,7 @@ export function addDragonHeadHornsAndEyes(
   // skull without also growing the horns.
   const scaleRef = dims.y / 2;
   const horn = hornMaterial(palette);
+  const eyelid = scaleMaterial(palette, 0.55);
   for (const side of [-1, 1] as const) {
     // A length of zero means hornless, and is drawn as nothing at all: a
     // zero-height cone still leaves its base disc sitting on the skull.
@@ -71,7 +74,7 @@ export function addDragonHeadHornsAndEyes(
       group.add(browSpike);
     }
 
-    group.add(buildEye(part, dims, side, shape));
+    group.add(buildEye(part, dims, side, shape, eyelid));
   }
 }
 
@@ -87,6 +90,7 @@ function buildEye(
   dims: { x: number; y: number; z: number },
   side: -1 | 1,
   shape: DragonHeadShape,
+  eyelidMaterial: THREE.Material,
 ): THREE.Object3D {
   const suffix = side < 0 ? 'left' : 'right';
   const group = new THREE.Group();
@@ -143,6 +147,53 @@ function buildEye(
     // actually put it.
     .add(new THREE.Vector3(radius * 0.34, radius * 0.4, 0));
   group.add(spark);
+
+  /*
+   * Two mobile skin shells close over the lateral eye. A hemisphere is used
+   * instead of a flat plate so the lid follows the eyeball from every camera
+   * angle. At rest its equator sits just beyond the eye; a blink slides the
+   * upper and lower halves together over the pupil.
+   */
+  const upperLid = mesh(
+    new THREE.SphereGeometry(
+      radius * 1.075,
+      detail(16),
+      detail(9),
+      0,
+      Math.PI * 2,
+      0,
+      Math.PI * 0.49,
+    ),
+    eyelidMaterial,
+  );
+  upperLid.name = `dragon-upper-eyelid-${suffix}`;
+  markSpecimenEyelid(
+    upperLid,
+    centre.clone().add(new THREE.Vector3(0, radius * 0.92, 0)),
+    centre.clone().add(new THREE.Vector3(0, radius * 0.015, 0)),
+  );
+  group.add(upperLid);
+
+  const lowerLid = mesh(
+    new THREE.SphereGeometry(
+      radius * 1.075,
+      detail(16),
+      detail(9),
+      0,
+      Math.PI * 2,
+      0,
+      Math.PI * 0.49,
+    ),
+    eyelidMaterial,
+  );
+  lowerLid.name = `dragon-lower-eyelid-${suffix}`;
+  lowerLid.rotation.z = Math.PI;
+  markSpecimenEyelid(
+    lowerLid,
+    centre.clone().add(new THREE.Vector3(0, -radius * 0.92, 0)),
+    centre.clone().add(new THREE.Vector3(0, -radius * 0.015, 0)),
+  );
+  group.add(lowerLid);
 
   return group;
 }

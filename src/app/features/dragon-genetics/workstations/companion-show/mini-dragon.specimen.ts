@@ -80,10 +80,23 @@ export const MINI_PATTERN_LABELS: Readonly<Record<MiniInheritancePattern, string
 function miniGeneRoles(geneId: MiniGeneId): readonly AssemblyPartRole[] {
   switch (geneId) {
     case 'horns':
+      return ['horn'];
     case 'ears':
+      return ['ear'];
     case 'muzzle':
     case 'crest':
+    case 'eyes':
       return ['head'];
+    case 'brow':
+      return ['brow-plates'];
+    case 'whiskers':
+      return ['whiskers'];
+    case 'chin':
+      return ['chin-tuft'];
+    case 'dewlap':
+      return ['dewlap'];
+    case 'ruff':
+      return ['neck-ruff'];
     case 'wings':
       return ['wing'];
     case 'size':
@@ -91,12 +104,22 @@ function miniGeneRoles(geneId: MiniGeneId): readonly AssemblyPartRole[] {
       return ['leg'];
     case 'tail':
       return ['tail'];
+    case 'tail-sail':
+      return ['tail-sail'];
     case 'coat':
       return ['dorsal-scales'];
     case 'plumage':
       return ['core', 'wing'];
     case 'frame':
       return ['core'];
+    case 'shoulders':
+      return ['shoulder-plates'];
+    case 'belly':
+      return ['belly-scutes'];
+    case 'flank-fins':
+      return ['flank-fins'];
+    case 'hip-fins':
+      return ['hip-fins'];
     case 'pattern':
     case 'ember':
       return [];

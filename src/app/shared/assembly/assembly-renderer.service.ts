@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
@@ -10,7 +10,7 @@ import {
   Vector3Data,
 } from './domain/assembly.models';
 import { identityQuaternion, rotateVectorByQuaternion } from './domain/vector-data';
-import { getAssemblySnapPoints } from './domain/snap-points';
+import { getAssemblySnapPoints, getPartSnapPoints } from './domain/snap-points';
 import {
   createAssemblyObject,
   disposeAssemblyObject,
@@ -25,7 +25,7 @@ import {
   installStageEnvironment,
 } from './rendering/scene-environment';
 
-@Injectable()
+@Service({ autoProvided: false })
 export class AssemblyRendererService {
   private host: HTMLElement | null = null;
   private scene: THREE.Scene | null = null;
@@ -85,7 +85,11 @@ export class AssemblyRendererService {
     this.resizeObserver.observe(host);
   }
 
-  syncAssembly(state: AssemblyBlueprint, showSnapPoints = false): void {
+  syncAssembly(
+    state: AssemblyBlueprint,
+    showSnapPoints = false,
+    snapPointPartId?: string | null,
+  ): void {
     if (!this.scene) {
       return;
     }
@@ -119,7 +123,7 @@ export class AssemblyRendererService {
     }
 
     if (showSnapPoints) {
-      this.syncSnapPoints(state);
+      this.syncSnapPoints(state, snapPointPartId);
     }
 
     this.render();
@@ -151,6 +155,34 @@ export class AssemblyRendererService {
     this.selectionBox = new THREE.BoxHelper(object, 0x0f62fe);
     this.scene.add(this.selectionBox);
     this.render();
+  }
+
+  /** Fits the current authored assembly without changing the user's orbit direction. */
+  frameAssembly(padding = 1.18): void {
+    if (!this.camera || !this.controls || this.partObjects.size === 0) return;
+    const bounds = new THREE.Box3();
+    for (const object of this.partObjects.values()) bounds.expandByObject(object, true);
+    if (bounds.isEmpty()) return;
+
+    const sphere = bounds.getBoundingSphere(new THREE.Sphere());
+    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * this.camera.aspect);
+    const limitingFov = Math.min(verticalFov, horizontalFov);
+    const distance = Math.max(
+      0.8,
+      sphere.radius * Math.max(padding, 1) / Math.sin(Math.max(limitingFov / 2, 0.01)),
+    );
+    const direction = this.camera.position.clone().sub(this.controls.target);
+    if (direction.lengthSq() < 1e-6) direction.set(5.5, 3.5, 6.5);
+    direction.normalize();
+
+    this.controls.target.copy(sphere.center);
+    this.camera.position.copy(sphere.center).addScaledVector(direction, distance);
+    this.camera.near = Math.max(0.01, distance - sphere.radius * 2.2);
+    this.camera.far = Math.max(200, distance + sphere.radius * 4);
+    this.camera.updateProjectionMatrix();
+    this.controls.update();
+    this.renderScene();
   }
 
   applySnapshot(snapshots: AssemblyPhysicsSnapshot[]): void {
@@ -445,12 +477,14 @@ export class AssemblyRendererService {
     scene.add(floor);
   }
 
-  private syncSnapPoints(state: AssemblyBlueprint): void {
+  private syncSnapPoints(state: AssemblyBlueprint, partId?: string | null): void {
     if (!this.scene) {
       return;
     }
 
-    const snapPoints = getAssemblySnapPoints(state);
+    const snapPoints = partId === undefined
+      ? getAssemblySnapPoints(state)
+      : state.parts.filter(part => part.id === partId).flatMap(getPartSnapPoints);
     const nextKeys = new Set(snapPoints.map(point => getSnapPointKey(point)));
 
     for (const [key, marker] of Array.from(this.snapPointMeshes.entries())) {

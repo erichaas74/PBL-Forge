@@ -25,7 +25,7 @@ import {
 } from '@pbl/assembly/domain/vector-data';
 import { preset } from '@pbl/assembly/assets/assembly-preset-builder';
 
-interface CatalogPresetPart {
+export interface CatalogPresetPart {
   definitionId: string;
   partId: string;
   label?: string;
@@ -80,7 +80,7 @@ export function createClassicDragonTestPreset(
   );
 }
 
-function buildCatalogPresetAssembly(
+export function buildCatalogPresetAssembly(
   entries: readonly CatalogPresetPart[],
   basePosition: Vector3Data,
   resolveDefinition: (definition: AssemblyPartDefinition) => AssemblyPartDefinition = value => value,

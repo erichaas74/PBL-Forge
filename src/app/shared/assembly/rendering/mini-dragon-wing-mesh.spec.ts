@@ -13,7 +13,7 @@ describe('wing', () => {
 
     expect(named(wing, 'mini-dragon-wing-membrane').length).toBe(1);
     expect(named(wing, 'mini-dragon-wing-bone').length).toBe(1);
-    expect(named(wing, 'mini-dragon-wing-strut').length).toBe(2);
+    expect(named(wing, 'mini-dragon-wing-strut').length).toBe(3);
     expect(named(wing, 'mini-dragon-wing-nub').length).toBe(0);
   });
 
@@ -57,7 +57,7 @@ describe('wing', () => {
     const layer = named(wing, 'mini-dragon-wing-feathers')[0] as THREE.InstancedMesh;
 
     expect(layer).toBeInstanceOf(THREE.InstancedMesh);
-    expect(layer.count).toBe(30);
+    expect(layer.count).toBe(36);
     expect(layer.instanceColor).toBeTruthy();
   });
 });

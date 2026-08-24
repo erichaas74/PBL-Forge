@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { AssemblyPart } from '../domain/assembly.models';
-import { MiniDragonPalette, createMiniDragonPalette } from './mini-dragon-rendering';
+import { MiniDragonPalette, createMiniDragonPalette } from './mini-dragon-palette';
 
 export type MiniDragonBuilder = (part: AssemblyPart, palette: MiniDragonPalette) => THREE.Object3D;
 

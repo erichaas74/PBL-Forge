@@ -1,0 +1,20 @@
+<div class="punnett-page viking-workstation">
+  <header class="page-header">
+    <a
+      class="exit"
+      [routerLink]="workstationExitUrl()"
+      aria-label="Return to journey or Dragon Genetics"
+      >←</a
+    >
+    <div>
+      <span>DRAGON GENETICS · INHERITANCE LAB</span>
+      <strong>Punnett Composer</strong>
+    </div>
+  </header>
+
+  <app-punnett-composer
+    [studentId]="studentId()"
+    [goal]="goal"
+    (crossSaved)="recordCompletedCross()"
+  />
+</div>

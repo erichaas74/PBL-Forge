@@ -153,6 +153,20 @@ describe('estimateSpecimenFrame', () => {
     expect(miniFrame.halfHeight).toBeGreaterThan(plainFrame.halfHeight * 2);
   });
 
+  it('includes inherited Mini Dragon whisker reach in its frame', () => {
+    const plain: AssemblyPart = { ...part('whiskers', 0, ['head']) };
+    const whiskers: AssemblyPart = {
+      ...plain,
+      visualProfile: { profileId: 'mini-dragon-whiskers', meshType: 'procedural' },
+    };
+
+    const plainFrame = estimateSpecimenFrame({ parts: [plain], joints: [] });
+    const whiskerFrame = estimateSpecimenFrame({ parts: [whiskers], joints: [] });
+
+    expect(whiskerFrame.halfExtents.x).toBeGreaterThan(plainFrame.halfExtents.x * 3);
+    expect(whiskerFrame.halfExtents.z).toBeGreaterThan(plainFrame.halfExtents.z);
+  });
+
   it('uses the posed positions when a pose is supplied', () => {
     const blueprint = chainBlueprint();
     const pose = buildSpecimenPose(blueprint, { droopRadians: 0.4 });

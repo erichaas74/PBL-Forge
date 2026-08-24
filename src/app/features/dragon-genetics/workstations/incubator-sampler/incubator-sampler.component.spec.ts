@@ -40,7 +40,7 @@ describe('IncubatorSamplerComponent', () => {
         fixture.destroy();
     });
 
-    it('replaces a station inventory with the loaded dragon until the student asks to change it', () => {
+    it('keeps both synced parent card decks visible after parents are selected', () => {
         const fixture = TestBed.createComponent(IncubatorSamplerComponent);
         fixture.componentRef.setInput('studentId', studentId);
         fixture.detectChanges();
@@ -51,17 +51,42 @@ describe('IncubatorSamplerComponent', () => {
         fixture.detectChanges();
 
         const remaining = fixture.debugElement.queryAll(By.directive(AccountGeneticsFileComponent));
-        expect(remaining.length).toBe(1);
-        expect(remaining[0].componentInstance.sexFilter()).toBe('male');
-        expect(fixture.nativeElement.querySelector('.parent-a .parent-model')).not.toBeNull();
-        expect(fixture.nativeElement.querySelector('.parent-a .visible-traits')).not.toBeNull();
+        expect(remaining.length).toBe(2);
+        expect(remaining[0].componentInstance.selectedGeneId()).toBe(component.selectedTraitId());
+        expect(remaining[1].componentInstance.selectedGeneId()).toBe(component.selectedTraitId());
+        expect(fixture.nativeElement.querySelector('.parent-a .parent-model')).toBeNull();
+        fixture.destroy();
+    });
 
-        const change = fixture.nativeElement.querySelector('[data-testid="change-female-parent"]') as HTMLButtonElement;
-        change.click();
+    it('syncs a gene selected on either parent card with the incubator trait and both decks', () => {
+        const fixture = TestBed.createComponent(IncubatorSamplerComponent);
+        fixture.componentRef.setInput('studentId', studentId);
+        fixture.detectChanges();
+        const component = fixture.componentInstance;
+
+        const inventories = fixture.debugElement.queryAll(By.directive(AccountGeneticsFileComponent));
+        expect(inventories[0].componentInstance.selectableGeneIds()).toEqual([
+          'wings',
+          'fire',
+          'scales',
+          'horns',
+          'legs',
+          'claws',
+          'crest',
+          'spikes',
+        ]);
+
+        inventories[0].componentInstance.geneSelected.emit('horns');
         fixture.detectChanges();
 
-        expect(fixture.debugElement.queryAll(By.directive(AccountGeneticsFileComponent)).length).toBe(2);
-        expect(fixture.nativeElement.querySelector('.parent-a .parent-model')).toBeNull();
+        expect(component.selectedTraitId()).toBe('horns');
+        expect(
+          inventories.every(({ componentInstance }) => componentInstance.selectedGeneId() === 'horns'),
+        ).toBe(true);
+        expect(
+          (fixture.nativeElement.querySelector('[data-testid="trait-select"]') as HTMLSelectElement)
+            .value,
+        ).toBe('horns');
         fixture.destroy();
     });
 

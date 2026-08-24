@@ -96,8 +96,28 @@ const MODULES = {
         what: 'Mini-dragon profileId routing.',
       },
       {
-        path: `${RENDERING}/mini-dragon-rendering.ts`,
-        what: 'Mini-dragon palette, materials, and low-level rendering helpers.',
+        path: `${RENDERING}/mini-dragon-palette.ts`,
+        what: 'Mini-dragon semantic colours and inherited pigment derivation.',
+      },
+      {
+        path: `${RENDERING}/mini-dragon-materials.ts`,
+        what: 'Mini-dragon biological surface and feature materials.',
+      },
+      {
+        path: `${RENDERING}/mini-dragon-textures.ts`,
+        what: 'Mini-dragon coat, keratin, membrane, and feather texture cache.',
+      },
+      {
+        path: `${RENDERING}/mini-dragon-geometry.ts`,
+        what: 'Mini-dragon mesh, profile sampling, and joint-cover helpers.',
+      },
+      {
+        path: `${RENDERING}/mini-dragon-visual-parameter-readers.ts`,
+        what: 'Mini-dragon-only visual parameter accessors.',
+      },
+      {
+        path: `${RENDERING}/mini-dragon-random.ts`,
+        what: 'Deterministic variation shared by mini-dragon surfaces and feathers.',
       },
       {
         path: `${RENDERING}/mini-dragon-anatomy.ts`,

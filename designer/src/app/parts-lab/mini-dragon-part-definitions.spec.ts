@@ -1,4 +1,4 @@
-import { createMiniDragonProceduralObject } from '@pbl/assembly/rendering/mini-dragon-procedural-mesh.factory';
+import { createMiniDragonProceduralObject, MINI_DRAGON_PROFILE_IDS } from '@pbl/assembly/rendering/mini-dragon-procedural-mesh.factory';
 import { createPartFromDefinition } from '../assembly-garage/data/assembly-part-definitions';
 import { MINI_DRAGON_PART_DEFINITIONS } from './mini-dragon-part-definitions';
 
@@ -8,6 +8,8 @@ describe('Mini Dragon Parts Lab catalog', () => {
 
         expect(new Set(MINI_DRAGON_PART_DEFINITIONS.map(definition => definition.id)).size)
             .toBe(MINI_DRAGON_PART_DEFINITIONS.length);
+        expect(MINI_DRAGON_PART_DEFINITIONS).toHaveLength(28);
+        expect(new Set(profileIds)).toEqual(new Set(MINI_DRAGON_PROFILE_IDS));
         expect(profileIds).toContain('mini-dragon-thigh');
         expect(profileIds).toContain('mini-dragon-leg');
 

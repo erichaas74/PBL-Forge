@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { isSharedAssemblyAssetTexture } from './assembly-asset-loader';
 import { isSharedDragonTexture } from './dragon-textures';
+import { isSharedMiniDragonTexture } from './mini-dragon-textures';
 /** Frees object-owned resources while preserving shared texture caches. */
 export function disposeAssemblyObject(root: THREE.Object3D): void {
   root.traverse((object) => {
@@ -13,7 +14,11 @@ export function disposeAssemblyObject(root: THREE.Object3D): void {
         if (value instanceof THREE.Texture) textures.add(value);
       }
       for (const texture of textures) {
-        if (!isSharedDragonTexture(texture) && !isSharedAssemblyAssetTexture(texture)) {
+        if (
+          !isSharedDragonTexture(texture) &&
+          !isSharedMiniDragonTexture(texture) &&
+          !isSharedAssemblyAssetTexture(texture)
+        ) {
           texture.dispose();
         }
       }

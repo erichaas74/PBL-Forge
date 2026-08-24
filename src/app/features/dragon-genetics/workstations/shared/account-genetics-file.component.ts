@@ -1,6 +1,7 @@
 import {
   Component,
   computed,
+  effect,
   inject,
   input,
   linkedSignal,
@@ -20,9 +21,10 @@ import {
   accountGeneticsDragPayload,
 } from './account-genetics-library.models';
 import { AccountGeneticsLibraryService } from './account-genetics-library.service';
-import { accountDragonPerformance, dragonGeneration } from './dragon-account-card';
+import { accountDragonPerformance } from './dragon-account-card';
 import { DragonCardDeckSelectorComponent } from './dragon-card-deck-selector.component';
 import { DragonCardBloodType } from './dragon-flip-card.component';
+import { DragonCardGeneReadout } from './dragon-card-genome';
 
 @Component({
   selector: 'app-account-genetics-file',
@@ -46,7 +48,11 @@ export class AccountGeneticsFileComponent {
   readonly bloodTypeByDragonId = input<
     Readonly<Partial<Record<string, DragonCardBloodType>>>
   >({});
+  readonly selectedGeneId = input<DragonCardGeneReadout['id'] | null>(null);
+  readonly revealedGeneIds = input<readonly string[]>([]);
+  readonly selectableGeneIds = input<readonly string[] | null>(null);
   readonly recordSelected = output<AccountGeneticsRecord>();
+  readonly geneSelected = output<DragonCardGeneReadout['id']>();
 
   readonly open = linkedSignal(() => this.initiallyOpen());
   readonly tab = linkedSignal<AccountGeneticsRecord['kind']>(() => 'dragon');
@@ -127,17 +133,25 @@ export class AccountGeneticsFileComponent {
     return dragon ? accountDragonPerformance(dragon) : null;
   });
 
+  constructor() {
+    effect(() => {
+      const dragon = this.activeDeckDragon();
+      if (!this.disabled() && dragon && dragon.id !== this.selectedRecordId()) {
+        this.recordSelected.emit(dragon);
+      }
+    });
+  }
+
   selectDeckDragon(dragon: AccountDragonRecord): void {
     if (this.disabled()) return;
     this.inspectedRecordId.set(dragon.id);
+    this.recordSelected.emit(dragon);
   }
 
   inspect(record: AccountGeneticsRecord): void {
-    if (!this.disabled()) this.inspectedRecordId.set(record.id);
-  }
-
-  use(record: AccountGeneticsRecord): void {
-    if (!this.disabled()) this.recordSelected.emit(record);
+    if (this.disabled()) return;
+    this.inspectedRecordId.set(record.id);
+    this.recordSelected.emit(record);
   }
 
   startDrag(event: DragEvent, record: AccountGeneticsRecord): void {
@@ -164,7 +178,4 @@ export class AccountGeneticsFileComponent {
       : `${record.traitName} · ${record.alleles.join('/')}`;
   }
 
-  dragonGeneration(dragon: AccountDragonRecord): string {
-    return dragonGeneration(dragon);
-  }
 }

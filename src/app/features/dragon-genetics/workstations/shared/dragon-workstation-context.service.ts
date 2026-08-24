@@ -1,4 +1,4 @@
-import { computed, inject, Injectable } from '@angular/core';
+import { computed, inject, Service } from '@angular/core';
 import { SessionService } from '../../../../core/firebase/session.service';
 import { DragonAdaptiveStore } from '../../adaptive/dragon-adaptive.store';
 import {
@@ -15,7 +15,7 @@ import { LOCAL_WORKSTATION_STUDENT_ID } from './dragon-workstation-context.model
  * not inject this service directly: the route/page is the Angular container boundary and this
  * service is its adapter to session, assignment, catalog, and notebook state.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonWorkstationContextService {
   private readonly session = inject(SessionService);
   private readonly adaptiveStore = inject(DragonAdaptiveStore);

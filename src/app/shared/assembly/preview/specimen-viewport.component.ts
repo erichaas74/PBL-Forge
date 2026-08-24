@@ -15,7 +15,7 @@ import { AssemblyAbilityId } from '../combat/assembly-abilities';
 import { StageTheme } from '../rendering/scene-environment';
 import { SpecimenSource } from './specimen.models';
 import { DRAGON_IDLE_BREATH, DRAGON_RESTING_POSE, dragonRestingPose } from './specimen-stance';
-import { SpecimenMotionDefinition } from './specimen-motion';
+import { SpecimenIdleMotion, SpecimenMotionDefinition } from './specimen-motion';
 import { SPECIMEN_PROFILES, SpecimenProfileRegistry } from './specimen-profile.registry';
 import { SpecimenRendererService, isSpecimenRenderingAvailable } from './specimen-renderer.service';
 
@@ -34,6 +34,14 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
   readonly source = input<SpecimenSource | null>(null);
   readonly ariaLabel = input('Specimen model');
   readonly controls = input(true);
+  /** Enables pointer orbiting. Cards turn this off while retaining idle motion. */
+  readonly interactive = input(true);
+  /** Runs the ambient living pose while visible. Scripted motions remain available. */
+  readonly animated = input(true);
+  /** Ambient pose; cards can opt into a livelier idle while lab viewers stay restrained. */
+  readonly idleMotion = input<SpecimenIdleMotion>(DRAGON_IDLE_BREATH);
+  /** Optional on-screen-only ability loop used by animated specimen cards. */
+  readonly autoAbilities = input<readonly AssemblyAbilityId[]>([]);
   readonly controlsPlacement = input<'below' | 'side'>('below');
   readonly showGroundShadow = input(true);
   readonly framePadding = input(1.12);
@@ -48,7 +56,10 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
   private readonly renderer = inject(SpecimenRendererService);
   private readonly registry = inject(SpecimenProfileRegistry);
   private readonly mounted = signal(false);
+  private readonly visible = signal(false);
   private visibility: IntersectionObserver | null = null;
+  private autoAbilityTimer: ReturnType<typeof setTimeout> | null = null;
+  private autoAbilityIndex = 0;
 
   readonly renderingAvailable = isSpecimenRenderingAvailable();
   readonly zoomPercent = signal(100);
@@ -86,6 +97,25 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
       const focusedTraitId = this.focusedTraitId();
       if (this.mounted() && this.descriptor()) this.renderer.setTraitFocus(focusedTraitId);
     });
+
+    effect(() => {
+      const shouldAnimate = this.animated() && this.visible();
+      const idleMotion = this.idleMotion();
+      if (!this.mounted()) return;
+      this.renderer.setIdleMotion(shouldAnimate ? idleMotion : null);
+    });
+
+    effect(() => {
+      const canShowcase =
+        this.mounted()
+        && this.visible()
+        && this.animated()
+        && Boolean(this.descriptor())
+        && this.autoAbilities().length > 0
+        && !prefersReducedMotion();
+      this.stopAutoAbilities();
+      if (canShowcase) this.scheduleAutoAbility(2100);
+    });
   }
 
   ngAfterViewInit(): void {
@@ -94,7 +124,7 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
     // pinned to 'low' and that pin is what kept the post chain and the
     // full-resolution material maps out of every student-facing viewer.
     this.renderer.mount(this.stageRef.nativeElement, {
-      interactive: true,
+      interactive: this.interactive(),
       theme: this.theme() ?? undefined,
       transparent: this.transparent(),
       showGroundShadow: this.showGroundShadow(),
@@ -109,6 +139,7 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.visibility?.disconnect();
     this.visibility = null;
+    this.stopAutoAbilities();
     this.renderer.dispose();
   }
 
@@ -128,8 +159,7 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
 
     this.visibility = new IntersectionObserver(
       (entries) => {
-        const visible = entries.some((entry) => entry.isIntersecting);
-        this.renderer.setIdleMotion(visible ? DRAGON_IDLE_BREATH : null);
+        this.visible.set(entries.some((entry) => entry.isIntersecting));
       },
       { threshold: 0.1 },
     );
@@ -142,6 +172,26 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
 
   playMotion(motion: SpecimenMotionDefinition): Promise<void> {
     return this.mounted() ? this.renderer.playMotion(motion) : Promise.resolve();
+  }
+
+  private scheduleAutoAbility(delayMs: number): void {
+    this.autoAbilityTimer = setTimeout(async () => {
+      this.autoAbilityTimer = null;
+      const abilities = this.autoAbilities();
+      if (!this.visible() || !this.animated() || !abilities.length) return;
+      const ability = abilities[this.autoAbilityIndex % abilities.length];
+      this.autoAbilityIndex += 1;
+      await this.renderer.playAbility(ability);
+      if (this.visible() && this.animated()) {
+        // An uneven pause keeps the animal from feeling like a mechanical loop.
+        this.scheduleAutoAbility(3300 + (this.autoAbilityIndex % 3) * 650);
+      }
+    }, delayMs);
+  }
+
+  private stopAutoAbilities(): void {
+    if (this.autoAbilityTimer !== null) clearTimeout(this.autoAbilityTimer);
+    this.autoAbilityTimer = null;
   }
 
   zoomIn(): void {
@@ -162,4 +212,8 @@ export class SpecimenViewportComponent implements AfterViewInit, OnDestroy {
     const level = this.renderer.setZoomLevel(this.zoomPercent() / 100 + delta);
     this.zoomPercent.set(Math.round(level * 100));
   }
+}
+
+function prefersReducedMotion(): boolean {
+  return globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }

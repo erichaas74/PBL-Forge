@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -9,7 +9,7 @@ import { DragonJourneyRosterSnapshot, DragonLearningPathId } from '../domain/dra
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.journey-roster.v1';
 
 /** Assignment-scoped index for the two starters that anchor a student's breeding line. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonJourneyRosterRepository {
   loadOrCreate(
     studentId: string,

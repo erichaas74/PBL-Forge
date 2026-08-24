@@ -77,12 +77,13 @@
   <label
     >Transcription timeline
     <input
+      #timelineControl
       type="range"
       min="0"
       [max]="coding().length * 2"
       step="1"
       [value]="timelineProgress()"
-      (input)="setTimelineProgress($any($event.target).value)"
+      (input)="setTimelineProgress(timelineControl.value)"
   /></label>
   <output aria-live="polite">{{ phaseLabel() }}</output>
 </div>

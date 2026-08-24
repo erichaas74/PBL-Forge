@@ -1,4 +1,4 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, Service, OnDestroy, signal } from '@angular/core';
 import {
   AssemblyJoint,
   AssemblyJointBehavior,
@@ -45,9 +45,20 @@ import {
   rotateVectorByQuaternion,
   VectorAxis,
 } from '@pbl/assembly/domain/vector-data';
+import { readStoredJson, writeStoredJson } from '@pbl/assembly/persistence/json-local-storage';
 
-@Injectable()
-export class AssemblyGarageStore {
+const GARAGE_DRAFT_KEY = 'dragon-designer.garage-draft.v1';
+const GARAGE_DRAFT_SCHEMA_VERSION = 1 as const;
+const MAX_HISTORY = 40;
+
+interface GarageDraftV1 {
+  schemaVersion: typeof GARAGE_DRAFT_SCHEMA_VERSION;
+  savedAtIso: string;
+  assembly: AssemblyBlueprint;
+}
+
+@Service({ autoProvided: false })
+export class AssemblyGarageStore implements OnDestroy {
   private readonly stateSignal = signal<AssemblyState>(cloneAssemblyState(STARTER_ASSEMBLY_STATE));
   private readonly selectionSignal = signal<AssemblySelection>({
     partId: STARTER_ASSEMBLY_STATE.parts[0]?.id ?? null,
@@ -56,10 +67,21 @@ export class AssemblyGarageStore {
   private readonly jointDraftSignal = signal<AssemblyJointDraft>(
     createJointDraft(STARTER_ASSEMBLY_STATE),
   );
+  private readonly undoSignal = signal<AssemblyBlueprint[]>([]);
+  private readonly redoSignal = signal<AssemblyBlueprint[]>([]);
+  private readonly persistenceEnabled = signal(false);
+  private readonly savedAtSignal = signal<string | null>(null);
+  private lastCheckpoint = '';
+  private checkpointTimer: ReturnType<typeof setTimeout> | null = null;
+  private persistenceTimer: ReturnType<typeof setInterval> | null = null;
+  private suppressCheckpoint = false;
 
   readonly state = this.stateSignal.asReadonly();
   readonly selection = this.selectionSignal.asReadonly();
   readonly jointDraft = this.jointDraftSignal.asReadonly();
+  readonly canUndo = computed(() => this.undoSignal().length > 0);
+  readonly canRedo = computed(() => this.redoSignal().length > 0);
+  readonly savedAt = this.savedAtSignal.asReadonly();
 
   readonly partCount = computed(() => this.state().parts.length);
   readonly jointCount = computed(() => this.state().joints.length);
@@ -91,6 +113,53 @@ export class AssemblyGarageStore {
   readonly draftParentSnapPoints = computed(() => this.getDraftSnapPoints('parent'));
   readonly draftChildSnapPoints = computed(() => this.getDraftSnapPoints('child'));
   readonly exportJson = computed(() => JSON.stringify(this.state(), null, 2));
+
+  /** Restores the last valid browser draft and begins recoverable autosave. */
+  enablePersistence(): boolean {
+    const stored = readStoredJson<GarageDraftV1 | null>(GARAGE_DRAFT_KEY, null, parseGarageDraft);
+    if (stored) {
+      this.applyHistoricalState(stored.assembly);
+      this.savedAtSignal.set(stored.savedAtIso);
+    }
+    this.lastCheckpoint = serializeBlueprint(this.state());
+    this.persistenceEnabled.set(true);
+    this.persistenceTimer ??= setInterval(() => this.scheduleCheckpoint(), 220);
+    return stored !== null;
+  }
+
+  ngOnDestroy(): void {
+    if (this.persistenceTimer) clearInterval(this.persistenceTimer);
+    if (this.checkpointTimer) clearTimeout(this.checkpointTimer);
+  }
+
+  undo(): void {
+    const history = this.undoSignal();
+    const previous = history.at(-1);
+    if (!previous) return;
+    this.undoSignal.set(history.slice(0, -1));
+    this.redoSignal.update(items => [cloneAssemblyBlueprint(this.state()), ...items].slice(0, MAX_HISTORY));
+    this.applyHistoricalState(previous);
+    this.persistCurrent();
+  }
+
+  redo(): void {
+    const [next, ...rest] = this.redoSignal();
+    if (!next) return;
+    this.redoSignal.set(rest);
+    this.undoSignal.update(items => [...items, cloneAssemblyBlueprint(this.state())].slice(-MAX_HISTORY));
+    this.applyHistoricalState(next);
+    this.persistCurrent();
+  }
+
+  exportDraftJson(): string {
+    return JSON.stringify(createGarageDraft(this.state()), null, 2);
+  }
+
+  importDraftJson(json: string): void {
+    const parsed = parseGarageDraft(JSON.parse(json) as unknown);
+    if (!parsed) throw new Error('Garage draft JSON is invalid or uses an unsupported schema.');
+    this.loadAssemblyState(parsed.assembly);
+  }
 
   addPart(shape: ShapeType): void {
     const index = this.state().parts.length;
@@ -564,6 +633,40 @@ export class AssemblyGarageStore {
     return part ? getPartSnapPoints(part) : [];
   }
 
+  private commitCheckpoint(serialized: string): void {
+    this.checkpointTimer = null;
+    if (serialized === this.lastCheckpoint) return;
+    if (this.lastCheckpoint) {
+      const previous = JSON.parse(this.lastCheckpoint) as AssemblyBlueprint;
+      this.undoSignal.update(items => [...items, previous].slice(-MAX_HISTORY));
+    }
+    this.redoSignal.set([]);
+    this.lastCheckpoint = serialized;
+    this.persistCurrent();
+  }
+
+  private scheduleCheckpoint(): void {
+    if (!this.persistenceEnabled() || this.suppressCheckpoint) return;
+    const next = serializeBlueprint(this.state());
+    if (next === this.lastCheckpoint) return;
+    if (this.checkpointTimer) clearTimeout(this.checkpointTimer);
+    this.checkpointTimer = setTimeout(() => this.commitCheckpoint(next), 20);
+  }
+
+  private applyHistoricalState(input: AssemblyBlueprint): void {
+    this.suppressCheckpoint = true;
+    this.loadAssemblyState(input);
+    this.lastCheckpoint = serializeBlueprint(this.state());
+    this.suppressCheckpoint = false;
+  }
+
+  private persistCurrent(): void {
+    const draft = createGarageDraft(this.state());
+    writeStoredJson(GARAGE_DRAFT_KEY, draft);
+    this.savedAtSignal.set(draft.savedAtIso);
+    this.lastCheckpoint = serializeBlueprint(this.state());
+  }
+
   private seedDraftFromSelection(type: JointType): void {
     const parts = this.state().parts;
     const selectedPart = this.selectedPart();
@@ -858,6 +961,37 @@ function sameVector(a: Vector3Data, b: Vector3Data): boolean {
   return Math.abs(a.x - b.x) < 0.0001
     && Math.abs(a.y - b.y) < 0.0001
     && Math.abs(a.z - b.z) < 0.0001;
+}
+
+function serializeBlueprint(state: AssemblyBlueprint): string {
+  return JSON.stringify(cloneAssemblyBlueprint(state));
+}
+
+function createGarageDraft(state: AssemblyBlueprint): GarageDraftV1 {
+  return {
+    schemaVersion: GARAGE_DRAFT_SCHEMA_VERSION,
+    savedAtIso: new Date().toISOString(),
+    assembly: cloneAssemblyBlueprint(state),
+  };
+}
+
+function parseGarageDraft(value: unknown): GarageDraftV1 | null {
+  if (!isRecord(value)
+    || value['schemaVersion'] !== GARAGE_DRAFT_SCHEMA_VERSION
+    || typeof value['savedAtIso'] !== 'string') return null;
+  try {
+    return {
+      schemaVersion: GARAGE_DRAFT_SCHEMA_VERSION,
+      savedAtIso: value['savedAtIso'],
+      assembly: cloneAssemblyBlueprint(parseAssemblyState(value['assembly'])),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function getDefaultBehavior(profile: JointBehaviorProfile): AssemblyJointBehavior {

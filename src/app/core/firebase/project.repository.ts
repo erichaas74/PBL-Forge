@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { inject, Service, signal } from '@angular/core';
 import {
   collection,
   doc,
@@ -29,7 +29,7 @@ const BUILT_IN_PROJECTS: readonly PblProject[] = [{
   experienceType: 'dragon-genetics',
 }];
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ProjectRepository {
   private readonly firestore = inject(FIREBASE_FIRESTORE);
 

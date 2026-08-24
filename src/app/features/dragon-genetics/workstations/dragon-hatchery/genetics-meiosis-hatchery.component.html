@@ -1,0 +1,91 @@
+<section class="meiosis-hatchery" aria-labelledby="hatchery-title">
+  <header>
+    <span>{{ program().displayName }} · Open investigation</span>
+    <h1 id="hatchery-title">Meiosis Hatchery</h1>
+    <p>{{ goal() }}</p>
+  </header>
+
+  <section class="hatchery-layout">
+    <div class="card-library">
+      <app-genetics-card-deck
+        [bundles]="cardBundles()"
+        [selectedSpecimenId]="selectedCandidateId()"
+        [revealedGeneIds]="revealedGeneIds()"
+        [selectableGeneIds]="selectableGeneIds()"
+        ariaLabel="Available meiosis parent cards"
+        (specimenSelected)="selectCandidate($event)"
+        (geneSelected)="setGene($event)"
+      />
+      <div class="parent-actions">
+        <button type="button" [disabled]="!selectedCandidate()" (click)="loadParent(0)">Load Parent A</button>
+        <button type="button" [disabled]="!selectedCandidate()" (click)="loadParent(1)">Load Parent B</button>
+      </div>
+    </div>
+
+    <section class="meiosis-bench">
+      <div class="parent-pair">
+        @for (parent of [firstParent(), secondParent()]; track $index; let index = $index) {
+          <article [class.empty]="!parent">
+            <small>Parent {{ index === 0 ? 'A' : 'B' }}</small>
+            @if (parent) {
+              <app-specimen-viewport
+                [source]="parent.renderSource"
+                [ariaLabel]="parent.name + ' meiosis parent'"
+                [interactive]="false"
+                [controls]="false"
+                [transparent]="true"
+              />
+              <strong>{{ parent.name }}</strong>
+            } @else { <span>Choose a card</span> }
+          </article>
+        }
+      </div>
+      <button class="run-meiosis" type="button" [disabled]="!firstParent() || !secondParent()" (click)="runMeiosis()">
+        Run meiosis in both parents
+      </button>
+    </section>
+  </section>
+
+  @if (firstGametes().length && secondGametes().length) {
+    <section class="gamete-lab" aria-label="Gamete selection">
+      <label>Inspect gene
+        <select #geneControl [value]="selectedGeneId()" (change)="setGene(geneControl.value)">
+          @for (gene of genes(); track gene.id) { <option [value]="gene.id">{{ gene.name }}</option> }
+        </select>
+      </label>
+      <div class="gamete-columns">
+        @for (column of gameteColumns(); track column.side) {
+          <section>
+            <h2>Parent {{ column.side === 0 ? 'A' : 'B' }} cells</h2>
+            <div class="gametes">
+              @for (gamete of column.gametes; track gamete.id) {
+                <button
+                  type="button"
+                  [class.selected]="selectedGameteIds()[column.side] === gamete.id"
+                  (click)="selectGamete(column.side, gamete)"
+                >
+                  <small>{{ gamete.label }}</small>
+                  <strong>{{ geneName(selectedGeneId()) }}: {{ allele(gamete, selectedGeneId()) }}</strong>
+                </button>
+              }
+            </div>
+          </section>
+        }
+      </div>
+      <button class="fertilize" type="button" [disabled]="!selectedFirstGamete() || !selectedSecondGamete()" (click)="fertilize()">
+        Form dragon egg
+      </button>
+    </section>
+  }
+
+  @if (offspring(); as child) {
+    <section class="offspring-chamber" aria-label="Fertilized egg result">
+      <app-specimen-viewport [source]="child.renderSource" [ariaLabel]="child.name + ' offspring'" [controls]="true" />
+      <div>
+        <span>New offspring</span><h2>{{ child.name }}</h2>
+        <p>{{ geneName(selectedGeneId()) }} genotype: {{ allele(selectedFirstGamete()!, selectedGeneId()) }}{{ allele(selectedSecondGamete()!, selectedGeneId()) }}</p>
+      </div>
+    </section>
+  }
+  <p class="status" role="status">{{ statusMessage() }}</p>
+</section>

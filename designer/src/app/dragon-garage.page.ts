@@ -8,6 +8,11 @@ import {
 import { DesignerDragonDraftStore } from './designer-dragon-draft.store';
 import { applyDesignerDraft } from './designer-part-overrides';
 import { setDragonStyleOverride } from '@pbl/assembly/rendering/dragon-style';
+import {
+  createMiniDragonAuthoringPreset,
+  createMiniDragonBreedAuthoringPresets,
+} from './mini-dragon-model-export';
+import { createDragonBodyTypePresets } from './assembly-garage/data/presets/dragon-body-types';
 
 /** Dragon-only authoring surface. It has no dependency on genetics lessons or student records. */
 @Component({
@@ -31,6 +36,9 @@ export class DragonGaragePage implements OnDestroy {
   // the Parts Lab or Snap Workshop rebuilds the preset behind it.
   readonly presets = computed<readonly AssemblyPreset[]>(() => [
     createClassicDragonTestPreset(definition => applyDesignerDraft(definition, this.draft)),
+    ...createDragonBodyTypePresets(definition => applyDesignerDraft(definition, this.draft)),
+    createMiniDragonAuthoringPreset(this.draft),
+    ...createMiniDragonBreedAuthoringPresets(this.draft),
   ]);
 
   constructor() {

@@ -1,8 +1,9 @@
-import { MINI_DRAGON_GENES, MINI_FOUNDERS, MiniGenome, breedMiniGenomes, expressMiniGene, isMiniGenome, miniCoatPaint, miniGenomeFromForms, miniGenotypeForForm, miniIndividualFeatures, miniPhenotypeFormId, normalizeMiniGenotype, } from './mini-dragon.genetics';
+import { LEGACY_MINI_GENE_IDS, MINI_DRAGON_GENES, MINI_FOUNDERS, MiniGenome, breedMiniGenomes, expressMiniGene, isMiniGenome, miniCoatPaint, miniGenomeFromForms, miniGenotypeForForm, miniIndividualFeatures, miniPhenotypeFormId, normalizeMiniGenotype, } from './mini-dragon.genetics';
 import { MINI_TRIALS, miniRibbonCount, runMiniTrial } from './mini-dragon.events';
 
 function genomeWith(overrides: Partial<MiniGenome>): MiniGenome {
     return {
+        ...miniGenomeFromForms({}),
         coat: ['F', 'F'],
         plumage: ['p', 'p'],
         horns: ['C', 'c'],
@@ -21,9 +22,9 @@ function genomeWith(overrides: Partial<MiniGenome>): MiniGenome {
 }
 
 describe('mini dragon inheritance patterns', () => {
-    it('covers four different relationships across thirteen genes', () => {
+    it('covers four different relationships across twenty-four genes', () => {
         const patterns = new Set(MINI_DRAGON_GENES.map((gene) => gene.pattern));
-        expect(MINI_DRAGON_GENES.length).toBe(13);
+        expect(MINI_DRAGON_GENES.length).toBe(24);
         expect(patterns).toEqual(new Set(['complete-dominance', 'incomplete-dominance', 'codominance', 'multiple-alleles']));
     });
 
@@ -44,6 +45,19 @@ describe('mini dragon inheritance patterns', () => {
         expect(miniPhenotypeFormId('wings', genomeWith({ wings: ['w', 'w'] }))).toBe('wings:vestigial');
     });
 
+    it('expresses all ten expanded anatomy loci', () => {
+        expect(miniPhenotypeFormId('brow', genomeWith({ brow: ['Q', 'Q'] }))).toBe('brow:crowned');
+        expect(miniPhenotypeFormId('whiskers', genomeWith({ whiskers: ['v', 'v'] }))).toBe('whiskers:none');
+        expect(miniPhenotypeFormId('chin', genomeWith({ chin: ['J', 'j'] }))).toBe('chin:plume');
+        expect(miniPhenotypeFormId('dewlap', genomeWith({ dewlap: ['D', 'd'] }))).toBe('dewlap:half');
+        expect(miniPhenotypeFormId('ruff', genomeWith({ ruff: ['N', 'n'] }))).toBe('ruff:mane-petal');
+        expect(miniPhenotypeFormId('shoulders', genomeWith({ shoulders: ['h', 'h'] }))).toBe('shoulders:soft');
+        expect(miniPhenotypeFormId('belly', genomeWith({ belly: ['U', 'u'] }))).toBe('belly:pebbled');
+        expect(miniPhenotypeFormId('flank-fins', genomeWith({ 'flank-fins': ['X', 'x'] }))).toBe('flank-fins:petal');
+        expect(miniPhenotypeFormId('hip-fins', genomeWith({ 'hip-fins': ['I', 'i'] }))).toBe('hip-fins:petal');
+        expect(miniPhenotypeFormId('tail-sail', genomeWith({ 'tail-sail': ['Y', 'y'] }))).toBe('tail-sail:ridge');
+    });
+
     it('shows both alleles at once for the codominant coat pattern', () => {
         expect(miniPhenotypeFormId('pattern', genomeWith({ pattern: ['A', 'A'] }))).toBe('pattern:ash');
         expect(miniPhenotypeFormId('pattern', genomeWith({ pattern: ['A', 'G'] }))).toBe('pattern:ash-gold');
@@ -55,6 +69,11 @@ describe('mini dragon inheritance patterns', () => {
         expect(miniPhenotypeFormId('ember', genomeWith({ ember: ['Eb', 'Er'] }))).toBe('ember:rose');
         expect(miniPhenotypeFormId('ember', genomeWith({ ember: ['Eb', 'ep'] }))).toBe('ember:blue');
         expect(miniPhenotypeFormId('ember', genomeWith({ ember: ['ep', 'ep'] }))).toBe('ember:pale');
+    });
+
+    it('expresses the new twin-tail allele as a true split-tail form', () => {
+        expect(miniPhenotypeFormId('tail', genomeWith({ tail: ['Td', 'Td'] }))).toBe('tail:split');
+        expect(miniPhenotypeFormId('tail', genomeWith({ tail: ['Tf', 'Tf'] }))).toBe('tail:fork');
     });
 
     it('orders a genotype most-dominant first however it is written', () => {
@@ -74,6 +93,19 @@ describe('mini dragon inheritance patterns', () => {
 });
 
 describe('mini dragon breeding', () => {
+    it('upgrades a persisted thirteen-locus genome with neutral new anatomy', () => {
+        const modern = genomeWith({});
+        const legacy = Object.fromEntries(LEGACY_MINI_GENE_IDS.map((geneId) => [geneId, modern[geneId]])) as unknown as MiniGenome;
+
+        expect(isMiniGenome(legacy)).toBe(true);
+        expect(expressMiniGene('brow', legacy).id).toBe('brow:soft');
+        expect(expressMiniGene('whiskers', legacy).id).toBe('whiskers:short');
+
+        const child = breedMiniGenomes(legacy, legacy, 'legacy-upgrade');
+        expect(Object.keys(child)).toHaveLength(24);
+        expect(isMiniGenome(child)).toBe(true);
+    });
+
     it('draws one allele from each parent at every locus', () => {
         const dam = genomeWith({ coat: ['F', 'F'] });
         const sire = genomeWith({ coat: ['f', 'f'] });
@@ -143,6 +175,27 @@ describe('coat paint and individual features', () => {
         expect(hueOf(first.color)).toBe(hueOf(second.color));
     });
 
+    it('gives a hatch stable, high-variety non-inherited display styling', () => {
+        const genome = genomeWith({ pattern: ['A', 'G'] });
+        const first = miniCoatPaint(genome, 'festival-pup-1');
+
+        expect(miniCoatPaint(genome, 'festival-pup-1')).toEqual(first);
+        expect(first.accentColor).toMatch(/^#[0-9a-f]{6}$/i);
+        expect(first.patternStyle.length).toBeGreaterThan(0);
+        expect(first.surfaceStyle).toBe('sleek');
+
+        const looks = new Set(Array.from({ length: 24 }, (_, index) => {
+            const paint = miniCoatPaint(genome, `festival-pup-${index}`);
+            return `${paint.color}|${paint.accentColor}|${paint.patternStyle}`;
+        }));
+        expect(looks.size).toBeGreaterThan(16);
+    });
+
+    it('uses inherited back scales to select a distinct tactile surface family', () => {
+        expect(miniCoatPaint(genomeWith({ coat: ['F', 'F'] }), 'x').surfaceStyle).toBe('sleek');
+        expect(miniCoatPaint(genomeWith({ coat: ['f', 'f'] }), 'x').surfaceStyle).toBe('bumpy');
+    });
+
     it('gives the ember locus its own colour', () => {
         expect(miniCoatPaint(genomeWith({ ember: ['Er', 'ep'] }), 'x').emberColor).not.toBe(miniCoatPaint(genomeWith({ ember: ['ep', 'ep'] }), 'x').emberColor);
     });
@@ -206,7 +259,7 @@ describe('show ring trials', () => {
             // genotype pair, or a multi-letter symbol standing on its own.
             for (const left of gene.alleles) {
                 for (const right of gene.alleles) {
-                    expect(text, `${gene.id}/${left}${right}`).not.toContain(left + right);
+                    expect(tokens, `${gene.id}/${left}${right}`).not.toContain(left + right);
                 }
                 if (left.length > 1) {
                     expect(tokens, `${gene.id}/${left}`).not.toContain(left);

@@ -29,7 +29,13 @@ export class App {
     ),
     { initialValue: this.router.url },
   );
-  readonly immersive = computed(() => /^\/dragon-genetics\/[^/]+/.test(this.currentUrl()));
+  readonly immersive = computed(() => {
+    const path = this.currentUrl().split(/[?#]/, 1)[0].replace(/\/$/, '');
+    return (
+      path.startsWith('/dragon-genetics/') &&
+      !path.startsWith('/dragon-genetics/path')
+    );
+  });
   readonly dragonGenetics = computed(() => /^\/dragon-genetics(?:[/?#]|$)/.test(this.currentUrl()));
   readonly dragonGeneticsHome = computed(
     () => this.currentUrl().split(/[?#]/, 1)[0].replace(/\/$/, '') === '/dragon-genetics',
@@ -46,7 +52,23 @@ export class App {
     await this.session.signInWithGoogle();
   }
 
+  async signInDemoStudent(): Promise<void> {
+    await this.session.signInAsLocalStudent();
+  }
+
+  async signInDemoTeacher(): Promise<void> {
+    await this.session.signInAsLocalTeacher();
+  }
+
   async returnToStudent(): Promise<void> {
     await this.session.signOut();
+    await this.router.navigate(['/dragon-genetics']);
+  }
+
+  skipToMain(event: Event): void {
+    event.preventDefault();
+    const main = document.getElementById('main-content');
+    main?.focus();
+    main?.scrollIntoView();
   }
 }

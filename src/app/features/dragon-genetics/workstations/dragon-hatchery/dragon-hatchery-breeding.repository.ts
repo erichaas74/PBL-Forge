@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -15,7 +15,7 @@ import { SelectedMeiosisGamete } from './meiosis-gamete.models';
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.hatchery-breeding.v1';
 
 /** Device-backed repository boundary for the open Hatchery breeding record. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonHatcheryBreedingRepository {
   load(studentId: string): DragonHatcheryBreedingSnapshot {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);

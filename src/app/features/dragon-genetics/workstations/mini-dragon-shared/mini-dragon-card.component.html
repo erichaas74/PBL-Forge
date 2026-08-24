@@ -1,107 +1,27 @@
-<div
-  class="mini-card-shell"
-  [class.is-flipped]="flipped()"
-  [class.is-selected]="selected()"
-  [class.is-disabled]="disabled()"
-  [class.on-standard]="card().meetsStandard"
-  [style.--pup-color]="card().color"
-  [style.--pup-accent]="card().patchColor"
-  [style.--pup-ember]="card().emberColor"
->
-  <div class="mini-card-scene">
-    <section class="mini-card mini-card--front" [attr.aria-hidden]="flipped()">
-      <header>
-        <span>{{ card().originLabel }}</span>
-        <strong>{{ card().name }}</strong>
-        <small>{{ card().generationLabel }}</small>
-      </header>
-
-      <div class="mini-card__portrait">
-        @if (renderPortrait() && card().source) {
-          <app-specimen-thumb
-            [source]="card().source!"
-            [labelOverride]="card().name"
-            [showLabel]="false"
-          />
-        } @else {
-          <div class="mini-card__standby" aria-hidden="true">{{ card().name.slice(0, 1) }}</div>
-        }
-        @if (card().meetsStandard) {
-          <b class="mini-card__rosette" title="Meets every line of the standard">✦</b>
-        }
-      </div>
-
-      <p class="mini-card__title">{{ card().title }}</p>
-
-      <dl class="mini-card__stats">
-        <div>
-          <dt>Ribbons</dt>
-          <dd>{{ card().ribbons }}</dd>
-        </div>
-        @for (stat of stats(); track stat.id) {
-          <div>
-            <dt>{{ stat.label }}</dt>
-            <dd>{{ stat.value }}</dd>
-          </div>
-        }
-      </dl>
-
-      <footer>
-        <span>{{ standardLine() }}</span>
-      </footer>
-    </section>
-
-    <section class="mini-card mini-card--back" [attr.aria-hidden]="!flipped()">
-      <header>
-        <span>Breeder's record</span>
-        <strong>{{ card().name }}</strong>
-      </header>
-      <ul class="mini-card__traits">
-        @for (trait of card().traits; track trait.geneId) {
-          <li [class.matched]="trait.matched === true" [class.missed]="trait.matched === false">
-            <small>{{ trait.geneName }} · {{ trait.patternLabel }}</small>
-            <strong>{{ trait.formLabel }}</strong>
-            @if (trait.matched !== null) {
-              <b aria-hidden="true">{{ trait.matched ? '✓' : '✗' }}</b>
-            }
-          </li>
-        }
-      </ul>
-      <p class="mini-card__note">Below: individual only — never inherited.</p>
-      <ul class="mini-card__features">
-        @for (feature of card().individualFeatures; track feature.label) {
-          <li>
-            <small>{{ feature.label }}</small>
-            <span>{{ feature.value }}</span>
-          </li>
-        }
-      </ul>
-    </section>
-  </div>
-
-  <div class="mini-card__actions">
-    <button
-      type="button"
-      class="mini-card__select"
-      [disabled]="disabled()"
-      [attr.aria-pressed]="selected()"
-      [attr.data-testid]="'mini-card-select-' + card().id"
-      (click)="select()"
-    >
-      {{ selected() ? 'Selected' : selectLabel() }}
-    </button>
-    <button
-      type="button"
-      class="mini-card__flip"
-      [disabled]="disabled()"
-      [attr.aria-pressed]="flipped()"
-      [attr.aria-label]="
-        flipped() ? 'Show ' + card().name : 'Show the breeder record for ' + card().name
-      "
-      [attr.data-testid]="'mini-card-flip-' + card().id"
-      (click)="toggleFlip()"
-    >
-      {{ flipped() ? 'Front' : 'Traits' }}
-    </button>
-  </div>
+<div class="mini-card-adapter" [class.is-selected]="selected()" [class.is-disabled]="disabled()">
+  <app-dragon-flip-card
+    [card]="sharedCard()"
+    [genome]="sharedGenome()"
+    [selectedChromosome]="selectedChromosome()"
+    [flipped]="flipped()"
+    [active]="!disabled()"
+    [renderPortrait]="renderPortrait()"
+    [animatedPortrait]="animatedPortrait() && selected()"
+    [revealedGeneIds]="revealedGeneIds()"
+    footerLeft="Mini Dragon Society"
+    [footerRight]="standardLine()"
+    [flipTestId]="'mini-card-flip-' + card().id"
+    (flipRequested)="toggleFlip()"
+    (chromosomeSelected)="selectedChromosome.set($event)"
+  />
+  <button
+    type="button"
+    class="mini-card-adapter__select"
+    [disabled]="disabled()"
+    [attr.aria-pressed]="selected()"
+    [attr.data-testid]="'mini-card-select-' + card().id"
+    (click)="select()"
+  >
+    {{ selected() ? 'Selected' : selectLabel() }}
+  </button>
 </div>

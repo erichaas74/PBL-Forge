@@ -253,12 +253,12 @@
         }
         @case ('mutation') {
           <div class="action-picker" role="group" aria-label="Mutation type">
-            @for (action of ['substitution', 'insertion', 'deletion']; track action) {
+            @for (action of mutationActions; track action) {
               <button
                 type="button"
                 [class.active]="mutationAction() === action"
                 [attr.aria-pressed]="mutationAction() === action"
-                (click)="chooseMutationAction($any(action))"
+                (click)="chooseMutationAction(action)"
               >
                 {{ action }}
               </button>

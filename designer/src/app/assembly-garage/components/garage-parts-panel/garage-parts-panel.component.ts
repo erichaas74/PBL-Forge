@@ -1,4 +1,4 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { JOINT_TYPES, JointType, SHAPE_TYPES, ShapeType } from '@pbl/assembly/domain/assembly.models';
 import { VectorAxis } from '@pbl/assembly/domain/vector-data';
 import { AssemblyGarageStore } from '../../state/assembly-garage.store';
@@ -10,6 +10,8 @@ import {
 import { DesignerDragonDraftStore } from '../../../designer-dragon-draft.store';
 import { applyDesignerDraft } from '../../../designer-part-overrides';
 import { GarageAccordionComponent } from '../garage-accordion/garage-accordion.component';
+import { MINI_DRAGON_PART_DEFINITIONS } from '../../../parts-lab/mini-dragon-part-definitions';
+import { partGroup } from '../../../parts-lab/part-acceptance';
 
 @Component({
   selector: 'app-garage-parts-panel',
@@ -27,6 +29,9 @@ export class GaragePartsPanelComponent {
   readonly shapeTypes = SHAPE_TYPES;
   readonly jointTypes = JOINT_TYPES;
   readonly axes: readonly VectorAxis[] = ['x', 'y', 'z'];
+  readonly search = signal('');
+  readonly anatomyGroup = signal('All');
+  readonly anatomyGroups = ['All', 'Body', 'Head & jaw', 'Wings', 'Limbs', 'Tail', 'Other'];
   readonly isSimulating = computed(() => this.store.state().isSimulating);
   readonly showPrimitives = computed(() => {
     const family = this.family();
@@ -35,6 +40,17 @@ export class GaragePartsPanelComponent {
   readonly carParts = computed(() => this.partsForFamily('car'));
   readonly robotParts = computed(() => this.partsForFamily('robot'));
   readonly dragonParts = computed(() => this.partsForFamily('dragon'));
+  readonly miniDragonParts = computed(() => this.filterParts(
+    MINI_DRAGON_PART_DEFINITIONS.map(part => applyDesignerDraft(part, this.designerDraft)),
+  ));
+
+  onSearch(event: Event): void {
+    this.search.set((event.target as HTMLInputElement).value);
+  }
+
+  setAnatomyGroup(event: Event): void {
+    this.anatomyGroup.set((event.target as HTMLSelectElement).value);
+  }
 
   addPart(shape: ShapeType): void {
     this.store.addPart(shape);
@@ -67,8 +83,17 @@ export class GaragePartsPanelComponent {
   private partsForFamily(family: AssemblyPartFamily): AssemblyPartDefinition[] {
     const filter = this.family();
     if (filter && filter !== family) return [];
-    return ASSEMBLY_PART_DEFINITIONS
+    return this.filterParts(ASSEMBLY_PART_DEFINITIONS
       .filter(part => part.family === family)
-      .map(part => applyDesignerDraft(part, this.designerDraft));
+      .map(part => applyDesignerDraft(part, this.designerDraft)));
+  }
+
+  private filterParts(parts: AssemblyPartDefinition[]): AssemblyPartDefinition[] {
+    const query = this.search().trim().toLowerCase();
+    const group = this.anatomyGroup();
+    return parts.filter(part =>
+      (group === 'All' || partGroup(part) === group)
+      && (!query || `${part.label} ${part.id} ${part.visualProfile?.profileId ?? ''}`
+        .toLowerCase().includes(query)));
   }
 }

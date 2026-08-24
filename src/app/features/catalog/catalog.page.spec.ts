@@ -39,6 +39,15 @@ describe('CatalogPage dragon shortcuts', () => {
     fixture.destroy();
   });
 
+  it('keeps the Browse projects fragment on the catalog route', () => {
+    const fixture = TestBed.createComponent(CatalogPage);
+    fixture.detectChanges();
+
+    const link = fixture.nativeElement.querySelector('.primary-action') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('/catalog#project-catalog');
+    fixture.destroy();
+  });
+
   it('opens the private Designer Parts Lab without adding it to student routes', () => {
     const fixture = TestBed.createComponent(CatalogPage);
     fixture.detectChanges();

@@ -48,6 +48,37 @@ describe('DragonTestBenchPage', () => {
     expect(text()).not.toContain('Fitness in this model');
   });
 
+  it('loads all five Society breeds as editable Mini Dragon presets', () => {
+    fixture.componentInstance.selectSpecies('mini');
+    fixture.detectChanges();
+
+    expect(element().querySelectorAll('.mini-presets__choice').length).toBe(5);
+    expect(text()).toContain('Puggle Dragon');
+    expect(text()).toContain('Fairy Dragon');
+    expect(text()).toContain('Triceratops Dragon');
+    expect(text()).toContain('Imperial Serpent Dragon');
+    expect(text()).toContain('Amphiptere');
+
+    fixture.componentInstance.selectMiniBreed('amphiptere');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.isMiniBreedSelected('amphiptere')).toBe(true);
+    expect(fixture.componentInstance.miniForms()['tail']).toBe('tail:fork');
+    expect(fixture.componentInstance.miniForms()['wings']).toBe('wings:broad');
+  });
+
+  it('keeps a loaded breed editable and clears its selected state after a trait change', () => {
+    fixture.componentInstance.selectMiniBreed('puggle');
+    expect(fixture.componentInstance.isMiniBreedSelected('puggle')).toBe(true);
+
+    const sailEars = fixture.componentInstance.miniGenes
+      .find((gene) => gene.id === 'ears')!.forms
+      .find((form) => form.id === 'ears:sail')!;
+    fixture.componentInstance.selectMiniForm('ears', sailEars);
+
+    expect(fixture.componentInstance.isMiniBreedSelected('puggle')).toBe(false);
+    expect(fixture.componentInstance.miniForms()['ears']).toBe('ears:sail');
+  });
+
   it('redraws the same mini genome as a different individual on request', () => {
     fixture.componentInstance.selectSpecies('mini');
     fixture.detectChanges();

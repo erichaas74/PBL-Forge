@@ -72,24 +72,29 @@ const factorySource = await readFile(
   path.join(workspace, 'src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.ts'),
   'utf8',
 );
+const miniFactorySource = await readFile(
+  path.join(workspace, 'src/app/shared/assembly/rendering/mini-dragon-procedural-mesh.factory.ts'),
+  'utf8',
+);
 const renderingDirectory = path.join(workspace, 'src/app/shared/assembly/rendering');
 const renderingSources = await Promise.all(
   (await readdir(renderingDirectory))
-    .filter(name => name.startsWith('dragon-') && name.endsWith('.ts') && !name.endsWith('.spec.ts'))
+    .filter(name => (name.startsWith('dragon-') || name.startsWith('mini-dragon-'))
+      && name.endsWith('.ts') && !name.endsWith('.spec.ts'))
     .map(name => readFile(path.join(renderingDirectory, name), 'utf8')),
 );
 
 const implementedProfiles = new Set(
-  [...factorySource.matchAll(/case '([^']+)':/g)]
+  [...`${factorySource}\n${miniFactorySource}`.matchAll(/case '([^']+)':/g)]
     .map(match => match[1])
-    .filter(profileId => profileId.startsWith('dragon-')),
+    .filter(profileId => profileId.startsWith('dragon-') || profileId.startsWith('mini-dragon-')),
 );
 const supportedProfiles = new Set(module.default.supportedProfiles);
 assertSameSet('renderer profiles', implementedProfiles, supportedProfiles);
 
 const readParameters = new Set(
   renderingSources
-    .flatMap(source => [...source.matchAll(/visual(?:Number|String|Flag)\(part, '([^']+)'/g)])
+    .flatMap(source => [...source.matchAll(/(?:visual(?:Number|String|Flag)|miniVisual(?:Number|String)|clampedMiniVisualNumber)\(part, '([^']+)'/g)])
     .map(match => match[1]),
 );
 const contractedParameters = new Set(

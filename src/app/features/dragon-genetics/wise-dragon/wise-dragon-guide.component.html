@@ -5,10 +5,11 @@
         <app-specimen-viewport
           #wiseViewport
           [source]="source"
+          [idleMotion]="wiseDragonIdle"
           [theme]="theme"
           [transparent]="true"
           [showGroundShadow]="false"
-          [framePadding]="0.96"
+          [framePadding]="1.12"
           [controls]="false"
           ariaLabel="Wise Dragon Sage"
         />
@@ -18,6 +19,15 @@
         <h2 id="wise-guide-title">Wise Dragon</h2>
         <p>Ask while you keep working.</p>
       </div>
+      <button
+        type="button"
+        class="wise-guide__voice"
+        [attr.aria-pressed]="voice.enabled()"
+        [attr.aria-label]="voice.enabled() ? 'Turn Wise Dragon voice off' : 'Turn Wise Dragon voice on'"
+        (click)="toggleVoice()"
+      >
+        {{ voice.enabled() ? 'Voice on' : 'Voice off' }}
+      </button>
       <button
         #closeButton
         type="button"
@@ -62,12 +72,10 @@
         <textarea
           id="wise-dragon-question"
           rows="2"
-          maxlength="500"
-          [value]="question()"
-          (input)="updateQuestion($event)"
+          [formField]="questionForm.question"
           placeholder="What does genotype mean?"
         ></textarea>
-        <button type="submit" [disabled]="!question().trim()">Ask</button>
+        <button type="submit" [disabled]="!questionForm().valid()">Ask</button>
       </div>
       <small
         >The guide explains tools and concepts but leaves untested results for you to

@@ -344,9 +344,20 @@ const PROFILE_INFLATION: Readonly<Record<string, Vector3Data>> = {
   // Include those silhouettes in camera fitting so the extreme gene forms do
   // not lose their face or ear tips against the viewport edge.
   'mini-dragon-head': { x: 2, y: 2.3, z: 1.5 },
+  'mini-dragon-horn': { x: 1.8, y: 2, z: 2.5 },
+  'mini-dragon-ear': { x: 1.4, y: 1.5, z: 1.4 },
+  // Whiskers begin near the muzzle and project almost three head half-lengths
+  // forward. Their inherited long form must participate in framing even though
+  // the attachment part deliberately reuses the head collider dimensions.
+  'mini-dragon-whiskers': { x: 3.1, y: 1.1, z: 1.5 },
   // The wing's procedural membrane uses its `z` dimension as a full span and
   // then tilts that span upward. The assembly box only reserves half that span.
   'mini-dragon-wing': { x: 1.2, y: 2, z: 2.4 },
+  'mini-dragon-fairy-wing': { x: 1.45, y: 2.2, z: 2.75 },
+  'mini-dragon-aero-wing': { x: 1.35, y: 2, z: 3.1 },
+  'mini-dragon-face-shield': { x: 1.2, y: 1.55, z: 1.85 },
+  'mini-dragon-nose-horn': { x: 1.5, y: 1.25, z: 1.25 },
+  'mini-dragon-fork-tail-branch': { x: 1.75, y: 1.65, z: 1.45 },
 };
 
 /**

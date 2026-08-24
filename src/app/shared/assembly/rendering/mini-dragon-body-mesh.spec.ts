@@ -67,6 +67,24 @@ describe('body', () => {
     expect(named(patched!, 'mini-dragon-coat-patch').length).toBeGreaterThan(0);
   });
 
+  it('uses stable marking layouts to make two-toned hatches visibly distinct', () => {
+    const saddle = renderMiniPart(
+      buildMiniBody,
+      'mini-dragon-body',
+      { color: '#c8a24a' },
+      { miniPatchColor: '#3b2a1c', miniPatternStyle: 'saddle' },
+    )!;
+    const freckles = renderMiniPart(
+      buildMiniBody,
+      'mini-dragon-body',
+      { color: '#c8a24a' },
+      { miniPatchColor: '#3b2a1c', miniPatternStyle: 'freckles' },
+    )!;
+
+    expect(named(freckles, 'mini-dragon-coat-patch').length)
+      .toBeGreaterThan(named(saddle, 'mini-dragon-coat-patch').length);
+  });
+
   it('draws inherited body feathers as one bounded instanced alpha-card layer', () => {
     const bare = renderMiniPart(buildMiniBody, 'mini-dragon-body', {}, { miniFeatherCoverage: 0 })!;
     const feathered = renderMiniPart(
@@ -82,9 +100,9 @@ describe('body', () => {
 
     expect(named(bare, 'mini-dragon-body-feathers').length).toBe(0);
     expect(layer).toBeInstanceOf(THREE.InstancedMesh);
-    expect(layer.count).toBe(96);
-    expect(material.map?.name).toBe('mini-dragon-feather-albedo');
-    expect(material.alphaMap?.name).toBe('mini-dragon-feather-alpha');
+    expect(layer.count).toBe(104);
+    expect(material.map?.name).toBe('mini-dragon-feather-test-mini-dragon-body-feathers-albedo');
+    expect(material.alphaMap?.name).toBe('mini-dragon-feather-test-mini-dragon-body-feathers-alpha');
     expect(material.alphaTest).toBeGreaterThan(0);
     expect(material.transparent).toBe(false);
     expect(firstMatrix.elements.every(Number.isFinite)).toBe(true);

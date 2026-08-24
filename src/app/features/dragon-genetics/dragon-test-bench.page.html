@@ -10,7 +10,7 @@
     } @else {
       <h1>Build a mini dragon and look at what it shows</h1>
       <p class="bench-page__lede">
-        A separate species with its own thirteen genes and four different inheritance patterns. Choose
+        A separate species with its own twenty-four genes and four different inheritance patterns. Choose
         the visible form at each locus — the mini dragon's alleles stay hidden here, exactly as
         they are in the companion show, because reading a genotype off an animal is the work.
       </p>
@@ -35,7 +35,7 @@
         (click)="selectSpecies('mini')"
       >
         Mini dragon
-        <small>13 genes · show companion</small>
+        <small>24 genes · show companion</small>
       </button>
     </div>
   </header>
@@ -107,6 +107,30 @@
   } @else {
     <section class="bench-page__genome" aria-labelledby="mini-genome-heading">
       <h2 class="bench-page__section-title" id="mini-genome-heading">Visible forms</h2>
+
+      <section class="mini-presets" aria-labelledby="mini-presets-heading">
+        <div class="mini-presets__heading">
+          <div>
+            <span>Mini Dragon types</span>
+            <h3 id="mini-presets-heading">Start with a Society breed</h3>
+          </div>
+          <p>Choose a complete type, then edit any visible form below to make a custom hybrid.</p>
+        </div>
+        <div class="mini-presets__choices" role="group" aria-label="Mini Dragon breed preset">
+          @for (breed of miniBreeds; track breed.id) {
+            <button
+              type="button"
+              [class.mini-presets__choice--active]="isMiniBreedSelected(breed.id)"
+              [attr.aria-pressed]="isMiniBreedSelected(breed.id)"
+              class="mini-presets__choice"
+              (click)="selectMiniBreed(breed.id)"
+            >
+              <strong>{{ breed.name }}</strong>
+              <small>{{ breed.tagline }}</small>
+            </button>
+          }
+        </div>
+      </section>
 
       <div class="bench-page__genes">
         @for (gene of miniGenes; track gene.id) {

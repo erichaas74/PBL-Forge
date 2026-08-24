@@ -15,6 +15,7 @@ describe('dragon learned behavior motions', () => {
     fire: ['F', 'f'],
     scales: ['S', 's'],
     horns: ['H', 'h'],
+    legs: ['L', 'l'], claws: ['C', 'c'], crest: ['R', 'r'], spikes: ['P', 'p'],
   };
   const blueprint = createEducationalAssembly(
     genome,

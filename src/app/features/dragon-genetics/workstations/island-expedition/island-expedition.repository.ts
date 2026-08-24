@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -20,7 +20,7 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.island-expedition.v1';
  * Surveys hold the dragons that were drawn rather than a seed alone, so a completed field record
  * reads back exactly as the student saw it even if the selection model is later retuned.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class IslandExpeditionRepository {
   load(studentId: string): StoredExpeditionAttempts {
     const normalized = normalizeWorkstationStudentId(studentId);

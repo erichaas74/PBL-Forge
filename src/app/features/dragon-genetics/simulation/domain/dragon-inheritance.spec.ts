@@ -1,4 +1,11 @@
-import { DragonIdentityPaint, createEducationalAssembly, createVisualGenome, } from './dragon-inheritance';
+import {
+    ARENA_BUILD_TRAITS,
+    DRAGON_PARENTS,
+    DragonIdentityPaint,
+    breedLabClutch,
+    createEducationalAssembly,
+    createVisualGenome,
+} from './dragon-inheritance';
 import { AssemblyPart } from '../../../../shared/assembly/domain/assembly.models';
 import { DragonLabGenome, DragonTraitGenotype } from './dragon-lab.models';
 
@@ -19,6 +26,10 @@ function genome(overrides: Partial<DragonLabGenome> = {}): DragonLabGenome {
         fire: ['F', 'f'],
         scales: ['S', 's'],
         horns: ['H', 'h'],
+        legs: ['L', 'l'],
+        claws: ['C', 'c'],
+        crest: ['R', 'r'],
+        spikes: ['P', 'p'],
         ...overrides,
     };
 }
@@ -88,6 +99,30 @@ function visibleSurfaceOf(assembly: {
 }
 
 describe('dragon inheritance bridge', () => {
+    it('hatches a 24-locus Arena genome to match the Mini Dragon gene count', () => {
+        const [child] = breedLabClutch(DRAGON_PARENTS[0], DRAGON_PARENTS[1], 7, 1);
+
+        expect(ARENA_BUILD_TRAITS.length).toBe(24);
+        expect(Object.keys(child.genome).length).toBe(24);
+    });
+
+    it('adds a real second wing pair when the Q locus is expressed', () => {
+        const fourWingGenome = {
+            ...genome(),
+            'secondary-wings': ['Q', 'q'] as DragonTraitGenotype,
+            'body-type': ['D', 'd'] as DragonTraitGenotype,
+        };
+        const twoWingGenome = {
+            ...fourWingGenome,
+            'secondary-wings': ['q', 'q'] as DragonTraitGenotype,
+        };
+        const fourWing = build('four-wing', fourWingGenome, EMBER);
+        const twoWing = build('two-wing', twoWingGenome, EMBER);
+
+        expect(fourWing.assembly.parts.length).toBe(twoWing.assembly.parts.length + 2);
+        expect(fourWing.assembly.parts.filter(part => part.visualProfile?.profileId === 'dragon-secondary-wing').length).toBe(2);
+        expect(fourWing.assembly.joints.length).toBe(twoWing.assembly.joints.length + 2);
+    });
     it('renders a heterozygote identically to a homozygous dominant', () => {
         // The lesson's central claim. If these ever diverge, the phenotype is
         // leaking the genotype and every Punnett prediction becomes guessable

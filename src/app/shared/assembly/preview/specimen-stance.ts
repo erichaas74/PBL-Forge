@@ -245,17 +245,38 @@ export function hasGraspingForelimbs(blueprint: AssemblyBlueprint): boolean {
  *
  * A standing animal that is perfectly still reads as a model of an animal, and
  * no amount of material work fixes that. This is the cheapest available fix:
- * three small oscillations laid over the resting stance.
+ * small oscillations and brief expressions laid over the resting stance.
  *
  * Every amplitude here is at or below 0.03 radians — under two degrees. That is
  * deliberately below the threshold where a reader consciously notices movement,
  * because this plays permanently beside text a student is trying to read. The
  * intent is that the dragon reads as alive without ever asking to be watched.
  *
- * The three channels run at different rates and are offset from one another, so
+ * The channels run at different rates and are offset from one another, so
  * they never line up into a single pulsing beat — which is what makes a loop
  * read as breathing rather than as an animation.
  */
+function idlePulse(phase: number, centre: number, halfWidth: number): number {
+  const wrapped = ((phase % 1) + 1) % 1;
+  const distance = Math.min(Math.abs(wrapped - centre), 1 - Math.abs(wrapped - centre));
+  if (distance >= halfWidth) return 0;
+  const amount = 1 - distance / halfWidth;
+  return amount * amount * (3 - 2 * amount);
+}
+
+/**
+ * A repeatable, uneven blink pattern: one blink early in the cycle and a small
+ * double blink later. Deterministic timing lets thumbnails remain stable while
+ * avoiding the metronomic feel of one blink per loop.
+ */
+export function dragonIdleBlink(phase: number): number {
+  return Math.max(
+    idlePulse(phase, 0.19, 0.032),
+    idlePulse(phase, 0.7, 0.03),
+    idlePulse(phase, 0.755, 0.024),
+  );
+}
+
 export const DRAGON_IDLE_BREATH: SpecimenIdleMotion = {
   id: 'dragon-breath',
   // Slow. A resting animal this size does not pant.
@@ -272,16 +293,75 @@ export const DRAGON_IDLE_BREATH: SpecimenIdleMotion = {
      * look like a glitch rather than a movement.
      */
     const settle = Math.sin(phase * Math.PI * 4 + Math.PI * 0.25);
+    const look = Math.sin(phase * Math.PI * 2 + Math.PI * 0.38);
+    const jawEase = (1 - Math.cos(phase * Math.PI * 2)) * 0.5;
+    const earFlick = idlePulse(phase, 0.755, 0.07);
 
     return [
       // Chest rising and falling, taken at the head because the body is the
       // root of the rig and no bend can reach it.
       { role: 'head', radians: breath * 0.022, axis: SAGITTAL },
+      // A tiny side-to-side look keeps the head from moving on one hinge only.
+      { role: 'head', radians: look * 0.014, axis: VERTICAL },
+      // Only the lower jaw moves. Bending every `jaw` role would rotate the
+      // classic upper muzzle before rotating the lower jaw again beneath it.
+      {
+        role: 'jaw',
+        matchPartId: id => id.includes('lower-jaw') || id === 'mini-jaw',
+        radians: jawEase * -0.018,
+        axis: SAGITTAL,
+      },
+      // Mini-dragon ears are separate hinge parts. Classic dragons have no ear
+      // role, so this bend is naturally a no-op for their anatomy.
+      { role: 'ear', radians: earFlick * 0.03, axis: LATERAL, mirrorAcrossZ: true },
       // The tail is a long lever, so the smallest angle here travels furthest
       // and is the part most likely to be seen from the corner of an eye.
       { role: 'tail', radians: settle * 0.012, axis: SAGITTAL },
+      // Long-bodied Mini Dragons carry two connected plush torso sections.
+      // Alternating yaw across that short chain makes the noodle body breathe
+      // without translating the root or disturbing ordinary dragons.
+      { role: 'serpent-segment', radians: look * 0.018, axis: VERTICAL },
       // Wings ride the ribcage they are attached to.
       { role: 'wing', radians: breath * 0.03, axis: SAGITTAL },
     ];
+  },
+  expressionAt(phase) {
+    return { blink: dragonIdleBlink(phase) };
+  },
+};
+
+/**
+ * The card portrait has no surrounding scientific controls competing for attention, so it can
+ * carry a more readable idle: the dragon looks around, shifts its feet, flexes its wings and
+ * lets its tail travel. Scripted card attacks layer over this and return to it afterward.
+ */
+export const DRAGON_CARD_IDLE: SpecimenIdleMotion = {
+  id: 'dragon-card-alert-idle',
+  periodSeconds: 7.6,
+  bendsAt(phase) {
+    const cycle = phase * Math.PI * 2;
+    const look = Math.sin(cycle);
+    const weight = Math.sin(cycle * 2 + Math.PI * 0.3);
+    const wingFlex = Math.sin(cycle + Math.PI * 0.65);
+    const jawEase = (1 - Math.cos(cycle)) * 0.5;
+    return [
+      { role: 'head', radians: look * 0.065, axis: VERTICAL },
+      { role: 'head', radians: weight * 0.03, axis: SAGITTAL },
+      {
+        role: 'jaw',
+        matchPartId: id => id.includes('lower-jaw') || id === 'mini-jaw',
+        radians: jawEase * -0.025,
+        axis: SAGITTAL,
+      },
+      { role: 'leg', radians: weight * 0.028, axis: LATERAL, mirrorAcrossZ: true },
+      { role: 'wing', radians: wingFlex * 0.055, axis: SAGITTAL, mirrorAcrossZ: true },
+      { role: 'tail', radians: look * 0.035, axis: VERTICAL },
+      { role: 'tail', radians: weight * 0.018, axis: SAGITTAL },
+      { role: 'serpent-segment', radians: look * 0.04, axis: VERTICAL },
+      { role: 'ear', radians: idlePulse(phase, 0.68, 0.08) * 0.06, axis: LATERAL, mirrorAcrossZ: true },
+    ];
+  },
+  expressionAt(phase) {
+    return { blink: dragonIdleBlink(phase) };
   },
 };

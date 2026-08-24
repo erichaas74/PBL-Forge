@@ -2,6 +2,7 @@ import { bloodlineReport, companionAssembly, founderLinesRepresented, founderToC
 import { BreedStandardTarget, CompanionDragon, CompanionShowSnapshot, LitterRecord, } from './companion-show.models';
 import { emptyCompanionShowSnapshot } from './companion-show.repository';
 import { MINI_FOUNDERS } from './mini-dragon.genetics';
+import { MiniBreedId, miniBreed } from './mini-dragon.breeds';
 
 const FLUFFY: BreedStandardTarget = { geneId: 'coat', formId: 'coat:fluffy' };
 const SLEEK: BreedStandardTarget = { geneId: 'coat', formId: 'coat:sleek' };
@@ -16,6 +17,11 @@ function founder(id: string): CompanionDragon {
 
 function snapshotWith(overrides: Partial<CompanionShowSnapshot>): CompanionShowSnapshot {
     return { ...emptyCompanionShowSnapshot('student-1'), ...overrides };
+}
+
+function breedAssembly(id: MiniBreedId) {
+    const breed = miniBreed(id);
+    return companionAssembly({ id: `breed-${id}`, genome: breed.exampleGenome });
 }
 
 describe('companion show standard', () => {
@@ -199,11 +205,63 @@ describe('bloodline', () => {
 });
 
 describe('anatomy', () => {
+    it('builds the five reference combinations with distinct breed anatomy', () => {
+        const puggle = breedAssembly('puggle');
+        const fairy = breedAssembly('fairy');
+        const triceratops = breedAssembly('triceratops');
+        const imperial = breedAssembly('imperial-serpent');
+        const amphiptere = breedAssembly('amphiptere');
+        const profile = (blueprint: typeof puggle, id: string) =>
+            blueprint.parts.find(part => part.id === id)?.visualProfile;
+
+        expect(profile(puggle, 'mini-head')?.parameters?.['miniEyeSize']).toBeGreaterThan(0.9);
+        expect(profile(puggle, 'mini-horn-left')?.parameters?.['miniHornScale']).toBeLessThan(0.4);
+        expect(profile(fairy, 'mini-wing-left')?.profileId).toBe('mini-dragon-fairy-wing');
+        expect(profile(triceratops, 'mini-face-shield')?.parameters?.['miniFaceShieldScale']).toBeGreaterThan(1);
+        expect(profile(triceratops, 'mini-nose-horn')?.parameters?.['miniNoseHornScale']).toBeGreaterThan(1);
+        expect(imperial.parts.filter(part => part.roles?.includes('serpent-segment'))).toHaveLength(2);
+        expect(imperial.joints.filter(joint => joint.childPartId.startsWith('mini-serpent-'))
+            .every(joint => joint.type === 'hinge')).toBe(true);
+        expect(profile(amphiptere, 'mini-wing-left')?.profileId).toBe('mini-dragon-aero-wing');
+        expect(amphiptere.parts.filter(part =>
+            part.visualProfile?.profileId === 'mini-dragon-fork-tail-branch')).toHaveLength(2);
+        expect(amphiptere.parts.some(part => part.id === 'mini-tail-plume')).toBe(false);
+    });
+
     it('builds every founder into a renderable mini dragon blueprint', () => {
         for (const definition of MINI_FOUNDERS) {
             const blueprint = companionAssembly(founder(definition.id));
             expect(blueprint.parts.length, definition.id).toBeGreaterThan(8);
             expect(blueprint.parts.every((part) => (part.visualProfile?.profileId ?? '').startsWith('mini-dragon-')), definition.id).toBe(true);
+        }
+    });
+
+    it('maps the ten new loci to ten dedicated inherited assembly parts', () => {
+        const firstForms = companionAssembly(founder('mini-pepper'));
+        const secondForms = companionAssembly(founder('mini-cinder'));
+        const contracts = [
+            ['mini-brow-plates', 'mini-dragon-brow-plates', 'miniBrowScale'],
+            ['mini-whiskers', 'mini-dragon-whiskers', 'miniWhiskerScale'],
+            ['mini-chin-tuft', 'mini-dragon-chin-tuft', 'miniChinScale'],
+            ['mini-dewlap', 'mini-dragon-dewlap', 'miniDewlapScale'],
+            ['mini-neck-ruff', 'mini-dragon-neck-ruff', 'miniRuffScale'],
+            ['mini-shoulder-plates', 'mini-dragon-shoulder-plates', 'miniShoulderScale'],
+            ['mini-belly-scutes', 'mini-dragon-belly-scutes', 'miniBellyScuteScale'],
+            ['mini-flank-fins', 'mini-dragon-flank-fins', 'miniFlankFinScale'],
+            ['mini-hip-fins', 'mini-dragon-hip-fins', 'miniHipFinScale'],
+            ['mini-tail-sail', 'mini-dragon-tail-sail', 'miniTailSailScale'],
+        ] as const;
+        const expandedIds = new Set(contracts.map(([partId]) => partId));
+        const firstPart = (id: string) => firstForms.parts.find((part) => part.id === id)!;
+        const secondPart = (id: string) => secondForms.parts.find((part) => part.id === id)!;
+
+        expect(firstForms.parts.filter((part) => expandedIds.has(part.id as typeof contracts[number][0]))).toHaveLength(10);
+        for (const [partId, profileId, parameterKey] of contracts) {
+            expect(firstPart(partId).visualProfile?.profileId).toBe(profileId);
+            expect(firstPart(partId).visualProfile?.parameters?.[parameterKey]).toBeGreaterThan(
+                secondPart(partId).visualProfile?.parameters?.[parameterKey] as number,
+            );
+            expect(firstForms.joints.some((joint) => joint.childPartId === partId)).toBe(true);
         }
     });
 
@@ -239,13 +297,15 @@ describe('anatomy', () => {
         const longRunner = companionAssembly(founder('mini-biscuit'));
         const roundWaddler = companionAssembly(founder('mini-cinder'));
         const part = (blueprint: typeof longRunner, id: string) => blueprint.parts.find((candidate) => candidate.id === id)!;
+        const earParameters = part(longRunner, 'mini-ear-left').visualProfile?.parameters;
+        const roundEarParameters = part(roundWaddler, 'mini-ear-left').visualProfile?.parameters;
         const headParameters = part(longRunner, 'mini-head').visualProfile?.parameters;
         const roundHeadParameters = part(roundWaddler, 'mini-head').visualProfile?.parameters;
 
         expect(part(longRunner, 'mini-body').dimensions.x).toBeGreaterThan(part(roundWaddler, 'mini-body').dimensions.x);
         expect(part(longRunner, 'mini-leg-front-left').dimensions.y).toBeGreaterThan(part(roundWaddler, 'mini-leg-front-left').dimensions.y * 2);
-        expect(headParameters?.['miniEarScale']).toBeGreaterThan(1);
-        expect(roundHeadParameters?.['miniEarScale']).toBeLessThan(0.5);
+        expect(earParameters?.['miniEarScale']).toBeGreaterThan(1);
+        expect(roundEarParameters?.['miniEarScale']).toBeLessThan(0.5);
         expect(headParameters?.['miniSnoutLength']).toBeGreaterThan(1);
         expect(roundHeadParameters?.['miniSnoutLength']).toBeLessThan(0.1);
         expect(headParameters?.['miniCrestCrown']).toBe(1);
@@ -267,14 +327,42 @@ describe('anatomy', () => {
         expect(tail1.dimensions.y).toBeLessThan(tail1.dimensions.x);
     });
 
+    it('grows one shared tail base into two independently connected long tails', () => {
+        const blueprint = companionAssembly(founder('mini-pepper'));
+        const childJoint = (id: string) => blueprint.joints.find((joint) => joint.childPartId === id);
+
+        expect(blueprint.parts.some((part) => part.id === 'mini-tail-2')).toBe(false);
+        expect(childJoint('mini-tail-left-1')?.parentPartId).toBe('mini-tail-1');
+        expect(childJoint('mini-tail-right-1')?.parentPartId).toBe('mini-tail-1');
+        expect(blueprint.parts.filter((part) => /^mini-tail-(left|right)-\d$/.test(part.id)))
+            .toHaveLength(6);
+        expect(blueprint.parts.filter((part) => part.id.startsWith('mini-tail-plume-')))
+            .toHaveLength(2);
+        expect(blueprint.parts.find((part) => part.id === 'mini-tail-plume-left')
+            ?.visualProfile?.parameters?.['miniTailStyle']).toBe(3);
+    });
+
+    it('rigs horns and ears as separate skull attachments with movable ear hinges', () => {
+        const blueprint = companionAssembly(founder('mini-cinder'));
+        const horns = blueprint.parts.filter((part) => part.roles?.includes('horn'));
+        const ears = blueprint.parts.filter((part) => part.roles?.includes('ear'));
+
+        expect(horns.map((part) => part.visualProfile?.profileId))
+            .toEqual(['mini-dragon-horn', 'mini-dragon-horn']);
+        expect(ears.map((part) => part.visualProfile?.profileId))
+            .toEqual(['mini-dragon-ear', 'mini-dragon-ear']);
+        expect(ears.map((part) => blueprint.joints.find((joint) => joint.childPartId === part.id)?.type))
+            .toEqual(['hinge', 'hinge']);
+    });
+
     it('passes the back-scale, horn, and wing genes through to the renderer', () => {
         const bumpyCurled = companionAssembly(founder('mini-cinder'));
         const scales = bumpyCurled.parts.find((part) => part.id === 'mini-dorsal-scales')!;
-        const head = bumpyCurled.parts.find((part) => part.id === 'mini-head')!;
+        const horn = bumpyCurled.parts.find((part) => part.id === 'mini-horn-left')!;
         const wing = bumpyCurled.parts.find((part) => part.id === 'mini-wing-left')!;
 
         expect(scales.visualProfile?.parameters?.['miniDorsalBumps']).toBe(1);
-        expect(head.visualProfile?.parameters?.['miniHornCurl']).toBe(1);
+        expect(horn.visualProfile?.parameters?.['miniHornCurl']).toBe(1);
         expect(wing.visualProfile?.parameters?.['miniWingSpread']).toBeCloseTo(0.58, 5);
     });
 

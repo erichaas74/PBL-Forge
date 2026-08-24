@@ -78,6 +78,7 @@ export class IncubatorSamplerComponent implements OnDestroy {
   private readonly repository = inject(IncubatorSamplerRepository);
 
   readonly studentId = input.required<string>();
+  readonly revealedGeneIds = input<readonly string[]>([]);
   readonly goal = input(
     'Investigate how visible inherited traits appear and change across offspring and generations.',
   );
@@ -89,6 +90,7 @@ export class IncubatorSamplerComponent implements OnDestroy {
   readonly activeParentIds = signal<readonly [string | null, string | null]>([null, null]);
   readonly activeBreedingPoolIds = signal<readonly string[]>([]);
   readonly selectedTraitId = signal<DragonTraitId>(DRAGON_TRAITS[0].id);
+  readonly selectableGeneIds = DRAGON_TRAITS.map((trait) => trait.id);
   readonly sampleSize = signal<number>(8);
   readonly nextRunNumber = signal(1);
   readonly batches = signal<readonly IncubatorBatchRecord[]>([]);
@@ -217,18 +219,8 @@ export class IncubatorSamplerComponent implements OnDestroy {
     this.selectParent(role, record);
   }
 
-  pickerOpen(role: ParentRole): boolean {
-    if (this.offspringPoolActive()) return false;
-    const loaded = role === 'female' ? this.parentA() : this.parentB();
-    return !loaded || this.picking()[role];
-  }
-
-  togglePicker(role: ParentRole): void {
-    if (this.selectionLocked()) {
-      this.statusMessage.set('Clear the current observation before changing the original parents.');
-      return;
-    }
-    this.picking.update((state) => ({ ...state, [role]: !state[role] }));
+  pickerOpen(): boolean {
+    return !this.offspringPoolActive();
   }
 
   allowParentDrop(event: DragEvent): void {
@@ -253,6 +245,15 @@ export class IncubatorSamplerComponent implements OnDestroy {
     if (this.selectionLocked() || !this.traits.some((trait) => trait.id === traitId)) return;
     this.selectedTraitId.set(traitId);
     this.statusMessage.set(`Sorting channels tuned to ${this.selectedTrait().name}.`);
+    this.persist();
+  }
+
+  selectTraitFromCard(geneId: string): void {
+    if (this.selectionLocked()) return;
+    const trait = this.traits.find((candidate) => candidate.id === geneId);
+    if (!trait) return;
+    this.selectedTraitId.set(trait.id);
+    this.statusMessage.set(`Both parent cards and sorting channels tuned to ${trait.name}.`);
     this.persist();
   }
 

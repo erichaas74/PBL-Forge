@@ -1,0 +1,19 @@
+:host {
+  display: block;
+}
+
+.evidence-status {
+  position: fixed;
+  z-index: 20;
+  right: 1rem;
+  bottom: 1rem;
+  width: min(22rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid #b6ce8c;
+  border-radius: 0.75rem;
+  background: #eef5dd;
+  color: #24363b;
+  box-shadow: 0 0.75rem 2rem #0006;
+  font-weight: 800;
+}

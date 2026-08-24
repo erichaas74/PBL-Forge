@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -17,7 +17,7 @@ import {
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.protein-rescue.v1';
 
 /** Replaceable device-backed persistence boundary for clinical rescue records. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ProteinRescueRepository {
   load(studentId: string): readonly ProteinRescueCaseRecord[] {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);

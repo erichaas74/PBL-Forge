@@ -26,6 +26,8 @@ describe('mini dragon rare-trait pedigree evidence', () => {
       'Baby-bumpy spike rows',
       'Straight horns',
       'Teacup',
+      'Smooth chin',
+      'Soft shoulders',
     ]);
   });
 

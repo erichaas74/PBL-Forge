@@ -1,7 +1,24 @@
 import * as THREE from 'three';
 import { buildHead, headPart } from './dragon-head-mesh.spec-helpers';
+import {
+  applySpecimenFacialExpression,
+  collectSpecimenFacialAnimation,
+} from './specimen-facial-animation';
 
 describe('dragon head mesh', () => {
+  it('builds paired mobile eyelids over both eyes', () => {
+    const head = buildHead(headPart('box', { x: 0.6, y: 0.45, z: 0.42 }))!;
+    const upper = ['left', 'right'].map(side => head.getObjectByName(`dragon-upper-eyelid-${side}`)!);
+    const lower = ['left', 'right'].map(side => head.getObjectByName(`dragon-lower-eyelid-${side}`)!);
+    expect([...upper, ...lower].every(Boolean)).toBe(true);
+
+    const openGap = upper[0].position.y - lower[0].position.y;
+    const animation = collectSpecimenFacialAnimation(head);
+    expect(animation.eyelids.length).toBe(4);
+    applySpecimenFacialExpression(animation, { blink: 1 });
+    expect(upper[0].position.y - lower[0].position.y).toBeLessThan(openGap * 0.1);
+  });
+
   /**
    * The horns point *forward*, along the snout. They used to rake back over the
    * neck, and the difference is not a matter of degree: a horn whose tip finishes
@@ -68,5 +85,25 @@ describe('dragon head mesh', () => {
     expect(new THREE.Box3().setFromObject(hornless).max.y).toBeLessThan(
       new THREE.Box3().setFromObject(horned).max.y,
     );
+  });
+
+  it('builds dimension-driven spectacles and a five-tine beard for the Wise Dragon avatar', () => {
+    const base = headPart('box', { x: 0.7, y: 0.52, z: 0.48 });
+    const head = buildHead({
+      ...base,
+      visualProfile: {
+        ...base.visualProfile!,
+        parameters: { wiseAvatar: true, eyeColor: '#69e3d2' },
+      },
+    });
+
+    expect(head.getObjectByName('wise-dragon-spectacle-left')).toBeTruthy();
+    expect(head.getObjectByName('wise-dragon-spectacle-right')).toBeTruthy();
+    expect(head.getObjectByName('wise-dragon-spectacle-bridge')).toBeTruthy();
+    expect(
+      Array.from({ length: 5 }, (_, index) =>
+        head.getObjectByName(`wise-dragon-beard-tine-${index + 1}`),
+      ).every(Boolean),
+    ).toBe(true);
   });
 });

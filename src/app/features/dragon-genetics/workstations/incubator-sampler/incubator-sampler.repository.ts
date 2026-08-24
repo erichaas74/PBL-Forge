@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -10,7 +10,7 @@ import { IncubatorBatchRecord, IncubatorSamplerSnapshot } from './incubator-samp
 
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.incubator-sampler.v2';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class IncubatorSamplerRepository {
   load(studentId: string): IncubatorSamplerSnapshot {
     const normalizedStudentId = normalizeWorkstationStudentId(studentId);

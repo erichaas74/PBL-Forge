@@ -278,6 +278,59 @@
   cursor: pointer;
 }
 
+.lab__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+  padding: 0 1.25rem 1rem;
+}
+
+.lab__field--search { flex: 1 1 18rem; }
+.lab__field input[type='search'], .lab__field select {
+  min-height: 2.5rem;
+  border: 1px solid #b9aa91;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: #fffdf8;
+}
+
+.lab__compare {
+  width: 100%;
+  margin-top: 0.35rem;
+  border: 1px solid #b9aa91;
+  border-radius: 0.4rem;
+  background: #fffdf8;
+  min-height: 2rem;
+}
+
+.lab__compare-status { color: #315f69; font-weight: 700; }
+
+.lab__comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f5efe4;
+  border: 1px solid #d6c8b0;
+  border-radius: 0.75rem;
+}
+
+.lab__comparison div { display: grid; gap: 0.3rem; }
+
+.lab__acceptance {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #c76b56;
+  border-radius: 0.75rem;
+  background: #fff6f1;
+}
+
+.lab__acceptance--pass { border-color: #3f7d67; background: #f1faf4; }
+.lab__acceptance ul { display: grid; gap: 0.45rem; padding-left: 1.25rem; }
+.lab__check--pass strong { color: #24624f; }
+
 .lab__slider {
   display: grid;
   gap: 0.15rem;

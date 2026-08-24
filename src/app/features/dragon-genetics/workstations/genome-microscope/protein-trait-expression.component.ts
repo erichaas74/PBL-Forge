@@ -26,6 +26,10 @@ import {
 } from '../allele-workbench/allele-vault.models';
 import { AccountDragonRecord } from '../shared/account-genetics-library.models';
 import { DRAGON_GENE_DNA_CATALOG, DragonProteinRole } from '../shared/dragon-gene-dna.catalog';
+import {
+  LOCAL_WORKSTATION_STUDENT_ID,
+  normalizeWorkstationStudentId,
+} from '../shared/dragon-workstation-context.models';
 
 const PROTEIN_DRAG_TYPE = 'application/x-pbl-protein-expression';
 
@@ -75,6 +79,7 @@ interface ExpressionPathway {
   styleUrl: './protein-trait-expression.component.scss',
 })
 export class ProteinTraitExpressionComponent implements OnDestroy {
+  readonly studentId = input(LOCAL_WORKSTATION_STUDENT_ID);
   readonly dragon = input<AccountDragonRecord | null>(null);
   readonly genes = input<readonly AlleleVaultGene[]>(ALLELE_VAULT_GENES);
   readonly alleles = input<readonly AlleleVaultAllele[]>(ALLELE_VAULT_ALLELES);
@@ -291,7 +296,7 @@ export class ProteinTraitExpressionComponent implements OnDestroy {
   }
 
   private storageKey(): string {
-    return `pbl-forge:genome-microscope:expression:${this.dragon()?.id ?? 'model'}`;
+    return `pbl-forge:genome-microscope:expression:${normalizeWorkstationStudentId(this.studentId())}:${this.dragon()?.id ?? 'model'}`;
   }
 
   private readStoredActivations(): readonly ExpressiveDragonTraitId[] {

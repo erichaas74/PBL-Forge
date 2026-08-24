@@ -15,9 +15,13 @@ describe('App', () => {
           useValue: {
             displayName: signal('Test student'),
             user: signal(null),
+            ready: signal(true),
             isLocalTeacher: signal(false),
+            isTeacher: signal(false),
             isLocal: true,
             signInWithGoogle: async () => undefined,
+            signInAsLocalStudent: async () => undefined,
+            signInAsLocalTeacher: async () => undefined,
             signOut: async () => undefined
           }
         }
@@ -34,7 +38,8 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.brand')?.textContent).toContain('PBL Forge');
-    expect(compiled.querySelector('nav')?.textContent).toContain('Teacher studio');
+    expect(compiled.querySelector('.brand')?.textContent).toContain('Dragon Genetics');
+    expect(compiled.querySelector('nav')?.textContent).toContain('Student learning path');
+    expect(compiled.querySelector('nav')?.textContent).not.toContain('Teacher dashboard');
   });
 });

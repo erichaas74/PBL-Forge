@@ -1,0 +1,24 @@
+:host { display: block; }
+.genetics-incubator { display: grid; gap: 1rem; color: #f5ead2; }
+.genetics-incubator > header { padding: 1rem; border: 1px solid rgb(241 197 93 / 32%); border-radius: 0.8rem; background: #17252a; }
+header span, header p { color: #c9bfa9; }
+h1, h2, p { margin: 0; }
+.incubator-layout { display: grid; grid-template-columns: minmax(20rem, 0.9fr) minmax(26rem, 1.1fr); gap: 1rem; }
+.card-library, .incubator-bench, .bucket-yard { padding: 0.8rem; border: 1px solid rgb(241 197 93 / 28%); border-radius: 0.8rem; background: #111d21; }
+.parent-actions, .incubator-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+button, select { min-height: 2.5rem; padding: 0.4rem 0.65rem; border: 1px solid rgb(241 197 93 / 42%); border-radius: 0.45rem; background: #1b2d32; color: #fff0c7; font: inherit; }
+button { cursor: pointer; font-weight: 800; }
+button:disabled { cursor: not-allowed; opacity: 0.45; }
+.parent-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+.parent-slots article { display: grid; min-height: 14rem; padding: 0.5rem; border: 1px solid rgb(241 197 93 / 25%); border-radius: 0.55rem; background: #0c171a; text-align: center; }
+.parent-slots article.empty { place-items: center; }
+.parent-slots app-specimen-viewport { --viewport-layout-height: 11rem; --viewport-height: 11rem; --viewport-min-height: 0; }
+.incubator-controls label { display: grid; gap: 0.2rem; color: #c9bfa9; }
+.run-batch { align-self: end; background: #d9a936; color: #17252a; }
+.status { margin-top: 0.7rem; color: #c9bfa9; }
+.bucket-yard { display: grid; gap: 0.7rem; }
+.buckets { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.6rem; }
+.buckets article { display: grid; gap: 0.25rem; padding: 0.7rem; border: 1px solid rgb(255 255 255 / 10%); border-radius: 0.55rem; background: rgb(255 255 255 / 4%); }
+.buckets strong { color: #f1c55d; font-size: 2rem; }
+.hatchlings { display: flex; flex-wrap: wrap; gap: 0.15rem; color: #78c5ad; }
+@media (max-width: 850px) { .incubator-layout { grid-template-columns: 1fr; } }

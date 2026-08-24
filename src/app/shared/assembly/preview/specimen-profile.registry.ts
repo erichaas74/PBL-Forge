@@ -1,4 +1,4 @@
-import { InjectionToken, Injectable, Provider, inject } from '@angular/core';
+import { InjectionToken, Service, Provider, inject } from '@angular/core';
 import {
   SpecimenDescriptor,
   SpecimenExpressOptions,
@@ -42,7 +42,7 @@ export function provideSpecimenProfile(profile: SpecimenProfile): Provider {
  * `error` resolution the host can show, because these inputs come from student
  * data and from records saved by older builds.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class SpecimenProfileRegistry {
   private readonly profiles = new Map<string, SpecimenProfile>();
 

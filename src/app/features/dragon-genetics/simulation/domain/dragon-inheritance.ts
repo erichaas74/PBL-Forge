@@ -10,6 +10,7 @@ import {
 import { dragonBodySurfacePoint } from '../../../../shared/assembly/rendering/dragon-body-profile';
 import {
   DragonLabGenome,
+  ArenaBuildTraitId,
   DragonBredProfile,
   DragonGameteGenome,
   DragonOffspring,
@@ -66,39 +67,140 @@ export const DRAGON_TRAITS: readonly DragonTraitDefinition[] = [
     recessivePhenotype: 'Smooth-headed',
     description: 'Horns appear when at least one H allele is inherited.',
   },
+  {
+    id: 'legs',
+    name: 'Forelimb form',
+    geneSymbol: 'L',
+    chromosomeModel: 1,
+    dominantAllele: 'L',
+    recessiveAllele: 'l',
+    dominantPhenotype: 'Walking forelegs',
+    recessivePhenotype: 'Grasping forearms',
+    description: 'The L locus controls whether forelimbs support walking or grasping.',
+  },
+  {
+    id: 'claws',
+    name: 'Claw size',
+    geneSymbol: 'C',
+    chromosomeModel: 2,
+    dominantAllele: 'C',
+    recessiveAllele: 'c',
+    dominantPhenotype: 'Large claws',
+    recessivePhenotype: 'Small claws',
+    description: 'The C locus changes talon length on each foot.',
+  },
+  {
+    id: 'crest',
+    name: 'Crest height',
+    geneSymbol: 'R',
+    chromosomeModel: 3,
+    dominantAllele: 'R',
+    recessiveAllele: 'r',
+    dominantPhenotype: 'Tall crest',
+    recessivePhenotype: 'Low crest',
+    description: 'The R locus changes the height of the crown fins.',
+  },
+  {
+    id: 'spikes',
+    name: 'Back spikes',
+    geneSymbol: 'P',
+    chromosomeModel: 4,
+    dominantAllele: 'P',
+    recessiveAllele: 'p',
+    dominantPhenotype: 'Many tall spikes',
+    recessivePhenotype: 'Few low spikes',
+    description: 'The P locus changes dorsal spike number and height.',
+  },
+];
+
+/** The complete 24-locus build genome used by newly hatched classic Arena dragons. */
+export const ARENA_BUILD_TRAITS: readonly DragonTraitDefinition<ArenaBuildTraitId>[] = [
+  ...DRAGON_TRAITS,
+  arenaTrait('tail', 'Tail club form', 'K', 1, 'Crown-spiked club', 'Smooth tail tip'),
+  arenaTrait('body-color', 'Color count', 'B', 3, 'Three-color coat', 'Single-color coat'),
+  arenaTrait('glow', 'Bioluminescence', 'N', 4, 'Glowing markings', 'Unlit markings'),
+  arenaTrait('fangs', 'Fang length', 'G', 4, 'Long fangs', 'Short fangs'),
+  arenaTrait('eye-color', 'Eye glow', 'E', 4, 'Amber eyes', 'Ice-blue eyes'),
+  arenaTrait('body-type', 'Body plan', 'D', 1, 'High-chested body', 'Low-slung body'),
+  arenaTrait('secondary-wings', 'Second wing pair', 'Q', 1, 'Four wings', 'Two wings'),
+  arenaTrait('wing-shape', 'Wing outline', 'A', 2, 'Deeply scalloped wings', 'Smooth wings'),
+  arenaTrait('wing-camber', 'Wing camber', 'V', 2, 'Vaulted membranes', 'Flat membranes'),
+  arenaTrait('body-size', 'Body size', 'Z', 3, 'Giant frame', 'Compact frame'),
+  arenaTrait('tail-length', 'Tail length', 'T', 3, 'Long tail', 'Short tail'),
+  arenaTrait('head-size', 'Head size', 'J', 3, 'Heavy head', 'Fine head'),
+  arenaTrait('snout', 'Snout profile', 'U', 4, 'Broad deep snout', 'Narrow snout'),
+  arenaTrait('armor', 'Armor ridges', 'M', 4, 'Heavy armor ridges', 'Light armor ridges'),
+  arenaTrait('ear-frill', 'Ear frill', 'I', 4, 'Large display frill', 'Small ear fins'),
+  arenaTrait('temperament', 'Arena temperament', 'X', 2, 'Bold fighter', 'Cautious fighter'),
 ];
 
 export const DRAGON_PARENTS: readonly DragonParentProfile[] = [
-  profile('ember', 'Ember', 'Volcanic scout', '#d94841', '#ffb45e', {
+  profile('ember', 'Ember', 'Volcanic scout', '#d94841', '#ffb45e', completeArenaGenome({
     wings: ['W', 'w'],
     fire: ['F', 'f'],
     scales: ['S', 's'],
     horns: ['h', 'h'],
-  }),
-  profile('tide', 'Tide', 'Coastal navigator', '#3679b8', '#73d5e8', {
+    legs: ['L', 'l'],
+    claws: ['C', 'c'],
+    crest: ['R', 'r'],
+    spikes: ['P', 'p'],
+  }, 0)),
+  profile('tide', 'Tide', 'Coastal navigator', '#3679b8', '#73d5e8', completeArenaGenome({
     wings: ['w', 'w'],
     fire: ['F', 'f'],
     scales: ['s', 's'],
     horns: ['H', 'h'],
-  }),
-  profile('moss', 'Moss', 'Forest guardian', '#4f814d', '#add46f', {
+    legs: ['l', 'l'],
+    claws: ['C', 'c'],
+    crest: ['r', 'r'],
+    spikes: ['P', 'p'],
+  }, 1)),
+  profile('moss', 'Moss', 'Forest guardian', '#4f814d', '#add46f', completeArenaGenome({
     wings: ['W', 'w'],
     fire: ['f', 'f'],
     scales: ['S', 's'],
     horns: ['H', 'h'],
-  }),
-  profile('quartz', 'Quartz', 'Mountain glider', '#7d66a5', '#d8b6f0', {
+    legs: ['L', 'l'],
+    claws: ['c', 'c'],
+    crest: ['R', 'r'],
+    spikes: ['p', 'p'],
+  }, 2)),
+  profile('quartz', 'Quartz', 'Mountain glider', '#7d66a5', '#d8b6f0', completeArenaGenome({
     wings: ['W', 'W'],
     fire: ['f', 'f'],
     scales: ['s', 's'],
     horns: ['h', 'h'],
-  }),
+    legs: ['L', 'L'],
+    claws: ['c', 'c'],
+    crest: ['r', 'r'],
+    spikes: ['P', 'P'],
+  }, 3)),
 ];
 
 export function getTrait(traitId: DragonTraitId): DragonTraitDefinition {
   const trait = DRAGON_TRAITS.find((item) => item.id === traitId);
   if (!trait) throw new Error(`Unknown dragon trait: ${traitId}`);
   return trait;
+}
+
+export function getArenaBuildTrait(
+  traitId: ArenaBuildTraitId,
+): DragonTraitDefinition<ArenaBuildTraitId> {
+  const trait = ARENA_BUILD_TRAITS.find((item) => item.id === traitId);
+  if (!trait) throw new Error(`Unknown Arena build trait: ${traitId}`);
+  return trait;
+}
+
+export function arenaGenotype(
+  genome: DragonLabGenome,
+  traitId: ArenaBuildTraitId,
+): DragonTraitGenotype | undefined {
+  return genome[traitId];
+}
+
+export function showsArenaDominant(genome: DragonLabGenome, traitId: ArenaBuildTraitId): boolean {
+  const genotype = arenaGenotype(genome, traitId);
+  return Boolean(genotype?.includes(getArenaBuildTrait(traitId).dominantAllele));
 }
 
 export function normalizeGenotype(genotype: DragonTraitGenotype): DragonTraitGenotype {
@@ -194,11 +296,11 @@ export function breedLabOffspringProfiles(
   return Array.from({ length: size }, (_, index) => {
     const seed = `${parentA.id}:${parentB.id}:${run}:${index}`;
     const genome = Object.fromEntries(
-      DRAGON_TRAITS.map((trait) => [
+      ARENA_BUILD_TRAITS.map((trait) => [
         trait.id,
         normalizeGenotype([
-          selectAllele(parentA.genome[trait.id], `${seed}:${trait.id}:a`),
-          selectAllele(parentB.genome[trait.id], `${seed}:${trait.id}:b`),
+          selectAllele(parentGenotype(parentA, trait), `${seed}:${trait.id}:a`),
+          selectAllele(parentGenotype(parentB, trait), `${seed}:${trait.id}:b`),
         ]),
       ]),
     ) as DragonLabGenome;
@@ -237,7 +339,15 @@ export function fertilizeLabGametes(
   sequence = 1,
 ): DragonOffspring {
   const genome = Object.fromEntries(
-    DRAGON_TRAITS.map((trait) => [trait.id, normalizeGenotype([egg[trait.id], sperm[trait.id]])]),
+    ARENA_BUILD_TRAITS.map((trait) => [
+      trait.id,
+      normalizeGenotype([
+        egg[trait.id as DragonTraitId]
+          ?? selectAllele(parentGenotype(eggParent, trait), `${offspringId}:${trait.id}:egg`),
+        sperm[trait.id as DragonTraitId]
+          ?? selectAllele(parentGenotype(spermParent, trait), `${offspringId}:${trait.id}:sperm`),
+      ]),
+    ]),
   ) as DragonLabGenome;
   const color = offspringColor(`${eggParent.id}:${spermParent.id}:${generation}`, sequence);
   const engineGenome = createVisualGenome(offspringId, genome, generation);
@@ -322,6 +432,53 @@ function profile(
   return { id, name, title, color, accentColor, genome };
 }
 
+function arenaTrait(
+  id: ArenaBuildTraitId,
+  name: string,
+  geneSymbol: string,
+  chromosomeModel: number,
+  dominantPhenotype: string,
+  recessivePhenotype: string,
+): DragonTraitDefinition<ArenaBuildTraitId> {
+  return {
+    id,
+    name,
+    geneSymbol,
+    chromosomeModel,
+    dominantAllele: geneSymbol,
+    recessiveAllele: geneSymbol.toLowerCase(),
+    dominantPhenotype,
+    recessivePhenotype,
+    description: `${name} changes visible anatomy in the classic Dragon Arena build.`,
+  };
+}
+
+/**
+ * Gives the four founders deliberately different calls at every added locus. The repeating
+ * dominant/heterozygous/recessive pattern keeps every allele in the breeding population without
+ * maintaining 64 hand-written pairs.
+ */
+function completeArenaGenome(core: DragonLabGenome, founderIndex: number): DragonLabGenome {
+  const additions = ARENA_BUILD_TRAITS.slice(DRAGON_TRAITS.length).map((trait, index) => {
+    const phase = (founderIndex + index) % 3;
+    const pair: DragonTraitGenotype = phase === 0
+      ? [trait.dominantAllele, trait.dominantAllele]
+      : phase === 1
+        ? [trait.dominantAllele, trait.recessiveAllele]
+        : [trait.recessiveAllele, trait.recessiveAllele];
+    return [trait.id, pair] as const;
+  });
+  return { ...core, ...Object.fromEntries(additions) };
+}
+
+function parentGenotype(
+  parent: DragonParentProfile,
+  trait: DragonTraitDefinition<ArenaBuildTraitId>,
+): DragonTraitGenotype {
+  return parent.genome[trait.id]
+    ?? [trait.recessiveAllele, trait.recessiveAllele];
+}
+
 function selectAllele(genotype: DragonTraitGenotype, seed: string): string {
   return genotype[stableHash(seed) % 2];
 }
@@ -360,9 +517,15 @@ export function createVisualGenome(
      * the four-gene Punnett square — which is the honest representation, since
      * the lesson does not model them.
      */
-    'body-size': 0.42 + (stableHash(`${id}:body`) % 40) / 100,
-    'tail-length': 0.4 + (stableHash(`${id}:tail`) % 35) / 100,
-    temperament: 0.35 + (stableHash(`${id}:temperament`) % 45) / 100,
+    'body-size': arenaGenotype(genome, 'body-size')
+      ? (showsArenaDominant(genome, 'body-size') ? 0.9 : 0.16)
+      : 0.42 + (stableHash(`${id}:body`) % 40) / 100,
+    'tail-length': arenaGenotype(genome, 'tail-length')
+      ? (showsArenaDominant(genome, 'tail-length') ? 0.9 : 0.18)
+      : 0.4 + (stableHash(`${id}:tail`) % 35) / 100,
+    temperament: arenaGenotype(genome, 'temperament')
+      ? (showsArenaDominant(genome, 'temperament') ? 0.92 : 0.18)
+      : 0.35 + (stableHash(`${id}:temperament`) % 45) / 100,
 
     /*
      * The four modelled genes. Each is binary on purpose: `Ww` and `WW` must
@@ -438,6 +601,13 @@ export interface DragonVisualExpression {
    * hatchery dragon keeps the full palette.
    */
   colorCount?: 1 | 2 | 3;
+  bodyArchetype?: 'classic' | 'regal' | 'bulwark' | 'courser' | 'prowler' | 'serpent' | 'four-wing';
+  secondaryWings?: boolean;
+  wingCamber?: number;
+  wingFingerSag?: number;
+  wingScallop?: number;
+  snoutScale?: number;
+  armorScale?: number;
 }
 
 /**
@@ -462,6 +632,7 @@ export function createEducationalAssembly(
   identity?: DragonIdentityPaint,
   expression: DragonVisualExpression = {},
 ): EducationalDragonBuild {
+  expression = { ...arenaVisualExpression(genome), ...expression };
   const generated = generateDragonAssembly(PUBLISHED_CLASSIC_DRAGON_PRESET.state, engineGenome);
   let blueprint = cloneAssemblyBlueprint(generated.blueprint);
 
@@ -526,15 +697,31 @@ export function createEducationalAssembly(
       ...(part.visualProfile?.parameters ?? {}),
     };
     if (profileId === 'dragon-body') {
+      if (expression.bodyArchetype) parameters['bodyArchetype'] = expression.bodyArchetype;
       if (expression.backSpikeCount !== undefined)
         parameters['backSpikeCount'] = expression.backSpikeCount;
       if (expression.backSpikeScale !== undefined)
         parameters['backSpikeScale'] = expression.backSpikeScale;
+      if (expression.armorScale !== undefined) {
+        parameters['spikeHeight'] = 0.25 * expression.armorScale;
+        parameters['spikeRadius'] = 0.07 * expression.armorScale;
+      }
+    }
+    if (profileId === 'dragon-wing' || profileId === 'dragon-secondary-wing') {
+      if (expression.wingCamber !== undefined) parameters['camber'] = expression.wingCamber;
+      if (expression.wingFingerSag !== undefined)
+        parameters['fingerSag'] = expression.wingFingerSag;
+      if (expression.wingScallop !== undefined) parameters['scallop'] = expression.wingScallop;
     }
     if (profileId.startsWith('dragon-head-')) {
       if (expression.crestScale !== undefined) parameters['crestScale'] = expression.crestScale;
       if (expression.eyeColor) parameters['eyeColor'] = expression.eyeColor;
       if (expression.sex) parameters['sex'] = expression.sex;
+      if (expression.snoutScale !== undefined) {
+        parameters['muzzleDepth'] = 0.32 * expression.snoutScale;
+        parameters['muzzleWidth'] = 0.42 * expression.snoutScale;
+        parameters['cheek'] = 0.28 * expression.snoutScale;
+      }
     }
     /*
      * Glow is the one expression that runs the length of the animal rather than
@@ -612,6 +799,10 @@ export function createEducationalAssembly(
     applyGraspingForelimbs(blueprint);
   }
 
+  if (expression.secondaryWings && showsDominantPhenotype(genome.wings, 'wings')) {
+    addSecondaryWingPair(blueprint);
+  }
+
   /*
    * Colour. Three tones belong to the **dragon**, drawn per animal rather than
    * from its genome — colour is identity here, not a trait readout, for the
@@ -678,14 +869,127 @@ export function createEducationalAssembly(
   // travels with the assembly so the arena fights with these numbers instead of
   // regenerating defaults. Prune entries for parts removed by the genotype.
   const partIds = new Set(blueprint.parts.map((part) => part.id));
+  const secondaryWingProfiles: AssemblyCombatProfile['parts'] = {};
+  for (const part of blueprint.parts.filter((candidate) => candidate.id.includes('secondary-wing'))) {
+    const primaryId = part.id.replace('secondary-wing', 'wing');
+    const primaryProfile = generated.combatProfile.parts[primaryId];
+    if (primaryProfile) secondaryWingProfiles[part.id] = { ...primaryProfile };
+  }
   const combatProfile: AssemblyCombatProfile = {
     ...generated.combatProfile,
     parts: Object.fromEntries(
-      Object.entries(generated.combatProfile.parts).filter(([partId]) => partIds.has(partId)),
+      [
+        ...Object.entries(generated.combatProfile.parts).filter(([partId]) => partIds.has(partId)),
+        ...Object.entries(secondaryWingProfiles),
+      ],
     ),
   };
 
   return { assembly: blueprint, combatProfile };
+}
+
+/** Converts the optional 16 Arena loci into strong, readable mesh differences. */
+function arenaVisualExpression(genome: DragonLabGenome): DragonVisualExpression {
+  const has = (id: ArenaBuildTraitId): boolean => arenaGenotype(genome, id) !== undefined;
+  const dominant = (id: ArenaBuildTraitId): boolean => showsArenaDominant(genome, id);
+  const tail = arenaGenotype(genome, 'tail');
+  const colors = arenaGenotype(genome, 'body-color');
+
+  const bodyArchetype = has('body-type')
+    ? chooseBodyArchetype(genome)
+    : undefined;
+
+  return {
+    ...(has('tail')
+      ? {
+          tailClubForm: tail?.[0] !== tail?.[1]
+            ? 'intermediate' as const
+            : dominant('tail')
+              ? 'large' as const
+              : 'small' as const,
+        }
+      : {}),
+    ...(has('body-color')
+      ? {
+          colorCount: colors?.[0] !== colors?.[1]
+            ? 2 as const
+            : dominant('body-color')
+              ? 3 as const
+              : 1 as const,
+        }
+      : {}),
+    ...(has('glow') ? { glowMarkings: dominant('glow') } : {}),
+    ...(has('fangs') ? { fangScale: dominant('fangs') ? 1.48 : 0.48 } : {}),
+    ...(has('eye-color')
+      ? { eyeColor: dominant('eye-color') ? '#ff9f2e' : '#55d9ff' }
+      : {}),
+    ...(has('body-type') ? { bodyArchetype } : {}),
+    ...(has('secondary-wings') ? { secondaryWings: dominant('secondary-wings') } : {}),
+    ...(has('wing-shape')
+      ? {
+          wingScallop: dominant('wing-shape') ? 0.34 : 0.04,
+          wingFingerSag: dominant('wing-shape') ? 0.25 : 0.06,
+        }
+      : {}),
+    ...(has('wing-camber') ? { wingCamber: dominant('wing-camber') ? 0.24 : 0.025 } : {}),
+    ...(has('head-size') ? { headScale: dominant('head-size') ? 1.24 : 0.82 } : {}),
+    ...(has('snout') ? { snoutScale: dominant('snout') ? 1.34 : 0.72 } : {}),
+    ...(has('armor')
+      ? {
+          armorScale: dominant('armor') ? 1.55 : 0.55,
+          backSpikeScale: dominant('armor') ? 1.28 : 0.62,
+        }
+      : {}),
+    ...(has('ear-frill') ? { sex: dominant('ear-frill') ? 'male' as const : 'female' as const } : {}),
+  };
+}
+
+function chooseBodyArchetype(genome: DragonLabGenome): DragonVisualExpression['bodyArchetype'] {
+  const tall = showsArenaDominant(genome, 'body-type');
+  const armored = showsArenaDominant(genome, 'armor');
+  const longTail = showsArenaDominant(genome, 'tail-length');
+  if (showsArenaDominant(genome, 'secondary-wings')) return 'four-wing';
+  if (tall && armored) return 'regal';
+  if (tall) return 'courser';
+  if (armored) return 'bulwark';
+  return longTail ? 'serpent' : 'prowler';
+}
+
+/** Adds two real, jointed parts; four-wing dragons therefore carry 26 rather than 24 parts. */
+function addSecondaryWingPair(blueprint: AssemblyBlueprint): void {
+  const primaryWings = blueprint.parts.filter(
+    (part) => part.visualProfile?.profileId === 'dragon-wing',
+  );
+  for (const primary of primaryWings) {
+    const side = primary.id.includes('left') ? 'left' : 'right';
+    const id = primary.id.replace(`${side}-wing`, `${side}-secondary-wing`);
+    const factor = 0.72;
+    blueprint.parts.push({
+      ...structuredClone(primary),
+      id,
+      label: `${side === 'left' ? 'Left' : 'Right'} secondary wing`,
+      mass: primary.mass * factor ** 3,
+      dimensions: scaleVector(primary.dimensions, factor),
+      visualProfile: primary.visualProfile
+        ? { ...primary.visualProfile, profileId: 'dragon-secondary-wing' }
+        : primary.visualProfile,
+    });
+
+    const primaryJoint = blueprint.joints.find((joint) => joint.childPartId === primary.id);
+    if (!primaryJoint) continue;
+    blueprint.joints.push({
+      ...structuredClone(primaryJoint),
+      id: primaryJoint.id.replace(`${side}-wing`, `${side}-secondary-wing`),
+      childPartId: id,
+      pivotOnParent: {
+        ...primaryJoint.pivotOnParent,
+        x: primaryJoint.pivotOnParent.x - 0.58,
+        y: primaryJoint.pivotOnParent.y - 0.12,
+      },
+      pivotOnChild: scaleVector(primaryJoint.pivotOnChild, factor),
+    });
+  }
+  realignPartsToJoints(blueprint);
 }
 
 // ---------------------------------------------------------------------------

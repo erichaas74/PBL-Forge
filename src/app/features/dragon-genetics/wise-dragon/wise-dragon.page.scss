@@ -166,6 +166,25 @@ h1 {
   font-size: var(--text-sm);
 }
 
+.elder-nameplate button {
+  min-height: 2.35rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid rgb(240 207 141 / 42%);
+  border-radius: 999px;
+  color: #f0cf8d;
+  background: rgb(255 255 255 / 7%);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.elder-nameplate button:hover,
+.elder-nameplate button:focus-visible {
+  border-color: #f0cf8d;
+  background: rgb(240 207 141 / 14%);
+}
+
 .parchment {
   color: #31281d;
   background:

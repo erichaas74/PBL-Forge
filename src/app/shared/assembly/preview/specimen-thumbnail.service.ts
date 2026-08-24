@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Service, OnDestroy } from '@angular/core';
 import { Vector3Data } from '../domain/assembly.models';
 import { SpecimenDescriptor, specimenSignature } from './specimen.models';
 import { SpecimenFrame, SpecimenPoseOptions } from './specimen-pose';
@@ -36,7 +36,7 @@ export interface SpecimenThumbnailOptions {
 const DEFAULT_SIZE = 160;
 const CACHE_LIMIT = 64;
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class SpecimenThumbnailService implements OnDestroy {
   private renderer: SpecimenRendererService | null = null;
   private hostElement: HTMLElement | null = null;
@@ -106,6 +106,16 @@ export class SpecimenThumbnailService implements OnDestroy {
 
   clearCache(): void {
     this.cache.clear();
+  }
+
+  /**
+   * Frees the offscreen WebGL context without discarding baked image data.
+   *
+   * Dense authoring pages can call this after a finite bake batch so their
+   * live inspection canvas becomes the only remaining context on the page.
+   */
+  releaseContext(): void {
+    this.releaseRenderer();
   }
 
   ngOnDestroy(): void {

@@ -42,6 +42,28 @@ describe('mini dragon specimen source', () => {
         expect(readouts.find((entry) => entry.id === 'mini:plumage')?.valueLabel).toBe('Full feather mantle');
         expect(readouts.find((entry) => entry.id === 'mini:plumage')?.roles).toContain('wing');
         expect(readouts.find((entry) => entry.id === 'mini:pattern')?.valueLabel).toBe('Ash-and-gold coat');
+        expect(readouts.find((entry) => entry.id === 'mini:horns')?.roles).toEqual(['horn']);
+        expect(readouts.find((entry) => entry.id === 'mini:ears')?.roles).toEqual(['ear']);
+    });
+
+    it('highlights each inherited attachment without borrowing its animated parent role', () => {
+        const readouts = miniDragonTraitReadouts(GENOME, 'bench-mini-1');
+        const attachmentRoles = {
+            brow: 'brow-plates',
+            whiskers: 'whiskers',
+            chin: 'chin-tuft',
+            dewlap: 'dewlap',
+            ruff: 'neck-ruff',
+            shoulders: 'shoulder-plates',
+            belly: 'belly-scutes',
+            'flank-fins': 'flank-fins',
+            'hip-fins': 'hip-fins',
+            'tail-sail': 'tail-sail',
+        } as const;
+
+        for (const [geneId, role] of Object.entries(attachmentRoles)) {
+            expect(readouts.find((entry) => entry.id === `mini:${geneId}`)?.roles).toEqual([role]);
+        }
     });
 
     it('names the inheritance pattern beside each gene, since that is what differs between them', () => {
@@ -55,7 +77,7 @@ describe('mini dragon specimen source', () => {
         const readouts = miniDragonTraitReadouts(GENOME, 'bench-mini-1');
         const features = readouts.filter((entry) => entry.id.startsWith('mini:feature-'));
 
-        expect(features.length).toBe(5);
+        expect(features.length).toBe(4);
         for (const feature of features) {
             expect(feature.detail, feature.label).toContain('Not inherited');
         }

@@ -87,6 +87,95 @@
   color: var(--ink);
 }
 
+.mini-presets {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--sea) 7%, transparent);
+}
+
+.mini-presets__heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+
+  span {
+    color: var(--muted);
+    font-size: var(--text-xs);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  h3,
+  p {
+    margin: 0;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+  }
+
+  p {
+    max-width: 34rem;
+    color: var(--muted);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+  }
+}
+
+.mini-presets__choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.mini-presets__choice {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 5rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  strong {
+    font-size: var(--text-base);
+  }
+
+  small {
+    color: var(--muted);
+    font-size: var(--text-xs);
+    line-height: 1.35;
+  }
+
+  &:hover {
+    border-color: var(--sea);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sea);
+    outline-offset: 2px;
+  }
+}
+
+.mini-presets__choice--active {
+  border-color: var(--sea);
+  background: var(--sea);
+  color: white;
+
+  small {
+    color: inherit;
+  }
+}
+
 .bench-page__genes {
   display: grid;
   gap: 0.7rem;
@@ -318,12 +407,15 @@
 
   .sex-model__choices button,
   .species__choice,
+  .mini-presets__choice,
   .mini-panel__reroll {
     background: var(--slate-deep);
     color: #f7f1e5;
   }
 
   .species__choice,
+  .mini-presets,
+  .mini-presets__choice,
   .mini-panel {
     border-color: var(--slate);
   }
@@ -334,6 +426,12 @@
   }
 
   .species__choice--active {
+    background: var(--stone);
+    border-color: var(--stone);
+    color: #0b1220;
+  }
+
+  .mini-presets__choice--active {
     background: var(--stone);
     border-color: var(--stone);
     color: #0b1220;
@@ -355,6 +453,11 @@
 }
 
 @media (max-width: 640px) {
+  .mini-presets__heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
   .sex-model {
     grid-template-columns: 1fr;
   }

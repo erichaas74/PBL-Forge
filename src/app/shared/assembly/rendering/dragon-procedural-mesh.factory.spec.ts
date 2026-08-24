@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { AssemblyPart } from '../domain/assembly.models';
 import {
   DragonProceduralProfileId,
-  SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS,
+  CLASSIC_DRAGON_PROCEDURAL_PROFILE_IDS,
 } from '../model-pack/dragon-model-pack.models';
 import { createDragonProceduralObject } from './dragon-procedural-mesh.factory';
 
@@ -31,7 +31,7 @@ function routedPart(profileId: DragonProceduralProfileId): AssemblyPart {
 }
 
 describe('dragon procedural profile routing', () => {
-  it.each(SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS)('routes %s to a rendered object', profileId => {
+  it.each(CLASSIC_DRAGON_PROCEDURAL_PROFILE_IDS)('routes %s to a rendered object', profileId => {
     expect(createDragonProceduralObject(routedPart(profileId))).toBeInstanceOf(THREE.Object3D);
   });
 

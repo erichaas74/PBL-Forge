@@ -1,0 +1,267 @@
+<details class="subdrawer">
+  <summary>Question policy</summary>
+  <p class="drawer-note">
+    {{ bankSize() }} authored questions across {{ conceptCount() }} concepts. Questions are chosen
+    to cover concepts and follow up on what a student has missed. A short bank means a shorter set,
+    never generated filler.
+  </p>
+  <div class="setting-list">
+    <div class="setting-row">
+      <strong>Choosing</strong>
+      <label
+        >Priority
+        <select
+          #coverageControl
+          [value]="inquiryPolicy().coverage"
+          (change)="setPolicyChoice('coverage', coverageControl.value)"
+        >
+          @for (mode of coverageModes; track mode) {
+            <option [value]="mode">{{ mode }}</option>
+          }
+        </select>
+      </label>
+      <label
+        >After a miss
+        <select
+          #missStrategyControl
+          [value]="inquiryPolicy().repeatMissStrategy"
+          (change)="setPolicyChoice('repeatMissStrategy', missStrategyControl.value)"
+        >
+          @for (strategy of repeatMissStrategies; track strategy) {
+            <option [value]="strategy">{{ strategy }}</option>
+          }
+        </select>
+      </label>
+      <label
+        >Hints
+        <select
+          #hintPolicyControl
+          [value]="inquiryPolicy().hintPolicy"
+          (change)="setPolicyChoice('hintPolicy', hintPolicyControl.value)"
+        >
+          @for (option of hintPolicies; track option) {
+            <option [value]="option">{{ option }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    <div class="setting-row">
+      <strong>Set size</strong>
+      <label
+        >Fewest
+        <input
+          #minItemsControl
+          type="number"
+          min="1"
+          max="10"
+          [value]="inquiryPolicy().minItems"
+          (change)="setPolicyNumber('minItems', minItemsControl.value)"
+        />
+      </label>
+      <label
+        >Most
+        <input
+          #maxItemsControl
+          type="number"
+          min="1"
+          max="10"
+          [value]="inquiryPolicy().maxItems"
+          (change)="setPolicyNumber('maxItems', maxItemsControl.value)"
+        />
+      </label>
+      <label
+        >Repeat cooldown
+        <input
+          #cooldownControl
+          type="number"
+          min="0"
+          max="40"
+          [value]="inquiryPolicy().itemCooldown"
+          (change)="setPolicyNumber('itemCooldown', cooldownControl.value)"
+        />
+      </label>
+      <label
+        >Mastery streak
+        <input
+          #masteryControl
+          type="number"
+          min="1"
+          max="5"
+          [value]="inquiryPolicy().masteryStreak"
+          (change)="setPolicyNumber('masteryStreak', masteryControl.value)"
+        />
+      </label>
+    </div>
+
+    <div class="setting-row">
+      <strong>Adapting</strong>
+      <label>
+        <input
+          type="checkbox"
+          [checked]="inquiryPolicy().adaptiveLevel"
+          (change)="setPolicyFlag('adaptiveLevel', !inquiryPolicy().adaptiveLevel)"
+        />
+        Move level from student scores
+      </label>
+      <label
+        >Raise at
+        <input
+          #levelUpControl
+          type="number"
+          min="50"
+          max="100"
+          [value]="inquiryPolicy().adaptiveLevelUpScore"
+          (change)="setPolicyNumber('adaptiveLevelUpScore', levelUpControl.value)"
+        />
+      </label>
+      <label
+        >Lower at
+        <input
+          #levelDownControl
+          type="number"
+          min="0"
+          max="95"
+          [value]="inquiryPolicy().adaptiveLevelDownScore"
+          (change)="setPolicyNumber('adaptiveLevelDownScore', levelDownControl.value)"
+        />
+      </label>
+      <label
+        >After runs
+        <input
+          #minimumRunsControl
+          type="number"
+          min="1"
+          max="20"
+          [value]="inquiryPolicy().adaptiveLevelMinRuns"
+          (change)="setPolicyNumber('adaptiveLevelMinRuns', minimumRunsControl.value)"
+        />
+      </label>
+    </div>
+
+    <div class="setting-row">
+      <strong>Using earlier work</strong>
+      <label>
+        <input
+          type="checkbox"
+          [checked]="inquiryPolicy().prerequisiteGating"
+          (change)="setPolicyFlag('prerequisiteGating', !inquiryPolicy().prerequisiteGating)"
+        />
+        Hold back a concept until its prerequisite is secure
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          [checked]="inquiryPolicy().useNotebookEvidence"
+          (change)="setPolicyFlag('useNotebookEvidence', !inquiryPolicy().useNotebookEvidence)"
+        />
+        Ease off concepts the notebook already proves
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          [checked]="inquiryPolicy().preferUnseenConcepts"
+          (change)="setPolicyFlag('preferUnseenConcepts', !inquiryPolicy().preferUnseenConcepts)"
+        />
+        Cover new concepts before repeating one
+      </label>
+    </div>
+  </div>
+  <button type="button" class="reset" (click)="resetInquirySettings()">
+    Reset question policy
+  </button>
+</details>
+
+<details class="subdrawer">
+  <summary>Concepts and questions</summary>
+  @if (coverageGaps().length) {
+    <p class="drawer-note warn">
+      No authored question yet at this class level for: {{ coverageGaps().join(', ') }}.
+    </p>
+  }
+  <div class="concept-skills">
+    @for (skill of masterySkills; track skill.id) {
+      <div class="concept-skill">
+        <button type="button" class="skill-head" (click)="toggleSkillPanel(skill.id)">
+          <span>{{ skill.id }} · {{ skill.title }}</span>
+          <small>{{ conceptsFor(skill.id).length }} concepts</small>
+        </button>
+        @if (expandedSkill() === skill.id) {
+          <ul class="concept-list">
+            @for (concept of conceptsFor(skill.id); track concept.id) {
+              <li [class.off]="!conceptEnabled(concept.id)">
+                <div class="concept-head">
+                  <label>
+                    <input
+                      type="checkbox"
+                      [checked]="conceptEnabled(concept.id)"
+                      (change)="toggleConcept(concept.id)"
+                    />
+                    <span>
+                      <strong>{{ concept.statement }}</strong>
+                      <small>Displaces: {{ concept.misconception }}</small>
+                    </span>
+                  </label>
+                  <label class="priority"
+                    >Priority
+                    <input
+                      #priorityControl
+                      type="number"
+                      min="-10"
+                      max="10"
+                      [value]="conceptPriority(concept.id)"
+                      (change)="setConceptPriority(concept.id, priorityControl.value)"
+                    />
+                  </label>
+                </div>
+                <ul class="item-list">
+                  @for (item of bankItemsFor(concept.id); track item.id) {
+                    <li [class.off]="itemDisabled(item.id)">
+                      <span>
+                        <small>{{ item.gradeBands.join(' · ') }} · {{ item.phase }}</small>
+                        {{ item.kind === 'choice' ? item.prompt : item.task }}
+                      </span>
+                      <button type="button" (click)="toggleItemPinned(item.id)">
+                        {{ itemPinned(item.id) ? 'Always ask' : 'Pin' }}
+                      </button>
+                      <button type="button" (click)="toggleItemDisabled(item.id)">
+                        {{ itemDisabled(item.id) ? 'Off' : 'On' }}
+                      </button>
+                    </li>
+                  }
+                </ul>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </div>
+</details>
+
+<details class="subdrawer">
+  <summary>Instrument probes</summary>
+  <p class="drawer-note">
+    A probe is a part of an instrument a student can operate. Switching one off withdraws every
+    question that needs it, in every workstation that offers it.
+  </p>
+  <div class="probe-list">
+    @for (instrument of instruments; track instrument.id) {
+      <div class="probe-group">
+        <strong>{{ instrument.title }}</strong>
+        <div>
+          @for (probe of instrument.probes; track probe.id) {
+            <label>
+              <input
+                type="checkbox"
+                [checked]="!probeDisabled(probe.id)"
+                (change)="toggleProbe(probe.id)"
+              />
+              <span>{{ probe.id }}</span>
+            </label>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</details>

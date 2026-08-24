@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -8,7 +8,7 @@ import { DragonProjectSelectionSnapshot } from './dragon-project-selection.model
 
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.project-selection.v1';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonProjectSelectionRepository {
   load(studentId: string, assignmentId: string): DragonProjectSelectionSnapshot {
     const empty = emptySnapshot(studentId, assignmentId);

@@ -1,0 +1,54 @@
+<main class="plan-page">
+  @if (path(); as path) {
+    <header class="plan-header">
+      <a routerLink="/dragon-genetics">← Choose another path</a>
+      <p>Dragon Genetics · {{ path.shortTitle }} path</p>
+      <h1>{{ path.title }}</h1>
+      <span>{{ path.goal }}</span>
+    </header>
+
+    <section class="lesson-list" aria-labelledby="lesson-list-title">
+      <div>
+        <p>Shared curriculum</p>
+        <h2 id="lesson-list-title">Learning path</h2>
+        <span>The science and questions are identical on both paths.</span>
+      </div>
+      @if (lessonPlan.publishedLessons().length) {
+        <ol>
+          @for (lesson of lessonPlan.publishedLessons(); track lesson.id; let order = $index) {
+            <li>
+              <span>{{ order + 1 }}</span>
+              <div>
+                <strong>{{ lesson.title }}</strong>
+                <small>{{ lesson.learningGoal || 'Learning goal being prepared.' }}</small>
+              </div>
+              <a [routerLink]="['/dragon-genetics', 'path', path.id, 'lesson', lesson.id]">Open lesson →</a>
+            </li>
+          }
+        </ol>
+      } @else {
+        <div class="empty-plan" role="status">
+          <strong>The shared lesson plan is ready.</strong>
+          <span>No lessons have been published yet. A teacher can build them one at a time.</span>
+        </div>
+      }
+    </section>
+  } @else {
+    <header class="plan-header home">
+      <p>Dragon Genetics</p>
+      <h1>Choose what you are breeding toward.</h1>
+      <span>Both paths teach the same genetics lessons and ask the same questions.</span>
+    </header>
+    <section class="path-grid" aria-label="Dragon Genetics learning paths">
+      @for (pathId of pathIds; track pathId) {
+        @let path = lessonPlan.document().paths[pathId];
+        <a [routerLink]="pathUrl(path.id)">
+          <span>{{ path.shortTitle }} path</span>
+          <strong>{{ path.title }}</strong>
+          <p>{{ path.goal }}</p>
+          <small>{{ path.specimenKind === 'mini-dragons' ? 'Mini dragons' : 'Full-size dragons' }} →</small>
+        </a>
+      }
+    </section>
+  }
+</main>

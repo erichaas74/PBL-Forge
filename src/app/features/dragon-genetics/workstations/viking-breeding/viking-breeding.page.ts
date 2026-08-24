@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { DragonWorkstationContextService } from '../shared/dragon-workstation-context.service';
+import { DragonJourneyNavigationService } from '../../journey/dragon-journey-navigation.service';
 import { VikingBreedingComponent } from './viking-breeding.component';
 
 /**
@@ -21,6 +22,7 @@ export class VikingBreedingPage {
   private readonly route = inject(ActivatedRoute);
 
   readonly studentId = this.context.studentId;
+  readonly workstationExitUrl = inject(DragonJourneyNavigationService).workstationExitUrl;
   readonly requestedRoleId = toSignal(
     this.route.queryParamMap.pipe(map((params) => params.get('settlement'))),
     { initialValue: this.route.snapshot.queryParamMap.get('settlement') },

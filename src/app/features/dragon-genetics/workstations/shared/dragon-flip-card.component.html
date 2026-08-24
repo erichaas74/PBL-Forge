@@ -21,22 +21,35 @@
         <strong>{{ card().name }}</strong>
         @if (card().arenaRating !== null) {
           <small>★ {{ card().arenaRating }}</small>
-        } @else {
-          <div class="dragon-card__blood-type" role="img" [attr.aria-label]="bloodTypeLabel()">
-            <svg viewBox="0 0 64 80" aria-hidden="true" focusable="false">
-              <path d="M32 2C26 17 8 34 8 51a24 24 0 0 0 48 0C56 34 38 17 32 2Z" />
-            </svg>
-            <strong>{{ bloodType() ?? '?' }}</strong>
-          </div>
         }
       </header>
       <div class="dragon-card__portrait">
         @if (renderPortrait()) {
-          <app-specimen-thumb
-            [source]="card().source"
-            [labelOverride]="card().name"
-            [showLabel]="false"
-          />
+          @if (card().source; as portraitSource) {
+            @if (animatedPortrait() && active()) {
+              <app-specimen-viewport
+                [source]="portraitSource"
+                [ariaLabel]="card().name + ' animated dragon portrait'"
+                [interactive]="false"
+                [animated]="!flipped()"
+                [idleMotion]="cardIdleMotion"
+                [autoAbilities]="cardShowcaseAbilities"
+                [controls]="false"
+                [transparent]="true"
+                [showGroundShadow]="false"
+                [framePadding]="1.14"
+              />
+            } @else {
+              <app-specimen-thumb
+                [source]="portraitSource"
+                [labelOverride]="card().name"
+                [showLabel]="false"
+                draggable="false"
+              />
+            }
+          } @else {
+            <div class="dragon-card__standby" aria-hidden="true">{{ card().name.slice(0, 1) }}</div>
+          }
         } @else {
           <div class="dragon-card__standby" aria-hidden="true">{{ card().name.slice(0, 1) }}</div>
         }
@@ -62,57 +75,72 @@
 
     <section class="dragon-card dragon-card--back" [attr.aria-hidden]="!flipped()">
       <header>
-        <span>Genome record</span>
         <strong>{{ card().name }}</strong>
-        <small>{{ card().catalogNumber }}</small>
+        <div class="dragon-card__blood-type" role="img" [attr.aria-label]="bloodTypeLabel()">
+          <svg viewBox="0 0 64 80" aria-hidden="true" focusable="false">
+            <path d="M32 2C26 17 8 34 8 51a24 24 0 0 0 48 0C56 34 38 17 32 2Z" />
+          </svg>
+          <strong>{{ bloodType() ?? '?' }}</strong>
+        </div>
       </header>
       <div class="dragon-card__cell">
         <app-cell-model
           [chromosomes]="genome().chromosomes"
           [selectedChromosome]="selectedChromosome()"
           [selectable]="active() && flipped()"
-          [showChromosomeLabels]="false"
+          [showChromosomeLabels]="true"
           [showLoci]="true"
           detail="simple"
           focus="nucleus"
-          [ariaLabel]="card().name + ' chromosome pairs. Select a pair to read its genes.'"
+          [ariaLabel]="card().name + ' chromosome pairs. Select a chromosome pair.'"
           (chromosomeSelected)="selectChromosome($event)"
         />
       </div>
 
       <section class="dragon-card__gene-panel" aria-live="polite">
-        <div class="dragon-card__gene-heading">
-          <div>
-            <small>Selected pair</small>
-            <h3>{{ selectedPairLabel() }}</h3>
-          </div>
-          <b>{{ genome().sexChromosomes }}</b>
-        </div>
         <div class="dragon-card__gene-list">
           @for (gene of selectedGenes(); track gene.id) {
             <button
               type="button"
               class="dragon-card__gene"
               [class.is-selected]="selectedGene() === gene.id"
+              [class.is-unavailable]="!isGeneSelectable(gene.id)"
               [attr.aria-pressed]="selectedGene() === gene.id"
               [style.--locus-color]="gene.locusColor"
-              [disabled]="!active() || !flipped()"
+              [attr.aria-label]="geneReferenceLabel(gene)"
+              [disabled]="!active() || !flipped() || !isGeneSelectable(gene.id)"
               (click)="selectGene(gene.id)"
             >
               <span class="gene-locus" aria-hidden="true"></span>
-              <div>
+              <div class="gene-reference">
+                @if (isGeneSelectable(gene.id)) {
+                  <p class="gene-reference__line">
+                    <small>Genotype:</small>
+                    <strong>{{ isGeneRevealed(gene.id) ? gene.genotype : '?' }}</strong>
+                  </p>
+                  <p class="gene-reference__line">
+                    <small>Phenotype:</small>
+                    <span>{{ isGeneRevealed(gene.id) ? gene.phenotype : '?' }}</span>
+                  </p>
+                } @else {
+                  <strong>Not available here</strong>
+                }
+              </div>
+              <div class="gene-spoilers" aria-hidden="true">
                 <small>{{ gene.sampleCode }} · {{ gene.inheritanceLabel }}</small>
                 <strong>{{ gene.name }}</strong>
                 <p>{{ gene.phenotype }}</p>
               </div>
-              <code>{{ gene.genotype }}</code>
+              <code>{{ gene.sampleCode }}</code>
             </button>
           }
         </div>
       </section>
       <footer>
         <span>{{ footerLeft() || card().title }}</span>
-        <b>{{ footerRight() || genome().sexChromosomes }}</b>
+        @if (footerRight()) {
+          <b>{{ footerRight() }}</b>
+        }
       </footer>
     </section>
   </div>
@@ -123,6 +151,7 @@
       class="dragon-card__flip"
       [disabled]="!active()"
       [attr.aria-pressed]="flipped()"
+      [attr.data-testid]="flipTestId()"
       (click)="requestFlip()"
     >
       {{ flipped() ? 'Show dragon front' : 'Flip for chromosomes' }}

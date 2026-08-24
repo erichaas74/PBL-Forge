@@ -1,0 +1,24 @@
+<main class="workstation-host">
+  <nav class="workstation-host__navigation">
+    <a [routerLink]="launchContext()?.returnUrl ?? '/dragon-genetics'">
+      ← {{ launchContext() ? 'Return to ' + launchContext()!.lessonTitle : 'Return to Dragon Genetics' }}
+    </a>
+    <span>{{ directTitle() }}</span>
+  </nav>
+
+  @if (launchContext(); as context) {
+    @if (!missionDismissed()) {
+      <aside class="mission-ribbon" aria-label="Lesson mission">
+        <div>
+          <small>{{ context.pathTitle }} · {{ context.lessonTitle }}</small>
+          <strong>{{ context.missionText }}</strong>
+        </div>
+        <button type="button" aria-label="Dismiss lesson mission" (click)="missionDismissed.set(true)">
+          Dismiss
+        </button>
+      </aside>
+    }
+  }
+
+  <ng-content />
+</main>

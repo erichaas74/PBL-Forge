@@ -28,4 +28,21 @@ describe('SpecimenViewportComponent', () => {
     expect(fixture.componentInstance.descriptor()?.label).toBe('Test dragon');
     expect((fixture.nativeElement as HTMLElement).querySelector('.bench__panels')).toBeNull();
   });
+
+  it('describes dragging only when pointer rotation is enabled', () => {
+    fixture.componentRef.setInput('source', {
+      kind: 'descriptor',
+      descriptor: describeSpecimen('card', { parts: [], joints: [] }, { label: 'Card dragon' }),
+    });
+    fixture.componentRef.setInput('ariaLabel', 'Card dragon portrait');
+    fixture.componentRef.setInput('interactive', false);
+    fixture.detectChanges();
+
+    const stage = (fixture.nativeElement as HTMLElement).querySelector('.viewport__stage')!;
+    expect(stage.getAttribute('aria-label')).toBe('Card dragon portrait');
+
+    fixture.componentRef.setInput('interactive', true);
+    fixture.detectChanges();
+    expect(stage.getAttribute('aria-label')).toContain('drag to turn');
+  });
 });

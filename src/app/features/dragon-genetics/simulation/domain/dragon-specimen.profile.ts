@@ -313,6 +313,10 @@ export function dragonParentExpressiveProfile(
       fire: parent.genome.fire,
       horns: parent.genome.horns,
       scales: parent.genome.scales,
+      legs: parent.genome.legs,
+      claws: parent.genome.claws,
+      crest: parent.genome.crest,
+      spikes: parent.genome.spikes,
       'eye-color': sex === 'male' ? ['E', 'Y'] : ['E', 'e'],
     },
   };
@@ -482,7 +486,13 @@ function describeLabGenome(
   const engineGenome = createVisualGenome(id, genome, generation, identity);
   // Same call the hatchery makes, so a wingless genotype loses its wings here
   // exactly as it does in the clutch and in the arena.
-  const build = createEducationalAssembly(genome, engineGenome, identity);
+  const build = createEducationalAssembly(genome, engineGenome, identity, {
+    forelimbs: showsDominantPhenotype(genome.legs, 'legs') ? 'walking' : 'grasping',
+    clawScale: showsDominantPhenotype(genome.claws, 'claws') ? 1.5 : 0.62,
+    crestScale: showsDominantPhenotype(genome.crest, 'crest') ? 1.1 : 0.32,
+    backSpikeCount: showsDominantPhenotype(genome.spikes, 'spikes') ? 10 : 3,
+    backSpikeScale: showsDominantPhenotype(genome.spikes, 'spikes') ? 1.15 : 0.52,
+  });
 
   return describeSpecimen(id, build.assembly, {
     label: options.label ?? id,

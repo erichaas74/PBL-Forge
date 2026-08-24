@@ -6,8 +6,12 @@ import {
   miniGene,
   miniGenomeFromForms,
 } from './mini-dragon.genetics';
+import {
+  MINI_DRAGON_REFERENCE_FORMS,
+  MiniDragonBreedPresetId,
+} from '../../../../shared/assembly/rendering/mini-dragon-breed-morphology';
 
-export type MiniBreedId = 'puggle' | 'fairy' | 'triceratops' | 'imperial-serpent' | 'amphiptere';
+export type MiniBreedId = MiniDragonBreedPresetId;
 
 export type MiniBreedDifficulty = 'Foundation' | 'Selective' | 'Advanced';
 export type MiniBreedInheritanceKind = 'fixed' | 'masked' | 'splitting';
@@ -33,30 +37,16 @@ export interface MiniBreedTargetPlan {
   advice: string;
 }
 
-const EXAMPLE_BASE_FORMS: Readonly<Record<MiniGeneId, string>> = {
-  coat: 'coat:sleek',
-  plumage: 'plumage:bare',
-  horns: 'horns:curled',
-  wings: 'wings:small',
-  pattern: 'pattern:ash-gold',
-  ember: 'ember:pale',
-  size: 'size:standard',
-  ears: 'ears:petal',
-  muzzle: 'muzzle:medium',
-  legs: 'legs:medium',
-  tail: 'tail:pom',
-  crest: 'crest:frill',
-  frame: 'frame:balanced',
-};
-
 function target(geneId: MiniGeneId, formId: string): BreedStandardTarget {
   return { geneId, formId };
 }
 
 function defineBreed(definition: Omit<MiniBreedDefinition, 'exampleGenome'>): MiniBreedDefinition {
-  const forms: Record<MiniGeneId, string> = { ...EXAMPLE_BASE_FORMS };
+  const forms = MINI_DRAGON_REFERENCE_FORMS[definition.id];
   for (const breedTarget of definition.targets) {
-    forms[breedTarget.geneId] = breedTarget.formId;
+    if (forms[breedTarget.geneId] !== breedTarget.formId) {
+      throw new Error(`${definition.name} reference does not express ${breedTarget.formId}.`);
+    }
   }
   return { ...definition, exampleGenome: miniGenomeFromForms(forms) };
 }
@@ -84,6 +74,9 @@ export const MINI_DRAGON_BREEDS: readonly MiniBreedDefinition[] = [
       target('legs', 'legs:waddler'),
       target('ears', 'ears:button'),
       target('size', 'size:teacup'),
+      target('eyes', 'eyes:large'),
+      target('brow', 'brow:soft'),
+      target('dewlap', 'dewlap:full'),
     ],
   }),
   defineBreed({
@@ -101,9 +94,12 @@ export const MINI_DRAGON_BREEDS: readonly MiniBreedDefinition[] = [
       target('frame', 'frame:balanced'),
       target('crest', 'crest:frill'),
       target('ears', 'ears:petal'),
+      target('eyes', 'eyes:large'),
       target('wings', 'wings:broad'),
       target('tail', 'tail:pom'),
       target('plumage', 'plumage:full'),
+      target('ruff', 'ruff:petal'),
+      target('hip-fins', 'hip-fins:petal'),
     ],
   }),
   defineBreed({
@@ -123,6 +119,8 @@ export const MINI_DRAGON_BREEDS: readonly MiniBreedDefinition[] = [
       target('coat', 'coat:fluffy'),
       target('legs', 'legs:medium'),
       target('tail', 'tail:star'),
+      target('shoulders', 'shoulders:shield'),
+      target('belly', 'belly:plated'),
     ],
   }),
   defineBreed({
@@ -132,7 +130,7 @@ export const MINI_DRAGON_BREEDS: readonly MiniBreedDefinition[] = [
     description:
       'A majestic but friendly living scarf. The long body undulates through the air on vestigial wings, then curls around a familiar arm and purrs.',
     cuteDirection:
-      'A thick caterpillar-like noodle body, velvet-rounded straight horns, a cloud-soft crown-and-frill crest, and a gentle oversized face prevent a fierce serpent profile.',
+      'A thick caterpillar-like noodle body, velvet-rounded straight horns, two long ribbon tails, a cloud-soft crown-and-frill crest, and a gentle oversized face prevent a fierce serpent profile.',
     difficulty: 'Advanced',
     breedingSummary:
       'Seven target forms can be fixed, but the crown-and-frill crest is a mixed form that always segregates. Preserve gold and the long silhouette while selecting the crest anew.',
@@ -143,8 +141,10 @@ export const MINI_DRAGON_BREEDS: readonly MiniBreedDefinition[] = [
       target('legs', 'legs:waddler'),
       target('horns', 'horns:straight'),
       target('crest', 'crest:crown-frill'),
-      target('tail', 'tail:pom'),
+      target('tail', 'tail:split'),
       target('pattern', 'pattern:gold'),
+      target('whiskers', 'whiskers:long'),
+      target('chin', 'chin:plume'),
     ],
   }),
   defineBreed({
@@ -166,6 +166,8 @@ export const MINI_DRAGON_BREEDS: readonly MiniBreedDefinition[] = [
       target('coat', 'coat:sleek'),
       target('ears', 'ears:sail'),
       target('tail', 'tail:fork'),
+      target('flank-fins', 'flank-fins:sail'),
+      target('tail-sail', 'tail-sail:ribbon'),
     ],
   }),
 ];

@@ -1,33 +1,52 @@
 import { Routes } from '@angular/router';
+import { teacherAccessGuard } from './core/firebase/teacher-access.guard';
+import { MICROSCOPE_LEVEL_ROUTES } from './features/dragon-genetics/workstations/genome-microscope/microscope-level.routes';
 
 export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'catalog',
-  },
-  {
-    path: 'catalog',
-    loadComponent: () => import('./features/catalog/catalog.page').then((m) => m.CatalogPage),
-  },
-  {
-    path: 'project/:projectId',
-    loadComponent: () => import('./features/project/project.page').then((m) => m.ProjectPage),
-  },
-  {
-    path: 'project/:projectId/activity/:activityId',
-    loadComponent: () =>
-      import('./features/activity-player/activity-player.page').then((m) => m.ActivityPlayerPage),
+    redirectTo: 'dragon-genetics',
   },
   {
     path: 'dragon-genetics',
     loadComponent: () =>
-      import('./features/dragon-genetics/dragon-genetics.page').then((m) => m.DragonGeneticsPage),
+      import('./features/dragon-genetics/lesson-plan/dragon-paths.page').then(
+        (m) => m.DragonPathsPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/path/:pathId',
+    loadComponent: () =>
+      import('./features/dragon-genetics/lesson-plan/dragon-paths.page').then(
+        (m) => m.DragonPathsPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/path/:pathId/lesson/:lessonId',
+    loadComponent: () =>
+      import('./features/dragon-genetics/lesson-plan/dragon-shared-lesson.page').then(
+        (m) => m.DragonSharedLessonPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/explore',
+    loadComponent: () =>
+      import('./features/dragon-genetics/dragon-genetics.page').then(
+        (m) => m.DragonGeneticsPage,
+      ),
   },
   {
     path: 'dragon-genetics/allele-workbench-reference',
     pathMatch: 'full',
     redirectTo: 'dragon-genetics/allele-workbench',
+  },
+  {
+    path: 'dragon-genetics/allele-workbench',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/allele-workbench/allele-workbench.page').then(
+        (m) => m.AlleleWorkbenchPage,
+      ),
   },
   {
     path: 'dragon-genetics/pedigree-lab',
@@ -121,6 +140,34 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'dragon-genetics/mystery-pair',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/mystery-pair/mystery-pair.page').then(
+        (m) => m.MysteryPairPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/breeding-incubator',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/incubator-sampler/breeding-incubator.page').then(
+        (m) => m.BreedingIncubatorPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/cell-gene-microscope',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/genome-microscope/cell-gene-microscope.page').then(
+        (m) => m.CellGeneMicroscopePage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/meiosis-hatchery',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/dragon-hatchery/meiosis-hatchery.page').then(
+        (m) => m.MeiosisHatcheryPage,
+      ),
+  },
+  {
     path: 'dragon-genetics/candling-workstation',
     loadComponent: () =>
       import('./features/dragon-genetics/workstations/candling-workstation/candling-workstation.page').then(
@@ -128,56 +175,97 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'dragon-genetics/journey',
+    path: 'dragon-genetics/punnett-composer',
     loadComponent: () =>
-      import('./features/dragon-genetics/journey/dragon-journey.page').then(
-        (m) => m.DragonJourneyPage,
+      import('./features/dragon-genetics/workstations/punnett-composer/punnett-composer.page').then(
+        (m) => m.PunnettComposerPage,
       ),
   },
   {
-    path: 'dragon-genetics/journey/:pathId',
+    path: 'dragon-genetics/genome-microscope',
     loadComponent: () =>
-      import('./features/dragon-genetics/journey/dragon-journey.page').then(
-        (m) => m.DragonJourneyPage,
+      import('./features/dragon-genetics/workstations/genome-microscope/genome-microscope.page').then(
+        (m) => m.GenomeMicroscopePage,
+      ),
+  },
+  ...MICROSCOPE_LEVEL_ROUTES.map(({ level, path }) => ({
+    path,
+    data: { microscopeLevel: level },
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/genome-microscope/microscope-level.page').then(
+        (m) => m.MicroscopeLevelPage,
+      ),
+  })),
+  {
+    path: 'dragon-genetics/incubator-sampler',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/incubator-sampler/incubator-sampler.page').then(
+        (m) => m.IncubatorSamplerPage,
       ),
   },
   {
-    path: 'dragon-genetics/journey/:pathId/lesson/:lessonId',
+    path: 'dragon-genetics/dna-process-lab',
     loadComponent: () =>
-      import('./features/dragon-genetics/journey/dragon-lesson.page').then(
-        (m) => m.DragonLessonPage,
+      import('./features/dragon-genetics/workstations/dna-process-lab/dna-process-lab.page').then(
+        (m) => m.DnaProcessLabPage,
       ),
   },
   {
-    path: 'dragon-genetics/:simulationId',
+    path: 'dragon-genetics/dragon-hatchery',
     loadComponent: () =>
-      import('./features/dragon-genetics/adaptive/dragon-simulation-experience.page').then(
-        (m) => m.DragonSimulationExperiencePage,
+      import('./features/dragon-genetics/workstations/dragon-hatchery/dragon-hatchery.page').then(
+        (m) => m.DragonHatcheryPage,
       ),
   },
   {
-    path: 'dragon-test-bench',
+    path: 'dragon-genetics/diversity-manager',
+    loadComponent: () =>
+      import('./features/dragon-genetics/workstations/island-diversity/island-diversity-manager.page').then(
+        (m) => m.IslandDiversityManagerPage,
+      ),
+  },
+  {
+    path: 'teacher',
+    canMatch: [teacherAccessGuard],
+    loadComponent: () =>
+      import('./features/dragon-genetics/dragon-teacher.page').then((m) => m.DragonTeacherPage),
+  },
+  {
+    path: 'teacher/lesson-plan',
+    canMatch: [teacherAccessGuard],
+    loadComponent: () =>
+      import('./features/dragon-genetics/lesson-plan/dragon-lesson-plan-editor.page').then(
+        (m) => m.DragonLessonPlanEditorPage,
+      ),
+  },
+  {
+    path: 'teacher/dragon-test-bench',
+    canMatch: [teacherAccessGuard],
     loadComponent: () =>
       import('./features/dragon-genetics/dragon-test-bench.page').then(
         (m) => m.DragonTestBenchPage,
       ),
   },
   {
-    path: 'dragon-duel',
-    loadComponent: () =>
-      import('./features/dragon-genetics/dragon-duel.page').then((m) => m.DragonDuelPage),
-  },
-  {
-    path: 'teacher',
-    loadComponent: () => import('./features/teacher/teacher.page').then((m) => m.TeacherPage),
-  },
-  {
     path: 'teacher/dragon-genetics',
-    loadComponent: () =>
-      import('./features/dragon-genetics/dragon-teacher.page').then((m) => m.DragonTeacherPage),
+    pathMatch: 'full',
+    redirectTo: 'teacher',
+  },
+  {
+    path: 'catalog',
+    pathMatch: 'full',
+    redirectTo: 'dragon-genetics',
+  },
+  {
+    path: 'project/:projectId',
+    redirectTo: 'dragon-genetics',
+  },
+  {
+    path: 'project/:projectId/activity/:activityId',
+    redirectTo: 'dragon-genetics',
   },
   {
     path: '**',
-    redirectTo: 'catalog',
+    redirectTo: 'dragon-genetics',
   },
 ];

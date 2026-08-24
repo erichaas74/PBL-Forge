@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Service, signal } from '@angular/core';
 import { SessionService } from '../../../core/firebase/session.service';
 import { ProjectHubAssignment } from '../../project/domain/project-hub.models';
 import { buildProjectHubViewModel } from '../../project/domain/project-hub.selectors';
@@ -18,8 +18,9 @@ import { DRAGON_PROJECT_HUB_DEFINITION } from './dragon-project-hub.definition';
 import { DragonProjectSelectionRepository } from './dragon-project-selection.repository';
 import { TraitEvidenceRepository } from '../workstations/trait-evidence/trait-evidence.repository';
 import { DragonTestingProgressRepository } from './dragon-testing-progress.repository';
+import { LOCAL_WORKSTATION_STUDENT_ID } from '../workstations/shared/dragon-workstation-context.models';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonProjectHubFacade {
   private readonly session = inject(SessionService);
   private readonly adaptiveStore = inject(DragonAdaptiveStore);
@@ -41,7 +42,13 @@ export class DragonProjectHubFacade {
   private selectionSyncSignature = '';
 
   readonly definition = DRAGON_PROJECT_HUB_DEFINITION;
-  readonly studentId = computed(() => this.session.user()?.uid ?? 'local-student');
+  // Emulator auth signs in asynchronously. Keep local progress on one identity so that a path
+  // chosen before anonymous sign-in finishes is not replaced by an empty second account.
+  readonly studentId = computed(() =>
+    this.session.isLocal
+      ? LOCAL_WORKSTATION_STUDENT_ID
+      : (this.session.user()?.uid ?? LOCAL_WORKSTATION_STUDENT_ID),
+  );
   readonly pathSelectionLocked = computed(
     () => this.adaptiveStore.assignment().journeyPlan.selectionMode === 'teacher-assigned',
   );
@@ -114,7 +121,8 @@ export class DragonProjectHubFacade {
       const assignment = this.adaptiveStore.assignment();
       const selectedPathId = this.selectedPathId();
       const signature = `${studentId}:${assignment.id}:${assignment.assignmentVersion}:${selectedPathId ?? 'none'}`;
-      if (studentId === 'local-student' || signature === this.selectionSyncSignature) return;
+      if (studentId === LOCAL_WORKSTATION_STUDENT_ID || signature === this.selectionSyncSignature)
+        return;
       this.selectionSyncSignature = signature;
       void this.capstoneProgressRepository
         .saveSelection(studentId, assignment, selectedPathId)

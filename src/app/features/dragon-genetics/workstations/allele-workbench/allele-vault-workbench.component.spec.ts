@@ -4,6 +4,13 @@ import { AlleleVaultWorkbenchComponent } from './allele-vault-workbench.componen
 import { ALLELE_VAULT_ALLELES, ALLELE_VAULT_GENES, AlleleWorkbenchInteraction, } from './allele-vault.models';
 
 describe('AlleleVaultWorkbenchComponent', () => {
+  it('keeps the 3D workstation behind an OnPush change-detection boundary', () => {
+    const definition = (AlleleVaultWorkbenchComponent as unknown as {
+      ɵcmp: { onPush: boolean };
+    }).ɵcmp;
+    expect(definition.onPush).toBe(true);
+  });
+
     let fixture: ComponentFixture<AlleleVaultWorkbenchComponent>;
     let component: AlleleVaultWorkbenchComponent;
 

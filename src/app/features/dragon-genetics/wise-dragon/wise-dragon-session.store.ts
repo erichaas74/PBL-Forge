@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { inject, Service, signal } from '@angular/core';
 import {
   WISE_DRAGON_CONVERSATION_GATEWAY,
   WiseDragonConversationGateway,
@@ -16,7 +16,7 @@ export type WiseDragonView = 'brief' | 'chamber' | 'specimen' | 'summary';
 export type WiseDragonRequestState = 'idle' | 'thinking' | 'error';
 
 /** Route-scoped state. It owns the conversation, never copies canonical project records. */
-@Injectable()
+@Service({ autoProvided: false })
 export class WiseDragonSessionStore {
   private readonly gateway: WiseDragonConversationGateway = inject(
     WISE_DRAGON_CONVERSATION_GATEWAY,

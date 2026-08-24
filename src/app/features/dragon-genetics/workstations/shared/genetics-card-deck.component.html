@@ -1,0 +1,43 @@
+<app-fanned-card-deck
+  [class.compact]="compact()"
+  [items]="bundles()"
+  [activeId]="activeId()"
+  [cardTemplate]="dragonCard"
+  [labelFor]="labelFor"
+  [subtitleFor]="subtitleFor"
+  [disabled]="disabled()"
+  [ariaLabel]="ariaLabel()"
+  (activeItemChange)="selectBundle($event)"
+>
+  <button
+    deckActions
+    type="button"
+    class="deck-flip"
+    [disabled]="disabled() || !activeId()"
+    [attr.aria-pressed]="isActiveFlipped()"
+    (click)="toggleCard(activeId())"
+  >
+    {{ isActiveFlipped() ? '↺ Show the dragon' : '⟳ Flip for chromosomes' }}
+  </button>
+</app-fanned-card-deck>
+
+<ng-template #dragonCard let-bundle let-active="active" let-renderPortrait="renderPortrait">
+  <app-dragon-flip-card
+    [card]="bundle.card"
+    [genome]="bundle.genome"
+    [active]="active && !disabled()"
+    [renderPortrait]="renderPortrait"
+    [flipped]="flippedSpecimenId() === bundle.specimen.id"
+    [selectedChromosome]="selectedChromosome(bundle)"
+    [selectedGene]="selectedGeneId()"
+    [footerLeft]="bundle.footerLeft"
+    [footerRight]="bundle.footerRight ?? ''"
+    [bloodType]="bundle.bloodType ?? null"
+    [revealedGeneIds]="revealedGeneIds()"
+    [selectableGeneIds]="selectableGeneIds()"
+    [showFlipControl]="false"
+    (flipRequested)="toggleCard(bundle.specimen.id)"
+    (chromosomeSelected)="selectChromosome(bundle.specimen.id, $event)"
+    (geneSelected)="geneSelected.emit($event)"
+  />
+</ng-template>

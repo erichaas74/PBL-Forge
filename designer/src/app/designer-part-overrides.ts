@@ -25,7 +25,18 @@ export function applyDesignerDraft(
     draft.dimensionsFor(definition.id, definition.dimensions),
   );
 
-  return withSnapOffsets(resized, draft.snapOffsetsFor(definition.id));
+  return withVisualParameters(
+    withSnapOffsets(resized, draft.snapOffsetsFor(definition.id)),
+    draft.parametersFor(definition.id, definition.visualProfile?.parameters),
+  );
+}
+
+function withVisualParameters(
+  definition: AssemblyPartDefinition,
+  parameters: Record<string, string | number | boolean>,
+): AssemblyPartDefinition {
+  if (!definition.visualProfile || !Object.keys(parameters).length) return definition;
+  return { ...definition, visualProfile: { ...definition.visualProfile, parameters } };
 }
 
 export function withSnapOffsets(

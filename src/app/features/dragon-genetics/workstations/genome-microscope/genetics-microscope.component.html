@@ -1,0 +1,55 @@
+<section class="genetics-microscope" aria-labelledby="microscope-title">
+  <header><span>{{ program().displayName }} · Open investigation</span><h1 id="microscope-title">Cell-to-Gene Microscope</h1><p>{{ goal() }}</p></header>
+  <app-genetics-card-deck
+    [bundles]="bundles()"
+    [selectedSpecimenId]="selectedSpecimenId()"
+    [selectedGeneId]="selectedGeneId()"
+    [revealedGeneIds]="revealedGeneIds()"
+    [selectableGeneIds]="selectableGeneIds()"
+    ariaLabel="Choose a dragon specimen for the microscope"
+    (specimenSelected)="selectSpecimen($event)"
+    (chromosomeSelected)="selectChromosome($event.chromosomeId)"
+    (geneSelected)="selectedGeneId.set($event)"
+  />
+
+  @if (selectedBundle(); as bundle) {
+    <section class="microscope-stage">
+      <article class="specimen-stage">
+        <small>DRAGON</small>
+        <app-specimen-viewport [source]="bundle.specimen.renderSource" [ariaLabel]="bundle.specimen.name + ' specimen'" [controls]="true" />
+        <strong>{{ bundle.specimen.name }}</strong>
+      </article>
+      <article class="cell-stage">
+        <small>CELL · NUCLEUS · CHROMOSOMES</small>
+        <app-cell-model
+          [chromosomes]="bundle.genome.chromosomes"
+          [selectedChromosome]="selectedChromosomeId()"
+          [showChromosomeLabels]="true"
+          [showLoci]="true"
+          detail="full"
+          focus="nucleus"
+          [ariaLabel]="bundle.specimen.name + ' chromosome set'"
+          (chromosomeSelected)="selectChromosome($event)"
+        />
+      </article>
+      <article class="gene-stage">
+        <small>GENES ON {{ selectedChromosomeId() }}</small>
+        <div class="gene-list">
+          @for (gene of selectedGenes(); track gene.id) {
+            <button type="button" [class.selected]="selectedGene().id === gene.id" (click)="selectedGeneId.set(gene.id)">
+              <i [style.background]="gene.locusColor"></i><span>{{ gene.sampleCode }}</span>
+            </button>
+          }
+        </div>
+        @if (selectedGene(); as gene) {
+          <dl>
+            <div><dt>Gene</dt><dd>{{ gene.name }}</dd></div>
+            <div><dt>Genotype</dt><dd>{{ revealedGeneIds().includes(gene.id) ? gene.genotype : '?' }}</dd></div>
+            <div><dt>Phenotype</dt><dd>{{ revealedGeneIds().includes(gene.id) ? gene.phenotype : '?' }}</dd></div>
+            <div><dt>Inheritance</dt><dd>{{ gene.inheritanceLabel }}</dd></div>
+          </dl>
+        }
+      </article>
+    </section>
+  }
+</section>

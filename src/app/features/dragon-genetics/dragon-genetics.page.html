@@ -1,5 +1,7 @@
 @if (viewModel(); as view) {
-  <a class="skip-link" href="#current-quest">Skip to today’s quest</a>
+  <a class="skip-link" routerLink="/dragon-genetics" fragment="current-quest">
+    Skip to today’s quest
+  </a>
 
   <main class="academy-shell">
     <header class="great-beam" aria-label="Academy navigation">
@@ -46,11 +48,11 @@
           sizes="100vw"
         />
         <img
-          src="/assets/dragon-genetics/great-hall-1672.jpg"
+          ngSrc="/assets/dragon-genetics/great-hall-1672.jpg"
           width="1672"
           height="941"
           alt=""
-          fetchpriority="high"
+          priority
           decoding="async"
         />
       </picture>
@@ -78,7 +80,7 @@
             <h2 id="quest-title">Which dragon line will you build?</h2>
             <p>Choose Arena or Mini Dragon Show, then receive your female and male starters.</p>
           </div>
-          <a class="quest-action" routerLink="/dragon-genetics/journey">
+          <a class="quest-action" routerLink="/dragon-genetics">
             <span>First decision</span>
             <strong>Choose your saga</strong>
             <span aria-hidden="true">→</span>
@@ -94,10 +96,8 @@
           <a
             class="quest-action"
             [routerLink]="[
-              '/dragon-genetics/journey',
-              next.definition.pathId,
-              'lesson',
-              next.definition.id,
+              '/dragon-genetics/path',
+              lessonPlanPathId(next.definition.pathId),
             ]"
           >
             <span>{{ next.complete ? 'Review' : 'Continue journey' }}</span>
@@ -110,7 +110,7 @@
             <h2 id="quest-title">Your evidence is secured.</h2>
             <p>Review your field records or return to any open investigation.</p>
           </div>
-          <a class="quest-action" href="#trial-map">
+          <a class="quest-action" routerLink="/dragon-genetics" fragment="trial-map">
             <span>Academy map</span>
             <strong>Review your journey</strong>
             <span aria-hidden="true">↓</span>
@@ -166,19 +166,27 @@
         >
       </div>
 
-      <a class="enter-academy" href="#academy-grounds">
+      <a class="enter-academy" routerLink="/dragon-genetics" fragment="academy-grounds">
         <span>Explore the academy</span>
         <i aria-hidden="true">⌄</i>
       </a>
     </section>
 
     <nav class="academy-grounds" id="academy-grounds" aria-label="Great Hall destinations">
-      <a class="destination-sign destination-sign--map" href="#trial-map">
+      <a
+        class="destination-sign destination-sign--map"
+        routerLink="/dragon-genetics"
+        fragment="trial-map"
+      >
         <span class="destination-sign__icon" aria-hidden="true">⌁</span>
         <span><strong>Trial Map</strong><small>See every investigation</small></span>
         <i aria-hidden="true">→</i>
       </a>
-      <a class="destination-sign destination-sign--vault" href="#evidence-vault">
+      <a
+        class="destination-sign destination-sign--vault"
+        routerLink="/dragon-genetics"
+        fragment="evidence-vault"
+      >
         <span class="destination-sign__icon" aria-hidden="true">▣</span>
         <span
           ><strong>Evidence Vault</strong
@@ -186,7 +194,11 @@
         >
         <i aria-hidden="true">→</i>
       </a>
-      <a class="destination-sign destination-sign--forge" href="#saga-paths">
+      <a
+        class="destination-sign destination-sign--forge"
+        routerLink="/dragon-genetics"
+        fragment="saga-paths"
+      >
         <span class="destination-sign__icon" aria-hidden="true">♢</span>
         <span
           ><strong>Saga Forge</strong

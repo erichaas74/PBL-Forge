@@ -1,0 +1,71 @@
+<main class="plan-page">
+  @if (path(); as path) {
+    @if (lesson(); as lesson) {
+      <header class="plan-header">
+        <a [routerLink]="['/dragon-genetics', 'path', path.id]">← {{ path.title }} path</a>
+        <p>Shared Dragon Genetics lesson</p>
+        <h1>{{ lesson.title }}</h1>
+        <span>{{ lesson.learningGoal }}</span>
+      </header>
+      @if (lesson.guide) {
+        <details class="empty-plan"><summary><strong>Open lesson guide</strong></summary><span>{{ lesson.guide }}</span></details>
+      }
+      @if (lesson.workstations.length) {
+        <section class="lesson-list"><div><p>Investigation</p><h2>Explore the evidence</h2></div>
+          <ol>
+            @for (workstation of lesson.workstations; track workstation.id) {
+              <li><span aria-hidden="true">◇</span><div><strong>{{ workstation.title }}</strong><small>{{ workstation.guide }}</small></div><a [routerLink]="workstation.route" [queryParams]="{ path: path.id, lesson: lesson.id }">Open investigation →</a></li>
+            }
+          </ol>
+        </section>
+      }
+      @if (lesson.questions.length) {
+        @if (evidenceCaptureEnabled()) {
+          <section class="lesson-list">
+            <div>
+              <p>Evidence from your workstation</p>
+              <h2>Attached evidence</h2>
+              <span>Use these results when you write your explanation.</span>
+            </div>
+            @if (evidence().length) {
+              <ul class="lesson-evidence">
+                @for (record of evidence(); track record.evidenceId) {
+                  <li>
+                    <div>
+                      <strong>{{ evidenceTitle(record) }}</strong>
+                      <small>{{ evidenceDetail(record) }}</small>
+                    </div>
+                    <button type="button" (click)="removeEvidence(record.evidenceId)">
+                      Remove
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <div class="empty-plan" role="status">
+                <strong>No evidence attached yet.</strong>
+                <span>Run an investigation and choose Attach evidence when a useful result appears.</span>
+              </div>
+            }
+          </section>
+        }
+        <section class="lesson-list"><div><p>Reflect from your notebook</p><h2>Lesson questions</h2><span>Use the differences and evidence you recorded. Your responses save on this device.</span></div>
+          <div class="lesson-questions">
+            @for (question of lesson.questions; track question.id; let order = $index) {
+              <label><strong>{{ order + 1 }}. {{ question.prompt }}</strong><textarea [value]="responseFor(question.id)" (input)="updateResponse(question.id, $event)" placeholder="Write your evidence-based response."></textarea></label>
+            }
+          </div>
+        </section>
+      }
+      <footer class="empty-plan">
+        @if (nextLesson(); as next) {
+          <a [routerLink]="['/dragon-genetics', 'path', path.id, 'lesson', next.id]">Next lesson: {{ next.title }} →</a>
+        } @else {
+          <a [routerLink]="['/dragon-genetics', 'path', path.id]">Return to learning path →</a>
+        }
+      </footer>
+    } @else {
+      <section class="empty-plan"><strong>Lesson unavailable</strong><span>This lesson is not published in the shared plan.</span><a [routerLink]="['/dragon-genetics', 'path', path.id]">Return to learning path</a></section>
+    }
+  }
+</main>

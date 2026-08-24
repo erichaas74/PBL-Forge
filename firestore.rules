@@ -28,7 +28,8 @@ service cloud.firestore {
     }
 
     function ownsProject(projectId) {
-      return signedIn() && (isAdmin() || project(projectId).data.ownerId == request.auth.uid);
+      return signedIn()
+        && (isAdmin() || (isTeacher() && project(projectId).data.ownerId == request.auth.uid));
     }
 
     function isPublished(projectId) {
@@ -38,15 +39,276 @@ service cloud.firestore {
     function ownsClass(classId) {
       return signedIn()
         && (isAdmin()
-          || get(/databases/$(database)/documents/classes/$(classId)).data.ownerId
-            == request.auth.uid);
+          || (isTeacher()
+            && get(/databases/$(database)/documents/classes/$(classId)).data.ownerId
+              == request.auth.uid));
+    }
+
+    function assignment(assignmentId) {
+      return get(
+        /databases/$(database)/documents/dragonGeneticsAssignments/$(assignmentId)
+      );
+    }
+
+    function ownsAssignment(assignmentId) {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/dragonGeneticsAssignments/$(assignmentId)
+        )
+        && (isAdmin() || (isTeacher() && assignment(assignmentId).data.ownerId == request.auth.uid));
+    }
+
+    function participatesInAssignment(assignmentId) {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/dragonGeneticsAssignments/$(assignmentId)
+        )
+        && (isAdmin()
+          || assignment(assignmentId).data.ownerId == request.auth.uid
+          || exists(
+            /databases/$(database)/documents/classes/$(assignment(assignmentId).data.classId)/members/$(request.auth.uid)
+          ));
+    }
+
+    function isInstructionLevel(value) {
+      return value in ['grade-7', 'grade-8', 'high-school', 'ap-biology'];
+    }
+
+    function isSimulationId(value) {
+      return value in [
+        'trait-evidence', 'genome-microscope', 'allele-workbench',
+        'punnett-composer', 'incubator-sampler', 'dna-process-lab',
+        'diversity-manager', 'dragon-hatchery', 'dragon-arena'
+      ];
+    }
+
+    function validAssignmentConfig(assignmentId) {
+      return request.resource.data.keys().hasAll([
+          'id', 'ownerId', 'classId', 'title', 'defaultLevel',
+          'alleleCatalog', 'simulationSettings', 'journeyPlan',
+          'inquirySettings', 'assignmentVersion', 'updatedAtIso', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id', 'ownerId', 'classId', 'title', 'defaultLevel',
+          'alleleCatalog', 'simulationSettings', 'journeyPlan',
+          'inquirySettings', 'assignmentVersion', 'updatedAtIso', 'updatedAt'
+        ])
+        && request.resource.data.id == assignmentId
+        && request.resource.data.ownerId is string
+        && request.resource.data.classId is string
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && isInstructionLevel(request.resource.data.defaultLevel)
+        && request.resource.data.alleleCatalog is map
+        && request.resource.data.simulationSettings is map
+        && request.resource.data.journeyPlan is map
+        && request.resource.data.inquirySettings is map
+        && request.resource.data.assignmentVersion is int
+        && request.resource.data.assignmentVersion > 0
+        && request.resource.data.updatedAtIso is string
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validStudentOverride(studentId) {
+      return request.resource.data.keys().hasAll(['studentId', 'updatedAt'])
+        && request.resource.data.keys().hasOnly([
+          'studentId', 'defaultLevel', 'simulationLevels', 'inquiry', 'updatedAt'
+        ])
+        && request.resource.data.studentId == studentId
+        && (!('defaultLevel' in request.resource.data)
+          || isInstructionLevel(request.resource.data.defaultLevel))
+        && (!('simulationLevels' in request.resource.data)
+          || (request.resource.data.simulationLevels is map
+            && request.resource.data.simulationLevels.keys().hasOnly([
+              'trait-evidence', 'genome-microscope', 'allele-workbench',
+              'punnett-composer', 'incubator-sampler', 'dna-process-lab',
+              'diversity-manager', 'dragon-hatchery', 'dragon-arena'
+            ])
+            && request.resource.data.simulationLevels.values().hasOnly([
+              'grade-7', 'grade-8', 'high-school', 'ap-biology'
+            ])))
+        && (!('inquiry' in request.resource.data)
+          || request.resource.data.inquiry is map)
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validAssignmentLink(data) {
+      return data.assignmentId is string
+        && data.teacherId is string
+        && participatesInAssignment(data.assignmentId)
+        && assignment(data.assignmentId).data.ownerId == data.teacherId;
+    }
+
+    function validSimulationScores(data) {
+      let scores = data.get('simulationScores', {});
+      return scores is map
+        && scores.keys().hasOnly([
+          'trait-evidence', 'genome-microscope', 'allele-workbench',
+          'punnett-composer', 'incubator-sampler', 'dna-process-lab',
+          'diversity-manager', 'dragon-hatchery', 'dragon-arena'
+        ])
+        && scores.get('trait-evidence', 0) is number
+        && scores.get('genome-microscope', 0) is number
+        && scores.get('allele-workbench', 0) is number
+        && scores.get('punnett-composer', 0) is number
+        && scores.get('incubator-sampler', 0) is number
+        && scores.get('dna-process-lab', 0) is number
+        && scores.get('diversity-manager', 0) is number
+        && scores.get('dragon-hatchery', 0) is number
+        && scores.get('dragon-arena', 0) is number
+        && scores.get('trait-evidence', 0) >= 0 && scores.get('trait-evidence', 0) <= 100
+        && scores.get('genome-microscope', 0) >= 0 && scores.get('genome-microscope', 0) <= 100
+        && scores.get('allele-workbench', 0) >= 0 && scores.get('allele-workbench', 0) <= 100
+        && scores.get('punnett-composer', 0) >= 0 && scores.get('punnett-composer', 0) <= 100
+        && scores.get('incubator-sampler', 0) >= 0 && scores.get('incubator-sampler', 0) <= 100
+        && scores.get('dna-process-lab', 0) >= 0 && scores.get('dna-process-lab', 0) <= 100
+        && scores.get('diversity-manager', 0) >= 0 && scores.get('diversity-manager', 0) <= 100
+        && scores.get('dragon-hatchery', 0) >= 0 && scores.get('dragon-hatchery', 0) <= 100
+        && scores.get('dragon-arena', 0) >= 0 && scores.get('dragon-arena', 0) <= 100;
+    }
+
+    function validSimulationLevels(data) {
+      let levels = data.get('simulationLevels', {});
+      return levels is map
+        && levels.keys().hasOnly([
+          'trait-evidence', 'genome-microscope', 'allele-workbench',
+          'punnett-composer', 'incubator-sampler', 'dna-process-lab',
+          'diversity-manager', 'dragon-hatchery', 'dragon-arena'
+        ])
+        && levels.values().hasOnly([
+          'grade-7', 'grade-8', 'high-school', 'ap-biology'
+        ]);
+    }
+
+    function validGeneticsNotebook(data, studentId) {
+      let notebook = data.get('geneticsNotebook', null);
+      return notebook == null
+        || (notebook is map
+          && notebook.keys().hasAll([
+            'schemaVersion', 'studentId', 'assignmentId',
+            'experiments', 'discoveries', 'updatedAtIso'
+          ])
+          && notebook.keys().hasOnly([
+            'schemaVersion', 'studentId', 'assignmentId',
+            'experiments', 'discoveries', 'updatedAtIso'
+          ])
+          && notebook.schemaVersion == 1
+          && notebook.studentId == studentId
+          && notebook.assignmentId == data.assignmentId
+          && notebook.experiments is list
+          && notebook.experiments.size() <= 100
+          && notebook.discoveries is map
+          && notebook.updatedAtIso is string);
+    }
+
+    function validProgressDocument(studentId) {
+      return request.resource.data.keys().hasAll([
+          'studentId', 'projectId', 'assignmentId', 'teacherId', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'studentId', 'projectId', 'experienceSchemaVersion', 'assignmentId',
+          'teacherId', 'geneticsNotebook', 'activeSimulationId',
+          'completedSimulationIds', 'simulationLevels', 'simulationScores',
+          'activityProgress', 'journeyProgress', 'capstoneProgress', 'updatedAt'
+        ])
+        && request.resource.data.studentId == studentId
+        && request.resource.data.projectId == 'dragon-genetics-lab'
+        && request.resource.data.get('experienceSchemaVersion', 4) == 4
+        && validAssignmentLink(request.resource.data)
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.get('completedSimulationIds', []) is list
+        && request.resource.data.get('completedSimulationIds', []).size() <= 9
+        && request.resource.data.get('completedSimulationIds', []).hasOnly([
+          'trait-evidence', 'genome-microscope', 'allele-workbench',
+          'punnett-composer', 'incubator-sampler', 'dna-process-lab',
+          'diversity-manager', 'dragon-hatchery', 'dragon-arena'
+        ])
+        && request.resource.data.get('activityProgress', {}) is map
+        && request.resource.data.get('journeyProgress', {}) is map
+        && request.resource.data.get('capstoneProgress', {}) is map
+        && (request.resource.data.get('activeSimulationId', null) == null
+          || isSimulationId(request.resource.data.activeSimulationId))
+        && validSimulationLevels(request.resource.data)
+        && validGeneticsNotebook(request.resource.data, studentId)
+        && validSimulationScores(request.resource.data);
+    }
+
+    function validSimulationRun(studentId, simulationId) {
+      return request.resource.data.keys().hasAll([
+          'schemaVersion', 'simulationId', 'studentId', 'assignmentId',
+          'assignmentVersion', 'contentVersion', 'level', 'hintsAllowed',
+          'seed', 'attemptNumber', 'currentQuestionIndex', 'questionIds',
+          'responses', 'complete', 'score', 'startedAtIso', 'updatedAtIso', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'simulationId', 'studentId', 'assignmentId',
+          'assignmentVersion', 'contentVersion', 'level', 'hintsAllowed',
+          'seed', 'attemptNumber', 'currentQuestionIndex', 'questionIds',
+          'servedItemIds', 'responses', 'complete', 'score', 'startedAtIso',
+          'updatedAtIso', 'updatedAt'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.studentId == studentId
+        && request.resource.data.simulationId == simulationId
+        && isSimulationId(simulationId)
+        && request.resource.data.assignmentId is string
+        && participatesInAssignment(request.resource.data.assignmentId)
+        && request.resource.data.assignmentVersion is int
+        && request.resource.data.contentVersion is int
+        && isInstructionLevel(request.resource.data.level)
+        && request.resource.data.hintsAllowed is bool
+        && request.resource.data.seed is string
+        && request.resource.data.attemptNumber is int
+        && request.resource.data.attemptNumber > 0
+        && request.resource.data.currentQuestionIndex is int
+        && request.resource.data.currentQuestionIndex >= 0
+        && request.resource.data.questionIds is list
+        && request.resource.data.questionIds.size() <= 20
+        && request.resource.data.get('servedItemIds', []) is list
+        && request.resource.data.get('servedItemIds', []).size() <= 20
+        && request.resource.data.responses is list
+        && request.resource.data.responses.size() <= 50
+        && request.resource.data.complete is bool
+        && request.resource.data.score is number
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 100
+        && request.resource.data.startedAtIso is string
+        && request.resource.data.updatedAtIso is string
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validPublishedDragonAssets() {
+      return request.resource.data.keys().hasOnly([
+          'schemaVersion', 'versionId', 'modelPack', 'arenaScenario',
+          'publishedBy', 'publishedAt', 'releaseNotes'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.versionId is string
+        && request.resource.data.versionId.size() > 0
+        && request.resource.data.versionId.size() <= 100
+        && request.resource.data.publishedBy == request.auth.uid
+        && request.resource.data.publishedAt is timestamp
+        && request.resource.data.releaseNotes is string
+        && request.resource.data.releaseNotes.size() <= 500
+        && request.resource.data.modelPack is map
+        && request.resource.data.modelPack.schemaVersion == 1
+        && request.resource.data.modelPack.rendererContractVersion == 1
+        && request.resource.data.modelPack.models is list
+        && request.resource.data.modelPack.models.size() > 0
+        && request.resource.data.modelPack.models.size() <= 8
+        && request.resource.data.arenaScenario is map
+        && request.resource.data.arenaScenario.id == 'dragon-duel-ring';
     }
 
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if signedIn()
         && request.auth.uid == userId
-        && request.resource.data.role == 'student';
+        && request.resource.data.role == 'student'
+        && request.resource.data.keys().hasOnly([
+          'displayName', 'photoURL', 'lastSeenAt', 'role'
+        ]);
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.role == resource.data.role
@@ -61,8 +323,13 @@ service cloud.firestore {
           || resource.data.ownerId == request.auth.uid
           || exists(/databases/$(database)/documents/classes/$(classId)/members/$(request.auth.uid)));
       allow create: if isTeacher() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if signedIn()
-        && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow update: if signedIn()
+        && (isAdmin()
+          || (isTeacher()
+            && resource.data.ownerId == request.auth.uid
+            && request.resource.data.ownerId == resource.data.ownerId));
+      allow delete: if signedIn()
+        && (isAdmin() || (isTeacher() && resource.data.ownerId == request.auth.uid));
 
       match /members/{userId} {
         allow read: if signedIn() && (request.auth.uid == userId || ownsClass(classId));
@@ -74,8 +341,13 @@ service cloud.firestore {
       allow read: if resource.data.status == 'published'
         || (signedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid));
       allow create: if isTeacher() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if signedIn()
-        && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow update: if signedIn()
+        && (isAdmin()
+          || (isTeacher()
+            && resource.data.ownerId == request.auth.uid
+            && request.resource.data.ownerId == resource.data.ownerId));
+      allow delete: if signedIn()
+        && (isAdmin() || (isTeacher() && resource.data.ownerId == request.auth.uid));
 
       match /activities/{activityId} {
         allow read: if isPublished(projectId) || ownsProject(projectId);
@@ -86,9 +358,15 @@ service cloud.firestore {
     match /submissions/{submissionId} {
       allow create: if signedIn()
         && request.resource.data.studentId == request.auth.uid
+        && submissionId == request.resource.data.studentId + '_'
+          + request.resource.data.projectId + '_' + request.resource.data.activityId
+        && isPublished(request.resource.data.projectId)
         && request.resource.data.keys().hasOnly([
           'studentId', 'projectId', 'activityId', 'response', 'status', 'updatedAt'
-        ]);
+        ])
+        && request.resource.data.response is map
+        && request.resource.data.status in ['in-progress', 'submitted']
+        && request.resource.data.updatedAt is timestamp;
       allow read: if signedIn()
         && (resource.data.studentId == request.auth.uid
           || ownsProject(resource.data.projectId));
@@ -98,26 +376,60 @@ service cloud.firestore {
         && request.resource.data.projectId == resource.data.projectId
         && request.resource.data.activityId == resource.data.activityId
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['response', 'status', 'updatedAt']);
+          .hasOnly(['response', 'status', 'updatedAt'])
+        && request.resource.data.response is map
+        && request.resource.data.status in ['in-progress', 'submitted']
+        && request.resource.data.updatedAt is timestamp;
       allow delete: if isAdmin();
     }
 
     match /dragonGeneticsAssignments/{assignmentId} {
-      allow read: if signedIn();
+      allow read: if ownsAssignment(assignmentId)
+        || (participatesInAssignment(assignmentId)
+          && !('studentOverrides' in resource.data));
       allow create: if isTeacher()
-        && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isTeacher()
-        && resource.data.ownerId == request.auth.uid
-        && request.resource.data.ownerId == resource.data.ownerId;
-      allow delete: if isTeacher()
-        && resource.data.ownerId == request.auth.uid;
+        && request.resource.data.ownerId == request.auth.uid
+        && ownsClass(request.resource.data.classId)
+        && validAssignmentConfig(assignmentId);
+      allow update: if ownsAssignment(assignmentId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.classId == resource.data.classId
+        && validAssignmentConfig(assignmentId);
+      allow delete: if ownsAssignment(assignmentId);
+
+      match /studentOverrides/{studentId} {
+        allow read: if signedIn()
+          && ((request.auth.uid == studentId && participatesInAssignment(assignmentId))
+            || ownsAssignment(assignmentId));
+        allow create, update: if ownsAssignment(assignmentId)
+          && validStudentOverride(studentId);
+        allow delete: if ownsAssignment(assignmentId);
+      }
+    }
+
+    // Validated, versioned artifacts published by the private Dragon Garage.
+    // They contain no student data and are readable before authentication so
+    // the public app can hydrate them during startup.
+    match /publishedDragonAssets/{assetId} {
+      allow read: if true;
+      allow create, update: if isTeacher()
+        && (assetId == 'current' || assetId == 'preview')
+        && validPublishedDragonAssets();
+      allow delete: if isAdmin();
+    }
+
+    match /dragonAssetVersions/{versionId} {
+      allow read: if isTeacher();
+      allow create: if isTeacher()
+        && request.resource.data.versionId == versionId
+        && validPublishedDragonAssets();
+      allow update, delete: if false;
     }
 
     match /dragonLabProgress/{studentId} {
       allow create: if signedIn()
         && request.auth.uid == studentId
-        && request.resource.data.studentId == request.auth.uid
-        && request.resource.data.projectId == 'dragon-genetics-lab';
+        && validProgressDocument(studentId);
       allow read: if signedIn()
         && (request.auth.uid == studentId
           || isAdmin()
@@ -127,15 +439,15 @@ service cloud.firestore {
         && resource.data.studentId == request.auth.uid
         && request.resource.data.studentId == resource.data.studentId
         && request.resource.data.projectId == resource.data.projectId
-        && (!('teacherId' in resource.data)
-          || request.resource.data.teacherId == resource.data.teacherId);
+        && request.resource.data.assignmentId == resource.data.assignmentId
+        && request.resource.data.teacherId == resource.data.teacherId
+        && validProgressDocument(studentId);
       allow delete: if isAdmin();
 
       match /simulationRuns/{simulationId} {
         allow create: if signedIn()
           && request.auth.uid == studentId
-          && request.resource.data.studentId == request.auth.uid
-          && request.resource.data.simulationId == simulationId;
+          && validSimulationRun(studentId, simulationId);
         allow read: if signedIn()
           && (request.auth.uid == studentId
             || isAdmin()
@@ -146,7 +458,9 @@ service cloud.firestore {
           && request.auth.uid == studentId
           && resource.data.studentId == request.auth.uid
           && request.resource.data.studentId == resource.data.studentId
-          && request.resource.data.simulationId == resource.data.simulationId;
+          && request.resource.data.simulationId == resource.data.simulationId
+          && request.resource.data.assignmentId == resource.data.assignmentId
+          && validSimulationRun(studentId, simulationId);
         allow delete: if isAdmin();
       }
     }

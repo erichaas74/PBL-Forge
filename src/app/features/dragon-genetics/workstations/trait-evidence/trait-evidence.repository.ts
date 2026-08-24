@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -19,7 +19,7 @@ import { TRAIT_EVIDENCE_OBSERVATIONS } from './trait-evidence.content';
 
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.trait-evidence.v2';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class TraitEvidenceRepository {
   load(studentId: string): TraitEvidenceSnapshot {
     const fallback = emptyTraitEvidenceSnapshot(studentId);

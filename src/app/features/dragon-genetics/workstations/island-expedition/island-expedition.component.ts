@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import {
   ECOLOGY_FACTOR_LABELS,
   EXPEDITION_ISLANDS,
@@ -40,7 +40,6 @@ import { normalizeWorkstationStudentId } from '../shared/dragon-workstation-cont
   selector: 'app-island-expedition',
   templateUrl: './island-expedition.component.html',
   styleUrl: './island-expedition.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IslandExpeditionComponent {
   private readonly repository = inject(IslandExpeditionRepository);

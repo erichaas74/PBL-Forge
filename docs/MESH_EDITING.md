@@ -95,34 +95,40 @@ domesticated mini dragon of the Mini Dragon Show is a separate animal with its o
 | Wing-builder tests                                                             | `src/app/shared/assembly/rendering/dragon-wing-mesh.spec.ts`                          |
 | Tail-builder tests                                                             | `src/app/shared/assembly/rendering/dragon-tail-mesh.spec.ts`                          |
 | Mesh tests                                                                     | `src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.spec.ts`            |
-| Which sliders the Parts Lab shows (`STYLE_CONTROLS`)                           | `designer/src/app/parts-lab/parts-lab.page.ts`                                        |
+| Visual-parameter metadata, ranges, sections, and genetics ownership            | `src/app/shared/assembly/model-pack/dragon-visual-parameter-registry.ts`               |
+| Which sliders the Parts Lab shows (generated from the registry)                | `designer/src/app/parts-lab/parts-lab.page.ts`                                        |
 | Part catalog — dimensions, colour, mass, sockets, `visualProfile`              | `designer/src/app/assembly-garage/data/assembly-part-definitions.ts`                  |
 | Allowed profile ids (`SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS`)                | `src/app/shared/assembly/model-pack/dragon-model-pack.models.ts`                      |
 | Genome → visual parameters                                                     | `src/app/features/dragon-genetics/simulation/domain/dragon-inheritance.ts`            |
-| Style → parameters at export                                                   | `designer/src/app/dragon-model-pack-export.ts`                                        |
+| Classic style → parameters at export                                           | `designer/src/app/dragon-model-pack-export.ts`                                        |
+| Complete Mini Dragon assembly added at export                                  | `designer/src/app/mini-dragon-model-export.ts`                                        |
 | Published-model assertions                                                     | `scripts/check-dragon-model-compatibility.mjs`                                        |
 | **Mini-dragon profile routing**                                                | `src/app/shared/assembly/rendering/mini-dragon-procedural-mesh.factory.ts`            |
 | **Mini-dragon body** — torso, dorsal scales, neck, sockets                     | `src/app/shared/assembly/rendering/mini-dragon-body-mesh.ts`                          |
 | **Mini-dragon torso anatomy** — profile and surface sampling                   | `src/app/shared/assembly/rendering/mini-dragon-anatomy.ts`                            |
 | **Mini-dragon head orchestration** — cranium, snout, and feature composition   | `src/app/shared/assembly/rendering/mini-dragon-head-mesh.ts`                          |
-| **Mini-dragon face** — eyes, ears, and cheek tufts                             | `src/app/shared/assembly/rendering/mini-dragon-face-mesh.ts`                          |
-| **Mini-dragon head ornaments** — horns, crown bumps, and side frills           | `src/app/shared/assembly/rendering/mini-dragon-head-ornaments.ts`                     |
+| **Mini-dragon face** — eyes and cheek tufts                                    | `src/app/shared/assembly/rendering/mini-dragon-face-mesh.ts`                          |
+| **Mini-dragon movable head appendages** — independent horn and ear parts       | `src/app/shared/assembly/rendering/mini-dragon-head-appendages.ts`                    |
+| **Mini-dragon head ornaments** — crown bumps and side frills                   | `src/app/shared/assembly/rendering/mini-dragon-head-ornaments.ts`                     |
 | **Mini-dragon jaw** — lower muzzle, mouth, ember, and milk teeth               | `src/app/shared/assembly/rendering/mini-dragon-jaw-mesh.ts`                           |
 | **Mini-dragon limbs** — thigh, shank, paw, toes, joint covers                  | `src/app/shared/assembly/rendering/mini-dragon-limb-mesh.ts`                          |
 | **Mini-dragon wings** — membrane, bones, vestigial nub, feather layer          | `src/app/shared/assembly/rendering/mini-dragon-wing-mesh.ts`                          |
-| **Mini-dragon tail** — segments and inherited plume forms                      | `src/app/shared/assembly/rendering/mini-dragon-tail-mesh.ts`                          |
+| **Mini-dragon tail** — segments, split-tail branches, and inherited tips       | `src/app/shared/assembly/rendering/mini-dragon-tail-mesh.ts`                          |
 | **Mini-dragon feathers** — generated cards and deterministic instancing        | `src/app/shared/assembly/rendering/mini-dragon-feathers.ts`                           |
-| **Mini-dragon palette, materials, and low-level helpers**                      | `src/app/shared/assembly/rendering/mini-dragon-rendering.ts`                          |
-| Mini dragon genome → blueprint (no published pack involved)                    | `src/app/features/dragon-genetics/workstations/companion-show/mini-dragon.anatomy.ts` |
+| **Mini-dragon semantic colours and pigment derivation**                        | `src/app/shared/assembly/rendering/mini-dragon-palette.ts`                            |
+| **Mini-dragon biological surface and feature materials**                       | `src/app/shared/assembly/rendering/mini-dragon-materials.ts`                          |
+| **Mini-dragon part-seeded coat, keratin, membrane, and feather textures**      | `src/app/shared/assembly/rendering/mini-dragon-textures.ts`                           |
+| **Mini-dragon mesh, profile, and joint-cover helpers**                         | `src/app/shared/assembly/rendering/mini-dragon-geometry.ts`                           |
+| **Mini-dragon visual-parameter readers**                                       | `src/app/shared/assembly/rendering/mini-dragon-visual-parameter-readers.ts`           |
+| Mini dragon genome → lesson blueprint                                          | `src/app/features/dragon-genetics/workstations/companion-show/mini-dragon.anatomy.ts` |
 
-### The mini dragon is not in the model pack
+### The Mini Dragon is included in designer publications
 
-The classic dragon is stamped from `model-packs/dragon-model-pack.v1.json`, validated against
-`SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS`, and rescaled per genome. The mini dragon is assembled part
-by part in code instead, because its genes change _which parts exist_ and their proportions relative
-to each other — a uniform rescale of one authored skeleton cannot express that. It therefore needs no
-pack entry and no supported-profile-id registration, and `npm run build` does not check it. Its
-parameter keys are all `mini`-prefixed so the two species' `parameters` contracts stay disjoint.
+The committed fallback pack still supplies the classic dragon for offline startup. Designer exports
+and Firebase publications add a complete connected `mini-dragon` model alongside it. Both species'
+profile IDs and parameters are validated by the shared model-pack contract and compatibility check.
+The lesson-specific Mini Dragon genome builder remains code-driven because its genes can change which
+parts exist, but authored Mini Dragon catalog changes now survive draft storage and publication.
 
 ## What a change drags along
 
@@ -130,29 +136,19 @@ parameter keys are all `mini`-prefixed so the two species' `parameters` contract
 | ------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | A number inside a builder — position, size, angle | **Nothing.** Most edits are this.                                                             |
 | Rename or remove a named child mesh               | the factory spec, which looks them up by name                                                 |
-| Add a tunable number                              | the style interface + `DEFAULT_DRAGON_STYLE`, then `STYLE_CONTROLS` for a slider              |
+| Add a tunable number                              | the visual-parameter registry, the relevant reader, and the style/genetics writer              |
 | Add a new `profileId`                             | the factory switch, `SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS`, and the part's `visualProfile` |
-| Rename a `parameters` key                         | four files — see the warning below                                                            |
+| Rename a `parameters` key                         | add a registry migration alias, then update readers and writers before removing the old key    |
 | Part dimensions, colour, mass, sockets            | the catalog, not the factory                                                                  |
 
 ### Parameter keys are a validated contract
 
-`visualProfile.parameters` keys are read by the rendering implementation,
-**written** by the genetics code, materialised by the pack exporter, and asserted by the
-compatibility script. The profile-specific schema in
-`dragon-visual-parameters.ts` rejects unknown or mistyped keys at the model-pack
-boundary, and the compatibility check compares that schema with every key read
-through the shared readers. The current keys:
-
-```text
-backSpikeCount backSpikeScale bodyArchetype browLength browRidge camber cheek clawScale cranium
-crestScale dihedral eyeAxial eyeColor fangScale fingerCount fingerLength
-fingerRadius fingerSag fingerSplay glowMarkings hornLength hornRadius jointBall
-muzzleDepth muzzleDrop muzzleWidth noseHornLength palmLength patternColor scalePattern scallop sex spikeCount
-spikeHeight spikeLean spikeLength spikeRadius spikeSpread tailClubSpikeCount
-tailClubSpikeScale talonCount talonLength talonRadius toothCount toothHeight
-toothRadius toothStart
-```
+`visualProfile.parameters` keys are read by rendering, written by genetics and designer drafts,
+materialised by the pack exporters, and asserted by the compatibility script. The registry in
+`dragon-visual-parameter-registry.ts` is the single source of truth for both classic and Mini Dragon
+parameters. `dragon-visual-parameters.ts` derives its validator contract from that registry, while
+Parts Lab derives its controls from the same metadata. Add ranges, labels, sections, and any legacy
+alias there instead of maintaining a second slider list.
 
 Wing folding is stance-driven rather than serialized as a visual parameter, so
 the same blueprint can be posed for a bench or arena without mutating its model

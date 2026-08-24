@@ -1,4 +1,5 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DragonJourneyFacade } from './dragon-journey.facade';
 import { DragonLessonId } from './domain/dragon-journey.models';
@@ -13,9 +14,12 @@ export class DragonLessonPage {
   readonly journey = inject(DragonJourneyFacade);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  readonly pathId = this.route.snapshot.paramMap.get('pathId') ?? '';
-  readonly lessonId = this.route.snapshot.paramMap.get('lessonId') ?? '';
-  readonly lesson = computed(() => this.journey.lessonView(this.lessonId));
+  private readonly routeParams = toSignal(this.route.paramMap, {
+    initialValue: this.route.snapshot.paramMap,
+  });
+  readonly pathId = computed(() => this.routeParams().get('pathId') ?? '');
+  readonly lessonId = computed(() => this.routeParams().get('lessonId') ?? '');
+  readonly lesson = computed(() => this.journey.lessonView(this.lessonId()));
   readonly nextLesson = computed(() => {
     const lesson = this.lesson();
     if (!lesson) return null;
@@ -28,16 +32,22 @@ export class DragonLessonPage {
   });
 
   constructor() {
-    if (!this.journey.choosePath(this.pathId)) {
-      this.redirectToSelectedJourney();
-      return;
-    }
-    this.journey.refresh();
-    if (!this.lessonId || !this.journey.lessonView(this.lessonId)) {
-      void this.router.navigate(['/dragon-genetics/journey', this.pathId], { replaceUrl: true });
-      return;
-    }
-    this.journey.visitLesson(this.lessonId as DragonLessonId);
+    effect(() => {
+      const pathId = this.pathId();
+      const lessonId = this.lessonId();
+      untracked(() => {
+        if (!this.journey.choosePath(pathId)) {
+          this.redirectToSelectedJourney();
+          return;
+        }
+        this.journey.refresh();
+        if (!lessonId || !this.journey.lessonView(lessonId)) {
+          void this.router.navigate(['/dragon-genetics/journey', pathId], { replaceUrl: true });
+          return;
+        }
+        this.journey.visitLesson(lessonId as DragonLessonId);
+      });
+    });
   }
 
   refreshEvidence(): void {

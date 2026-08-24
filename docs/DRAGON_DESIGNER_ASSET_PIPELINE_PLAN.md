@@ -8,14 +8,16 @@ Parts Lab and Assembly Garage are developer/designer tools, not student features
 a separate Angular application named `dragon-designer`. The PBL Forge student application must not
 import designer components, stores, routes, or authoring catalogs.
 
-The applications exchange data only through a committed, versioned `DragonModelPack` artifact:
+The applications exchange data through a validated, versioned `DragonModelPack` plus arena settings:
 
 ```text
-Parts Lab -> designer part catalog -> Garage -> DragonModelPack JSON -> PBL Forge
+Parts Lab -> designer part catalog -> Garage -> preview/version/current Firestore docs -> PBL Forge
+                                           \-> downloaded JSON / committed offline fallback
 ```
 
-The arrow never points back toward the designer. Browser localStorage may retain unfinished designer
-work, but it is not a publishing channel and the student application never reads it.
+The arrow never points back toward the designer. Versioned browser localStorage retains unfinished
+designer work with undo/redo and recovery, but it is not a publishing channel and the student
+application never reads it.
 
 ## Goals
 
@@ -24,8 +26,8 @@ work, but it is not a publishing channel and the student application never reads
 - Publish completed dragon assemblies as reviewable JSON rather than mutable application state.
 - Validate schema versions, model IDs, part and joint references, renderer profile IDs, and visual
   parameters before either application accepts a pack.
-- Allow a previous committed pack to be restored as a complete rollback.
-- Require no database or network connection for authoring or classroom use.
+- Keep immutable publication history and allow a previous version to be restored as a complete rollback.
+- Preserve a committed fallback so classroom startup does not depend on the network.
 
 ## Non-goals
 
@@ -34,8 +36,9 @@ work, but it is not a publishing channel and the student application never reads
 - The model pack is not the instructional Dragon Visual Pack. Visual teaching sequences and dragon
   assembly models remain separate contracts.
 - Garage simulation state such as `isSimulating` is never published.
-- The first version does not publish directly to production or write into the repository from the
-  browser. Designers download a pack, review it, and commit it.
+- Publication never writes into the repository from the browser. Designers can download a package
+  for review/commit or use the teacher-authorized preview, promote, and rollback flow; the committed
+  pack remains the offline fallback.
 
 ## Ownership and dependency rules
 
@@ -50,8 +53,8 @@ Forbidden dependencies:
 
 - `src/**` must not import from `designer/**`.
 - Student routes and navigation must not expose Parts Lab or Garage.
-- Designer code must not import Firebase, student progress, lessons, assessments, or the student
-  creation-library service.
+- Designer code must not import student progress, lessons, assessments, or the student
+  creation-library service. Its isolated publisher may load the Firebase SDK lazily.
 - Shared assembly runtime must not import designer code.
 
 ## Artifact contracts
@@ -71,6 +74,10 @@ The published pack contains:
 - model labels and descriptions; and
 - stable `AssemblyBlueprint` values containing parts and joints.
 
+Designer publication includes both the editable classic model and a complete connected
+`mini-dragon` model. The surrounding publication document also contains the strictly validated arena
+scenario, release metadata, and immutable version ID.
+
 Each part may contain scalar `visualProfile.parameters`. Geometry itself is never serialized. The
 pack references a shared renderer builder through `visualProfile.profileId`.
 
@@ -79,16 +86,17 @@ pack references a shared renderer builder through `visualProfile.profileId`.
 
 ## Publishing workflow
 
-1. Tune part proportions in Parts Lab and record the result.
-2. Assemble and simulate the dragon in Garage.
-3. Export `dragon-model-pack.v1.json` from Dragon Designer.
-4. Run `npm run check:model-packs`.
-5. Replace the committed file under `model-packs/` and review the JSON diff.
-6. Run both application builds and the relevant rendering, genetics, physics, and pack tests.
-7. Commit the pack and code separately when practical.
+1. Tune either species in Parts Lab; acceptance checks flag invalid dimensions, sockets, profiles,
+   and parameter ranges.
+2. Assemble and simulate in Garage. Drafts autosave locally and can be exported or restored.
+3. Edit and validate the arena scenario in Garage.
+4. Publish a teacher-authenticated preview. This also creates an immutable version document.
+5. Review the preview, release notes, and recent-version list, then promote it to `current`.
+6. Run both application builds plus rendering, genetics, physics, pack, and Firestore-rule tests.
+7. Keep a reviewed downloaded package under `model-packs/` when updating the offline fallback.
 
-Production PBL Forge bundles the committed JSON at build time. It does not fetch the model pack at
-runtime, so a lesson has no model-pack loading or network failure state.
+PBL Forge hydrates `publishedDragonAssets/current` after startup. Invalid, unavailable, or older
+documents are rejected without replacing the bundled committed fallback.
 
 ## Validation requirements
 
@@ -120,14 +128,17 @@ tail-club variants.
 
 ## Rollback
 
-Revert `model-packs/dragon-model-pack.v1.json` to the previous committed version and rebuild PBL
-Forge. Pack versions are immutable once released; changed contents receive a new `packVersion`.
+Use Garage's rollback action to promote the previous immutable Firebase version. For the offline
+fallback, revert `model-packs/dragon-model-pack.v1.json` to a previous reviewed version and rebuild
+PBL Forge. Pack versions are immutable once released; changed contents receive a new `packVersion`.
 
 ## Definition of done
 
 - `ng build pbl-forge` contains no Parts Lab or Garage route/chunk.
-- `ng build dragon-designer` works without Firebase or the classroom database.
+- `ng build dragon-designer` works without a live classroom database connection.
 - No production TypeScript under `src/**` imports `designer/**` or `assembly-garage`.
-- Student genetics and the creation library use the validated committed dragon pack.
+- Student genetics and the creation library use a strictly validated current publication or the
+  committed fallback.
+- Designer publication contains both classic and Mini Dragon models plus a valid arena scenario.
 - Pack export contains an `AssemblyBlueprint`, never `AssemblyState`.
 - Model-pack validation, lint, tests, and both builds pass.

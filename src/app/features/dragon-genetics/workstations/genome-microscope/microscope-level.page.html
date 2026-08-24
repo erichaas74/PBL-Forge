@@ -1,0 +1,19 @@
+<app-dragon-workstation-host-shell
+  [launchContext]="launchContext()"
+  [directTitle]="definition.title"
+>
+  <p class="focused-record" role="status">
+    {{ savedRecordCount() }} exploration {{ savedRecordCount() === 1 ? 'record' : 'records' }} saved
+    for this microscope.
+  </p>
+  <app-genome-microscope
+    [studentId]="context.studentId()"
+    [dragons]="context.availableDragons()"
+    [genes]="context.availableGenes()"
+    [alleles]="context.availableAlleles()"
+    [initialLevel]="definition.level"
+    [levelScope]="levelScope"
+    [scientificGoal]="definition.goal"
+    (evidenceChanged)="recordEvidence($event)"
+  />
+</app-dragon-workstation-host-shell>

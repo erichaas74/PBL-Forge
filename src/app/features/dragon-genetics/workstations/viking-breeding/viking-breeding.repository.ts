@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -22,7 +22,7 @@ const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.viking-breeding.v1';
  * Genomes are stored rather than regenerated from a seed, because a line the student spent six
  * seasons building must read back exactly — the animals are the work.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class VikingBreedingRepository {
   load(studentId: string): StoredBreedingPrograms {
     const normalized = normalizeWorkstationStudentId(studentId);

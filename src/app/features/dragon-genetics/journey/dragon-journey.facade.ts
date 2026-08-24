@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Service, signal } from '@angular/core';
 import { DragonAdaptiveStore } from '../adaptive/dragon-adaptive.store';
 import { DragonArenaMissionRepository } from '../capstones/arena/dragon-arena-mission.repository';
 import { DragonProjectHubFacade } from '../project/dragon-project-hub.facade';
@@ -25,7 +25,7 @@ import {
   DragonRosterViewModel,
 } from './domain/dragon-journey.models';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonJourneyFacade {
   private readonly adaptiveStore = inject(DragonAdaptiveStore);
   private readonly hub = inject(DragonProjectHubFacade);

@@ -61,7 +61,7 @@
 }
 
 .dragon-card--back {
-  grid-template-rows: auto 10.8rem minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   background:
     radial-gradient(circle at center, rgb(235 189 84 / 22%), transparent 55%),
     repeating-radial-gradient(circle at center, #17252a 0 8px, #0d171b 9px 15px);
@@ -129,9 +129,13 @@
     radial-gradient(circle at 72% 28%, #ffe6a0 0 4%, transparent 5%),
     linear-gradient(145deg, var(--dragon-accent), #172c31 65%);
   box-shadow: inset 0 0 1.5rem rgb(0 0 0 / 45%);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.dragon-card__portrait app-specimen-thumb {
+.dragon-card__portrait app-specimen-thumb,
+.dragon-card__portrait app-specimen-viewport {
   display: block;
   width: 100%;
   height: 100%;
@@ -141,15 +145,24 @@
   aspect-ratio: auto;
 }
 
+.dragon-card__portrait app-specimen-viewport {
+  --viewport-edge: transparent;
+  --viewport-stage-background: transparent;
+  --viewport-layout-height: 100%;
+  --viewport-height: 100%;
+  --viewport-min-height: 11.5rem;
+  --viewport-aspect-ratio: auto;
+}
+
 .dragon-card__blood-type {
   position: relative;
   z-index: 2;
   display: grid;
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 1;
   width: 2.9rem;
   height: 3.55rem;
-  margin-top: -0.55rem;
+  margin-top: -0.35rem;
   place-items: center;
   align-self: center;
   justify-self: end;
@@ -243,8 +256,7 @@
   font-weight: 950;
 }
 
-.dragon-card__cell,
-.dragon-card__gene-panel {
+.dragon-card__cell {
   position: relative;
   z-index: 1;
 }
@@ -253,7 +265,6 @@
   display: grid;
   min-height: 0;
   overflow: hidden;
-  place-items: center;
   border: 1px solid rgb(241 197 93 / 42%);
   border-radius: 0.55rem;
   background:
@@ -265,12 +276,12 @@
   --cell-viewport-accent: #f1c55d;
   --cell-viewport-edge: rgb(241 197 93 / 52%);
   --cell-viewport-text: #fff0c7;
-  width: min(100%, 16.2rem);
+  width: 100%;
 }
 
 .dragon-card__gene-panel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
   border: 1px solid rgb(241 197 93 / 35%);
@@ -337,6 +348,10 @@
   cursor: pointer;
 }
 
+.dragon-card__gene > .gene-spoilers {
+  display: none;
+}
+
 .dragon-card__gene:hover:not(:disabled),
 .dragon-card__gene.is-selected {
   border-color: var(--locus-color);
@@ -351,6 +366,13 @@
 
 .dragon-card__gene:disabled {
   cursor: default;
+}
+
+.dragon-card__gene.is-unavailable {
+  border-color: rgb(255 255 255 / 5%);
+  background: rgb(0 0 0 / 24%);
+  filter: grayscale(1);
+  opacity: 0.34;
 }
 
 .gene-locus {
@@ -381,6 +403,30 @@
   color: #e0d5bd;
   font-size: var(--text-xs, 0.75rem);
   line-height: 1.25;
+}
+
+.dragon-card__gene-list .gene-reference__line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.gene-reference__line + .gene-reference__line {
+  margin-top: 0.08rem;
+}
+
+.gene-reference__line small {
+  flex: 0 0 auto;
+}
+
+.gene-reference__line strong,
+.gene-reference__line span {
+  overflow: hidden;
+  color: #fff0c7;
+  font-size: var(--text-xs, 0.75rem);
+  text-overflow: ellipsis;
 }
 
 .dragon-card__gene-list code {

@@ -4,6 +4,7 @@ import { CompanionDragon } from '../companion-show/companion-show.models';
 import { specimenSource } from '../companion-show/mini-dragon-kennel.store';
 import {
   MiniGeneId,
+  MiniGenome,
   MiniInheritancePattern,
   expressMiniGenome,
   miniIndividualFeatureList,
@@ -22,7 +23,7 @@ export interface MiniDragonCardTrait {
 export interface MiniDragonCardStat {
   id: string;
   label: string;
-  value: string;
+  value: string | number;
 }
 
 /**
@@ -46,6 +47,7 @@ export interface MiniDragonCardView {
   name: string;
   title: string;
   source: SpecimenSource | null;
+  genome: MiniGenome;
   color: string;
   patchColor: string;
   emberColor: string;
@@ -86,6 +88,7 @@ export function buildMiniDragonCardView(
     name: dragon.name,
     title: dragon.title,
     source: specimenSource(dragon),
+    genome: dragon.genome,
     color: paint.color,
     patchColor: paint.patchColor,
     emberColor: paint.emberColor,

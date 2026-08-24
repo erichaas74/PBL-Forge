@@ -1,4 +1,4 @@
-import { EnvironmentInjector, inject, Injectable } from '@angular/core';
+import { EnvironmentInjector, inject, Service } from '@angular/core';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { runInFirebaseContext } from '../../../../core/firebase/firebase-context';
 import { FIREBASE_FIRESTORE } from '../../../../core/firebase/firebase-firestore.provider';
@@ -14,7 +14,7 @@ import { dragonJourneyLesson, dragonJourneyPath } from '../config/dragon-journey
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.journey-progress.v1';
 
 /** Keeps local resume state and publishes a compact teacher-readable journey summary. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonJourneyProgressRepository {
   private readonly firestore = inject(FIREBASE_FIRESTORE);
   private readonly session = inject(SessionService);

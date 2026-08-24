@@ -160,6 +160,10 @@ export function coreGameteGenome(gamete: MeiosisGamete): DragonGameteGenome {
     fire: requiredAllele(gamete, 'fire'),
     scales: requiredAllele(gamete, 'scales'),
     horns: requiredAllele(gamete, 'horns'),
+    legs: requiredAllele(gamete, 'legs'),
+    claws: requiredAllele(gamete, 'claws'),
+    crest: requiredAllele(gamete, 'crest'),
+    spikes: requiredAllele(gamete, 'spikes'),
   };
 }
 

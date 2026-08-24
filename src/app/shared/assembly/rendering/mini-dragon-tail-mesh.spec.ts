@@ -26,7 +26,7 @@ describe('mini dragon tail mesh', () => {
     expect(named(full, 'mini-dragon-pom-bubble').length).toBe(6);
   });
 
-  it('builds three unmistakably different inherited tail tips', () => {
+  it('builds four unmistakably different inherited tail tips', () => {
     const star = renderMiniPart(
       buildMiniTailPlume,
       'mini-dragon-tail-plume',
@@ -45,10 +45,17 @@ describe('mini dragon tail mesh', () => {
       {},
       { miniTailStyle: 2 },
     )!;
+    const splitStreamer = renderMiniPart(
+      buildMiniTailPlume,
+      'mini-dragon-tail-plume',
+      {},
+      { miniTailStyle: 3 },
+    )!;
 
     expect(named(star, 'mini-dragon-star-club').length).toBe(1);
     expect(named(star, 'mini-dragon-star-lobe').length).toBe(5);
     expect(named(fork, 'mini-dragon-tail-fork').length).toBe(2);
+    expect(named(splitStreamer, 'mini-dragon-split-tail-streamer').length).toBe(1);
     expect(named(pom, 'mini-dragon-star-club').length).toBe(0);
     expect(meshCount(pom)).toBeGreaterThan(5);
   });

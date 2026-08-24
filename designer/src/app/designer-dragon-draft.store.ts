@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Service, signal } from '@angular/core';
 import { Vector3Data } from '@pbl/assembly/domain/assembly.models';
 import { readStoredJson, writeStoredJson } from '@pbl/assembly/persistence/json-local-storage';
 import { DEFAULT_DRAGON_STYLE, DragonStyle } from '@pbl/assembly/rendering/dragon-style';
@@ -6,20 +6,21 @@ import { DEFAULT_DRAGON_STYLE, DragonStyle } from '@pbl/assembly/rendering/drago
 /** Moved sockets for one definition, keyed by snap point id. */
 export type SnapOffsetMap = Record<string, Vector3Data>;
 
-interface DesignerDragonDraftV2 {
-  schemaVersion: 2;
+interface DesignerDragonDraftV3 {
+  schemaVersion: 3;
   style: DragonStyle;
   dimensionsByDefinitionId: Record<string, Vector3Data>;
   snapPointsByDefinitionId: Record<string, SnapOffsetMap>;
+  parametersByDefinitionId: Record<string, Record<string, string | number | boolean>>;
 }
 
 const STORAGE_KEY = 'dragon-designer.draft.v1';
 const EMPTY_OFFSETS: SnapOffsetMap = {};
 
 /** Local designer draft. Published student data still crosses only through a model pack. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DesignerDragonDraftStore {
-  private readonly draft = signal<DesignerDragonDraftV2>(readDraft());
+  private readonly draft = signal<DesignerDragonDraftV3>(readDraft());
 
   readonly style = () => cloneStyle(this.draft().style);
 
@@ -40,6 +41,36 @@ export class DesignerDragonDraftStore {
         [definitionId]: { ...dimensions },
       },
     }));
+    this.persist();
+  }
+
+  parametersFor(
+    definitionId: string,
+    fallback: Readonly<Record<string, string | number | boolean>> = {},
+  ): Record<string, string | number | boolean> {
+    return { ...fallback, ...(this.draft().parametersByDefinitionId[definitionId] ?? {}) };
+  }
+
+  setParameter(definitionId: string, key: string, value: string | number | boolean): void {
+    this.draft.update(current => ({
+      ...current,
+      parametersByDefinitionId: {
+        ...current.parametersByDefinitionId,
+        [definitionId]: {
+          ...current.parametersByDefinitionId[definitionId],
+          [key]: value,
+        },
+      },
+    }));
+    this.persist();
+  }
+
+  resetParameters(definitionId: string): void {
+    this.draft.update(current => {
+      const next = { ...current.parametersByDefinitionId };
+      delete next[definitionId];
+      return { ...current, parametersByDefinitionId: next };
+    });
     this.persist();
   }
 
@@ -113,19 +144,20 @@ export class DesignerDragonDraftStore {
  * rather than discarded — a designer mid-way through sizing a dragon should not
  * lose that work to a schema bump.
  */
-function readDraft(): DesignerDragonDraftV2 {
+function readDraft(): DesignerDragonDraftV3 {
   const fallback = emptyDraft();
   return readStoredJson(STORAGE_KEY, fallback, (value) => {
     if (!isRecord(value) || !isRecord(value['style'])) return emptyDraft();
     const version = value['schemaVersion'];
-    if (version !== 1 && version !== 2) return emptyDraft();
+    if (version !== 1 && version !== 2 && version !== 3) return emptyDraft();
 
-    const candidate = value as unknown as Partial<DesignerDragonDraftV2>;
+    const candidate = value as unknown as Partial<DesignerDragonDraftV3>;
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       style: cloneStyle(candidate.style as DragonStyle),
       dimensionsByDefinitionId: readVectorMap(candidate.dimensionsByDefinitionId),
       snapPointsByDefinitionId: readSnapMaps(candidate.snapPointsByDefinitionId),
+      parametersByDefinitionId: readParameterMaps(candidate.parametersByDefinitionId),
     };
   });
 }
@@ -148,13 +180,31 @@ function readSnapMaps(value: unknown): Record<string, SnapOffsetMap> {
   );
 }
 
-function emptyDraft(): DesignerDragonDraftV2 {
+function emptyDraft(): DesignerDragonDraftV3 {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     style: cloneStyle(DEFAULT_DRAGON_STYLE),
     dimensionsByDefinitionId: {},
     snapPointsByDefinitionId: {},
+    parametersByDefinitionId: {},
   };
+}
+
+function readParameterMaps(value: unknown): Record<string, Record<string, string | number | boolean>> {
+  if (!isRecord(value)) return {};
+  const result: Record<string, Record<string, string | number | boolean>> = {};
+  for (const [definitionId, parameters] of Object.entries(value)) {
+    if (!isRecord(parameters)) continue;
+    const valid: Record<string, string | number | boolean> = {};
+    for (const [key, parameter] of Object.entries(parameters)) {
+      if (typeof parameter === 'string' || typeof parameter === 'boolean'
+        || (typeof parameter === 'number' && Number.isFinite(parameter))) {
+        valid[key] = parameter;
+      }
+    }
+    result[definitionId] = valid;
+  }
+  return result;
 }
 
 function cloneStyle(style: DragonStyle): DragonStyle {

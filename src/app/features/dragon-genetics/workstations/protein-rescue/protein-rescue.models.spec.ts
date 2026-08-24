@@ -72,6 +72,7 @@ function dragon(id: string): AccountDragonRecord {
             fire: ['F', 'f'],
             scales: ['S', 's'],
             horns: ['H', 'h'],
+            legs: ['L', 'l'], claws: ['C', 'c'], crest: ['R', 'r'], spikes: ['P', 'p'],
         },
     };
 }

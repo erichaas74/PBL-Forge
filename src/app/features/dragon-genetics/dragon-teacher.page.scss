@@ -29,7 +29,7 @@ main,
 
   p {
     margin: 1.3rem 0 0.4rem;
-    color: var(--moss);
+    color: #315b20;
     font-size: var(--text-sm);
     font-weight: 850;
     letter-spacing: 0.1em;
@@ -153,7 +153,7 @@ main {
   }
 
   dt {
-    color: #687570;
+    color: var(--ink-soft);
     font-size: var(--text-sm);
     font-weight: 800;
     text-transform: uppercase;
@@ -199,7 +199,7 @@ main {
     }
 
     small {
-      color: #6f7975;
+      color: var(--ink-soft);
       font-size: var(--text-sm);
     }
   }
@@ -215,7 +215,7 @@ main {
 
 .empty-line {
   margin: 0.65rem 0 0;
-  color: #737c78;
+  color: var(--ink-soft);
 }
 
 .activity-row {

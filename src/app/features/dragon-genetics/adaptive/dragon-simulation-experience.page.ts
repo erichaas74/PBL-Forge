@@ -1,4 +1,10 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -129,6 +135,7 @@ export class DragonSimulationExperiencePage {
   readonly availableAlleles = this.workstationContext.availableAlleles;
   readonly availableDragons = this.workstationContext.availableDragons;
   readonly geneticsNotebook = this.workstationContext.geneticsNotebook;
+  readonly revealedGeneIds = computed(() => Object.keys(this.geneticsNotebook().discoveries));
   readonly transferredDnaAnalysisCase = computed<DnaAnalysisCase | null>(() => {
     if (this.definition()?.id !== 'dna-process-lab') return null;
     const params = this.queryParams();

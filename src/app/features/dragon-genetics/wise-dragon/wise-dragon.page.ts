@@ -1,10 +1,13 @@
 import {
   Component,
+  OnDestroy,
   ViewChild,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SessionService } from '../../../core/firebase/session.service';
 import { SpecimenSource } from '../../../shared/assembly/preview/specimen.models';
@@ -19,14 +22,16 @@ import {
   provideDragonSpecimenProfile,
 } from '../simulation/domain/dragon-specimen.profile';
 import { DragonTraitId } from '../simulation/domain/dragon-lab.models';
+import { DRAGON_TRAITS } from '../simulation/domain/dragon-inheritance';
 import { DragonHatcheryBreedingRepository } from '../workstations/dragon-hatchery/dragon-hatchery-breeding.repository';
 import { AccountGeneticsLibraryService } from '../workstations/shared/account-genetics-library.service';
 import { WISE_DRAGON_SOURCE, WISE_DRAGON_STAGE_THEME } from './wise-dragon.character';
 import { WISE_DRAGON_CONVERSATION_GATEWAY } from './wise-dragon.gateway';
 import { MockWiseDragonConversationGateway } from './wise-dragon.mock-gateway';
 import { WiseDragonConversationContext, WiseDragonReply } from './wise-dragon.models';
-import { WISE_DRAGON_MOTIONS } from './wise-dragon.motion';
+import { WISE_DRAGON_IDLE, WISE_DRAGON_MOTIONS } from './wise-dragon.motion';
 import { WiseDragonSessionStore } from './wise-dragon-session.store';
+import { WiseDragonVoiceService } from './wise-dragon-voice.service';
 
 const PREVIEW_CHAMPION: StudentDragonRecord = {
   id: 'wise-dragon-preview-champion',
@@ -39,6 +44,10 @@ const PREVIEW_CHAMPION: StudentDragonRecord = {
     fire: ['F', 'f'],
     scales: ['S', 's'],
     horns: ['H', 'h'],
+    legs: ['L', 'l'],
+    claws: ['C', 'c'],
+    crest: ['R', 'r'],
+    spikes: ['P', 'p'],
   },
   parentIds: ['ember', 'tide'],
   generation: 1,
@@ -76,7 +85,7 @@ const PREVIEW_TRIAL: DragonArenaTrialRecord = {
     ...provideDragonSpecimenProfile(),
   ],
 })
-export class WiseDragonPage {
+export class WiseDragonPage implements OnDestroy {
   @ViewChild('wiseViewport') private wiseViewport?: SpecimenViewportComponent;
   @ViewChild('studentViewport') private studentViewport?: SpecimenViewportComponent;
 
@@ -85,10 +94,15 @@ export class WiseDragonPage {
   private readonly accountLibrary = inject(AccountGeneticsLibraryService);
   private readonly hatcheryRepository = inject(DragonHatcheryBreedingRepository);
   private readonly missionRepository = inject(DragonArenaMissionRepository);
+  readonly voice = inject(WiseDragonVoiceService);
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
 
   readonly store = inject(WiseDragonSessionStore);
   readonly theme = WISE_DRAGON_STAGE_THEME;
   readonly wiseDragonSource = WISE_DRAGON_SOURCE;
+  readonly wiseDragonIdle = WISE_DRAGON_IDLE;
   readonly claim = signal('');
   readonly reasoning = signal('');
   readonly studentResponse = signal('');
@@ -101,9 +115,12 @@ export class WiseDragonPage {
     const champion = this.champion();
     const trial = this.trial();
     if (!champion) return [];
-    return trial?.traitEvidence.length
+    const evidence = trial?.traitEvidence.length
       ? trial.traitEvidence
       : buildDragonArenaTraitEvidence(champion);
+    return evidence.filter((record): record is typeof record & { traitId: DragonTraitId } =>
+      DRAGON_TRAITS.some((trait) => trait.id === record.traitId),
+    );
   });
   readonly championSource = computed<SpecimenSource | null>(() => {
     const champion = this.champion();
@@ -128,7 +145,21 @@ export class WiseDragonPage {
   });
 
   constructor() {
-    this.loadArenaContext();
+    effect(() => this.loadArenaContext());
+    effect(() => {
+      this.voice.speechPulse();
+      if (this.voice.speaking()) {
+        queueMicrotask(() => void this.playMotion('speaking'));
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.voice.stop();
+  }
+
+  toggleVoice(): void {
+    this.voice.toggle();
   }
 
   updateClaim(event: Event): void {
@@ -194,7 +225,7 @@ export class WiseDragonPage {
     const account = this.accountLibrary.recordsFor(studentId);
     const champions = buildArenaChampionRoster(hatchery, account);
     const mission = this.missionRepository.load(studentId);
-    const requestedId = this.route.snapshot.queryParamMap.get('dragonId');
+    const requestedId = this.queryParams().get('dragonId');
     const savedChampion =
       champions.find((item) => item.id === requestedId) ??
       champions.find((item) => item.id === mission.selectedChampionId) ??
@@ -213,7 +244,10 @@ export class WiseDragonPage {
       const evidence = trial?.traitEvidence.length
         ? trial.traitEvidence
         : buildDragonArenaTraitEvidence(champion);
-      this.selectedEvidence.set(evidence.slice(0, 1).map((item) => item.traitId));
+      const firstCore = evidence.find((item) =>
+        DRAGON_TRAITS.some((trait) => trait.id === item.traitId),
+      );
+      this.selectedEvidence.set(firstCore ? [firstCore.traitId as DragonTraitId] : []);
     }
   }
 
@@ -257,6 +291,7 @@ export class WiseDragonPage {
 
   private async playReply(reply: WiseDragonReply | null): Promise<void> {
     if (!reply) return;
+    this.voice.speak(reply.message);
     await this.playMotion(reply.animation);
   }
 

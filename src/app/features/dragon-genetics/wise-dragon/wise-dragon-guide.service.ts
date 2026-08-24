@@ -1,7 +1,7 @@
-import { Injectable, signal } from '@angular/core';
+import { Service, signal } from '@angular/core';
 
 /** Shared launcher state lets in-page Wise Dragon buttons open the global guide drawer. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class WiseDragonGuideService {
   readonly open = signal(false);
 

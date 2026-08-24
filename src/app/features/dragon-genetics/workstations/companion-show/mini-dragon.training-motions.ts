@@ -37,6 +37,7 @@ export const MINI_TRAINING_MOTIONS: Readonly<
   Record<MiniTrainingSkillId, SpecimenMotionDefinition>
 > = {
   'course-cue': motion('course-cue', (amount) => [
+    { role: 'ear', radians: -0.22 * amount, axis: AXIS_X, mirrorAcrossZ: true },
     { role: 'wing', radians: 0.62 * amount, axis: AXIS_X, mirrorAcrossZ: true },
     { role: 'neck', radians: -0.22 * amount, axis: AXIS_Z },
     { role: 'head', radians: -0.16 * amount, axis: AXIS_Z },
@@ -46,6 +47,7 @@ export const MINI_TRAINING_MOTIONS: Readonly<
     { role: 'rear-leg', matchPartId: isLowerMiniLeg, radians: -0.46 * amount, axis: AXIS_Z, mirrorAcrossZ: true },
   ], (amount) => 0.18 * amount),
   weave: motion('weave', (amount, sway) => [
+    { role: 'ear', radians: 0.24 * sway, axis: AXIS_Y, mirrorAcrossZ: true },
     { role: 'neck', radians: 0.28 * sway, axis: AXIS_Y },
     { role: 'head', radians: 0.38 * sway, axis: AXIS_Y },
     { role: 'tail', radians: -0.42 * sway, axis: AXIS_Y },
@@ -65,6 +67,7 @@ export const MINI_TRAINING_MOTIONS: Readonly<
     },
   ]),
   settle: motion('settle', (amount) => [
+    { role: 'ear', radians: 0.34 * amount, axis: AXIS_X, mirrorAcrossZ: true },
     { role: 'neck', radians: -0.22 * amount, axis: AXIS_Z },
     { role: 'head', radians: -0.34 * amount, axis: AXIS_Z },
     { role: 'front-leg', matchPartId: isUpperMiniLeg, radians: 0.38 * amount, axis: AXIS_Z, mirrorAcrossZ: true },
@@ -75,6 +78,7 @@ export const MINI_TRAINING_MOTIONS: Readonly<
     { role: 'tail', radians: 0.18 * amount, axis: AXIS_Y },
   ], (amount) => -0.08 * amount),
   'ember-cue': motion('ember-cue', (amount) => [
+    { role: 'ear', radians: -0.42 * amount, axis: AXIS_X, mirrorAcrossZ: true },
     { role: 'neck', radians: 0.22 * amount, axis: AXIS_Z },
     { role: 'head', radians: 0.18 * amount, axis: AXIS_Z },
     { role: 'jaw', radians: -0.58 * amount, axis: AXIS_Z },
@@ -97,6 +101,7 @@ export const MINI_CHAMPIONSHIP_MOTION: SpecimenMotionDefinition = {
     return buildSpecimenPose(blueprint, {
       droopRadians: restingDroopRadians,
       bends: [
+        { role: 'ear', radians: -0.3 * bow + 0.22 * weave - 0.36 * finale, axis: AXIS_X, mirrorAcrossZ: true },
         { role: 'neck', radians: -0.26 * bow + 0.26 * weave + 0.18 * finale, axis: AXIS_Z },
         { role: 'head', radians: -0.34 * bow + 0.38 * weave + 0.2 * finale, axis: AXIS_Z },
         { role: 'tail', radians: -0.5 * weave + 0.24 * display, axis: AXIS_Y },

@@ -1,5 +1,6 @@
 <section
   class="genome-microscope"
+  [class.focused-workstation]="focusedLevelOnly()"
   data-guide-anchors="level-rail chromosome-set-stage chromosome-map unraveling-stage homolog-compare sequence-readout rna-stage translation-bench protein-fold-stage enzyme-stage expression-stage"
   [attr.data-level]="level()"
   aria-label="Interactive dragon genome microscope"
@@ -7,7 +8,7 @@
   <header class="microscope-header">
     <div class="microscope-title">
       <small>SCIENTIFIC GOAL</small>
-      <strong>Connect a dragon to the information inside its cells.</strong>
+      <strong>{{ scientificGoal() }}</strong>
       <span>{{ currentLevel().label }} · {{ currentLevel().scale }}</span>
     </div>
 
@@ -61,8 +62,9 @@
     </aside>
   }
 
+  @if (!focusedLevelOnly()) {
   <nav class="scale-map" aria-label="Biological organization levels">
-    @for (item of levels; track item.id; let last = $last) {
+    @for (item of visibleLevels(); track item.id; let last = $last) {
       <button
         type="button"
         [class.active]="level() === item.id"
@@ -80,6 +82,7 @@
       }
     }
   </nav>
+  }
 
   <section class="microscope-body">
     <header class="relationship-readout">
@@ -91,7 +94,7 @@
       <output aria-live="polite">{{ summary() }}</output>
     </header>
 
-    <div class="microscope-stage">
+    <div class="microscope-stage" data-guide-anchors="level-stage">
       @switch (level()) {
         @case ('dragon') {
           <section class="dragon-level level-surface" aria-label="Loaded dragon organism">
@@ -126,7 +129,7 @@
               [selectable]="false"
               [showLoci]="false"
               [showChromosomeLabels]="false"
-              nucleusAction="Focus nucleus"
+              [nucleusAction]="focusedLevelOnly() ? null : 'Focus nucleus'"
               [ariaLabel]="'Body cell from ' + (loadedDragon()?.name ?? 'the loaded dragon')"
               (nucleusSelected)="selectLevel('nucleus')"
             />
@@ -431,6 +434,7 @@
         @case ('expression') {
           <section class="expression-level level-surface">
             <app-protein-trait-expression
+              [studentId]="studentId()"
               [dragon]="loadedDragon()"
               [genes]="genes()"
               [alleles]="alleles()"
@@ -442,8 +446,12 @@
   </section>
 
   <footer class="microscope-controls">
-    <button type="button" [disabled]="!canZoomOut()" (click)="zoomOut()">← Zoom out</button>
+    @if (!focusedLevelOnly()) {
+      <button type="button" [disabled]="!canZoomOut()" (click)="zoomOut()">← Zoom out</button>
+    }
     <output aria-live="polite">{{ summary() }}</output>
-    <button type="button" [disabled]="!canZoomIn()" (click)="zoomIn()">Zoom in →</button>
+    @if (!focusedLevelOnly()) {
+      <button type="button" [disabled]="!canZoomIn()" (click)="zoomIn()">Zoom in →</button>
+    }
   </footer>
 </section>

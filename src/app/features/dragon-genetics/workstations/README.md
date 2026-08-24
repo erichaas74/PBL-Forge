@@ -189,7 +189,7 @@ differ in who does the selecting and what the student does about it.
 | Student's job | **find** an animal selection already made | **build** a line over seasons |
 | Timescale | generations already elapsed | seasons the student runs |
 
-The mini dragon is the right species here because its thirteen genes span four inheritance
+The mini dragon is the right species here because its twenty-four genes span four inheritance
 patterns, and that is what makes an artificial-selection programme more than a Punnett square. The
 finding the workstation exists to produce is that **some commissions can never breed true**: a job
 asking for a form that only appears in a heterozygote — an incomplete-dominance blend or a

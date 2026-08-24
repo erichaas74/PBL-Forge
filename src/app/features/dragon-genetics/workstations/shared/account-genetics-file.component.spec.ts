@@ -1,5 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { stubSpecimenThumbnailRendering } from '../../../../shared/assembly/preview/specimen-viewport.testing';
+import {
+    stubSpecimenThumbnailRendering,
+    stubSpecimenViewportRendering,
+} from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { AccountGeneticsFileComponent } from './account-genetics-file.component';
 
 describe('AccountGeneticsFileComponent', () => {
@@ -8,6 +11,7 @@ describe('AccountGeneticsFileComponent', () => {
 
     beforeEach(() => {
         stubSpecimenThumbnailRendering();
+        stubSpecimenViewportRendering();
         TestBed.configureTestingModule({ imports: [AccountGeneticsFileComponent] });
         fixture = TestBed.createComponent(AccountGeneticsFileComponent);
         component = fixture.componentInstance;
@@ -18,24 +22,23 @@ describe('AccountGeneticsFileComponent', () => {
 
     afterEach(() => fixture.destroy());
 
-    it('stays collapsed until opened, then shuffles a dragon card before activating it', () => {
+    it('shows the card deck without a repeated file handle and activates the front card', () => {
         const root = fixture.nativeElement as HTMLElement;
-        expect(root.querySelector('.file-body')).toBeNull();
-
-        root.querySelector<HTMLButtonElement>('.file-handle')!.click();
-        fixture.detectChanges();
+        expect(root.querySelector('.file-handle')).toBeNull();
+        expect(root.querySelector('.file-body')).not.toBeNull();
         expect(root.querySelector('app-dragon-card-deck-selector')).not.toBeNull();
         expect(root.querySelectorAll('.fanned-deck__slot').length).toBe(4);
 
+        vi.spyOn(component.recordSelected, 'emit').mockReturnValue(undefined);
         root.querySelector<HTMLElement>('.is-next .fanned-deck__peek')!.click();
         fixture.detectChanges();
         expect(root.querySelector('app-specimen-thumb')).not.toBeNull();
-        expect(root.querySelector('app-specimen-viewport')).toBeNull();
+        expect(root.querySelector('.is-active app-specimen-viewport')).not.toBeNull();
 
         const selected = component.activeDeckDragon()!;
-        vi.spyOn(component.recordSelected, 'emit').mockReturnValue(undefined);
-        root.querySelector<HTMLButtonElement>('.deck-selection button')!.click();
         expect(component.recordSelected.emit).toHaveBeenCalledWith(selected);
+        expect(root.textContent).not.toContain('Use in this lab');
+        expect(root.textContent).not.toContain('DRAGON CARD CATALOG');
     });
 
     it('filters a shared account inventory by dragon sex', () => {

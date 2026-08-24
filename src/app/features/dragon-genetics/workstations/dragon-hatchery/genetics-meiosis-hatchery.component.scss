@@ -1,0 +1,23 @@
+:host { display: block; }
+.meiosis-hatchery { display: grid; gap: 1rem; color: #f5ead2; }
+.meiosis-hatchery > header, .card-library, .meiosis-bench, .gamete-lab, .offspring-chamber { padding: 0.85rem; border: 1px solid rgb(241 197 93 / 28%); border-radius: 0.8rem; background: #111d21; }
+header span, header p, .status { color: #c9bfa9; }
+h1, h2, p { margin: 0; }
+.hatchery-layout { display: grid; grid-template-columns: minmax(20rem, 0.9fr) minmax(26rem, 1.1fr); gap: 1rem; }
+.parent-actions, .gametes { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+button, select { min-height: 2.5rem; padding: 0.4rem 0.65rem; border: 1px solid rgb(241 197 93 / 42%); border-radius: 0.45rem; background: #1b2d32; color: #fff0c7; font: inherit; }
+button { cursor: pointer; font-weight: 800; }
+button:disabled { cursor: not-allowed; opacity: 0.45; }
+.parent-pair, .gamete-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+.parent-pair article { display: grid; min-height: 13rem; padding: 0.5rem; border: 1px solid rgb(241 197 93 / 22%); border-radius: 0.55rem; text-align: center; }
+.parent-pair article.empty { place-items: center; }
+.parent-pair app-specimen-viewport { --viewport-layout-height: 10rem; --viewport-height: 10rem; --viewport-min-height: 0; }
+.run-meiosis, .fertilize { width: 100%; margin-top: 0.65rem; background: #d9a936; color: #17252a; }
+.gamete-lab { display: grid; gap: 0.7rem; }
+.gamete-lab label { display: flex; align-items: center; gap: 0.5rem; }
+.gametes { display: grid; grid-template-columns: 1fr 1fr; }
+.gametes button { display: grid; gap: 0.15rem; text-align: left; }
+.gametes button.selected { border-color: #78c5ad; background: rgb(120 197 173 / 18%); }
+.offspring-chamber { display: grid; grid-template-columns: minmax(18rem, 1fr) minmax(14rem, 0.6fr); align-items: center; gap: 1rem; }
+.offspring-chamber app-specimen-viewport { --viewport-layout-height: 18rem; --viewport-height: 18rem; }
+@media (max-width: 850px) { .hatchery-layout, .offspring-chamber { grid-template-columns: 1fr; } }

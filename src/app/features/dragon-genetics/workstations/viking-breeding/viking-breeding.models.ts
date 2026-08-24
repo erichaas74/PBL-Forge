@@ -8,7 +8,7 @@ import { MiniGeneId, MiniGenome } from '../companion-show/mini-dragon.genetics';
  * generations. Same mechanism, different selective agent — which is the pair of ideas the standards
  * actually ask for.
  *
- * The mini dragon is the right species for this because its thirteen genes cover four inheritance
+ * The mini dragon is the right species for this because its twenty-four genes cover four inheritance
  * patterns. A working role that wants a heterozygous form can never breed true, no matter how hard
  * a settlement selects, and no amount of effort changes that. Discovering which of your traits can
  * be fixed and which cannot is the whole lesson.

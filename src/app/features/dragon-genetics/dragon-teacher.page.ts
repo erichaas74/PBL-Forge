@@ -36,26 +36,11 @@ import {
   DragonLessonDefinition,
   DragonLessonId,
 } from './journey/domain/dragon-journey.models';
-import { DRAGON_CONCEPTS, conceptsForSkill } from './inquiry/concept.registry';
-import { DRAGON_INQUIRY_BANK, itemsForConcept, uncoveredConcepts } from './inquiry/inquiry-bank';
-import { INSTRUMENT_MANIFESTS } from './inquiry/instrument.registry';
-import { DEFAULT_INQUIRY_SETTINGS, normalizeInquirySettings } from './inquiry/inquiry-policy';
-import {
-  Concept,
-  ConceptId,
-  CoverageMode,
-  HintPolicy,
-  InquiryItem,
-  InquiryPolicy,
-  InquirySettings,
-  RepeatMissStrategy,
-} from './inquiry/inquiry.models';
-import { GeneticsSkill } from './dragon-genetics.models';
-import { DRAGON_PROJECT_HUB_DEFINITION } from './project/dragon-project-hub.definition';
+import { DragonInquiryPolicyEditorComponent } from './inquiry/dragon-inquiry-policy-editor.component';
 
 @Component({
   selector: 'app-dragon-teacher-page',
-  imports: [AsyncPipe, RouterLink],
+  imports: [AsyncPipe, RouterLink, DragonInquiryPolicyEditorComponent],
   templateUrl: './dragon-teacher.page.html',
   styleUrl: './dragon-teacher.page.scss',
 })
@@ -74,8 +59,9 @@ export class DragonTeacherPage {
   readonly progress$ = toObservable(this.session.user).pipe(
     switchMap((user) => {
       this.error.set(null);
+      if (!user) return of([] as DragonStudentProgressDocument[]);
       const records = collection(this.firestore, 'dragonLabProgress');
-      const source = query(records, where('teacherId', '==', user?.uid ?? '__none__'));
+      const source = query(records, where('teacherId', '==', user.uid));
       return observeCollection<DragonStudentProgressDocument>(source, {
         idField: 'id',
       }).pipe(
@@ -431,201 +417,6 @@ export class DragonTeacherPage {
     }));
   }
 
-  // ---------------------------------------------------------------------------
-  // Inquiry settings — what the workstations ask, and how that adapts
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Derived from the concept graph rather than the project hub, whose skill ids are generically
-   * typed as `string` because that definition is shared across projects.
-   */
-  readonly masterySkills: readonly { id: GeneticsSkill; title: string }[] = [
-    ...new Set(DRAGON_CONCEPTS.map((concept) => concept.skillId)),
-  ]
-    .sort()
-    .map((id) => ({
-      id,
-      title:
-        DRAGON_PROJECT_HUB_DEFINITION.masterySkills.find((skill) => skill.id === id)?.title ?? id,
-    }));
-  readonly coverageModes: readonly CoverageMode[] = [
-    'weakness-first',
-    'concept-first',
-    'balanced',
-  ];
-  readonly repeatMissStrategies: readonly RepeatMissStrategy[] = [
-    'different-probe',
-    'same-probe',
-    'prerequisite-first',
-  ];
-  readonly hintPolicies: readonly HintPolicy[] = ['level', 'always', 'never', 'after-miss'];
-  readonly instruments = INSTRUMENT_MANIFESTS;
-  readonly expandedSkill = signal<GeneticsSkill | null>(null);
-
-  inquirySettings(): InquirySettings {
-    return this.adaptiveStore.assignment().inquirySettings ?? DEFAULT_INQUIRY_SETTINGS;
-  }
-
-  inquiryPolicy(): InquiryPolicy {
-    return this.inquirySettings().policy;
-  }
-
-  conceptsFor(skillId: GeneticsSkill): readonly Concept[] {
-    return conceptsForSkill(skillId);
-  }
-
-  toggleSkillPanel(skillId: GeneticsSkill): void {
-    this.expandedSkill.update((current) => (current === skillId ? null : skillId));
-  }
-
-  bankItemsFor(conceptId: ConceptId): readonly InquiryItem[] {
-    return itemsForConcept(conceptId);
-  }
-
-  /** How many authored items back a concept, so a thin area is visible before a class meets it. */
-  conceptItemCount(conceptId: ConceptId): number {
-    return itemsForConcept(conceptId).length;
-  }
-
-  conceptEnabled(conceptId: ConceptId): boolean {
-    return this.inquirySettings().conceptSettings[conceptId]?.enabled !== false;
-  }
-
-  conceptPriority(conceptId: ConceptId): number {
-    return this.inquirySettings().conceptSettings[conceptId]?.priority ?? 0;
-  }
-
-  itemDisabled(itemId: string): boolean {
-    return this.inquirySettings().disabledItemIds.includes(itemId);
-  }
-
-  itemPinned(itemId: string): boolean {
-    return this.inquirySettings().pinnedItemIds.includes(itemId);
-  }
-
-  probeDisabled(probeId: string): boolean {
-    return this.inquirySettings().disabledProbeIds.includes(probeId);
-  }
-
-  /** Concepts with no authored item at a level — a content gap rather than a setting problem. */
-  coverageGaps(): readonly ConceptId[] {
-    return uncoveredConcepts(this.adaptiveStore.assignment().defaultLevel);
-  }
-
-  bankSize(): number {
-    return DRAGON_INQUIRY_BANK.length + this.inquirySettings().authoredItems.length;
-  }
-
-  conceptCount(): number {
-    return DRAGON_CONCEPTS.length;
-  }
-
-  async updatePolicy(patch: Partial<InquiryPolicy>): Promise<void> {
-    await this.changeInquiry((settings) => ({
-      ...settings,
-      policy: { ...settings.policy, ...patch },
-    }));
-  }
-
-  async setPolicyFlag(key: keyof InquiryPolicy, value: boolean): Promise<void> {
-    await this.updatePolicy({ [key]: value } as Partial<InquiryPolicy>);
-  }
-
-  async setPolicyNumber(key: keyof InquiryPolicy, value: string): Promise<void> {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) return;
-    await this.updatePolicy({ [key]: parsed } as Partial<InquiryPolicy>);
-  }
-
-  async setPolicyChoice(key: keyof InquiryPolicy, value: string): Promise<void> {
-    await this.updatePolicy({ [key]: value } as unknown as Partial<InquiryPolicy>);
-  }
-
-  async toggleConcept(conceptId: ConceptId): Promise<void> {
-    const enabled = this.conceptEnabled(conceptId);
-    await this.changeInquiry((settings) => ({
-      ...settings,
-      conceptSettings: {
-        ...settings.conceptSettings,
-        [conceptId]: { ...settings.conceptSettings[conceptId], enabled: !enabled },
-      },
-    }));
-  }
-
-  async setConceptPriority(conceptId: ConceptId, value: string): Promise<void> {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) return;
-    await this.changeInquiry((settings) => ({
-      ...settings,
-      conceptSettings: {
-        ...settings.conceptSettings,
-        [conceptId]: { ...settings.conceptSettings[conceptId], priority: parsed },
-      },
-    }));
-  }
-
-  async toggleItemDisabled(itemId: string): Promise<void> {
-    await this.changeInquiry((settings) => ({
-      ...settings,
-      disabledItemIds: toggle(settings.disabledItemIds, itemId),
-      // An item cannot be both required and withdrawn.
-      pinnedItemIds: settings.pinnedItemIds.filter((id) => id !== itemId),
-    }));
-  }
-
-  async toggleItemPinned(itemId: string): Promise<void> {
-    await this.changeInquiry((settings) => ({
-      ...settings,
-      pinnedItemIds: toggle(settings.pinnedItemIds, itemId),
-      disabledItemIds: settings.disabledItemIds.filter((id) => id !== itemId),
-    }));
-  }
-
-  async toggleProbe(probeId: string): Promise<void> {
-    await this.changeInquiry((settings) => ({
-      ...settings,
-      disabledProbeIds: toggle(settings.disabledProbeIds, probeId),
-    }));
-  }
-
-  async resetInquirySettings(): Promise<void> {
-    await this.changeInquiry(() => DEFAULT_INQUIRY_SETTINGS);
-  }
-
-  /** Concepts a teacher has told this student to concentrate on. */
-  studentConceptFocus(studentId: string): readonly string[] {
-    return this.adaptiveStore.assignment().studentOverrides[studentId]?.inquiry?.conceptFocusIds ?? [];
-  }
-
-  async toggleStudentConceptFocus(studentId: string, conceptId: ConceptId): Promise<void> {
-    const current = this.studentConceptFocus(studentId);
-    await this.changeAssignment((assignment) => ({
-      ...assignment,
-      studentOverrides: {
-        ...assignment.studentOverrides,
-        [studentId]: {
-          ...assignment.studentOverrides[studentId],
-          inquiry: {
-            ...assignment.studentOverrides[studentId]?.inquiry,
-            conceptFocusIds: toggle([...current], conceptId),
-          },
-        },
-      },
-    }));
-  }
-
-  private async changeInquiry(
-    change: (settings: InquirySettings) => InquirySettings,
-  ): Promise<void> {
-    await this.changeAssignment((assignment) => ({
-      ...assignment,
-      // Normalized on write as well as on read, so an out-of-range value never reaches storage.
-      inquirySettings: normalizeInquirySettings(
-        change(assignment.inquirySettings ?? DEFAULT_INQUIRY_SETTINGS),
-      ),
-    }));
-  }
-
   private async changeAssignment(
     change: (assignment: DragonAssignment) => DragonAssignment,
   ): Promise<void> {
@@ -639,9 +430,4 @@ export class DragonTeacherPage {
       this.assignmentMessage.set('Assignment could not be saved. Check teacher permissions.');
     }
   }
-}
-
-/** Adds or removes one id, keeping the caller's list immutable. */
-function toggle(list: readonly string[], id: string): string[] {
-  return list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
 }

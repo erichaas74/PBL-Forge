@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -9,7 +9,7 @@ import { PersistedDnaLabState } from './dna-process.models';
 const STORAGE_KEY_PREFIX = 'pbl-forge.dragon-genetics.dna-comparison-lab.v2';
 
 /** Replaceable device-backed persistence boundary for the DNA comparison bench. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DnaComparisonRepository {
   load(studentId: string): PersistedDnaLabState {
     return readStoredJson(this.storageKey(studentId), {}, (value) =>

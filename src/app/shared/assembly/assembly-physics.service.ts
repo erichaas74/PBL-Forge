@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import * as CANNON from 'cannon-es';
 import {
   AssemblyJoint,
@@ -35,7 +35,7 @@ interface TrackedSpring {
   broken: boolean;
 }
 
-@Injectable()
+@Service({ autoProvided: false })
 export class AssemblyPhysicsService {
   private world = this.createWorld();
   private readonly bodies = new Map<string, CANNON.Body>();

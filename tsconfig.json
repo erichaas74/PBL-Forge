@@ -4,7 +4,8 @@
   "compileOnSave": false,
   "compilerOptions": {
     "paths": {
-      "@pbl/assembly/*": ["./src/app/shared/assembly/*"]
+      "@pbl/assembly/*": ["./src/app/shared/assembly/*"],
+      "@pbl/creation-library/*": ["./src/app/shared/creation-library/*"]
     },
     "strict": true,
     "noImplicitOverride": true,

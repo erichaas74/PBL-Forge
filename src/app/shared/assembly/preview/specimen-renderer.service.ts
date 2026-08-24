@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Service, signal } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AssemblyPartRole, Vector3Data } from '../domain/assembly.models';
@@ -8,6 +8,12 @@ import {
   disposeAssemblyObject,
 } from '../rendering/three-assembly-mesh.factory';
 import { RenderQuality, resolveRenderQuality } from '../rendering/render-quality';
+import {
+  OPEN_SPECIMEN_EXPRESSION,
+  SpecimenFacialAnimation,
+  applySpecimenFacialExpression,
+  collectSpecimenFacialAnimation,
+} from '../rendering/specimen-facial-animation';
 import {
   SPECIMEN_STAGE_THEME,
   StagePostPipeline,
@@ -220,7 +226,7 @@ function createFlamePlumeGeometry(length: number, radius: number, phase: number)
   return geometry;
 }
 
-@Injectable()
+@Service({ autoProvided: false })
 export class SpecimenRendererService {
   private host: HTMLElement | null = null;
   private scene: THREE.Scene | null = null;
@@ -254,6 +260,7 @@ export class SpecimenRendererService {
   private activePose: SpecimenPoseOptions | undefined;
   private readonly partObjects = new Map<string, THREE.Object3D>();
   private readonly partRoles = new Map<string, readonly AssemblyPartRole[]>();
+  private facialAnimation: SpecimenFacialAnimation = { eyelids: [] };
   private lastShowOptions: ShowSpecimenOptions = {};
 
   /**
@@ -380,6 +387,9 @@ export class SpecimenRendererService {
       this.partObjects.set(part.id, object);
       this.partRoles.set(part.id, part.roles ?? []);
     }
+
+    this.facialAnimation = collectSpecimenFacialAnimation(content);
+    applySpecimenFacialExpression(this.facialAnimation, OPEN_SPECIMEN_EXPRESSION);
 
     this.scene.add(pivot);
     this.specimenGroup = pivot;
@@ -563,6 +573,10 @@ export class SpecimenRendererService {
     const descriptor = this.descriptor;
     if (!descriptor) return;
     this.applyPose(motion.poseAt(descriptor.blueprint, phase, this.activePose?.droopRadians ?? 0));
+    applySpecimenFacialExpression(
+      this.facialAnimation,
+      motion.expressionAt?.(phase) ?? OPEN_SPECIMEN_EXPRESSION,
+    );
     this.syncFireEffect(null);
     this.renderNow();
   }
@@ -616,6 +630,10 @@ export class SpecimenRendererService {
           bends: [...(this.activePose?.bends ?? []), ...active.bendsAt(phase)],
         }),
       );
+      applySpecimenFacialExpression(
+        this.facialAnimation,
+        active.expressionAt?.(phase) ?? OPEN_SPECIMEN_EXPRESSION,
+      );
       this.renderNow();
     };
 
@@ -626,6 +644,7 @@ export class SpecimenRendererService {
     const descriptor = this.descriptor;
     if (!descriptor) return;
     this.applyPose(buildSpecimenPose(descriptor.blueprint, this.activePose));
+    applySpecimenFacialExpression(this.facialAnimation, OPEN_SPECIMEN_EXPRESSION);
     this.syncFireEffect(null);
 
     if (this.baseFrame && this.activeFrame !== this.baseFrame) {
@@ -992,6 +1011,7 @@ export class SpecimenRendererService {
     }
     this.partObjects.clear();
     this.partRoles.clear();
+    this.facialAnimation = { eyelids: [] };
   }
 
   /**

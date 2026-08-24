@@ -1,0 +1,8 @@
+<main class="cell-gene-page">
+  <nav><a [routerLink]="returnUrl()">← Return to Where Do Genes Live?</a></nav>
+  <app-genetics-microscope
+    [program]="program()"
+    [studentId]="studentId()"
+    [revealedGeneIds]="revealedGeneIds()"
+  />
+</main>

@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Service, signal } from '@angular/core';
 import { SessionService } from '../../../core/firebase/session.service';
 import {
   DragonAssignment,
@@ -42,15 +42,17 @@ import {
 import { LOCAL_WORKSTATION_STUDENT_ID } from '../workstations/shared/dragon-workstation-context.models';
 import { normalizeDragonClassJourneyPlan } from '../journey/config/dragon-journey.registry';
 
-const LOCAL_ASSIGNMENT_KEY = 'pbl-forge.dragon-genetics.assignment.v1';
+const LOCAL_ASSIGNMENT_KEY_PREFIX = 'pbl-forge.dragon-genetics.assignment.v2';
 const LOCAL_RUNS_KEY_PREFIX = 'pbl-forge.dragon-genetics.runs.v1';
 const LOCAL_NOTEBOOK_KEY_PREFIX = 'pbl-forge.dragon-genetics.notebook.v1';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonAdaptiveStore {
   private readonly repository = inject(DragonAdaptiveRepository);
   private readonly session = inject(SessionService);
-  private readonly assignmentSignal = signal<DragonAssignment>(loadLocalAssignment());
+  private readonly assignmentSignal = signal<DragonAssignment>(
+    loadLocalAssignment(LOCAL_WORKSTATION_STUDENT_ID),
+  );
   private readonly runsSignal = signal<Partial<Record<DragonSimulationId, DragonSimulationRun>>>(
     {},
   );
@@ -100,6 +102,7 @@ export class DragonAdaptiveStore {
       if (userId === this.hydratedUserId) return;
       const storageStudentId = userId ?? LOCAL_WORKSTATION_STUDENT_ID;
       this.ready.set(false);
+      this.assignmentSignal.set(loadLocalAssignment(storageStudentId));
       this.runsSignal.set(loadLocalRuns(storageStudentId));
       this.geneticsNotebookSignal.set(loadLocalGeneticsNotebook(storageStudentId));
       this.hydrationPromise = this.hydrate();
@@ -270,7 +273,7 @@ export class DragonAdaptiveStore {
     try {
       await this.repository.saveAssignment(next);
       this.assignmentSignal.set(next);
-      saveLocalAssignment(next);
+      saveLocalAssignment(next, user?.uid ?? LOCAL_WORKSTATION_STUDENT_ID);
       this.persistenceState.set('saved');
     } catch (error) {
       console.error('Dragon Genetics assignment could not be saved.', error);
@@ -334,7 +337,7 @@ export class DragonAdaptiveStore {
       ]);
       if (request !== this.hydrationRequest || this.session.user()?.uid !== user?.uid) return;
       this.assignmentSignal.set(assignment);
-      saveLocalAssignment(assignment);
+      saveLocalAssignment(assignment, userId);
       const merged = { ...loadLocalRuns(userId) };
       for (const remote of remoteRuns) {
         merged[remote.simulationId] = newerRun(merged[remote.simulationId], remote) ?? remote;
@@ -461,11 +464,11 @@ function newerRun(
   return first.updatedAtIso >= second.updatedAtIso ? first : second;
 }
 
-function loadLocalAssignment(): DragonAssignment {
+function loadLocalAssignment(studentId: string): DragonAssignment {
   if (typeof localStorage === 'undefined') return DEFAULT_DRAGON_ASSIGNMENT;
   try {
     const stored = JSON.parse(
-      localStorage.getItem(LOCAL_ASSIGNMENT_KEY) ?? 'null',
+      localStorage.getItem(`${LOCAL_ASSIGNMENT_KEY_PREFIX}.${studentId}`) ?? 'null',
     ) as Partial<DragonAssignment> | null;
     if (!stored) return DEFAULT_DRAGON_ASSIGNMENT;
     const storedGeneIds = Array.isArray(stored.alleleCatalog?.availableGeneIds)
@@ -528,9 +531,12 @@ function saveLocalGeneticsNotebook(notebook: GeneticsNotebookSnapshot): void {
   }
 }
 
-function saveLocalAssignment(assignment: DragonAssignment): void {
+function saveLocalAssignment(assignment: DragonAssignment, studentId: string): void {
   if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(LOCAL_ASSIGNMENT_KEY, JSON.stringify(assignment));
+    localStorage.setItem(
+      `${LOCAL_ASSIGNMENT_KEY_PREFIX}.${studentId}`,
+      JSON.stringify(assignment),
+    );
   }
 }
 

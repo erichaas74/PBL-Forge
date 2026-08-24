@@ -1,0 +1,34 @@
+<section class="mini-incubator" aria-labelledby="mini-incubator-title">
+  <header><span>Open investigation</span><h1 id="mini-incubator-title">Mini Dragon Incubator</h1><p>Choose any two example founders, focus the sorter on one visible trait, and compare how many hatchlings reach each bucket.</p></header>
+
+  <div class="founder-deck" aria-label="Example mini dragon founders">
+    @for (founder of founders; track founder.id) {
+      <article [class.parent-a]="parentIds()[0] === founder.id" [class.parent-b]="parentIds()[1] === founder.id">
+        <app-specimen-thumb [source]="founder.source" [labelOverride]="founder.name" [showLabel]="false" />
+        <strong>{{ founder.name }}</strong><small>{{ founder.title }}</small>
+        <div><button type="button" [disabled]="parentIds()[1] === founder.id" (click)="selectParent(0, founder.id)">{{ parentIds()[0] === founder.id ? 'Parent A' : 'Choose A' }}</button><button type="button" [disabled]="parentIds()[0] === founder.id" (click)="selectParent(1, founder.id)">{{ parentIds()[1] === founder.id ? 'Parent B' : 'Choose B' }}</button></div>
+      </article>
+    }
+  </div>
+
+  <section class="incubator-controls" aria-label="Incubator controls">
+    <label>Visible trait<select [value]="selectedGeneId()" (change)="setGene($event)">@for (geneId of genes; track geneId) { <option [value]="geneId">{{ geneId }}</option> }</select></label>
+    <label>Eggs in sample<select [value]="sampleSize()" (change)="setSampleSize($event)">@for (size of sampleSizes; track size) { <option [value]="size">{{ size }}</option> }</select></label>
+    <button type="button" data-testid="run-mini-batch" (click)="runBatch()">Hatch and sort offspring</button>
+  </section>
+
+  @if (latest(); as batch) {
+    <section class="bucket-yard" aria-labelledby="bucket-yard-title">
+      <header><div><span>Offspring receiving yard</span><h2 id="bucket-yard-title">{{ batch.size }} hatchlings sorted</h2></div><p>{{ founderName(batch.parentIds[0]) }} × {{ founderName(batch.parentIds[1]) }}</p></header>
+      <div class="buckets">
+        @for (bucket of batch.buckets; track bucket.id) {
+          <article><span>{{ bucket.label }}</span><strong>{{ bucket.count }}</strong><small>{{ bucket.percentage }}% of this batch</small><div class="hatchlings" aria-hidden="true">@for (item of bucketIcons(bucket.count); track item) { <i>◆</i> }</div></article>
+        }
+      </div>
+    </section>
+  }
+
+  @if (batches().length) {
+    <section class="batch-ledger"><h2>Batch ledger</h2><table><thead><tr><th>Batch</th><th>Parents</th><th>Trait</th><th>Bucket counts</th></tr></thead><tbody>@for (batch of batches(); track batch.id; let order = $index) { <tr><th>{{ order + 1 }}</th><td>{{ founderName(batch.parentIds[0]) }} × {{ founderName(batch.parentIds[1]) }}</td><td>{{ batch.geneId }}</td><td>@for (bucket of batch.buckets; track bucket.id) { <span>{{ bucket.label }}: {{ bucket.count }}</span> }</td></tr> }</tbody></table></section>
+  }
+</section>

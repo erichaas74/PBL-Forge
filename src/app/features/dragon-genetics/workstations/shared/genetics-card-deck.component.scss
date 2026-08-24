@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.deck-flip {
+  min-height: 2.35rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgb(241 197 93 / 42%);
+  border-radius: 999px;
+  background: rgb(241 197 93 / 10%);
+  color: #fff0c7;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}

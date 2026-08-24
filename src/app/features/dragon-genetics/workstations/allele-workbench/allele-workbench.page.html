@@ -1,0 +1,26 @@
+<app-dragon-workstation-host-shell
+  [launchContext]="launchContext()"
+  directTitle="Allele Workbench"
+>
+  @if (pendingEvidence(); as evidence) {
+    <app-dragon-evidence-capture-card
+      [evidence]="evidence"
+      (capture)="capturePendingEvidence()"
+      (dismiss)="pendingEvidence.set(null)"
+    />
+  }
+  @if (evidenceMessage()) {
+    <p class="evidence-status" role="status">{{ evidenceMessage() }}</p>
+  }
+  @if (context.availableGenes().length) {
+    <app-allele-vault-workbench
+      [genes]="context.availableGenes()"
+      [alleles]="context.availableAlleles()"
+      [notebook]="context.geneticsNotebook()"
+      [claimFeedback]="claimFeedback()"
+      (interaction)="handleInteraction($event)"
+    />
+  } @else {
+    <p class="empty-catalog" role="status">No gene samples have been released for this assignment.</p>
+  }
+</app-dragon-workstation-host-shell>

@@ -35,16 +35,20 @@
             <app-specimen-viewport
               #wiseViewport
               [source]="wiseDragonSource"
+              [idleMotion]="wiseDragonIdle"
               [theme]="theme"
               [transparent]="true"
               [showGroundShadow]="true"
-              [framePadding]="1.02"
+              [framePadding]="1.16"
               [controls]="false"
               ariaLabel="Wise Dragon Sage"
             />
             <div class="elder-nameplate">
               <strong>Wise Dragon Sage</strong>
               <span>Keeper of the Gene Records</span>
+              <button type="button" [attr.aria-pressed]="voice.enabled()" (click)="toggleVoice()">
+                {{ voice.enabled() ? 'Voice on' : 'Voice off' }}
+              </button>
             </div>
           </div>
 
@@ -127,15 +131,19 @@
             <app-specimen-viewport
               #wiseViewport
               [source]="wiseDragonSource"
+              [idleMotion]="wiseDragonIdle"
               [theme]="theme"
               [transparent]="true"
-              [framePadding]="1.02"
+              [framePadding]="1.16"
               [controls]="false"
               ariaLabel="Wise Dragon Sage listening to the defense"
             />
             <div class="elder-nameplate">
               <strong>Wise Dragon Sage</strong>
               <span>Practice defense · {{ champion()!.name }}</span>
+              <button type="button" [attr.aria-pressed]="voice.enabled()" (click)="toggleVoice()">
+                {{ voice.enabled() ? 'Voice on' : 'Voice off' }}
+              </button>
             </div>
           </div>
 

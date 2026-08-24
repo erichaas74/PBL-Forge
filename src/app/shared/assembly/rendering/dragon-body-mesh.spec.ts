@@ -39,6 +39,11 @@ describe('dragon body mesh', () => {
       .filter(child => child.name.startsWith('dragon-body-four-wing-scapula'))).toHaveLength(4);
     expect(build({ bodyArchetype: 'classic' }).children
       .some(child => child.name.includes('wyvern-keel'))).toBe(false);
+    expect(build({ bodyArchetype: 'regal' }).getObjectByName('dragon-body-regal-shoulder-1')).toBeTruthy();
+    expect(build({ bodyArchetype: 'bulwark' }).getObjectByName('dragon-body-bulwark-haunch-1')).toBeTruthy();
+    expect(build({ bodyArchetype: 'courser' }).getObjectByName('dragon-body-courser-keel')).toBeTruthy();
+    expect(build({ bodyArchetype: 'prowler' }).getObjectByName('dragon-body-prowler-mantle-1')).toBeTruthy();
+    expect(build({ bodyArchetype: 'serpent' }).getObjectByName('dragon-body-serpent-ridge')).toBeTruthy();
   });
 
   it('adds a seated lantern row to both flanks only when expressed', () => {

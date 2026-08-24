@@ -1,11 +1,15 @@
 import { AssemblyGarageStore } from './assembly-garage.store';
+import { vi } from 'vitest';
 
 describe('AssemblyGarageStore', () => {
     let store: AssemblyGarageStore;
 
     beforeEach(() => {
+        localStorage.removeItem('dragon-designer.garage-draft.v1');
         store = new AssemblyGarageStore();
     });
+
+    afterEach(() => store.ngOnDestroy());
 
     it('starts with a valid starter assembly and joint draft', () => {
         expect(store.partCount()).toBe(2);
@@ -13,6 +17,38 @@ describe('AssemblyGarageStore', () => {
         expect(store.canCreateJoint()).toBe(true);
         expect(store.jointDraft().parentPartId).toBeTruthy();
         expect(store.jointDraft().childPartId).toBeTruthy();
+    });
+
+    it('autosaves recoverable drafts and supports undo and redo', () => {
+        vi.useFakeTimers();
+        try {
+            store.enablePersistence();
+            const originalMass = store.state().parts[0].mass;
+            store.selectPart(store.state().parts[0].id);
+            store.updateSelectedPartMass(originalMass + 3);
+            vi.advanceTimersByTime(500);
+
+            expect(store.canUndo()).toBe(true);
+            expect(localStorage.getItem('dragon-designer.garage-draft.v1')).toContain('savedAtIso');
+            store.undo();
+            expect(store.state().parts[0].mass).toBe(originalMass);
+            store.redo();
+            expect(store.state().parts[0].mass).toBe(originalMass + 3);
+
+            const restored = new AssemblyGarageStore();
+            expect(restored.enablePersistence()).toBe(true);
+            expect(restored.state().parts[0].mass).toBe(originalMass + 3);
+            restored.ngOnDestroy();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('round trips a versioned Garage draft', () => {
+        const json = store.exportDraftJson();
+        store.removeSelectedPart();
+        store.importDraftJson(json);
+        expect(store.partCount()).toBe(2);
     });
 
     it('creates a joint from selected snap points', () => {

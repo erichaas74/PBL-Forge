@@ -20,7 +20,7 @@ export interface DragonModelPackV1 {
   models: DragonModelPackEntryV1[];
 }
 
-export const SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS = [
+export const CLASSIC_DRAGON_PROCEDURAL_PROFILE_IDS = [
   'dragon-body',
   'dragon-head-horned',
   'dragon-upper-jaw',
@@ -38,6 +38,42 @@ export const SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS = [
   'dragon-tail',
   'dragon-tail-club',
   'dragon-tail-stinger',
+] as const;
+
+export const MINI_DRAGON_PROCEDURAL_PROFILE_IDS = [
+  'mini-dragon-body',
+  'mini-dragon-dorsal-scales',
+  'mini-dragon-neck',
+  'mini-dragon-head',
+  'mini-dragon-horn',
+  'mini-dragon-ear',
+  'mini-dragon-jaw',
+  'mini-dragon-thigh',
+  'mini-dragon-leg',
+  'mini-dragon-wing',
+  'mini-dragon-tail',
+  'mini-dragon-tail-plume',
+  'mini-dragon-brow-plates',
+  'mini-dragon-whiskers',
+  'mini-dragon-chin-tuft',
+  'mini-dragon-dewlap',
+  'mini-dragon-neck-ruff',
+  'mini-dragon-shoulder-plates',
+  'mini-dragon-belly-scutes',
+  'mini-dragon-flank-fins',
+  'mini-dragon-hip-fins',
+  'mini-dragon-tail-sail',
+  'mini-dragon-face-shield',
+  'mini-dragon-nose-horn',
+  'mini-dragon-serpent-body-segment',
+  'mini-dragon-fork-tail-branch',
+  'mini-dragon-fairy-wing',
+  'mini-dragon-aero-wing',
+] as const;
+
+export const SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS = [
+  ...CLASSIC_DRAGON_PROCEDURAL_PROFILE_IDS,
+  ...MINI_DRAGON_PROCEDURAL_PROFILE_IDS,
 ] as const;
 
 export type DragonProceduralProfileId =

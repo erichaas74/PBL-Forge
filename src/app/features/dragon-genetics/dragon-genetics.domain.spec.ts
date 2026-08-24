@@ -24,6 +24,7 @@ describe('Dragon Genetics breeding domain', () => {
                 fire: ['f', 'f'],
                 scales: ['s', 's'],
                 horns: ['h', 'h'],
+                legs: ['l', 'l'], claws: ['c', 'c'], crest: ['r', 'r'], spikes: ['p', 'p'],
             },
         };
         const dragon = materializeDragon(record);

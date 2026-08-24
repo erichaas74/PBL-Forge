@@ -1,6 +1,11 @@
 import { PUBLISHED_CLASSIC_DRAGON_PRESET } from '../../../data/published-dragon-models';
 import { AssemblyBlueprint } from '../domain/assembly.models';
-import { DRAGON_IDLE_BREATH, DRAGON_REARED_POSE, DRAGON_RESTING_POSE } from './specimen-stance';
+import {
+  DRAGON_IDLE_BREATH,
+  DRAGON_REARED_POSE,
+  DRAGON_RESTING_POSE,
+  dragonIdleBlink,
+} from './specimen-stance';
 import { buildSpecimenPose } from './specimen-pose';
 
 /**
@@ -136,6 +141,27 @@ describe('dragon idle breath', () => {
     const start = bendsAt(0).map(bend => bend.radians);
     const end = bendsAt(1).map(bend => bend.radians);
     start.forEach((value, index) => expect(end[index]).toBeCloseTo(value, 6));
+    expect(DRAGON_IDLE_BREATH.expressionAt?.(1)).toEqual(
+      DRAGON_IDLE_BREATH.expressionAt?.(0),
+    );
+  });
+
+  it('adds subtle head, lower-jaw, and ear life to the breathing pose', () => {
+    const bends = bendsAt(0.755);
+    expect(bends.filter(bend => bend.role === 'head').length).toBe(2);
+    expect(bends.some(bend => bend.role === 'jaw' && bend.matchPartId?.('mini-jaw'))).toBe(true);
+    expect(bends.some(bend => bend.role === 'jaw' && bend.matchPartId?.('classic-dragon-lower-jaw'))).toBe(true);
+    expect(bends.some(bend => bend.role === 'jaw' && !bend.matchPartId?.('classic-dragon-upper-jaw'))).toBe(true);
+    expect(bends.some(bend => bend.role === 'ear' && bend.radians > 0)).toBe(true);
+  });
+
+  it('blinks fully, reopens, and includes an uneven double blink', () => {
+    expect(dragonIdleBlink(0)).toBe(0);
+    expect(dragonIdleBlink(0.19)).toBe(1);
+    expect(dragonIdleBlink(0.45)).toBe(0);
+    expect(dragonIdleBlink(0.7)).toBe(1);
+    expect(dragonIdleBlink(0.755)).toBe(1);
+    expect(DRAGON_IDLE_BREATH.expressionAt?.(0.19).blink).toBe(1);
   });
 
   it('drives channels at different rates, so it does not read as one pulse', () => {

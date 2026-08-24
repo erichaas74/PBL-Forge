@@ -56,6 +56,23 @@
     >Definition colours</button>
   </div>
 
+  <div class="lab__filters">
+    <label class="lab__field lab__field--search">
+      <span>Find a part</span>
+      <input type="search" placeholder="Name, ID, or profile" [value]="search()" (input)="onSearch($event)" />
+    </label>
+    <label class="lab__field">
+      <span>Anatomy group</span>
+      <select [value]="group()" (change)="setGroup($event)">
+        @for (option of groups(); track option) { <option [value]="option">{{ option }}</option> }
+      </select>
+    </label>
+    @if (comparison(); as compared) {
+      <span class="lab__compare-status">Comparing with {{ compared.label }}</span>
+      <button type="button" class="lab__reset" (click)="compareId.set(null)">Clear comparison</button>
+    }
+  </div>
+
   <!-- Contact sheet -->
   <section class="lab__sheet" aria-labelledby="sheet-heading" data-bake="contact-sheet">
     <h2 class="lab__section-title" id="sheet-heading">All {{ collectionLabel() }} parts ({{ tiles().length }})</h2>
@@ -79,6 +96,9 @@
             }
             <span class="lab__tile-label">{{ tile.definition.label }}</span>
             <span class="lab__tile-id">{{ tile.definition.visualProfile?.profileId ?? tile.definition.shape }}</span>
+          </button>
+          <button type="button" class="lab__compare" (click)="compare(tile.definition, $event)">
+            {{ compareId() === tile.definition.id ? 'Comparing' : 'Compare' }}
           </button>
         </li>
       }
@@ -195,6 +215,24 @@
             </div>
           }
 
+
+          @if (parameterControls().length) {
+            <div class="lab__scale">
+              <div class="lab__scale-head">
+                <h3 class="lab__section-title">Mini Dragon features</h3>
+                <button type="button" class="lab__reset" (click)="resetPartParameters()">Reset</button>
+              </div>
+              @for (control of parameterControls(); track control.key) {
+                <label class="lab__slider">
+                  <span>{{ control.label }} {{ control.value }}</span>
+                  <input type="range" [min]="control.min" [max]="control.max" [step]="control.step"
+                    [value]="control.value" (input)="onPartParameter(control, $event)" />
+                </label>
+              }
+              <p class="lab__hint">These per-part values use the same versioned registry and draft storage as the lab dragon.</p>
+            </div>
+          }
+
           <div class="lab__angles" data-bake="angles">
             <h3 class="lab__section-title">Every angle</h3>
             <ul class="lab__angle-grid">
@@ -212,6 +250,25 @@
           </div>
         </div>
       </div>
+
+      @if (comparison(); as compared) {
+        <section class="lab__comparison" aria-label="Part comparison">
+          <div><strong>Selected</strong><span>{{ definition.label }}</span><code>{{ definition.dimensions.x }} × {{ definition.dimensions.y }} × {{ definition.dimensions.z }}</code></div>
+          <div><strong>Compared</strong><span>{{ compared.label }}</span><code>{{ compared.dimensions.x }} × {{ compared.dimensions.y }} × {{ compared.dimensions.z }}</code></div>
+        </section>
+      }
+
+      @if (acceptance(); as report) {
+        <section class="lab__acceptance" [class.lab__acceptance--pass]="report.passed" aria-labelledby="acceptance-heading">
+          <h3 id="acceptance-heading">Upgrade acceptance sheet · {{ report.passed ? 'pass' : 'needs attention' }}</h3>
+          <p>Review the six rendered angles above at the current values and at each slider extreme.</p>
+          <ul>
+            @for (check of report.checks; track check.id) {
+              <li [class.lab__check--pass]="check.passed"><strong>{{ check.passed ? 'Pass' : 'Check' }}</strong> {{ check.label }} — {{ check.detail }}</li>
+            }
+          </ul>
+        </section>
+      }
     </section>
   }
 

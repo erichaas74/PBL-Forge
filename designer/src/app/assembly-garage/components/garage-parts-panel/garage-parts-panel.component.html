@@ -35,9 +35,21 @@
 }
 
 @if (dragonParts().length) {
-  <app-garage-accordion heading="Dragon Parts" [count]="dragonParts().length">
+  <app-garage-accordion heading="Lab Dragon Parts" [count]="dragonParts().length">
     <div class="button-grid">
       @for (part of dragonParts(); track part.id) {
+        <button type="button" class="tool-button" (click)="addCatalogPart(part)">
+          <span class="tool-button__label">{{ part.label }}</span>
+        </button>
+      }
+    </div>
+  </app-garage-accordion>
+}
+
+@if (family() === 'dragon' && miniDragonParts().length) {
+  <app-garage-accordion heading="Mini Dragon Parts" [count]="miniDragonParts().length" [startOpen]="false">
+    <div class="button-grid">
+      @for (part of miniDragonParts(); track part.id) {
         <button type="button" class="tool-button" (click)="addCatalogPart(part)">
           <span class="tool-button__label">{{ part.label }}</span>
         </button>
@@ -167,3 +179,11 @@
     }
   </div>
 </section>
+@if (family() === 'dragon') {
+  <div class="catalog-filters">
+    <label><span>Find part</span><input type="search" [value]="search()" (input)="onSearch($event)" /></label>
+    <label><span>Group</span><select [value]="anatomyGroup()" (change)="setAnatomyGroup($event)">
+      @for (group of anatomyGroups; track group) { <option [value]="group">{{ group }}</option> }
+    </select></label>
+  </div>
+}

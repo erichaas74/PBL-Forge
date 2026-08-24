@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Service, signal } from '@angular/core';
 import { DragonTeachingSequence, DragonVisualSurface } from '../domain/teaching-sequence.models';
 import {
   DragonVisualScene,
@@ -9,7 +9,7 @@ import {
   validateDragonVisualScene,
 } from '../domain/visual-contract.validation';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonVisualBridge {
   private readonly sceneState = signal<DragonVisualScene | null>(null);
   private readonly sequenceState = signal<DragonTeachingSequence | null>(null);
@@ -56,4 +56,3 @@ export class DragonVisualBridge {
 function assertValid(label: string, errors: readonly string[]): void {
   if (errors.length) throw new Error(`Invalid ${label}: ${errors.join(' ')}`);
 }
-

@@ -12,8 +12,8 @@
 
 .wise-guide-launcher {
   position: absolute;
-  bottom: max(0.8rem, env(safe-area-inset-bottom));
-  left: clamp(0.7rem, 2vw, 1.25rem);
+  top: max(0.8rem, env(safe-area-inset-top));
+  right: clamp(0.7rem, 2vw, 1.25rem);
   display: inline-flex;
   gap: 0.7rem;
   align-items: center;
@@ -80,7 +80,7 @@
 
 .wise-guide__header {
   display: grid;
-  grid-template-columns: 7.2rem minmax(0, 1fr) auto;
+  grid-template-columns: 7.2rem minmax(0, 1fr) auto auto;
   gap: 0.8rem;
   align-items: center;
   min-height: 7.5rem;
@@ -137,6 +137,25 @@
   font-size: var(--text-xl);
   line-height: 1;
   cursor: pointer;
+}
+
+.wise-guide__voice {
+  min-height: 2.5rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgb(230 202 148 / 34%);
+  border-radius: 999px;
+  color: #f2d391;
+  background: rgb(255 255 255 / 5%);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.wise-guide__voice:hover,
+.wise-guide__voice:focus-visible {
+  border-color: #e7c985;
+  background: rgb(231 201 133 / 12%);
 }
 
 .wise-guide__place {

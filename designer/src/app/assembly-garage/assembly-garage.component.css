@@ -191,6 +191,52 @@ h1 {
   text-transform: none;
 }
 
+.arena-authoring,
+.release-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d8e0ea;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.release-heading,
+.release-actions,
+.arena-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.release-heading h2 { margin: 0; font-size: 1rem; }
+.arena-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; }
+.release-panel textarea { min-height: 68px; resize: vertical; }
+
+.arena-live-preview {
+  position: relative;
+  width: min(100%, 520px);
+  aspect-ratio: 1;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 8px solid #885b38;
+  border-radius: 8px;
+  background: repeating-linear-gradient(45deg, #d5b77d, #d5b77d 12px, #dcc38d 12px, #dcc38d 24px);
+}
+
+.arena-live-preview--round { border-radius: 50%; }
+.arena-live-preview small { position: absolute; right: 8px; bottom: 6px; padding: 3px 6px; background: #fff9; }
+.spawn { position: absolute; top: 50%; translate: -50% -50%; border-radius: 50%; padding: 12px 8px; color: white; font-weight: 900; }
+.spawn--red { background: #b83232; }
+.spawn--blue { background: #2867a7; }
+.arena-validation { margin: 0; color: #a33b2d; font-weight: 800; }
+.arena-validation--valid { color: #267255; }
+.arena-obstacles { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.arena-obstacles li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; background: #f4f7fa; border-radius: 6px; }
+
 .json-message {
   grid-column: 1 / -1;
   margin: 0;

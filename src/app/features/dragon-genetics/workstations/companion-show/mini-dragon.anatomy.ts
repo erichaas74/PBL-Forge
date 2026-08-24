@@ -2,8 +2,20 @@ import {
   AssemblyBlueprint,
   AssemblyJoint,
   AssemblyPart,
+  JointType,
+  QuaternionData,
   Vector3Data,
 } from '../../../../shared/assembly/domain/assembly.models';
+import {
+  identityQuaternion,
+  invertQuaternion,
+  quaternionFromEuler,
+  rotateVectorByQuaternion,
+} from '../../../../shared/assembly/domain/vector-data';
+import {
+  MiniDragonFormSelection,
+  resolveMiniDragonBreedMorphology,
+} from '../../../../shared/assembly/rendering/mini-dragon-breed-morphology';
 import {
   MiniGenome,
   miniCoatPaint,
@@ -81,6 +93,7 @@ const LEG_LENGTH: Readonly<Record<string, number>> = {
 
 const TAIL_STYLE: Readonly<Record<string, number>> = {
   'tail:star': 0,
+  'tail:split': 3,
   'tail:fork': 1,
   'tail:pom': 2,
 };
@@ -97,38 +110,237 @@ const FEATHER_COVERAGE: Readonly<Record<string, number>> = {
   'plumage:bare': 0,
 };
 
+const BODY_MORPHOLOGY: Readonly<Record<string, Record<string, number>>> = {
+  'frame:long': {
+    miniChestScale: 0.84,
+    miniBellyScale: 0.72,
+    miniHipScale: 0.8,
+    miniWaistScale: 0.82,
+    miniSpineArch: 0.2,
+    miniNeckCurve: 0.48,
+    miniNeckThickness: 0.78,
+    miniTailCurve: 0.22,
+    miniTailTaper: 1.28,
+  },
+  'frame:balanced': {
+    miniChestScale: 1,
+    miniBellyScale: 1,
+    miniHipScale: 1,
+    miniWaistScale: 1,
+    miniSpineArch: 0.05,
+    miniNeckCurve: 0.2,
+    miniNeckThickness: 1,
+    miniTailCurve: 0.03,
+    miniTailTaper: 1,
+  },
+  'frame:round': {
+    miniChestScale: 1.18,
+    miniBellyScale: 1.42,
+    miniHipScale: 1.22,
+    miniWaistScale: 1.12,
+    miniSpineArch: -0.04,
+    miniNeckCurve: 0.04,
+    miniNeckThickness: 1.3,
+    miniTailCurve: -0.08,
+    miniTailTaper: 0.8,
+  },
+};
+
+const SKULL_MORPHOLOGY: Readonly<Record<string, Record<string, number>>> = {
+  'frame:long': { miniSkullLength: 1.14, miniSkullHeight: 0.9, miniSkullWidth: 0.88, miniEyeSpacing: 1.12 },
+  'frame:balanced': { miniSkullLength: 1, miniSkullHeight: 1, miniSkullWidth: 1, miniEyeSpacing: 1 },
+  'frame:round': { miniSkullLength: 0.84, miniSkullHeight: 1.12, miniSkullWidth: 1.16, miniEyeSpacing: 0.88 },
+};
+
+const MUZZLE_MORPHOLOGY: Readonly<Record<string, Record<string, number>>> = {
+  'muzzle:long': { miniMuzzleWidth: 0.82, miniMuzzleDepth: 0.82, miniToothCount: 4 },
+  'muzzle:medium': { miniMuzzleWidth: 1, miniMuzzleDepth: 1, miniToothCount: 2 },
+  'muzzle:pug': { miniMuzzleWidth: 1.38, miniMuzzleDepth: 1.18, miniToothCount: 0 },
+};
+
+const EAR_FOLD: Readonly<Record<string, number>> = {
+  'ears:sail': 0.02,
+  'ears:petal': 0.42,
+  'ears:button': 0.96,
+};
+
+const WING_MORPHOLOGY: Readonly<Record<string, Record<string, number>>> = {
+  'wings:broad': { miniWingChord: 1.4, miniWingSweep: 0.32, miniWingScallop: 0.24, miniWingCamber: 0.18 },
+  'wings:small': { miniWingChord: 0.86, miniWingSweep: 0.12, miniWingScallop: 0.07, miniWingCamber: 0.08 },
+  'wings:vestigial': { miniWingChord: 0.62, miniWingSweep: 0.04, miniWingScallop: 0, miniWingCamber: 0 },
+};
+
+const LIMB_MORPHOLOGY: Readonly<Record<string, Record<string, number>>> = {
+  'legs:stilt': { miniLegThickness: 0.7, miniPawScale: 0.76, miniToeSplay: 0.82 },
+  'legs:medium': { miniLegThickness: 1, miniPawScale: 1, miniToeSplay: 1 },
+  // Short does not mean swollen. The old values shortened the bones while
+  // enlarging both thigh and paw, so serpent breeds looked four-legged first
+  // and long-bodied second.
+  'legs:waddler': { miniLegThickness: 0.92, miniPawScale: 0.82, miniToeSplay: 1 },
+};
+
+const CREST_SCALE: Readonly<Record<string, number>> = {
+  'crest:crown': 1.28,
+  'crest:crown-frill': 1.16,
+  'crest:frill': 1.12,
+};
+
+const TAIL_TIP_SCALE: Readonly<Record<string, number>> = {
+  'tail:star': 1.28,
+  'tail:split': 0.72,
+  'tail:fork': 1.24,
+  'tail:pom': 1,
+};
+
+const EXPANDED_PART_SCALE: Readonly<Record<string, number>> = {
+  'brow:crowned': 1.25,
+  'brow:soft': 0.68,
+  'brow:smooth': 0.12,
+  'whiskers:long': 1.25,
+  'whiskers:short': 0.65,
+  'whiskers:none': 0,
+  'chin:plume': 1.1,
+  'chin:smooth': 0,
+  'dewlap:full': 1.2,
+  'dewlap:half': 0.65,
+  'dewlap:none': 0,
+  'ruff:mane': 1.22,
+  'ruff:mane-petal': 0.86,
+  'ruff:petal': 0.58,
+  'shoulders:shield': 1.18,
+  'shoulders:soft': 0.32,
+  'belly:plated': 1.2,
+  'belly:pebbled': 0.68,
+  'belly:soft': 0.12,
+  'flank-fins:sail': 1.22,
+  'flank-fins:petal': 0.68,
+  'flank-fins:none': 0,
+  'hip-fins:sail': 1.22,
+  'hip-fins:petal': 0.68,
+  'hip-fins:none': 0,
+  'tail-sail:ribbon': 1.2,
+  'tail-sail:ridge': 0.62,
+  'tail-sail:none': 0,
+};
+
 export function buildMiniDragonBlueprint(
   genome: MiniGenome,
   individualId: string,
 ): AssemblyBlueprint {
   const paint = miniCoatPaint(genome, individualId);
   const features = miniIndividualFeatures(individualId);
+  const coatForm = miniPhenotypeFormId('coat', genome);
+  const plumageForm = miniPhenotypeFormId('plumage', genome);
+  const hornForm = miniPhenotypeFormId('horns', genome);
+  const wingForm = miniPhenotypeFormId('wings', genome);
+  const patternForm = miniPhenotypeFormId('pattern', genome);
+  const emberForm = miniPhenotypeFormId('ember', genome);
+  const sizeForm = miniPhenotypeFormId('size', genome);
+  const eyeForm = miniPhenotypeFormId('eyes', genome);
+  const earForm = miniPhenotypeFormId('ears', genome);
+  const muzzleForm = miniPhenotypeFormId('muzzle', genome);
+  const legForm = miniPhenotypeFormId('legs', genome);
+  const tailForm = miniPhenotypeFormId('tail', genome);
+  const crestForm = miniPhenotypeFormId('crest', genome);
+  const frameForm = miniPhenotypeFormId('frame', genome);
+  const browForm = miniPhenotypeFormId('brow', genome);
+  const whiskerForm = miniPhenotypeFormId('whiskers', genome);
+  const chinForm = miniPhenotypeFormId('chin', genome);
+  const dewlapForm = miniPhenotypeFormId('dewlap', genome);
+  const ruffForm = miniPhenotypeFormId('ruff', genome);
+  const shoulderForm = miniPhenotypeFormId('shoulders', genome);
+  const bellyForm = miniPhenotypeFormId('belly', genome);
+  const flankFinForm = miniPhenotypeFormId('flank-fins', genome);
+  const hipFinForm = miniPhenotypeFormId('hip-fins', genome);
+  const tailSailForm = miniPhenotypeFormId('tail-sail', genome);
+  const forms: MiniDragonFormSelection = {
+    coat: coatForm,
+    plumage: plumageForm,
+    horns: hornForm,
+    wings: wingForm,
+    pattern: patternForm,
+    ember: emberForm,
+    size: sizeForm,
+    eyes: eyeForm,
+    ears: earForm,
+    muzzle: muzzleForm,
+    legs: legForm,
+    tail: tailForm,
+    crest: crestForm,
+    frame: frameForm,
+    brow: browForm,
+    whiskers: whiskerForm,
+    chin: chinForm,
+    dewlap: dewlapForm,
+    ruff: ruffForm,
+    shoulders: shoulderForm,
+    belly: bellyForm,
+    'flank-fins': flankFinForm,
+    'hip-fins': hipFinForm,
+    'tail-sail': tailSailForm,
+  };
+  const breedMorphology = resolveMiniDragonBreedMorphology(forms);
   const proportions =
-    miniPhenotypeFormId('size', genome) === 'size:teacup'
+    sizeForm === 'size:teacup'
       ? TEACUP_PROPORTIONS
       : STANDARD_PROPORTIONS;
 
-  const dorsalBumps = miniPhenotypeFormId('coat', genome) === 'coat:fluffy' ? 1 : 0;
-  const featherCoverage = FEATHER_COVERAGE[miniPhenotypeFormId('plumage', genome)] ?? 0;
-  const hornCurl = miniPhenotypeFormId('horns', genome) === 'horns:curled' ? 1 : 0.05;
-  const wingSpread = WING_SPREAD[miniPhenotypeFormId('wings', genome)] ?? 1;
-  const earScale = EAR_SCALE[miniPhenotypeFormId('ears', genome)] ?? 1;
-  const muzzleLength = MUZZLE_LENGTH[miniPhenotypeFormId('muzzle', genome)] ?? 0.46;
-  const legLength = LEG_LENGTH[miniPhenotypeFormId('legs', genome)] ?? 1;
-  const tailStyle = TAIL_STYLE[miniPhenotypeFormId('tail', genome)] ?? 2;
-  const crestForm = miniPhenotypeFormId('crest', genome);
-  const frameShape =
-    FRAME_SHAPE[miniPhenotypeFormId('frame', genome)] ?? FRAME_SHAPE['frame:balanced'];
+  const dorsalBumps = coatForm === 'coat:fluffy' ? 1 : 0;
+  const featherCoverage = FEATHER_COVERAGE[plumageForm] ?? 0;
+  const hornCurl = hornForm === 'horns:curled' ? 1 : 0.05;
+  const wingSpread = WING_SPREAD[wingForm] ?? 1;
+  const earScale = EAR_SCALE[earForm] ?? 1;
+  const muzzleLength = MUZZLE_LENGTH[muzzleForm] ?? 0.46;
+  const legLength = LEG_LENGTH[legForm] ?? 1;
+  const tailStyle = TAIL_STYLE[tailForm] ?? 2;
+  const frameShape = FRAME_SHAPE[frameForm] ?? FRAME_SHAPE['frame:balanced'];
+  const bodyMorphology = BODY_MORPHOLOGY[frameForm] ?? BODY_MORPHOLOGY['frame:balanced'];
+  const skullMorphology = SKULL_MORPHOLOGY[frameForm] ?? SKULL_MORPHOLOGY['frame:balanced'];
+  const muzzleMorphology = MUZZLE_MORPHOLOGY[muzzleForm] ?? MUZZLE_MORPHOLOGY['muzzle:medium'];
+  const wingMorphology = WING_MORPHOLOGY[wingForm] ?? WING_MORPHOLOGY['wings:small'];
+  const baseLimbMorphology = LIMB_MORPHOLOGY[legForm] ?? LIMB_MORPHOLOGY['legs:medium'];
+  const limbMorphology = {
+    ...baseLimbMorphology,
+    miniLegThickness:
+      baseLimbMorphology['miniLegThickness'] * breedMorphology.legThicknessMultiplier,
+    miniPawScale:
+      baseLimbMorphology['miniPawScale'] * breedMorphology.pawScaleMultiplier,
+  };
 
   /** Parameters every part carries, whatever it is. */
-  const surfaceParameters = {
-    miniDorsalBumps: dorsalBumps,
-    // Feathers are an independent inherited surface layer, so a dragon can
-    // combine them with either smooth or baby-bumpy dorsal scales.
-    miniFeatherCoverage: featherCoverage,
+  const sharedParameters = {
     miniPatchColor: paint.patchColor,
     miniEmberColor: paint.emberColor,
+    miniAccentColor: paint.accentColor,
+    miniPatternStyle: paint.patternStyle,
+    miniSurfaceStyle: paint.surfaceStyle,
     miniJointBall: 1,
+  };
+  const bodyParameters = {
+    ...sharedParameters,
+    miniChestScale: bodyMorphology['miniChestScale'],
+    miniBellyScale: bodyMorphology['miniBellyScale'],
+    miniHipScale: bodyMorphology['miniHipScale'],
+    miniWaistScale: bodyMorphology['miniWaistScale'],
+    miniSpineArch: bodyMorphology['miniSpineArch'],
+    // Preserve the inherited coat marker on the body as well as the focused
+    // dorsal renderer; lesson code reads this metadata independently of which
+    // mesh owns the visible bumps.
+    miniDorsalBumps: dorsalBumps,
+    miniFeatherCoverage: featherCoverage,
+    miniFeatherLength: plumageForm === 'plumage:full' ? 1.12 : 0.84,
+    miniFeatherVolume: breedMorphology.featherVolume,
+    miniPatchScale: frameForm === 'frame:long' ? 1.18 : frameForm === 'frame:round' ? 0.82 : 1,
+  };
+  const dorsalParameters = {
+    ...sharedParameters,
+    miniChestScale: bodyMorphology['miniChestScale'],
+    miniBellyScale: bodyMorphology['miniBellyScale'],
+    miniHipScale: bodyMorphology['miniHipScale'],
+    miniWaistScale: bodyMorphology['miniWaistScale'],
+    miniSpineArch: bodyMorphology['miniSpineArch'],
+    miniDorsalBumps: dorsalBumps,
+    miniScaleSize: coatForm === 'coat:fluffy' ? 1.22 : 0.82,
   };
 
   const bodyDims = componentScaled(BASE.body, proportions.body, frameShape);
@@ -146,6 +358,36 @@ export function buildMiniDragonBlueprint(
 
   const parts: AssemblyPart[] = [];
   const joints: AssemblyJoint[] = [];
+  const addInheritedPart = (
+    parent: AssemblyPart,
+    id: string,
+    label: string,
+    roles: AssemblyPart['roles'],
+    profileId: string,
+    dimensions: Vector3Data,
+    position: Vector3Data,
+    parameterKey: string,
+    parameterValue: number,
+  ): AssemblyPart => {
+    const part: AssemblyPart = {
+      id,
+      label,
+      roles,
+      shape: 'box',
+      mass: 0.04,
+      dimensions,
+      position,
+      color: paint.color,
+      visualProfile: {
+        profileId,
+        meshType: 'procedural',
+        parameters: { ...sharedParameters, [parameterKey]: parameterValue },
+      },
+    };
+    parts.push(part);
+    joints.push(fixedJoint(parent, id, position));
+    return part;
+  };
 
   const body: AssemblyPart = {
     id: 'mini-body',
@@ -159,7 +401,7 @@ export function buildMiniDragonBlueprint(
     visualProfile: {
       profileId: 'mini-dragon-body',
       meshType: 'procedural',
-      parameters: { ...surfaceParameters },
+      parameters: bodyParameters,
     },
   };
   parts.push(body);
@@ -176,7 +418,7 @@ export function buildMiniDragonBlueprint(
     visualProfile: {
       profileId: 'mini-dragon-dorsal-scales',
       meshType: 'procedural',
-      parameters: { ...surfaceParameters },
+      parameters: dorsalParameters,
     },
   });
   joints.push(fixedJoint(body, 'mini-dorsal-scales', { x: 0, y: 0, z: 0 }));
@@ -198,7 +440,11 @@ export function buildMiniDragonBlueprint(
     visualProfile: {
       profileId: 'mini-dragon-neck',
       meshType: 'procedural',
-      parameters: { ...surfaceParameters },
+      parameters: {
+        ...sharedParameters,
+        miniNeckCurve: bodyMorphology['miniNeckCurve'],
+        miniNeckThickness: bodyMorphology['miniNeckThickness'],
+      },
     },
   };
   parts.push(neck);
@@ -222,14 +468,15 @@ export function buildMiniDragonBlueprint(
       profileId: 'mini-dragon-head',
       meshType: 'procedural',
       parameters: {
-        ...surfaceParameters,
-        miniHornCurl: hornCurl,
-        miniHornLength: 0.48,
-        miniEyeSize: features.eyeSize,
+        ...sharedParameters,
+        ...skullMorphology,
+        miniMuzzleWidth: muzzleMorphology['miniMuzzleWidth'],
+        miniMuzzleDepth: muzzleMorphology['miniMuzzleDepth'],
+        miniEyeSize: breedMorphology.eyeSize,
         miniSnoutLength: muzzleLength,
-        miniEarScale: earScale,
-        miniEarTuft: features.earTuft,
         miniCheekTuft: features.cheekTuft,
+        miniCrestScale:
+          (CREST_SCALE[crestForm] ?? 1) * breedMorphology.crownScaleMultiplier,
         miniCrestCrown: crestForm === 'crest:crown' || crestForm === 'crest:crown-frill' ? 1 : 0,
         miniCrestFrill: crestForm === 'crest:frill' || crestForm === 'crest:crown-frill' ? 1 : 0,
       },
@@ -237,6 +484,80 @@ export function buildMiniDragonBlueprint(
   };
   parts.push(head);
   joints.push(fixedJoint(neck, 'mini-head', headPosition));
+
+  // Horns and ears are true rig parts. Horns remain fixed to the skull, while
+  // each ear owns a hinge at its root so learned poses can perk or fold it
+  // without rotating the whole head a second time.
+  for (const side of [-1, 1] as const) {
+    const name = side < 0 ? 'left' : 'right';
+    const hornRoot = {
+      x: headPosition.x - headDims.x * 0.03,
+      y: headPosition.y + headDims.y * 0.36,
+      z: headPosition.z + side * headDims.z * 0.2,
+    };
+    const horn: AssemblyPart = {
+      id: `mini-horn-${name}`,
+      label: `${name} horn`,
+      roles: ['horn', `horn-${name}`],
+      shape: 'cylinder',
+      mass: 0.06,
+      dimensions: {
+        x: headDims.y * 0.72,
+        y: headDims.y * 0.13,
+        z: headDims.z * 0.13,
+      },
+      position: hornRoot,
+      color: paint.color,
+      visualProfile: {
+        profileId: 'mini-dragon-horn',
+        meshType: 'procedural',
+        parameters: {
+          ...sharedParameters,
+          miniHornCurl: hornCurl,
+          miniHornLength: 0.48,
+          miniHornSpread: hornForm === 'horns:straight' ? 1.38 : 0.82,
+          miniHornScale: breedMorphology.hornScale,
+          miniHornSide: side,
+        },
+      },
+    };
+    parts.push(horn);
+    joints.push(jointAtWorldPivot(head, horn, hornRoot));
+
+    const earRoot = {
+      x: headPosition.x - headDims.x * 0.12,
+      y: headPosition.y + headDims.y * 0.4,
+      z: headPosition.z + side * headDims.z * 0.25,
+    };
+    const ear: AssemblyPart = {
+      id: `mini-ear-${name}`,
+      label: `${name} ear`,
+      roles: ['ear', `ear-${name}`],
+      shape: 'box',
+      mass: 0.035,
+      dimensions: {
+        x: headDims.z * 0.26,
+        y: headDims.y * 0.42,
+        z: headDims.z * 0.07,
+      },
+      position: earRoot,
+      color: paint.color,
+      visualProfile: {
+        profileId: 'mini-dragon-ear',
+        meshType: 'procedural',
+        parameters: {
+          ...sharedParameters,
+          miniEarScale: earScale,
+          miniEarFold: EAR_FOLD[earForm] ?? 0.42,
+          miniEarRoundness: breedMorphology.earRoundness,
+          miniEarTuft: features.earTuft,
+          miniEarSide: side,
+        },
+      },
+    };
+    parts.push(ear);
+    joints.push(jointAtWorldPivot(head, ear, earRoot, 'hinge', { x: 1, y: 0, z: 0 }));
+  }
 
   /*
    * The show-training ember cue needs a real articulated mouth. The original
@@ -261,10 +582,118 @@ export function buildMiniDragonBlueprint(
     visualProfile: {
       profileId: 'mini-dragon-jaw',
       meshType: 'procedural',
-      parameters: { ...surfaceParameters },
+      parameters: { ...sharedParameters, miniToothCount: muzzleMorphology['miniToothCount'] },
     },
   });
   joints.push(fixedJoint(head, 'mini-jaw', jawPosition));
+
+  addInheritedPart(
+    head, 'mini-brow-plates', 'Brow plates', ['brow-plates'], 'mini-dragon-brow-plates',
+    headDims, headPosition, 'miniBrowScale', EXPANDED_PART_SCALE[browForm] ?? 0.68,
+  );
+  addInheritedPart(
+    head, 'mini-whiskers', 'Whiskers', ['whiskers'], 'mini-dragon-whiskers',
+    headDims, headPosition, 'miniWhiskerScale', EXPANDED_PART_SCALE[whiskerForm] ?? 0.65,
+  );
+  addInheritedPart(
+    head, 'mini-chin-tuft', 'Chin tuft', ['chin-tuft'], 'mini-dragon-chin-tuft',
+    headDims, headPosition, 'miniChinScale', EXPANDED_PART_SCALE[chinForm] ?? 0,
+  );
+  addInheritedPart(
+    head,
+    'mini-face-shield',
+    'Rounded face shield',
+    ['face-shield'],
+    'mini-dragon-face-shield',
+    headDims,
+    headPosition,
+    'miniFaceShieldScale',
+    breedMorphology.faceShieldScale,
+  );
+  addInheritedPart(
+    head,
+    'mini-nose-horn',
+    'Nose bumper horn',
+    ['nose-horn'],
+    'mini-dragon-nose-horn',
+    headDims,
+    headPosition,
+    'miniNoseHornScale',
+    breedMorphology.noseHornScale,
+  );
+  addInheritedPart(
+    neck, 'mini-dewlap', 'Dewlap', ['dewlap'], 'mini-dragon-dewlap',
+    neckDims, neckPosition, 'miniDewlapScale', EXPANDED_PART_SCALE[dewlapForm] ?? 0.65,
+  );
+  addInheritedPart(
+    neck, 'mini-neck-ruff', 'Neck ruff', ['neck-ruff'], 'mini-dragon-neck-ruff',
+    neckDims, neckPosition, 'miniRuffScale', EXPANDED_PART_SCALE[ruffForm] ?? 0.82,
+  );
+  addInheritedPart(
+    body, 'mini-shoulder-plates', 'Shoulder plates', ['shoulder-plates'], 'mini-dragon-shoulder-plates',
+    bodyDims, body.position, 'miniShoulderScale', EXPANDED_PART_SCALE[shoulderForm] ?? 0.32,
+  );
+  addInheritedPart(
+    body, 'mini-belly-scutes', 'Belly scutes', ['belly-scutes'], 'mini-dragon-belly-scutes',
+    bodyDims, body.position, 'miniBellyScuteScale', EXPANDED_PART_SCALE[bellyForm] ?? 0.68,
+  );
+  addInheritedPart(
+    body, 'mini-flank-fins', 'Flank fins', ['flank-fins'], 'mini-dragon-flank-fins',
+    bodyDims, body.position, 'miniFlankFinScale', EXPANDED_PART_SCALE[flankFinForm] ?? 0.68,
+  );
+  addInheritedPart(
+    body, 'mini-hip-fins', 'Hip fins', ['hip-fins'], 'mini-dragon-hip-fins',
+    bodyDims, body.position, 'miniHipFinScale', EXPANDED_PART_SCALE[hipFinForm] ?? 0.68,
+  );
+
+  // The long serpent combinations gain a short, genuinely connected torso
+  // chain. The continuous body remains the soft under-structure, while these
+  // overlapping plush sections carry rear limbs and tail so idle yaw travels
+  // through the silhouette instead of merely waving the tail behind a rigid log.
+  let rearBodyAnchor = body;
+  if (breedMorphology.serpentSegmentScale > 0) {
+    let previous = body;
+    const segmentDimensions = {
+      x: bodyDims.x * 0.48,
+      y: bodyDims.y * 1.08,
+      z: bodyDims.z * 1.08,
+    };
+    const stations = [
+      { id: 'mini-serpent-mid-body', x: bodyDims.x * 0.06, pivotX: bodyDims.x * 0.28 },
+      { id: 'mini-serpent-rear-body', x: -bodyDims.x * 0.28, pivotX: -bodyDims.x * 0.1 },
+    ] as const;
+    for (const station of stations) {
+      const position = { x: station.x, y: 0, z: 0 };
+      const segment: AssemblyPart = {
+        id: station.id,
+        label: station.id.includes('rear') ? 'Rear serpent body segment' : 'Middle serpent body segment',
+        roles: ['core', 'serpent-segment'],
+        shape: 'box',
+        mass: 0.42,
+        dimensions: segmentDimensions,
+        position,
+        color: paint.color,
+        visualProfile: {
+          profileId: 'mini-dragon-serpent-body-segment',
+          meshType: 'procedural',
+          parameters: {
+            ...sharedParameters,
+            miniSerpentSegmentScale: breedMorphology.serpentSegmentScale,
+          },
+        },
+      };
+      parts.push(segment);
+      joints.push(jointAtWorldPivot(
+        previous,
+        segment,
+        { x: station.pivotX, y: 0, z: 0 },
+        'hinge',
+        { x: 0, y: 1, z: 0 },
+      ));
+      previous = segment;
+    }
+    rearBodyAnchor = previous;
+  }
 
   const legStations: readonly (readonly [string, number, number])[] = [
     ['front-left', 0.28, -1],
@@ -318,7 +747,10 @@ export function buildMiniDragonBlueprint(
       visualProfile: {
         profileId: 'mini-dragon-thigh',
         meshType: 'procedural',
-        parameters: { ...surfaceParameters },
+        parameters: {
+          ...sharedParameters,
+          miniLegThickness: limbMorphology['miniLegThickness'],
+        },
       },
     };
     const lowerLeg: AssemblyPart = {
@@ -333,11 +765,12 @@ export function buildMiniDragonBlueprint(
       visualProfile: {
         profileId: 'mini-dragon-leg',
         meshType: 'procedural',
-        parameters: { ...surfaceParameters, miniToeCount: features.toeCount },
+        parameters: { ...sharedParameters, ...limbMorphology, miniToeCount: features.toeCount },
       },
     };
     parts.push(thigh, lowerLeg);
-    joints.push(fixedJointAt(body, thigh, hipPosition));
+    const limbParent = name.startsWith('rear') ? rearBodyAnchor : body;
+    joints.push(fixedJointAt(limbParent, thigh, hipPosition));
     joints.push(fixedJointAt(thigh, lowerLeg, kneePosition));
   }
 
@@ -360,81 +793,208 @@ export function buildMiniDragonBlueprint(
       position,
       color: paint.color,
       visualProfile: {
-        profileId: 'mini-dragon-wing',
+        profileId: breedMorphology.wingProfileId,
         meshType: 'procedural',
-        parameters: { ...surfaceParameters, miniWingSpread: wingSpread, miniWingSide: side },
+        parameters: {
+          ...sharedParameters,
+          ...wingMorphology,
+          miniFeatherCoverage: featherCoverage,
+          miniFeatherLength: plumageForm === 'plumage:full' ? 1.12 : 0.84,
+          miniFeatherVolume: breedMorphology.featherVolume,
+          miniWingSpread: wingSpread,
+          miniWingSide: side,
+        },
       },
     });
     joints.push(fixedJoint(body, `mini-wing-${name}`, position));
   }
 
-  // Tail: two short, slim tapering segments, then the inherited tip. Every
-  // segment shares one centreline; raising successive unrotated pieces created
-  // visible stair-step gaps even though each piece carried a socket ball.
-  let previous = body;
+  // Every tail begins as one shared base. The split phenotype then branches at
+  // the base's distal socket into two complete three-link tails; other forms
+  // continue as one link into the inherited tip.
   const tailY = bodyDims.y * 0.08;
-  const tailJointOverlap = tailDims.x * 0.1;
-  let cursorX = -bodyDims.x * 0.44;
-  for (const [index, taper] of [1, 0.8].entries()) {
-    const segmentDims = scaled(tailDims, taper);
-    cursorX -= segmentDims.x * 0.5 - tailJointOverlap;
-    const position = { x: cursorX, y: tailY, z: 0 };
-    const segment: AssemblyPart = {
-      id: `mini-tail-${index + 1}`,
-      label: `Tail ${index + 1}`,
-      roles: ['tail'],
-      shape: 'box',
-      mass: 0.22,
-      dimensions: segmentDims,
-      position,
-      color: paint.color,
-      visualProfile: {
-        profileId: 'mini-dragon-tail',
-        meshType: 'procedural',
-        parameters: { ...surfaceParameters },
-      },
-    };
-    parts.push(segment);
-    joints.push(fixedJoint(previous, segment.id, position));
-    previous = segment;
-    cursorX -= segmentDims.x * 0.5;
-  }
+  const rootPivot = { x: -bodyDims.x * 0.42, y: tailY, z: 0 };
+  const rootPosition = { x: rootPivot.x - tailDims.x * 0.43, y: tailY, z: 0 };
+  const tailBase = makeTailPart(
+    'mini-tail-1',
+    'Shared tail base',
+    tailDims,
+    rootPosition,
+    ['tail', 'tail-base'],
+    identityQuaternion(),
+    paint.color,
+    sharedParameters,
+    bodyMorphology,
+  );
+  parts.push(tailBase);
+  joints.push(jointAtWorldPivot(rearBodyAnchor, tailBase, rootPivot));
 
-  // The plume's root ball sits at +12% of its local length. Put that ball just
-  // inside the final segment rather than placing the two surfaces edge to edge.
-  const plumePosition = {
-    x: cursorX - plumeDims.x * 0.12 + tailJointOverlap,
-    y: tailY,
-    z: 0,
-  };
-  parts.push({
-    id: 'mini-tail-plume',
-    label: 'Tail plume',
-    roles: ['tail'],
-    shape: 'box',
-    mass: 0.12,
-    dimensions: plumeDims,
-    position: plumePosition,
-    color: paint.color,
-    visualProfile: {
-      profileId: 'mini-dragon-tail-plume',
-      meshType: 'procedural',
-      parameters: {
-        ...surfaceParameters,
-        miniPlumeFan: features.plumeFan,
-        miniTailStyle: tailStyle,
-      },
-    },
-  });
-  joints.push(fixedJoint(previous, 'mini-tail-plume', plumePosition));
+  addInheritedPart(
+    tailBase,
+    'mini-tail-sail',
+    'Tail sail',
+    ['tail-sail'],
+    'mini-dragon-tail-sail',
+    { x: tailDims.x * 1.75, y: tailDims.y * 1.35, z: tailDims.z * 1.1 },
+    tailBase.position,
+    'miniTailSailScale',
+    EXPANDED_PART_SCALE[tailSailForm] ?? 0.62,
+  );
+
+  if (tailForm === 'tail:split') {
+    for (const side of [-1, 1] as const) {
+      const name = side < 0 ? 'left' : 'right';
+      let previous = tailBase;
+      for (const [index, taper] of [1.12, 0.94, 0.76].entries()) {
+        const segmentDims = {
+          ...scaled(tailDims, taper),
+          x: tailDims.x * taper * 1.18,
+        };
+        const rotation = quaternionFromEuler({
+          x: 0,
+          y: side * [breedMorphology.splitTailAngle, 0.3, 0.18][index],
+          z: side < 0 ? -[0.32, 0.24, 0.14][index] : [0.05, 0.035, 0.02][index],
+        });
+        const branchOffset = previous === tailBase ? side * tailDims.z * 0.3 : 0;
+        const pivot = distalTailPivot(previous, branchOffset);
+        const position = subtractVectors(
+          pivot,
+          rotateVectorByQuaternion({ x: segmentDims.x * 0.43, y: 0, z: 0 }, rotation),
+        );
+        const segment = makeTailPart(
+          `mini-tail-${name}-${index + 1}`,
+          `${name} tail ${index + 1}`,
+          segmentDims,
+          position,
+          ['tail', `tail-${name}`],
+          rotation,
+          paint.color,
+          sharedParameters,
+          bodyMorphology,
+        );
+        parts.push(segment);
+        joints.push(jointAtWorldPivot(previous, segment, pivot));
+        previous = segment;
+      }
+      const tipRotation = previous.rotation ?? identityQuaternion();
+      const tipPivot = distalTailPivot(previous);
+      const tipPosition = subtractVectors(
+        tipPivot,
+        rotateVectorByQuaternion({ x: plumeDims.x * 0.12, y: 0, z: 0 }, tipRotation),
+      );
+      const tip = makeTailTip(
+        `mini-tail-plume-${name}`,
+        `${name} tail streamer`,
+        plumeDims,
+        tipPosition,
+        ['tail', `tail-${name}`],
+        tipRotation,
+        paint.color,
+        sharedParameters,
+        features.plumeFan,
+        tailStyle,
+        TAIL_TIP_SCALE[tailForm] ?? 0.72,
+      );
+      parts.push(tip);
+      joints.push(jointAtWorldPivot(previous, tip, tipPivot));
+    }
+  } else if (breedMorphology.forkTailBranches) {
+    const secondDims = scaled(tailDims, 0.86);
+    const secondPivot = distalTailPivot(tailBase);
+    const secondPosition = subtractVectors(secondPivot, { x: secondDims.x * 0.43, y: 0, z: 0 });
+    const second = makeTailPart(
+      'mini-tail-2',
+      'Tail 2',
+      secondDims,
+      secondPosition,
+      ['tail'],
+      identityQuaternion(),
+      paint.color,
+      sharedParameters,
+      bodyMorphology,
+    );
+    parts.push(second);
+    joints.push(jointAtWorldPivot(tailBase, second, secondPivot));
+
+    for (const side of [-1, 1] as const) {
+      const name = side < 0 ? 'left' : 'right';
+      const branchDimensions = {
+        x: plumeDims.x * 1.16,
+        y: plumeDims.y * 0.72,
+        z: plumeDims.z * 0.72,
+      };
+      const branchRotation = quaternionFromEuler({
+        x: 0,
+        y: side * 0.2,
+        z: side < 0 ? -0.42 : 0.04,
+      });
+      const branchPivot = distalTailPivot(second, side * secondDims.z * 0.16);
+      const branchPosition = subtractVectors(
+        branchPivot,
+        rotateVectorByQuaternion({ x: branchDimensions.x * 0.44, y: 0, z: 0 }, branchRotation),
+      );
+      const branch: AssemblyPart = {
+        id: `mini-tail-fork-${name}`,
+        label: `${name} fork-tail paddle`,
+        roles: ['tail', `tail-${name}`],
+        shape: 'box',
+        mass: 0.08,
+        dimensions: branchDimensions,
+        position: branchPosition,
+        rotation: branchRotation,
+        color: paint.color,
+        visualProfile: {
+          profileId: 'mini-dragon-fork-tail-branch',
+          meshType: 'procedural',
+          parameters: { ...sharedParameters, miniForkTailScale: 1.08 },
+        },
+      };
+      parts.push(branch);
+      joints.push(jointAtWorldPivot(second, branch, branchPivot));
+    }
+  } else {
+    const secondDims = scaled(tailDims, 0.8);
+    const secondPivot = distalTailPivot(tailBase);
+    const secondPosition = subtractVectors(secondPivot, { x: secondDims.x * 0.43, y: 0, z: 0 });
+    const second = makeTailPart(
+      'mini-tail-2',
+      'Tail 2',
+      secondDims,
+      secondPosition,
+      ['tail'],
+      identityQuaternion(),
+      paint.color,
+      sharedParameters,
+      bodyMorphology,
+    );
+    parts.push(second);
+    joints.push(jointAtWorldPivot(tailBase, second, secondPivot));
+
+    const plumePivot = distalTailPivot(second);
+    const plumePosition = subtractVectors(plumePivot, { x: plumeDims.x * 0.12, y: 0, z: 0 });
+    const plume = makeTailTip(
+      'mini-tail-plume',
+      'Tail plume',
+      plumeDims,
+      plumePosition,
+      ['tail'],
+      identityQuaternion(),
+      paint.color,
+      sharedParameters,
+      features.plumeFan,
+      tailStyle,
+      TAIL_TIP_SCALE[tailForm] ?? 1,
+    );
+    parts.push(plume);
+    joints.push(jointAtWorldPivot(second, plume, plumePivot));
+  }
 
   return { parts, joints };
 }
 
 /**
- * Joints are authored even though the specimen viewer never reads them: a
- * blueprint with parts but no connections is an incomplete record of the animal,
- * and anything that later simulates one would have to invent them.
+ * These joints are used by the specimen pose engine as well as by simulation.
+ * A blueprint with parts but no connections is an incomplete record of the animal.
  *
  * Pivots are part-local, so the parent's pivot is the offset to the child rather
  * than the child's world position — the distinction is invisible here and would
@@ -458,6 +1018,123 @@ function fixedJoint(
     pivotOnChild: { x: 0, y: 0, z: 0 },
     axis: { x: 0, y: 1, z: 0 },
   };
+}
+
+function jointAtWorldPivot(
+  parent: AssemblyPart,
+  child: AssemblyPart,
+  pivot: Vector3Data,
+  type: JointType = 'fixed',
+  axis: Vector3Data = { x: 0, y: 1, z: 0 },
+): AssemblyJoint {
+  const parentRotation = parent.rotation ?? identityQuaternion();
+  const childRotation = child.rotation ?? identityQuaternion();
+  return {
+    id: `${parent.id}--${child.id}`,
+    type,
+    parentPartId: parent.id,
+    childPartId: child.id,
+    pivotOnParent: rotateVectorByQuaternion(
+      subtractVectors(pivot, parent.position),
+      invertQuaternion(parentRotation),
+    ),
+    pivotOnChild: rotateVectorByQuaternion(
+      subtractVectors(pivot, child.position),
+      invertQuaternion(childRotation),
+    ),
+    axis,
+    behavior: type === 'hinge'
+      ? { profile: 'springHinge', springStiffness: 8, springDamping: 0.9 }
+      : undefined,
+  };
+}
+
+function makeTailPart(
+  id: string,
+  label: string,
+  dimensions: Vector3Data,
+  position: Vector3Data,
+  roles: AssemblyPart['roles'],
+  rotation: QuaternionData,
+  color: string,
+  sharedParameters: Readonly<Record<string, string | number | boolean>>,
+  bodyMorphology: Readonly<Record<string, number>>,
+): AssemblyPart {
+  return {
+    id,
+    label,
+    roles,
+    shape: 'box',
+    mass: 0.2,
+    dimensions,
+    position,
+    rotation,
+    color,
+    visualProfile: {
+      profileId: 'mini-dragon-tail',
+      meshType: 'procedural',
+      parameters: {
+        ...sharedParameters,
+        miniTailCurve: bodyMorphology['miniTailCurve'],
+        miniTailTaper: bodyMorphology['miniTailTaper'],
+      },
+    },
+  };
+}
+
+function makeTailTip(
+  id: string,
+  label: string,
+  dimensions: Vector3Data,
+  position: Vector3Data,
+  roles: AssemblyPart['roles'],
+  rotation: QuaternionData,
+  color: string,
+  sharedParameters: Readonly<Record<string, string | number | boolean>>,
+  plumeFan: number,
+  tailStyle: number,
+  tailTipScale: number,
+): AssemblyPart {
+  return {
+    id,
+    label,
+    roles,
+    shape: 'box',
+    mass: 0.1,
+    dimensions,
+    position,
+    rotation,
+    color,
+    visualProfile: {
+      profileId: 'mini-dragon-tail-plume',
+      meshType: 'procedural',
+      parameters: {
+        ...sharedParameters,
+        miniPlumeFan: plumeFan,
+        miniTailStyle: tailStyle,
+        miniTailTipScale: tailTipScale,
+      },
+    },
+  };
+}
+
+function distalTailPivot(part: AssemblyPart, zOffset = 0): Vector3Data {
+  const rotation = part.rotation ?? identityQuaternion();
+  return addVectors(
+    part.position,
+    rotateVectorByQuaternion(
+      { x: -part.dimensions.x * 0.43, y: 0, z: zOffset },
+      rotation,
+    ),
+  );
+}
+
+function addVectors(a: Vector3Data, b: Vector3Data): Vector3Data {
+  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+}
+
+function subtractVectors(a: Vector3Data, b: Vector3Data): Vector3Data {
+  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
 }
 
 function scaled(

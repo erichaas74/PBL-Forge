@@ -36,7 +36,7 @@
   <div class="brief-bar">
     <label class="brief-picker">
       <span>Brief</span>
-      <select [value]="activeQuestId()" (change)="selectQuest($any($event.target).value)">
+      <select #questControl [value]="activeQuestId()" (change)="selectQuest(questControl.value)">
         @for (quest of quests; track quest.id) {
           <option [value]="quest.id">{{ quest.title }}</option>
         }

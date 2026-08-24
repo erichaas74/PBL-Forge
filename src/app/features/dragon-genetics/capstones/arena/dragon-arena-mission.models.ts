@@ -1,5 +1,5 @@
 import { DragonBattleResult } from '../../dragon-genetics.models';
-import { DragonTraitId } from '../../simulation/domain/dragon-lab.models';
+import { ArenaBuildTraitId } from '../../simulation/domain/dragon-lab.models';
 
 export interface DragonArenaScoreBreakdown {
   outcomePoints: number;
@@ -9,7 +9,7 @@ export interface DragonArenaScoreBreakdown {
 }
 
 export interface DragonArenaTraitEvidence {
-  traitId: DragonTraitId;
+  traitId: ArenaBuildTraitId;
   traitName: string;
   genotype: string;
   phenotype: string;

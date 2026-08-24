@@ -45,8 +45,18 @@ export const ARENA_CONTROL_MODES = [
 
 export const ARENA_SETUPS = TEST_SCENARIO_CATALOG.map(toArenaSetup) as readonly ArenaSetupConfig[];
 
+let publishedDragonArenaSetup: ArenaSetupConfig | null = null;
+
 export function getArenaSetup(id: ArenaSetupStyleId): ArenaSetupConfig {
+  if (publishedDragonArenaSetup?.id === id) return publishedDragonArenaSetup;
   return ARENA_SETUPS.find(setup => setup.id === id) ?? ARENA_SETUPS[0];
+}
+
+export function installPublishedDragonArena(scenario: CreationTestScenarioDefinition): void {
+  if (scenario.id !== 'dragon-duel-ring') {
+    throw new Error('Published Dragon Garage arena must use the dragon-duel-ring ID.');
+  }
+  publishedDragonArenaSetup = toArenaSetup(structuredClone(scenario));
 }
 
 /**

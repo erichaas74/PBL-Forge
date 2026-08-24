@@ -14,6 +14,23 @@
   overflow: hidden;
   outline: none;
   touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fanned-deck:not(.is-disabled) {
+  cursor: grab;
+}
+
+.fanned-deck.is-dragging {
+  cursor: grabbing;
+}
+
+.fanned-deck img,
+.fanned-deck canvas,
+.fanned-deck svg {
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .fanned-deck:focus-visible {
@@ -51,7 +68,7 @@
 }
 
 .fanned-deck__slot.is-active {
-  cursor: default;
+  cursor: inherit;
   transform: translateX(calc(-50% + var(--deck-drag-x, 0px))) rotate(0deg) scale(1);
 }
 
@@ -208,7 +225,7 @@
 
 .fanned-deck__status small {
   color: var(--muted, #a9bdc5);
-  font-size: 0.72rem;
+  font-size: var(--text-xs, 0.75rem);
   font-weight: 750;
 }
 

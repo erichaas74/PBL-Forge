@@ -544,9 +544,10 @@
       <label>
         Compatibility explanation
         <textarea
+          #explanationControl
           rows="5"
           [value]="explanation()"
-          (input)="updateExplanation($any($event.target).value)"
+          (input)="updateExplanation(explanationControl.value)"
           placeholder="Explain which donor markers were present, which markers the patient already had, and why the cells remained dispersed."
         ></textarea>
       </label>

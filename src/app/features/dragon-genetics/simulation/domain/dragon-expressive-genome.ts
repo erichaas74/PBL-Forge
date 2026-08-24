@@ -200,6 +200,10 @@ export function toCoreLabGenome(profile: ExpressiveDragonProfile): DragonLabGeno
     fire: profile.genome.fire,
     scales: profile.genome.scales,
     horns: profile.genome.horns,
+    legs: profile.genome.legs,
+    claws: profile.genome.claws,
+    crest: profile.genome.crest,
+    spikes: profile.genome.spikes,
   };
 }
 

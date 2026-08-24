@@ -5,6 +5,7 @@ import { LOCAL_WORKSTATION_STUDENT_ID } from '../shared/dragon-workstation-conte
 import { DragonWorkstationContextService } from '../shared/dragon-workstation-context.service';
 import { IslandDiversityManagerComponent } from './island-diversity-manager.component';
 import { StoredIslandDiversityWorld } from './island-diversity.models';
+import { DragonJourneyNavigationService } from '../../journey/dragon-journey-navigation.service';
 
 /** Full-screen app host for the portable Island Diversity Manager workstation. */
 @Component({
@@ -19,6 +20,7 @@ export class IslandDiversityManagerPage {
   private readonly latestWorld = signal<StoredIslandDiversityWorld | null>(null);
   private syncSignature = '';
   readonly studentId = this.context.studentId;
+  readonly workstationExitUrl = inject(DragonJourneyNavigationService).workstationExitUrl;
 
   constructor() {
     effect(() => {

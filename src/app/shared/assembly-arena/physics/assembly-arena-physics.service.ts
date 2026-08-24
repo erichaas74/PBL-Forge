@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import * as CANNON from 'cannon-es';
 import {
   AssemblyJoint,
@@ -260,7 +260,7 @@ const RING_CONTAINMENT = {
  */
 const CORE_PERSONAL_SPACE_RATIO = 1;
 
-@Injectable()
+@Service({ autoProvided: false })
 export class AssemblyArenaPhysicsService {
   private world = this.createWorld();
   private readonly bodies = new Map<string, CANNON.Body>();

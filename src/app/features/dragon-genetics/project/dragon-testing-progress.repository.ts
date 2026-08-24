@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   readStoredJson,
   writeStoredJson,
@@ -19,7 +19,7 @@ export interface DragonTestingProgressSnapshot {
  * These records deliberately do not invent experiment evidence, answers, or
  * scores. They only tell the project map that a tester has finished a section.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class DragonTestingProgressRepository {
   load(studentId: string, assignmentId: string): DragonTestingProgressSnapshot {
     const fallback = emptyDragonTestingProgress(studentId, assignmentId);

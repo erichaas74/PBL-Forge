@@ -5,28 +5,6 @@
   [class.disabled]="disabled()"
   [attr.aria-label]="inventoryLabel()"
 >
-  <button
-    class="file-handle"
-    type="button"
-    [attr.aria-expanded]="open()"
-    (click)="open.set(!open())"
-  >
-    <span class="folder-mark" aria-hidden="true"><i></i></span>
-    <span class="handle-copy">
-      <small>DRAGON CARD CATALOG</small>
-      <strong>{{ inventoryLabel() }}</strong>
-      <em>
-        @if (activeRecord(); as active) {
-          Active: {{ recordTitle(active) }}
-        } @else {
-          {{ visibleRecords().length }} available
-        }
-      </em>
-    </span>
-    <b aria-hidden="true">{{ open() ? '&minus;' : '+' }}</b>
-  </button>
-
-  @if (open()) {
     <div class="file-body">
       @if (!dragonsOnly()) {
         <nav aria-label="Inventory record types">
@@ -59,34 +37,14 @@
             [disabled]="disabled()"
             [ariaLabel]="inventoryLabel() + ' dragon card deck'"
             [bloodTypeByDragonId]="bloodTypeByDragonId()"
+            [selectedGeneId]="selectedGeneId()"
+            [revealedGeneIds]="revealedGeneIds()"
+            [selectableGeneIds]="selectableGeneIds()"
             (dragonSelected)="selectDeckDragon($event)"
+            (geneSelected)="geneSelected.emit($event)"
           />
 
           @if (activeDeckDragon(); as dragon) {
-            <article
-              class="deck-selection"
-              [class.active-record]="selectedRecordId() === dragon.id"
-              [attr.draggable]="!disabled() && selectedRecordId() === dragon.id"
-              (dragstart)="startDrag($event, dragon)"
-            >
-              <div>
-                <small>FRONT CARD</small>
-                <strong>{{ dragon.name }}</strong>
-                <span>
-                  {{ dragon.sex === 'female' ? 'Female' : 'Male' }} &middot;
-                  {{ dragonGeneration(dragon) }}
-                </span>
-              </div>
-              <button
-                type="button"
-                [class.current]="selectedRecordId() === dragon.id"
-                [disabled]="disabled()"
-                (click)="use(dragon)"
-              >
-                {{ selectedRecordId() === dragon.id ? 'In use' : 'Use in this lab' }}
-              </button>
-            </article>
-
             @if (performance(); as stats) {
               <details class="deck-details">
                 <summary>Moves, traits, and lineage</summary>
@@ -157,14 +115,6 @@
                   <strong>{{ recordTitle(record) }}</strong>
                   <span>{{ recordDetail(record) }}</span>
                 </div>
-                <button
-                  type="button"
-                  [class.current]="selectedRecordId() === record.id"
-                  [disabled]="disabled()"
-                  (click)="use(record)"
-                >
-                  {{ selectedRecordId() === record.id ? 'In use' : 'Use in this lab' }}
-                </button>
               </header>
             </article>
           } @else {
@@ -173,5 +123,4 @@
         </div>
       }
     </div>
-  }
 </aside>

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import { DragonTraitId } from '../simulation/domain/dragon-lab.models';
 import { answerGeneticsConcept } from './wise-dragon-answers';
 import { WiseDragonConversationGateway } from './wise-dragon.gateway';
@@ -19,7 +19,7 @@ const RESPONSE_DELAY_MS = 260;
  * Deterministic, on-device coaching adapter. It asks for missing links in the evidence chain and
  * explains common genetics vocabulary, but it never grades or sends student text off the device.
  */
-@Injectable()
+@Service({ autoProvided: false })
 export class MockWiseDragonConversationGateway implements WiseDragonConversationGateway {
   async start(request: StartWiseDragonSessionRequest): Promise<WiseDragonReply> {
     await delay();

@@ -3,7 +3,10 @@
     #stage
     class="viewport__stage"
     role="img"
-    [attr.aria-label]="ariaLabel() + (descriptor() ? ' — select a body part or drag to turn' : '')"
+    [attr.aria-label]="
+      ariaLabel() +
+      (descriptor() && interactive() ? ' — select a body part or drag to turn' : '')
+    "
     [class.viewport__stage--empty]="!descriptor()"
   ></div>
 

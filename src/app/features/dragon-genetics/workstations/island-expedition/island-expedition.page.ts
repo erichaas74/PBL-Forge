@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { DragonWorkstationContextService } from '../shared/dragon-workstation-context.service';
 import { IslandExpeditionComponent } from './island-expedition.component';
+import { DragonJourneyNavigationService } from '../../journey/dragon-journey-navigation.service';
 
 /**
  * App host for the Island Expedition instrument.
@@ -22,6 +23,7 @@ export class IslandExpeditionPage {
   private readonly route = inject(ActivatedRoute);
 
   readonly studentId = this.context.studentId;
+  readonly workstationExitUrl = inject(DragonJourneyNavigationService).workstationExitUrl;
   readonly requestedQuestId = toSignal(
     this.route.queryParamMap.pipe(map((params) => params.get('brief'))),
     { initialValue: this.route.snapshot.queryParamMap.get('brief') },

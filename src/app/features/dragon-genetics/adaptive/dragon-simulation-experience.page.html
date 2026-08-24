@@ -82,17 +82,13 @@
         <main class="experience-workspace allele-workspace">
           <section class="visual-stage allele-stage">
             @if (availableAlleleGenes().length) {
-              @defer (on immediate) {
-                <app-allele-vault-workbench
-                  [genes]="availableAlleleGenes()"
-                  [alleles]="availableAlleles()"
-                  [notebook]="store.geneticsNotebook()"
-                  [claimFeedback]="alleleClaimFeedback()"
-                  (interaction)="handleAlleleWorkbenchInteraction($event)"
-                />
-              } @placeholder {
-                <div class="instrument-loading" role="status">Opening allele samples…</div>
-              }
+              <app-allele-vault-workbench
+                [genes]="availableAlleleGenes()"
+                [alleles]="availableAlleles()"
+                [notebook]="store.geneticsNotebook()"
+                [claimFeedback]="alleleClaimFeedback()"
+                (interaction)="handleAlleleWorkbenchInteraction($event)"
+              />
             } @else {
               <div class="empty-allele-catalog" role="status">
                 No gene samples have been released for this assignment.
@@ -129,6 +125,7 @@
             @defer (on immediate) {
               <app-incubator-sampler
                 [studentId]="studentId()"
+                [revealedGeneIds]="revealedGeneIds()"
                 [goal]="simulation.goal"
                 (batchSaved)="completeDedicatedInvestigation('incubator-sampler')"
               />
@@ -142,6 +139,7 @@
           <section class="visual-stage genome-stage">
             @defer (on immediate) {
               <app-genome-microscope
+                [studentId]="studentId()"
                 [dragons]="availableDragons()"
                 [genes]="availableAlleleGenes()"
                 [alleles]="availableAlleles()"

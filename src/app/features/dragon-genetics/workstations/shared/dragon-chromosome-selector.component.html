@@ -40,7 +40,6 @@
           [active]="active && !disabled()"
           [renderPortrait]="renderPortrait"
           [footerLeft]="selectedGeneCount() + ' genes on selected pair'"
-          [footerRight]="genomeView.sexChromosomes"
           (flipRequested)="toggleCard(dragon.id)"
           (chromosomeSelected)="selectChromosome($event)"
           (geneSelected)="selectGene($event)"

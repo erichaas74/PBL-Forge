@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonWorkstationContextService } from '../shared/dragon-workstation-context.service';
 import { ProteinRescueLabComponent } from './protein-rescue-lab.component';
+import { DragonJourneyNavigationService } from '../../journey/dragon-journey-navigation.service';
 
 /** Full-screen app host for the portable Protein Synthesis and Dragon Diet Rescue workstation. */
 @Component({
@@ -13,4 +14,5 @@ import { ProteinRescueLabComponent } from './protein-rescue-lab.component';
 export class ProteinRescueLabPage {
   private readonly context = inject(DragonWorkstationContextService);
   readonly studentId = this.context.studentId;
+  readonly workstationExitUrl = inject(DragonJourneyNavigationService).workstationExitUrl;
 }

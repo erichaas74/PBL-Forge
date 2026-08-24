@@ -1,5 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
+import {
+  stubSpecimenThumbnailRendering,
+  stubSpecimenViewportRendering,
+} from '../../../../shared/assembly/preview/specimen-viewport.testing';
 import { standardMatches } from '../companion-show/companion-show.domain';
 import { CompanionDragon } from '../companion-show/companion-show.models';
 import { MINI_FOUNDERS, miniPhenotypeFormId } from '../companion-show/mini-dragon.genetics';
@@ -19,10 +24,15 @@ describe('mini dragon card', () => {
     litterId: null,
   };
 
+  beforeEach(() => {
+    stubSpecimenThumbnailRendering();
+    stubSpecimenViewportRendering();
+  });
+
   it('reads a dragon as visible forms and never as allele symbols', () => {
     const view = buildMiniDragonCardView(dragon);
 
-    expect(view.traits).toHaveLength(13);
+    expect(view.traits).toHaveLength(24);
     for (const trait of view.traits) {
       // A card that leaked a genotype would answer the question the breeding
       // programme exists to ask.
@@ -61,7 +71,7 @@ describe('mini dragon card', () => {
     fixture.destroy();
   });
 
-  it('turns over to the breeder record rather than to a chromosome view', async () => {
+  it('uses the shared chromosome back used by Arena cards', async () => {
     await TestBed.configureTestingModule({ imports: [MiniDragonCardComponent] }).compileComponents();
     const fixture = TestBed.createComponent(MiniDragonCardComponent);
     fixture.componentRef.setInput('card', buildMiniDragonCardView(dragon));
@@ -73,8 +83,31 @@ describe('mini dragon card', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.flipped()).toBe(true);
-    const traits = fixture.nativeElement.querySelectorAll('.mini-card__traits li');
-    expect(traits).toHaveLength(13);
+    const genes = fixture.nativeElement.querySelectorAll('.dragon-card__gene');
+    expect(genes.length).toBeGreaterThan(0);
+    expect(fixture.nativeElement.querySelector('app-cell-model')).not.toBeNull();
+    fixture.destroy();
+  });
+
+  it('animates only the selected card without enabling portrait rotation', async () => {
+    await TestBed.configureTestingModule({ imports: [MiniDragonCardComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(MiniDragonCardComponent);
+    fixture.componentRef.setInput('card', buildMiniDragonCardView(dragon));
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.directive(SpecimenViewportComponent))).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-specimen-thumb')).not.toBeNull();
+
+    fixture.componentRef.setInput('selected', true);
+    fixture.detectChanges();
+    const viewport = fixture.debugElement.query(By.directive(SpecimenViewportComponent))
+      .componentInstance as SpecimenViewportComponent;
+    expect(viewport.interactive()).toBe(false);
+    expect(viewport.animated()).toBe(true);
+
+    fixture.componentInstance.toggleFlip();
+    fixture.detectChanges();
+    expect(viewport.animated()).toBe(false);
     fixture.destroy();
   });
 });

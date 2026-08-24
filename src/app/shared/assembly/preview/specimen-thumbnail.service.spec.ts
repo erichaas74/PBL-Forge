@@ -144,6 +144,19 @@ describe('SpecimenThumbnailService', () => {
         expect(render).toHaveBeenCalledTimes(1);
     });
 
+    it('can retire its WebGL context without discarding baked images', () => {
+        const render = vi.spyOn(SpecimenRendererService.prototype, 'toDataUrl');
+        const dispose = vi.spyOn(SpecimenRendererService.prototype, 'dispose');
+
+        const before = service.bake(specimen('ember'));
+        service.releaseContext();
+        const after = service.bake(specimen('ember'));
+
+        expect(dispose).toHaveBeenCalled();
+        expect(render).toHaveBeenCalledTimes(1);
+        expect(after).toBe(before);
+    });
+
     /**
      * The renderer nests the posed parts inside a pivot at the framing centre so
      * the turntable spins in place. If those two offsets stop cancelling, a

@@ -51,7 +51,7 @@
     <aside
       class="parent-station parent-a female"
       [class.loaded]="parentA()"
-      [class.picking]="pickerOpen('female')"
+      [class.picking]="pickerOpen()"
       (dragover)="allowParentDrop($event)"
       (drop)="dropParent('female', $event)"
     >
@@ -65,19 +65,8 @@
             <small>Select a female dragon below or drop its record here.</small>
           }
         </div>
-        @if (parentA() && !offspringPoolActive()) {
-          <button
-            type="button"
-            class="change-parent"
-            data-testid="change-female-parent"
-            [disabled]="selectionLocked()"
-            (click)="togglePicker('female')"
-          >
-            {{ pickerOpen('female') ? 'Close' : 'Change' }}
-          </button>
-        }
       </header>
-      @if (pickerOpen('female')) {
+      @if (pickerOpen()) {
         <app-account-genetics-file
           [studentId]="studentId()"
           [dragonsOnly]="true"
@@ -85,9 +74,13 @@
           [initiallyOpen]="true"
           sexFilter="female"
           [selectedRecordId]="originalParentIds()[0]"
+          [selectedGeneId]="selectedTraitId()"
+          [selectableGeneIds]="selectableGeneIds"
+          [revealedGeneIds]="revealedGeneIds()"
           [disabled]="selectionLocked()"
           label="Egg-parent dragon cards"
           (recordSelected)="selectAccountRecord('female', $event)"
+          (geneSelected)="selectTraitFromCard($event)"
         />
       } @else if (parentA(); as parent) {
         <div class="parent-model">
@@ -157,29 +150,6 @@
         </div>
         <div class="chute left-chute" aria-hidden="true"></div>
         <div class="chute right-chute" aria-hidden="true"></div>
-
-        <div class="inspection-port" [class.active]="inspectionSource()">
-          <!--
-            The port used to caption itself "VISIBLE-TRAIT SCAN" beside the trait name, and the
-            new stylesheet adds an "OPTICAL TRAIT SCOPE" plate above the frame that says the same
-            thing. Two labels in a 12rem-wide port meant both were ellipsised down to nothing, so
-            the plate keeps the instrument's name and the header keeps the trait it is reading.
-          -->
-          <header>
-            <b>{{ selectedTrait().name }}</b>
-          </header>
-          <app-specimen-viewport
-            [source]="inspectionSource()"
-            [ariaLabel]="inspectionLabel()"
-            [controls]="false"
-            [showGroundShadow]="false"
-            [framePadding]="1.35"
-            [transparent]="true"
-          />
-          <p>
-            {{ inspectionDragon() ? visiblePhenotype(inspectionDragon()!) : 'Awaiting hatchling' }}
-          </p>
-        </div>
 
         <div class="travel-layer" aria-hidden="true">
           @for (traveler of travelers(); track traveler.id) {
@@ -356,7 +326,7 @@
     <aside
       class="parent-station parent-b male"
       [class.loaded]="parentB()"
-      [class.picking]="pickerOpen('male')"
+      [class.picking]="pickerOpen()"
       (dragover)="allowParentDrop($event)"
       (drop)="dropParent('male', $event)"
     >
@@ -370,19 +340,8 @@
             <small>Select a male dragon below or drop its record here.</small>
           }
         </div>
-        @if (parentB() && !offspringPoolActive()) {
-          <button
-            type="button"
-            class="change-parent"
-            data-testid="change-male-parent"
-            [disabled]="selectionLocked()"
-            (click)="togglePicker('male')"
-          >
-            {{ pickerOpen('male') ? 'Close' : 'Change' }}
-          </button>
-        }
       </header>
-      @if (pickerOpen('male')) {
+      @if (pickerOpen()) {
         <app-account-genetics-file
           [studentId]="studentId()"
           [dragonsOnly]="true"
@@ -390,9 +349,13 @@
           [initiallyOpen]="true"
           sexFilter="male"
           [selectedRecordId]="originalParentIds()[1]"
+          [selectedGeneId]="selectedTraitId()"
+          [selectableGeneIds]="selectableGeneIds"
+          [revealedGeneIds]="revealedGeneIds()"
           [disabled]="selectionLocked()"
           label="Sperm-parent dragon cards"
           (recordSelected)="selectAccountRecord('male', $event)"
+          (geneSelected)="selectTraitFromCard($event)"
         />
       } @else if (parentB(); as parent) {
         <div class="parent-model">

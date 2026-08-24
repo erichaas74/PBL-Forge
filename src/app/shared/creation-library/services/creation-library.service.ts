@@ -1,4 +1,4 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, Service, signal } from '@angular/core';
 import {
   BUILT_IN_ASSEMBLY_ASSETS,
   BUILT_IN_ATTACK_MOVE_ASSETS,
@@ -23,7 +23,7 @@ import { createDefaultCombatProfile } from '../../assembly/combat/assembly-comba
 
 const STORAGE_KEY = 'assembly.creationLibrary.v1';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class CreationLibraryService {
   private readonly localSnapshotSignal = signal<CreationLibrarySnapshot>(loadLocalSnapshot());
 

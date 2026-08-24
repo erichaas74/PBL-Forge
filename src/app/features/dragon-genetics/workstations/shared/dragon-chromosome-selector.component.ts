@@ -154,7 +154,7 @@ export class DragonChromosomeSelectorComponent {
     this.chromosomeSelected.emit({ dragon, chromosome: chromosomeId });
   }
 
-  selectGene(geneId: AlleleVaultGene['id']): void {
+  selectGene(geneId: string): void {
     if (this.disabled()) return;
     const dragon = this.selectedDragon();
     const chromosome = this.selectedChromosomeId();
@@ -162,6 +162,6 @@ export class DragonChromosomeSelectorComponent {
       (candidate) => candidate.id === geneId && candidate.chromosome === chromosome,
     );
     if (!dragon || !gene) return;
-    this.geneSelected.emit({ dragon, chromosome, geneId });
+    this.geneSelected.emit({ dragon, chromosome, geneId: gene.id });
   }
 }

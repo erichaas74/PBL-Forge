@@ -205,12 +205,13 @@
                 <label>
                   Ribosome progress
                   <input
+                    #translationControl
                     type="range"
                     min="0"
                     [max]="translation.steps.length"
                     step="1"
                     [value]="translationProgress()"
-                    (input)="setTranslationProgress($any($event.target).value)"
+                    (input)="setTranslationProgress(translationControl.value)"
                   />
                 </label>
                 <span>{{ translationProgress() }}/{{ translation.steps.length }} codons read</span>
@@ -462,9 +463,10 @@
       <label class="case-note">
         Evidence explanation
         <textarea
+          #explanationControl
           rows="5"
           [value]="explanation()"
-          (input)="updateExplanation($any($event.target).value)"
+          (input)="updateExplanation(explanationControl.value)"
           placeholder="Connect DNA, mRNA, protein shape, enzyme function, digestion, and the diet recommendation."
         ></textarea>
       </label>

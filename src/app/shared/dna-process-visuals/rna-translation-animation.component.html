@@ -153,12 +153,13 @@
     <label>
       Ribosome position
       <input
+        #progressControl
         type="range"
         min="0"
         [max]="steps().length"
         step="1"
         [value]="progress()"
-        (input)="setProgress($any($event.target).value)"
+        (input)="setProgress(progressControl.value)"
       />
     </label>
     <span>{{ progress() }}/{{ steps().length }} codons read</span>

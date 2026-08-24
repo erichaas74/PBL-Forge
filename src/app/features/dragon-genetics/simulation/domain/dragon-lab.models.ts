@@ -5,11 +5,42 @@ import { DragonGenome } from './dragon-genetics.models';
 export type DragonLabStage =
   'mission' | 'traits' | 'inheritance' | 'hatchery' | 'evidence' | 'board';
 
-export type DragonTraitId = 'wings' | 'fire' | 'scales' | 'horns';
+export type DragonTraitId =
+  | 'wings'
+  | 'fire'
+  | 'scales'
+  | 'horns'
+  | 'legs'
+  | 'claws'
+  | 'crest'
+  | 'spikes';
+
+/**
+ * The Arena animal carries as many modeled loci as the Mini Dragon (24), while the eight
+ * long-running lesson loci above remain the required compatibility core for older saves.
+ */
+export type ArenaBuildTraitId =
+  | DragonTraitId
+  | 'tail'
+  | 'body-color'
+  | 'glow'
+  | 'fangs'
+  | 'eye-color'
+  | 'body-type'
+  | 'secondary-wings'
+  | 'wing-shape'
+  | 'wing-camber'
+  | 'body-size'
+  | 'tail-length'
+  | 'head-size'
+  | 'snout'
+  | 'armor'
+  | 'ear-frill'
+  | 'temperament';
 export type TraitSortCategory = 'inherited' | 'learned-environmental';
 
-export interface DragonTraitDefinition {
-  id: DragonTraitId;
+export interface DragonTraitDefinition<TId extends ArenaBuildTraitId = DragonTraitId> {
+  id: TId;
   name: string;
   geneSymbol: string;
   chromosomeModel: number;
@@ -21,7 +52,8 @@ export interface DragonTraitDefinition {
 }
 
 export type DragonTraitGenotype = [string, string];
-export type DragonLabGenome = Record<DragonTraitId, DragonTraitGenotype>;
+export type DragonLabGenome = Record<DragonTraitId, DragonTraitGenotype>
+  & Partial<Record<Exclude<ArenaBuildTraitId, DragonTraitId>, DragonTraitGenotype>>;
 /** The one allele for each modeled autosomal trait carried by a single gamete. */
 export type DragonGameteGenome = Record<DragonTraitId, string>;
 
