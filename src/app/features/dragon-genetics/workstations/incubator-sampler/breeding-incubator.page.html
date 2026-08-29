@@ -12,8 +12,7 @@
   @if (evidenceMessage()) {
     <p class="evidence-status" role="status">{{ evidenceMessage() }}</p>
   }
-  <app-genetics-incubator
-    [program]="program()"
+  <app-incubator-sampler
     [studentId]="studentId()"
     [revealedGeneIds]="revealedGeneIds()"
     goal="Breed example dragons and compare how many offspring arrive in each visible-trait bucket."

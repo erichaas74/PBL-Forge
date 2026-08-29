@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — no active page imports this older mini-incubator variant.
+ * Former inputs/signals: mini-dragon parent selections, sample controls, and generated litter state.
+ * Former data access: mini-dragon genetics/domain helpers in memory.
+ * Former connections: earlier mini-show sampling flow; active lesson route uses BreedingIncubatorPage.
+ */
 import { Component, computed, signal } from '@angular/core';
 import { SpecimenThumbComponent } from '../../../../shared/assembly/preview/specimen-thumb.component';
 import {

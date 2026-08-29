@@ -35,13 +35,48 @@
       }
     </div>
 
-    <div class="bench__panels">
-      <!-- Host-supplied readout, for a species the combat model does not describe -->
-      <ng-content select="[bench-panels]" />
+    <div class="bench__side-column">
+      @if (alternatePanelLabel(); as alternateLabel) {
+        <nav class="bench__panel-switch" aria-label="Bench side panel">
+          <button
+            type="button"
+            [class.bench__panel-switch-button--active]="activePanel() === 'alternate'"
+            [attr.aria-pressed]="activePanel() === 'alternate'"
+            class="bench__panel-switch-button"
+            (click)="selectPanel('alternate')"
+          >
+            {{ alternateLabel }}
+          </button>
+          <button
+            type="button"
+            [class.bench__panel-switch-button--active]="activePanel() === 'bench'"
+            [attr.aria-pressed]="activePanel() === 'bench'"
+            class="bench__panel-switch-button"
+            (click)="selectPanel('bench')"
+          >
+            {{ benchPanelLabel() }}
+          </button>
+        </nav>
+      }
 
-      @if (showCombat()) {
-        <!-- Attacks -->
-        <section class="bench__panel" aria-labelledby="bench-moves">
+      <div
+        class="bench__panel-view bench__panel-view--alternate"
+        [hidden]="!alternatePanelLabel() || activePanel() !== 'alternate'"
+      >
+        <ng-content select="[bench-alternate]" />
+      </div>
+
+      <div
+        class="bench__panel-view bench__panel-view--results"
+        [hidden]="alternatePanelLabel() && activePanel() !== 'bench'"
+      >
+        <div class="bench__panels">
+          <!-- Host-supplied readout, for a species the combat model does not describe -->
+          <ng-content select="[bench-panels]" />
+
+          @if (showCombat()) {
+            <!-- Attacks -->
+            <section class="bench__panel" aria-labelledby="bench-moves">
           <h4 class="bench__panel-title" id="bench-moves">Attack moves</h4>
           <ul class="bench__list">
             @for (row of abilityRows(); track trackAbility($index, row)) {
@@ -76,11 +111,11 @@
               </li>
             }
           </ul>
-        </section>
+            </section>
 
         <!-- Defences -->
-        @if (defenseRows().length) {
-          <section class="bench__panel" aria-labelledby="bench-defence">
+            @if (defenseRows().length) {
+              <section class="bench__panel" aria-labelledby="bench-defence">
             <h4 class="bench__panel-title" id="bench-defence">Defensive features</h4>
             <ul class="bench__list">
               @for (row of defenseRows(); track row.id) {
@@ -100,12 +135,12 @@
                 </li>
               }
             </ul>
-          </section>
-        }
+              </section>
+            }
 
         <!-- Fitness -->
-        @if (assay(); as report) {
-          <section class="bench__panel" aria-labelledby="bench-fitness">
+            @if (assay(); as report) {
+              <section class="bench__panel" aria-labelledby="bench-fitness">
             <h4 class="bench__panel-title" id="bench-fitness">Fitness in this model</h4>
 
             <p class="bench__score">
@@ -151,13 +186,13 @@
                 <dd>{{ report.offense.bestSingleHit }}</dd>
               </div>
             </dl>
-          </section>
-        }
-      }
+              </section>
+            }
+          }
 
-      <!-- Behaviours: taught, never inherited and never scored -->
-      @if (motions().length) {
-        <section class="bench__panel" aria-labelledby="bench-motions">
+          <!-- Behaviours: taught, never inherited and never scored -->
+          @if (motions().length) {
+            <section class="bench__panel" aria-labelledby="bench-motions">
           <h4 class="bench__panel-title" id="bench-motions">{{ motionsHeading() }}</h4>
           <ul class="bench__list">
             @for (row of motions(); track row.id) {
@@ -178,8 +213,10 @@
               </li>
             }
           </ul>
-        </section>
-      }
+            </section>
+          }
+        </div>
+      </div>
     </div>
   </div>
 </section>

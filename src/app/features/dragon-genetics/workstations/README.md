@@ -95,7 +95,10 @@ host declares it. Adding `guided` to a dedicated workstation is a product decisi
 [`DRAGON_GENETICS_WORKSTATION_RULES.md`](../../../../../docs/DRAGON_GENETICS_WORKSTATION_RULES.md),
 not a refactor.
 
-Architecture: [`docs/DRAGON_WORKSTATION_INQUIRY_ARCHITECTURE.md`](../../../../../docs/DRAGON_WORKSTATION_INQUIRY_ARCHITECTURE.md).
+Host, domain, and persistence boundaries are documented in
+[`docs/DRAGON_GENETICS_WORKSTATION_ARCHITECTURE.md`](../../../../../docs/DRAGON_GENETICS_WORKSTATION_ARCHITECTURE.md).
+The original inquiry-layer proposal is retained only in
+[`docs/oldDocs/DRAGON_WORKSTATION_INQUIRY_ARCHITECTURE.md`](../../../../../docs/oldDocs/DRAGON_WORKSTATION_INQUIRY_ARCHITECTURE.md).
 
 ## The shared cell model
 

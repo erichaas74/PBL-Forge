@@ -14,11 +14,16 @@ import { applyDesignerDraft } from './designer-part-overrides';
 import { createPartFromDefinition } from './assembly-garage/data/assembly-part-definitions';
 import { MINI_DRAGON_PART_DEFINITIONS } from './parts-lab/mini-dragon-part-definitions';
 import {
+  MINI_DRAGON_NEUTRAL_FORMS,
   MINI_DRAGON_REFERENCE_FORMS,
   MiniDragonBreedPresetId,
   MiniDragonFormSelection,
   resolveMiniDragonBreedMorphology,
 } from '@pbl/assembly/rendering/mini-dragon-breed-morphology';
+import {
+  miniDragonHexColor,
+  resolveMiniDragonCoatPaint,
+} from '@pbl/assembly/rendering/mini-dragon-coat';
 
 interface MiniNode {
   id: string;
@@ -94,6 +99,7 @@ export function createMiniDragonModel(draft: DesignerDragonDraftStore): DragonMo
       : { profile: 'passive' as const, breakForce: 160, breakDamage: 8 },
   }] : []);
   const blueprint: AssemblyBlueprint = { parts, joints };
+  applyMiniDragonCoat(blueprint, MINI_DRAGON_NEUTRAL_FORMS, 'mini-dragon');
   return {
     id: 'mini-dragon',
     label: 'Mini Dragon',
@@ -130,6 +136,7 @@ export function createMiniDragonBreedAuthoringPreset(
   const forms = MINI_DRAGON_REFERENCE_FORMS[id];
   const blueprint = createMiniDragonModel(draft).blueprint;
   applyBreedRecipe(blueprint, forms, draft);
+  applyMiniDragonCoat(blueprint, forms, `breed-reference-${id}`);
   return {
     id: `mini-dragon-${id}`,
     name: MINI_BREED_NAMES[id],
@@ -138,13 +145,42 @@ export function createMiniDragonBreedAuthoringPreset(
   };
 }
 
-const MINI_BREED_NAMES: Readonly<Record<MiniDragonBreedPresetId, string>> = {
+function applyMiniDragonCoat(
+  blueprint: AssemblyBlueprint,
+  forms: MiniDragonFormSelection,
+  individualId: string,
+): void {
+  const paint = resolveMiniDragonCoatPaint(forms, individualId);
+  for (const part of blueprint.parts) {
+    if (!part.visualProfile?.profileId.startsWith('mini-dragon-')) continue;
+    part.color = miniDragonHexColor(paint.color);
+    setDesignerParameters(part, {
+      miniPatchColor: miniDragonHexColor(paint.patchColor),
+      miniEmberColor: paint.emberColor,
+      miniAccentColor: paint.accentColor,
+      miniPatternStyle: paint.patternStyle,
+      miniSurfaceStyle: paint.surfaceStyle,
+    });
+  }
+}
+
+export const MINI_BREED_NAMES: Readonly<Record<MiniDragonBreedPresetId, string>> = {
   puggle: 'Puggle Dragon',
   fairy: 'Fairy Dragon',
   triceratops: 'Triceratops Dragon',
   'imperial-serpent': 'Imperial Serpent Dragon',
   amphiptere: 'Amphiptere',
 };
+
+export const MINI_DRAGON_BREED_OPTIONS: readonly {
+  readonly id: MiniDragonBreedPresetId;
+  readonly presetId: string;
+  readonly name: string;
+}[] = (Object.keys(MINI_BREED_NAMES) as MiniDragonBreedPresetId[]).map(id => ({
+  id,
+  presetId: `mini-dragon-${id}`,
+  name: MINI_BREED_NAMES[id],
+}));
 
 function createNodePart(node: MiniNode, draft: DesignerDragonDraftStore): AssemblyPart {
   const source = MINI_DRAGON_PART_DEFINITIONS.find(definition => definition.id === node.definitionId);

@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — lesson-specific Meiosis Hatchery for both breeding paths.
+ * Inputs/signals: path/lesson query params, student identity, and deterministic hatchery seed.
+ * Data access: workstation context selects classic or mini investigation state.
+ * Connects to: full-size or mini meiosis components and the originating shared lesson.
+ */
 import { Component, computed, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';

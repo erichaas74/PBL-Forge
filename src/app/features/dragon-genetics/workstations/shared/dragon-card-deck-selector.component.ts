@@ -23,6 +23,7 @@ export class DragonCardDeckSelectorComponent {
   readonly selectedDragonId = input<string | null>(null);
   readonly disabled = input(false);
   readonly compact = input(false);
+  readonly deferAnimatedPortrait = input(false);
   readonly ariaLabel = input('Dragon card deck selector');
   readonly bloodTypeByDragonId = input<
     Readonly<Partial<Record<string, DragonCardBloodType>>>

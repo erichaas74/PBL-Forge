@@ -28,6 +28,8 @@ interface AbilityRow {
   knockback: boolean;
 }
 
+export type SpecimenBenchPanelView = 'alternate' | 'bench';
+
 interface DefenseRow {
   id: string;
   name: string;
@@ -82,6 +84,13 @@ export class SpecimenTestBenchComponent {
   /** Non-combat motions the model can be asked to perform. */
   readonly motions = input<readonly SpecimenBenchMotion[]>([]);
   readonly motionsHeading = input('Trained behaviours');
+  /**
+   * Optional host-supplied panel that shares the right column with the normal bench readouts.
+   * When present, it opens first so a specimen can be edited while the canvas stays visible.
+   */
+  readonly alternatePanelLabel = input<string | null>(null);
+  readonly benchPanelLabel = input('Bench results');
+  readonly activePanel = signal<SpecimenBenchPanelView>('alternate');
 
   readonly abilityPlayed = output<AssemblyAbilityId>();
   readonly motionPlayed = output<string>();
@@ -118,6 +127,10 @@ export class SpecimenTestBenchComponent {
       horned: this.horned(),
     });
   });
+
+  selectPanel(view: SpecimenBenchPanelView): void {
+    this.activePanel.set(view);
+  }
 
   readonly abilityRows = computed<AbilityRow[]>(() => {
     const assay = this.assay();

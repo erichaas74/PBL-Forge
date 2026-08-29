@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — root student-app shell bootstrapped by main.ts.
+ * Inputs/signals: session identity plus Router NavigationEnd events drive access and immersive UI.
+ * Data access: SessionService owns authentication; routed pages own feature data.
+ * Connects to: RouterOutlet, global navigation, Wise Dragon, and local-teacher testing shortcuts.
+ */
 import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -39,6 +45,14 @@ export class App {
   readonly dragonGenetics = computed(() => /^\/dragon-genetics(?:[/?#]|$)/.test(this.currentUrl()));
   readonly dragonGeneticsHome = computed(
     () => this.currentUrl().split(/[?#]/, 1)[0].replace(/\/$/, '') === '/dragon-genetics',
+  );
+  readonly sharedLessonRoute = computed(() => {
+    const url = this.currentUrl().split(/[?#]/, 1)[0].replace(/\/$/, '');
+    return /^\/dragon-genetics\/path\/[^/]+\/lesson\/[^/]+$/.test(url);
+  });
+  readonly openTeacherRoute = computed(
+    () =>
+      this.session.teacherAccessOpen && /^\/teacher(?:[/?#]|$)/.test(this.currentUrl()),
   );
   readonly showWiseDragonGuide = computed(
     () =>

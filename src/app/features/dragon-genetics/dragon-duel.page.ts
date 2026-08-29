@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — one-click duel harness with no route or runtime importer.
+ * Former inputs/signals: deterministic preset champion and emitted battle result.
+ * Former data access: in-memory inheritance/domain helpers only.
+ * Former connections: DragonArenaComponent test combat surface.
+ */
 import { Component, signal } from '@angular/core';
 import { DragonArenaComponent } from './dragon-arena.component';
 import { findParent, runDragonBatch } from './dragon-genetics.domain';

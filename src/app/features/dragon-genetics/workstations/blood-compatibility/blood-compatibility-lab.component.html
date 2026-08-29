@@ -15,6 +15,11 @@
       </p>
     </div>
     <div class="lab-actions">
+      @if (caseMode()) {
+        <div class="mode-switch" role="status" aria-label="Blood lab case supply mode">
+          <span>Case supply · {{ mode() === 'challenge' ? 'limited reserve units' : 'standard' }}</span>
+        </div>
+      } @else {
       <div class="mode-switch" role="group" aria-label="Blood lab supply mode">
         <button
           type="button"
@@ -33,6 +38,7 @@
           Supply challenge
         </button>
       </div>
+      }
       <button
         class="guide-toggle"
         type="button"
@@ -49,7 +55,7 @@
       <header>
         <div>
           <span class="panel-code">REFERENCE MODEL</span>
-          <h3>Three alleles, four Rh-positive blood types</h3>
+          <h3>Three ABO alleles, eight ABO/RhD blood types</h3>
         </div>
         <button
           type="button"
@@ -63,11 +69,13 @@
         <span><b>A</b>A antigen</span>
         <span><b>B</b>B antigen</span>
         <span><b>O</b>No A or B antigen</span>
+        <span><b>D</b>RhD antigen</span>
       </div>
       <p>
         A and B are codominant: an AB dragon displays both antigens. A and B are each expressed over
-        O. Every blood type in this lab is Rh positive. In this simplified red-cell model, every
-        donor antigen must already be present on the recipient's cells.
+        O. Anti-D tests for the RhD antigen: agglutination means Rh positive and a smooth reaction
+        means Rh negative. In this simplified red-cell model, every donor antigen must already be
+        present on the recipient's cells.
       </p>
       <app-blood-type-explorer />
       <div class="type-reference">
@@ -80,8 +88,9 @@
         }
       </div>
       <small>
-        Simplified teaching model: all blood types shown are Rh positive; plasma compatibility and
-        clinical crossmatching are outside this simulation.
+        Simplified teaching model: this is forward ABO/RhD typing for red-cell compatibility.
+        Reverse grouping, weak-D testing, antibody screening, and clinical crossmatching are outside
+        this simulation.
       </small>
     </aside>
   }
@@ -157,44 +166,19 @@
             <h3 id="blood-tester-title">Antiserum reaction plate</h3>
           </div>
           @if (patientTypeClaim(); as patientType) {
-            <strong>TYPE {{ patientType.name.replace('+', '') }}</strong>
+            <strong>TYPE {{ patientType.name }}</strong>
           } @else if (activeSpecimen(); as specimen) {
             <strong>{{ specimen.sampleCode }}</strong>
           }
         </header>
 
-        <div class="reagent-shelf" aria-label="Blood testing reagents">
-          @for (reagent of reagents; track reagent.marker) {
-            <button
-              type="button"
-              class="reagent-vial"
-              [class.selected]="pendingReagent() === reagent.marker"
-              [attr.aria-pressed]="pendingReagent() === reagent.marker"
-              draggable="true"
-              (click)="selectReagent(reagent.marker)"
-              (dragstart)="startReagentDrag($event, reagent.marker)"
-            >
-              <span [attr.data-marker]="reagent.marker" aria-hidden="true">{{ reagent.code }}</span>
-              <strong>{{ reagent.name }}</strong>
-            </button>
-          }
-        </div>
-
-        <div
-          class="reaction-plate"
-          [class.loaded]="!!activeSpecimen()"
-          (dragover)="allowReagentDrop($event)"
-          (drop)="dropReagent($event)"
-        >
+        <div class="reaction-plate" [class.loaded]="!!activeSpecimen()">
           @if (activeSpecimen(); as specimen) {
             <header>
               <div>
                 <small>LOADED SPECIMEN</small
                 ><strong>{{ specimen.sampleCode }} · {{ specimen.dragonName }}</strong>
               </div>
-              <button type="button" [disabled]="!pendingReagent()" (click)="applyPendingReagent()">
-                Apply selected serum
-              </button>
             </header>
             <div class="well-grid">
               @for (reagent of reagents; track reagent.marker) {
@@ -205,12 +189,24 @@
                   [class.agglutination]="reaction === true"
                   [class.smooth]="reaction === false"
                 >
-                  <div class="well-visual" [attr.data-marker]="reagent.marker" aria-hidden="true">
-                    <div class="serum-vial">
+                  <div class="well-visual" [attr.data-marker]="reagent.marker">
+                    <button
+                      type="button"
+                      class="serum-vial"
+                      draggable="true"
+                      [attr.aria-label]="'Apply ' + reagent.name + ' to ' + specimen.sampleCode"
+                      (click)="applyReagent(reagent.marker)"
+                      (dragstart)="startReagentDrag($event, reagent.marker)"
+                    >
                       <span>{{ reagent.code }}</span>
-                    </div>
+                    </button>
                     <i class="serum-drop"></i>
-                    <div class="well-dish">
+                    <div
+                      class="well-dish"
+                      [attr.aria-label]="reagent.name + ' reaction well'"
+                      (dragover)="allowReagentDrop($event)"
+                      (drop)="dropReagent($event, reagent.marker)"
+                    >
                       <div class="well-liquid">
                         <i class="mix-ring"></i>
                         @for (
@@ -239,7 +235,6 @@
                       </div>
                     </div>
                   </div>
-                  <strong>{{ reagent.name }}</strong>
                   <span>{{
                     reaction === null
                       ? 'Not tested'
@@ -260,7 +255,7 @@
                     >
                   </div>
                   @if (patientTypeClaim(); as claim) {
-                    <span>RECORDED: TYPE {{ claim.name.replace('+', '') }}</span>
+                    <span>RECORDED: TYPE {{ claim.name }}</span>
                   }
                 </header>
                 <div class="type-choices" role="group" aria-label="Record the patient's blood type">
@@ -269,21 +264,21 @@
                       type="button"
                       [class.selected]="patientTypeClaimId() === type.id"
                       [attr.aria-pressed]="patientTypeClaimId() === type.id"
-                      [attr.data-patient-type]="type.name.replace('+', '')"
+                      [attr.data-patient-type]="type.name"
                       (click)="recordPatientBloodType(type.id)"
                     >
-                      Type {{ type.name.replace('+', '') }}
+                      Type {{ type.name }}
                     </button>
                   }
                 </div>
                 <p>
-                  Compare both visible reactions. This classification remains revisable as you
+                  Compare all three visible reactions. This classification remains revisable as you
                   gather transfusion evidence.
                 </p>
               </section>
             } @else {
               <p class="tester-cue">
-                Apply both sera in either order. Agglutination means that surface marker is present.
+                Apply all three sera in any order. Agglutination means that surface marker is present.
               </p>
             }
           } @else {
@@ -319,7 +314,7 @@
           <p>{{ patient.dragonName }}</p>
           <div class="reaction-pair">
             <span
-              >AA
+              >Anti-A
               <b>{{
                 patientTest?.antiA === null || patientTest?.antiA === undefined
                   ? '—'
@@ -329,7 +324,7 @@
               }}</b></span
             >
             <span
-              >AB
+              >Anti-B
               <b>{{
                 patientTest?.antiB === null || patientTest?.antiB === undefined
                   ? '—'
@@ -338,6 +333,16 @@
                     : '−'
               }}</b></span
             >
+            <span>
+              Anti-D
+              @if (patientTest?.antiD === null || patientTest?.antiD === undefined) {
+                <b>&mdash;</b>
+              } @else if (patientTest?.antiD) {
+                <b>+</b>
+              } @else {
+                <b>&minus;</b>
+              }
+            </span>
           </div>
         </article>
       }
@@ -350,11 +355,21 @@
             </header>
             <div class="reaction-pair">
               <span
-                >AA <b>{{ test.antiA === null ? '—' : test.antiA ? '+' : '−' }}</b></span
+                >Anti-A <b>{{ test.antiA === null ? '—' : test.antiA ? '+' : '−' }}</b></span
               >
               <span
-                >AB <b>{{ test.antiB === null ? '—' : test.antiB ? '+' : '−' }}</b></span
+                >Anti-B <b>{{ test.antiB === null ? '—' : test.antiB ? '+' : '−' }}</b></span
               >
+              <span>
+                Anti-D
+                @if (test.antiD === null) {
+                  <b>&mdash;</b>
+                } @else if (test.antiD) {
+                  <b>+</b>
+                } @else {
+                  <b>&minus;</b>
+                }
+              </span>
             </div>
           </article>
         }
@@ -438,7 +453,7 @@
                 {{
                   donorType
                     ? 'Marker evidence is available. Authorize to observe the cell response.'
-                    : 'Test this donor with both sera before authorization.'
+                    : 'Test this donor with all three sera before authorization.'
                 }}
               }
             </p>

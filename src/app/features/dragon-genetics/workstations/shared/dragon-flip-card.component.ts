@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, DestroyRef, afterNextRender, computed, inject, input, output, signal } from '@angular/core';
 import { SpecimenSource } from '../../../../shared/assembly/preview/specimen.models';
 import { SpecimenThumbComponent } from '../../../../shared/assembly/preview/specimen-thumb.component';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
@@ -17,7 +17,7 @@ export interface DragonFlipCardStat {
   value: string | number;
 }
 
-export type DragonCardBloodType = 'A' | 'B' | 'AB' | 'O';
+export type DragonCardBloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
 
 export interface DragonFlipCardView {
   id: string;
@@ -51,6 +51,8 @@ export class DragonFlipCardComponent {
   readonly renderPortrait = input(true);
   /** Uses the live idle renderer for the active card; background cards stay baked. */
   readonly animatedPortrait = input(true);
+  /** Lets heavy workstations paint their controls before mounting the live portrait renderer. */
+  readonly deferAnimatedPortrait = input(false);
   readonly footerLeft = input('');
   readonly footerRight = input('');
   readonly bloodType = input<DragonCardBloodType | null>(null);
@@ -68,10 +70,25 @@ export class DragonFlipCardComponent {
   readonly flipRequested = output<void>();
   readonly chromosomeSelected = output<string>();
   readonly geneSelected = output<DragonCardGeneReadout['id']>();
+  readonly animatedPortraitReady = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly selectedGenes = computed(
     () => this.genome().genesByChromosome.get(this.selectedChromosome()) ?? [],
   );
+
+  constructor() {
+    afterNextRender(() => {
+      const revealPortrait = () => {
+        if (!this.destroyRef.destroyed) this.animatedPortraitReady.set(true);
+      };
+      if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(revealPortrait, { timeout: 1500 });
+      } else {
+        window.setTimeout(revealPortrait, 250);
+      }
+    });
+  }
 
   requestFlip(): void {
     if (this.active()) this.flipRequested.emit();

@@ -23,8 +23,35 @@
     }
   </div>
 
+  <div class="serum-picker" role="group" aria-label="Test serum to add to the cell model">
+    <div class="serum-picker__label">
+      <small>ADD TEST SERUM</small>
+      <strong>Watch the antibodies meet the cell</strong>
+    </div>
+    @for (marker of serumMarkers; track marker) {
+      <button
+        type="button"
+        [class.active]="selectedSerum() === marker"
+        [attr.aria-pressed]="selectedSerum() === marker"
+        [attr.data-serum]="marker"
+        (click)="selectSerum(marker)"
+      >
+        <i [attr.data-marker]="marker" aria-hidden="true">Y</i>
+        Anti-{{ marker.toUpperCase() }}
+      </button>
+    }
+    @if (selectedSerum()) {
+      <button type="button" class="clear-serum" (click)="clearSerum()">Clear serum</button>
+    }
+  </div>
+
   <div class="explorer-stage">
-    <div class="cell-model">
+    <div
+      class="cell-model"
+      [class.has-serum]="selectedSerum() !== null"
+      [class.is-reactive]="serumReaction() === true"
+      [class.is-smooth]="serumReaction() === false"
+    >
       <svg
         viewBox="0 0 740 420"
         role="img"
@@ -75,6 +102,7 @@
               class="antigen"
               [class.antigen-a]="marker === 'a'"
               [class.antigen-b]="marker === 'b'"
+              [class.antigen-d]="marker === 'd'"
               [attr.transform]="
                 'translate(' + position.x + ' ' + position.y + ') rotate(' + position.rotation + ')'
               "
@@ -83,8 +111,10 @@
               <path class="antigen-stalk" d="M 0 8 L 0 -13" />
               @if (marker === 'a') {
                 <path class="antigen-head" d="M -10 -12 L 10 -12 L 0 -31 Z" />
-              } @else {
+              } @else if (marker === 'b') {
                 <circle class="antigen-head" cx="0" cy="-23" r="9" />
+              } @else {
+                <path class="antigen-head" d="M 0 -34 L 11 -23 L 0 -12 L -11 -23 Z" />
               }
               <text x="0" y="-19" text-anchor="middle" dominant-baseline="middle">
                 {{ marker.toUpperCase() }}
@@ -118,13 +148,86 @@
           </g>
         }
 
+        @for (reaction of reactionFrames(); track reaction.key) {
+          <g
+            class="serum-reaction"
+            [class.reactive]="reaction.reacts"
+            [class.smooth]="!reaction.reacts"
+            aria-hidden="true"
+          >
+            <g class="reaction-cell reaction-cell-left">
+              <circle cx="112" cy="215" r="73" fill="#5d1e28" opacity="0.4" />
+              <circle cx="112" cy="215" r="66" fill="url(#explorer-cell)" />
+              <ellipse cx="112" cy="218" rx="34" ry="27" fill="url(#explorer-cell-center)" />
+            </g>
+            <g class="reaction-cell reaction-cell-right">
+              <circle cx="628" cy="218" r="73" fill="#5d1e28" opacity="0.4" />
+              <circle cx="628" cy="218" r="66" fill="url(#explorer-cell)" />
+              <ellipse cx="628" cy="221" rx="34" ry="27" fill="url(#explorer-cell-center)" />
+            </g>
+
+            @for (position of serumAntibodyPositions; track $index) {
+              <g
+                class="serum-antibody"
+                [class.antibody-a]="reaction.marker === 'a'"
+                [class.antibody-b]="reaction.marker === 'b'"
+                [class.antibody-d]="reaction.marker === 'd'"
+                [attr.transform]="
+                  'translate(' +
+                  (position.x + (reaction.reacts ? 0 : position.smoothX)) +
+                  ' ' +
+                  (position.y + (reaction.reacts ? 0 : position.smoothY)) +
+                  ') rotate(' +
+                  position.rotation +
+                  ')'
+                "
+                [style.--reaction-delay]="position.delay + 's'"
+              >
+                <g class="serum-antibody__body">
+                  <path d="M 0 28 L 0 3 M 0 3 L -18 -17 M 0 3 L 18 -17" />
+                  @if (reaction.marker === 'a') {
+                    <path class="binding-site" d="M -24 -22 L -12 -22 L -18 -12 Z" />
+                    <path class="binding-site" d="M 12 -22 L 24 -22 L 18 -12 Z" />
+                  } @else if (reaction.marker === 'b') {
+                    <circle class="binding-site" cx="-18" cy="-19" r="6" />
+                    <circle class="binding-site" cx="18" cy="-19" r="6" />
+                  } @else {
+                    <path class="binding-site" d="M -18 -27 L -10 -19 L -18 -11 L -26 -19 Z" />
+                    <path class="binding-site" d="M 18 -27 L 26 -19 L 18 -11 L 10 -19 Z" />
+                  }
+                </g>
+              </g>
+            }
+
+            <g class="serum-label">
+              <rect x="294" y="18" width="152" height="34" rx="17" />
+              <text x="370" y="40" text-anchor="middle">
+                Anti-{{ reaction.marker.toUpperCase() }} antibodies added
+              </text>
+            </g>
+          </g>
+        }
+
         <g class="cell-caption" aria-hidden="true">
           <rect x="266" y="370" width="208" height="34" rx="17" />
           <text x="370" y="392" text-anchor="middle">
-            {{ selectedType().markerLabel.replace(' · Rh positive', '') }}
+            {{ selectedType().markerLabel }}
           </text>
         </g>
       </svg>
+      @if (selectedSerum()) {
+        <div
+          class="serum-result"
+          [attr.data-reaction]="serumReaction() ? 'agglutination' : 'smooth'"
+          role="status"
+        >
+          <i aria-hidden="true">{{ serumReaction() ? '●●●' : '●  ●  ●' }}</i>
+          <span>
+            <strong>{{ serumReaction() ? 'Agglutination' : 'Smooth suspension' }}</strong>
+            {{ serumResultLabel().split(': ')[1] }}
+          </span>
+        </div>
+      }
     </div>
 
     <aside class="explorer-readout" aria-live="polite">

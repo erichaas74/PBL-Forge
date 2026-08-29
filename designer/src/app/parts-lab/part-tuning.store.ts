@@ -24,6 +24,8 @@ export interface PartTuningRecord {
   styleSection?: keyof DragonStyle;
   /** Feature proportions as tuned, for parts that expose any. */
   styleValues?: Record<string, number>;
+  /** Per-definition visual parameters, including body stations and Show morphology. */
+  parameterValues?: Record<string, number>;
   note?: string;
   recordedAt: string;
 }
@@ -63,6 +65,16 @@ export class PartTuningStore {
           lines.push(
             `// dragon-style.ts — DEFAULT_DRAGON_STYLE.${record.styleSection}`,
             `${record.styleSection}: { ${values} },`,
+          );
+        }
+
+        if (record.parameterValues && Object.keys(record.parameterValues).length) {
+          const values = Object.entries(record.parameterValues)
+            .map(([key, value]) => `${key}: ${round(value)}`)
+            .join(', ');
+          lines.push(
+            '// visualProfile.parameters — merge into this part definition',
+            `parameters: { ${values} },`,
           );
         }
 

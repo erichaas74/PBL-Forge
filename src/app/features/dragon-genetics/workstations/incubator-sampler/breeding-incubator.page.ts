@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — lesson-specific breeding and offspring-count investigation route.
+ * Inputs/signals: path/lesson query params, released program/discoveries, and pending batch evidence.
+ * Data access: GeneticsProgramResolver, workstation context, lesson plan, and evidence repository.
+ * Connects to: classic or mini incubator component, shared lesson evidence, and lesson navigation.
+ */
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -9,9 +15,8 @@ import { DragonLessonEvidenceRepository } from '../../orchestration/dragon-lesso
 import { DragonWorkstationHostShellComponent } from '../../orchestration/dragon-workstation-host-shell.component';
 import { resolveDragonWorkstationLaunchContext } from '../../orchestration/dragon-workstation-launch-context';
 import { DragonWorkstationContextService } from '../shared/dragon-workstation-context.service';
-import { GeneticsBreedingBatch } from '../shared/genetics-program.models';
-import { GeneticsProgramResolver } from '../shared/genetics-program.resolver';
-import { GeneticsIncubatorComponent } from './genetics-incubator.component';
+import { IncubatorSamplerComponent } from './incubator-sampler.component';
+import { IncubatorBatchRecord } from './incubator-sampler.models';
 
 const WORKSTATION_ID = 'breeding-incubator';
 const WORKSTATION_ROUTE = '/dragon-genetics/breeding-incubator';
@@ -21,7 +26,7 @@ const WORKSTATION_ROUTE = '/dragon-genetics/breeding-incubator';
   imports: [
     DragonWorkstationHostShellComponent,
     DragonEvidenceCaptureCardComponent,
-    GeneticsIncubatorComponent,
+    IncubatorSamplerComponent,
   ],
   templateUrl: './breeding-incubator.page.html',
   styleUrl: './breeding-incubator.page.scss',
@@ -30,7 +35,6 @@ export class BreedingIncubatorPage {
   private readonly route = inject(ActivatedRoute);
   private readonly lessonPlan = inject(DragonLessonPlanRepository);
   private readonly evidenceRepository = inject(DragonLessonEvidenceRepository);
-  private readonly programs = inject(GeneticsProgramResolver);
   private readonly queryParams = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap,
   });
@@ -40,7 +44,6 @@ export class BreedingIncubatorPage {
     return isDragonPathContextId(value) ? value : 'arena';
   });
   readonly studentId = this.context.studentId;
-  readonly program = computed(() => this.programs.resolve(this.pathId()));
   readonly revealedGeneIds = computed(() =>
     Object.keys(this.context.geneticsNotebook().discoveries),
   );
@@ -55,16 +58,16 @@ export class BreedingIncubatorPage {
   readonly pendingEvidence = signal<BreedingBatchEvidenceDraft | null>(null);
   readonly evidenceMessage = signal('');
 
-  handleBatchSaved(batch: GeneticsBreedingBatch): void {
+  handleBatchSaved(batch: IncubatorBatchRecord): void {
     if (!this.launchContext()) return;
     this.pendingEvidence.set({
       evidenceType: 'breeding-batch',
       workstationId: 'breeding-incubator',
       batchId: batch.id,
       parentIds: batch.parentIds,
-      geneId: batch.geneId,
+      geneId: batch.traitId,
       sampleSize: batch.size,
-      buckets: batch.buckets.map(({ id, label, count, percentage }) => ({
+      buckets: batch.results.map(({ id, label, count, percentage }) => ({
         id,
         label,
         count,

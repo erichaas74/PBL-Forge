@@ -1,13 +1,19 @@
 import * as THREE from 'three';
 import { AssemblyPart, Vector3Data } from '../domain/assembly.models';
-import { buildGlowNode, buildJointBall, jointBallScale, spreadPositions } from './dragon-anatomy';
+import { buildJointBall, jointBallScale, spreadPositions } from './dragon-anatomy';
 import {
   DragonBodyArchetype,
+  DragonBodyStationParameters,
   dragonBodyArchetype,
   dragonBodyProfile,
   dragonBodySurfacePoint,
+  sampleDragonBodyBellyDepth,
   sampleDragonBodyCenterY,
+  sampleDragonBodyDepthScale,
+  sampleDragonBodyHeightScale,
   sampleDragonBodyRadius,
+  sampleDragonBodyStationHeight,
+  sampleDragonBodyStationWidth,
 } from './dragon-body-profile';
 import { detail, mesh, revolvedUv, sphereUv } from './dragon-geometry';
 import {
@@ -18,7 +24,7 @@ import {
 } from './dragon-materials';
 import { DragonBodyStyle, getActiveDragonStyle } from './dragon-style';
 import { HORN_TILE, SCALE_TILE } from './dragon-texture-constants';
-import { visualFlag, visualNumber, visualString } from './dragon-visual-parameter-readers';
+import { visualNumber, visualString } from './dragon-visual-parameter-readers';
 
 /** Builds the complete classic-dragon torso and all body-owned details. */
 export function buildDragonBody(part: AssemblyPart, palette: DragonPalette): THREE.Group {
@@ -26,6 +32,7 @@ export function buildDragonBody(part: AssemblyPart, palette: DragonPalette): THR
   const dims = part.dimensions;
   const length = dims.x;
   const archetype = dragonBodyArchetype(visualString(part, 'bodyArchetype', 'classic'));
+  const stations = readBodyStations(part);
 
   const lathe = new THREE.LatheGeometry(
     dragonBodyProfile(archetype)
@@ -34,7 +41,7 @@ export function buildDragonBody(part: AssemblyPart, palette: DragonPalette): THR
   );
   lathe.rotateZ(-Math.PI / 2);
   lathe.scale(1, dims.y / 2, dims.z / 2);
-  curveBodyCenterline(lathe, dims, archetype);
+  shapeBodyCrossSection(lathe, dims, archetype, stations);
   revolvedUv(lathe, ((dims.y + dims.z) / 4) * 0.72, length, SCALE_TILE, palette);
   const torso = mesh(lathe, scaleMaterial(palette));
   torso.name = 'dragon-body-torso';
@@ -42,7 +49,7 @@ export function buildDragonBody(part: AssemblyPart, palette: DragonPalette): THR
 
   addBodyArchetypeDetails(group, part, palette, archetype);
 
-  const bellyRadii = bellyShape(dims, archetype);
+  const bellyRadii = bellyShape(dims, archetype, stations);
   const belly = mesh(
     sphereUv(new THREE.SphereGeometry(1, detail(12), detail(8)), bellyRadii, SCALE_TILE, palette),
     bellyMaterial(palette),
@@ -51,12 +58,13 @@ export function buildDragonBody(part: AssemblyPart, palette: DragonPalette): THR
   belly.scale.set(bellyRadii.x, bellyRadii.y, bellyRadii.z);
   belly.position.set(
     length * 0.04,
-    sampleDragonBodyCenterY(0.04, archetype) * dims.y - dims.y * 0.22,
+    sampleDragonBodyCenterY(0.04, archetype, stations) * dims.y
+      - dims.y * 0.22 * stations.bellyDepth,
     0,
   );
   group.add(belly);
 
-  addTorsoSockets(group, part, palette, archetype);
+  addTorsoSockets(group, part, palette, archetype, stations);
 
   const defaults = getActiveDragonStyle().body;
   const style: DragonBodyStyle = {
@@ -67,32 +75,48 @@ export function buildDragonBody(part: AssemblyPart, palette: DragonPalette): THR
     spikeLean: visualNumber(part, 'spikeLean', defaults.spikeLean),
   };
   const spikeCount = visualNumber(part, 'backSpikeCount', style.spikeCount);
+  const spikeRows = Math.max(1, Math.round(visualNumber(part, 'backSpikeRows', 1)));
   const spikeScale = visualNumber(part, 'backSpikeScale', 1);
   const spikeSurface = hornMaterial(palette);
   const spikeRadius = length * style.spikeRadius;
   const spikeHeight = length * style.spikeHeight * spikeScale;
-  for (const t of spreadPositions(spikeCount, style.spikeSpread, -0.01)) {
-    const spike = mesh(
-      revolvedUv(
-        new THREE.ConeGeometry(spikeRadius, spikeHeight, detail(6)),
-        spikeRadius,
-        spikeHeight,
-        HORN_TILE,
-        palette,
-      ),
-      spikeSurface,
-    );
-    spike.position.set(
-      t * length,
-      sampleDragonBodyCenterY(t, archetype) * dims.y
-        + sampleDragonBodyRadius(t, archetype) * (dims.y / 2) * 0.96,
-      0,
-    );
-    spike.rotation.z = style.spikeLean;
-    group.add(spike);
+  const rowAngles = spikeRows >= 3 ? [-0.38, 0, 0.38] : [0];
+  const spikeGroup = new THREE.Group();
+  spikeGroup.name = 'dragon-back-spike-rows';
+  for (const [rowIndex, rowOffset] of rowAngles.entries()) {
+    for (const t of spreadPositions(spikeCount, style.spikeSpread, -0.01)) {
+      const angle = Math.PI + rowOffset;
+      const seat = dragonBodySurfacePoint(dims, t, angle, archetype, stations);
+      const spike = mesh(
+        revolvedUv(
+          new THREE.ConeGeometry(spikeRadius, spikeHeight, detail(6)),
+          spikeRadius,
+          spikeHeight,
+          HORN_TILE,
+          palette,
+        ),
+        spikeSurface,
+      );
+      spike.name = `dragon-back-spike-row-${rowIndex + 1}`;
+      spike.position.set(seat.x, seat.y * 0.96, seat.z * 0.96);
+      spike.rotation.x = rowOffset;
+      spike.rotation.z = style.spikeLean;
+      spikeGroup.add(spike);
+    }
   }
-
-  if (visualFlag(part, 'glowMarkings')) addFlankLanterns(group, dims, length, archetype);
+  spikeGroup.position.set(
+    dims.x * visualNumber(part, 'backSpikeOffsetX', 0),
+    dims.y * visualNumber(part, 'backSpikeOffsetY', 0),
+    dims.z * visualNumber(part, 'backSpikeOffsetZ', 0),
+  );
+  spikeGroup.rotation.set(
+    visualNumber(part, 'backSpikePitch', 0),
+    visualNumber(part, 'backSpikeYaw', 0),
+    visualNumber(part, 'backSpikeRoll', 0),
+  );
+  const placementScale = visualNumber(part, 'backSpikePlacementScale', 1);
+  spikeGroup.scale.setScalar(placementScale);
+  group.add(spikeGroup);
 
   return group;
 }
@@ -177,12 +201,6 @@ function addBodyArchetypeDetails(
         { x: dims.x * 0.25, y: -dims.y * 0.03, z: side * dims.z * 0.38 },
       );
     }
-  } else if (archetype === 'serpent') {
-    bulge(
-      'dragon-body-serpent-ridge',
-      { x: dims.x * 0.34, y: dims.y * 0.15, z: dims.z * 0.22 },
-      { x: -dims.x * 0.02, y: dims.y * 0.31, z: 0 },
-    );
   }
 }
 
@@ -192,6 +210,7 @@ function addTorsoSockets(
   part: AssemblyPart,
   palette: DragonPalette,
   archetype: DragonBodyArchetype,
+  stations: DragonBodyStationParameters,
 ): void {
   const dims = part.dimensions;
   const scale = jointBallScale(part);
@@ -201,8 +220,16 @@ function addTorsoSockets(
     [-0.5, 'dragon-body-tail-socket'],
   ] as const) {
     const radial = sampleDragonBodyRadius(end, archetype);
-    const halfHeight = radial * (dims.y / 2) * scale;
-    const halfDepth = radial * (dims.z / 2) * scale;
+    const halfHeight = radial
+      * sampleDragonBodyHeightScale(end, archetype)
+      * sampleDragonBodyStationHeight(end, stations)
+      * (dims.y / 2)
+      * scale;
+    const halfDepth = radial
+      * sampleDragonBodyDepthScale(end, archetype)
+      * sampleDragonBodyStationWidth(end, stations)
+      * (dims.z / 2)
+      * scale;
     const socket = buildJointBall(
       { x: Math.min(halfHeight, halfDepth), y: halfHeight, z: halfDepth },
       palette,
@@ -210,51 +237,39 @@ function addTorsoSockets(
     );
     socket.position.set(
       end * dims.x,
-      sampleDragonBodyCenterY(end, archetype) * dims.y,
+      sampleDragonBodyCenterY(end, archetype, stations) * dims.y,
       0,
     );
     group.add(socket);
   }
 }
 
-/** Adds the bioluminescent row seated on both visible flanks. */
-function addFlankLanterns(
-  group: THREE.Group,
-  dims: { x: number; y: number; z: number },
-  length: number,
-  archetype: DragonBodyArchetype,
-): void {
-  const upFromFlank = Math.PI / 2 + 0.34;
-  for (const side of [-1, 1] as const) {
-    for (const [index, t] of spreadPositions(6, 0.72, -0.02).entries()) {
-      const seat = dragonBodySurfacePoint(
-        { x: length, y: dims.y, z: dims.z },
-        t,
-        upFromFlank * side,
-        archetype,
-      );
-      const node = buildGlowNode(dims.y * 0.085 * (1.15 - index * 0.07));
-      node.name = `dragon-glow-flank-${index + 1}-${side < 0 ? 'left' : 'right'}`;
-      node.position.set(seat.x, seat.y * 1.04, seat.z * 1.04);
-      node.rotation.y = Math.PI / 2;
-      group.add(node);
-    }
-  }
-}
-
-function curveBodyCenterline(
+function shapeBodyCrossSection(
   geometry: THREE.BufferGeometry,
   dims: Vector3Data,
   archetype: DragonBodyArchetype,
+  stations: DragonBodyStationParameters,
 ): void {
-  if (archetype !== 'serpent') return;
-
   const positions = geometry.getAttribute('position');
   for (let index = 0; index < positions.count; index += 1) {
     const axialFraction = positions.getX(index) / Math.max(dims.x, 1e-6);
+    const originalY = positions.getY(index);
+    const bellyDepth = originalY < 0
+      ? sampleDragonBodyBellyDepth(axialFraction, stations)
+      : 1;
     positions.setY(
       index,
-      positions.getY(index) + sampleDragonBodyCenterY(axialFraction, archetype) * dims.y,
+      originalY
+        * sampleDragonBodyHeightScale(axialFraction, archetype)
+        * sampleDragonBodyStationHeight(axialFraction, stations)
+        * bellyDepth
+        + sampleDragonBodyCenterY(axialFraction, archetype, stations) * dims.y,
+    );
+    positions.setZ(
+      index,
+      positions.getZ(index)
+        * sampleDragonBodyDepthScale(axialFraction, archetype)
+        * sampleDragonBodyStationWidth(axialFraction, stations),
     );
   }
   positions.needsUpdate = true;
@@ -264,8 +279,10 @@ function curveBodyCenterline(
 function bellyShape(
   dims: Vector3Data,
   archetype: DragonBodyArchetype,
+  stations: DragonBodyStationParameters,
 ): Vector3Data {
-  switch (archetype) {
+  const base = (() => {
+    switch (archetype) {
     case 'bulwark':
       return { x: dims.x * 0.4, y: dims.y * 0.34, z: dims.z * 0.38 };
     case 'courser':
@@ -276,5 +293,24 @@ function bellyShape(
       return { x: dims.x * 0.43, y: dims.y * 0.2, z: dims.z * 0.27 };
     default:
       return { x: dims.x * 0.38, y: dims.y * 0.3, z: dims.z * 0.34 };
-  }
+    }
+  })();
+  return {
+    x: base.x,
+    y: base.y * stations.bellyDepth,
+    z: base.z * sampleDragonBodyStationWidth(0.04, stations),
+  };
+}
+
+function readBodyStations(part: AssemblyPart): DragonBodyStationParameters {
+  return {
+    neckWidth: visualNumber(part, 'bodyNeckWidth', 1),
+    chestWidth: visualNumber(part, 'bodyChestWidth', 1),
+    chestHeight: visualNumber(part, 'bodyChestHeight', 1),
+    waistWidth: visualNumber(part, 'bodyWaistWidth', 1),
+    bellyDepth: visualNumber(part, 'bodyBellyDepth', 1),
+    hipWidth: visualNumber(part, 'bodyHipWidth', 1),
+    spineArch: visualNumber(part, 'bodySpineArch', 0),
+    tailRootWidth: visualNumber(part, 'bodyTailRootWidth', 1),
+  };
 }

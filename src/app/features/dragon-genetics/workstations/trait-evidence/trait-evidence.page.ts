@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit Trait Evidence open-investigation route.
+ * Inputs/signals: current workstation context and latest saved evidence snapshot.
+ * Data access: child repository locally; DragonActivityProgressRepository publishes completion.
+ * Connects to: TraitEvidenceWorkstationComponent, project hub, teacher reporting, and navigation.
+ */
 import { Component, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonActivityProgressRepository } from '../../project/dragon-activity-progress.repository';

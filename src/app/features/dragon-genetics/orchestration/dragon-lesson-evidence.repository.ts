@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — shared lesson/case evidence persistence boundary.
+ * Inputs/signals: workstation evidence drafts scoped by student, path, lesson, and optional branch.
+ * Data access: versioned browser-local JSON storage with evidence normalization.
+ * Connects to: lesson evidence lists, capture cards, case submissions, and participating workstations.
+ */
 import { Service } from '@angular/core';
 import {
   readStoredJson,
@@ -27,6 +33,7 @@ export class DragonLessonEvidenceRepository {
     pathId: DragonPathContextId,
     lessonId: string,
     draft: DragonLessonEvidenceDraft,
+    branchId?: string,
   ): DragonLessonEvidenceRecord {
     const evidenceId = evidenceIdFor(draft);
     const record: DragonLessonEvidenceRecord = {
@@ -38,6 +45,7 @@ export class DragonLessonEvidenceRepository {
       lessonId,
       source: 'student',
       capturedAtIso: new Date().toISOString(),
+      ...(branchId ? { branchId } : {}),
     };
     const existing = this.load(studentId, pathId, lessonId);
     const next = existing.some((candidate) => candidate.evidenceId === evidenceId)
@@ -70,9 +78,16 @@ function normalizeEvidenceList(value: unknown): DragonLessonEvidenceRecord[] {
 }
 
 function evidenceIdFor(draft: DragonLessonEvidenceDraft): string {
-  return draft.evidenceType === 'allele-expression'
-    ? `allele-expression:${draft.geneId}:${[...draft.pairIds].sort().join('+')}`
-    : `breeding-batch:${draft.batchId}`;
+  if (draft.evidenceType === 'allele-expression') {
+    return `allele-expression:${draft.geneId}:${[...draft.pairIds].sort().join('+')}`;
+  }
+  if (draft.evidenceType === 'blood-test') {
+    return `blood-test:${draft.specimenId}`;
+  }
+  if (draft.evidenceType === 'protein-rescue') {
+    return `protein-rescue:${draft.recordId}`;
+  }
+  return `breeding-batch:${draft.batchId}`;
 }
 
 function storageKey(studentId: string, pathId: DragonPathContextId, lessonId: string): string {

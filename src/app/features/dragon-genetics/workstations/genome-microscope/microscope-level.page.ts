@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — shared container for fourteen generated microscope-level routes.
+ * Inputs/signals: route data level, path/lesson query params, and saved-record-count signal.
+ * Data access: lesson plan, workstation context, and MicroscopeLevelEvidenceRepository.
+ * Connects to: GenomeMicroscopeComponent, level manifests, and optional shared-lesson context.
+ */
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';

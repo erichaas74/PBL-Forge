@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit Island Expedition open-investigation route.
+ * Inputs/signals: optional quest query param and current workstation/student context.
+ * Data access: IslandExpeditionComponent owns survey/attempt persistence and population-domain data.
+ * Connects to: expedition quest registry, shared genetics records, and lesson/home navigation.
+ */
 import { Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';

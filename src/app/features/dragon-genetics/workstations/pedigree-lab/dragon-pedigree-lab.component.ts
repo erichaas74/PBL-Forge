@@ -499,7 +499,13 @@ export class DragonPedigreeLabComponent {
   }
 
   chooseModel(model: InheritanceModel): void {
-    this.updateRecord((record) => ({ ...record, model }));
+    this.updateRecord((record) => ({
+      ...record,
+      model,
+      modelHistory: record.modelHistory.includes(model)
+        ? record.modelHistory
+        : [...record.modelHistory, model],
+    }));
     this.predictedMotherGenotype.set('');
     this.predictedFatherGenotype.set('');
     this.message.set(

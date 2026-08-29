@@ -1,6 +1,8 @@
 export const environment = {
   production: true,
   useEmulators: false,
+  // Keep enabled while the hosted application is being tested. Firestore rules still protect data.
+  openTeacherAccess: true,
   // Never place a service-account key or Admin SDK credential in this file.
   firebase: {
     apiKey: 'AIzaSyAHohChpbexBOktzdm5ljjep7rVkeTPqP4',

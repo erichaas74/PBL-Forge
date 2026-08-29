@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — routed full-size Dragon Arena capstone mission.
+ * Inputs/signals: authenticated student, saved champion roster, champion selection, and trial results.
+ * Data access: account library, hatchery, arena mission, adaptive assignment, and capstone repositories.
+ * Connects to: DragonArenaComponent, teacher capstone summaries, and saved champion evidence.
+ */
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SessionService } from '../../../../core/firebase/session.service';

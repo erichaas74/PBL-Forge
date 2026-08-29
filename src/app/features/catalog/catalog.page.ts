@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — /catalog redirects to /dragon-genetics and no runtime module imports this page.
+ * Former inputs/signals: published-project Observable from ProjectRepository.
+ * Former data access: built-in and Firestore project records.
+ * Former connections: generic project pages and the Dragon Genetics front door.
+ */
 import { AsyncPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';

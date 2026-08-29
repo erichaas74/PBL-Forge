@@ -82,7 +82,6 @@ function traitEvidence(
     case 'spikes':
     case 'tail':
     case 'body-color':
-    case 'glow':
     case 'fangs':
     case 'eye-color':
     case 'body-type':

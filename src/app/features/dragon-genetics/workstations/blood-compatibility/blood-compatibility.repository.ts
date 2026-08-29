@@ -26,7 +26,7 @@ export class BloodCompatibilityRepository {
     return readStoredJson(`${STORAGE_KEY_PREFIX}.${normalizedStudentId}`, [], (value) => {
       const stored = value as Partial<StoredBloodEmergencyRecords> | null;
       return stored?.schemaVersion === 1 && Array.isArray(stored.records)
-        ? stored.records.filter(isEmergencyRecord)
+        ? stored.records.map(migrateEmergencyRecord).filter(isEmergencyRecord)
         : [];
     });
   }
@@ -82,6 +82,7 @@ function isBloodTest(value: unknown): value is BloodTestEvidence {
     typeof value['sampleCode'] === 'string' &&
     isBooleanOrNull(value['antiA']) &&
     isBooleanOrNull(value['antiB']) &&
+    isBooleanOrNull(value['antiD']) &&
     typeof value['testedAtIso'] === 'string'
   );
 }
@@ -114,7 +115,22 @@ function isGenotype(value: unknown): value is BloodGenotype {
 }
 
 function isMarker(value: unknown): value is BloodMarker {
-  return value === 'a' || value === 'b';
+  return value === 'a' || value === 'b' || value === 'd';
+}
+
+function migrateEmergencyRecord(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  return {
+    ...value,
+    patientTest: migrateBloodTest(value['patientTest'], value['patientPhenotype']),
+    donorTest: migrateBloodTest(value['donorTest'], value['donorPhenotype']),
+  };
+}
+
+function migrateBloodTest(value: unknown, phenotype: unknown): unknown {
+  if (!isRecord(value) || 'antiD' in value) return value;
+  if (typeof phenotype !== 'string') return value;
+  return { ...value, antiD: phenotype.endsWith('-positive') };
 }
 
 function isMode(value: unknown): value is BloodLabMode {

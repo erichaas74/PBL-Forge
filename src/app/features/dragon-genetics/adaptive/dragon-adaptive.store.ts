@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE-HYBRID — retained assignment and simulation-progress state service.
+ * Inputs/signals: session identity, assignment repository data, run mutations, and teacher settings.
+ * Data access: DragonAdaptiveRepository plus browser-local/remote assignment boundaries.
+ * Connects to: teacher dashboard, /explore, project/journey facades, and selected workstations.
+ */
 import { computed, effect, inject, Service, signal } from '@angular/core';
 import { SessionService } from '../../../core/firebase/session.service';
 import {

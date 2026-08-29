@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AssemblyPartRole, Vector3Data } from '../domain/assembly.models';
 import {
+  applyAssemblySelectionFocus,
   applyAssemblyTraitFocus,
   createAssemblyObject,
   disposeAssemblyObject,
@@ -423,6 +424,68 @@ export class SpecimenRendererService {
     }
 
     this.requestRender();
+  }
+
+  /**
+   * Designer focus by concrete assembly instance, optionally narrowed to named
+   * generated children such as the back-spike group or a feather mantle.
+   */
+  setPartFocus(partIds: readonly string[] | null, childNamePrefixes: readonly string[] = []): void {
+    if (partIds === null) {
+      for (const object of this.partObjects.values()) applyAssemblySelectionFocus(object, null);
+      this.requestRender();
+      return;
+    }
+
+    const selected = new Set(partIds);
+    for (const [partId, object] of this.partObjects) {
+      if (!selected.has(partId)) {
+        applyAssemblySelectionFocus(object, false);
+        continue;
+      }
+      if (!childNamePrefixes.length) {
+        applyAssemblySelectionFocus(object, true);
+        continue;
+      }
+      applyAssemblySelectionFocus(object, false);
+      object.traverse(child => {
+        if (childNamePrefixes.some(prefix => child.name.startsWith(prefix))) {
+          applyAssemblySelectionFocus(child, true);
+        }
+      });
+    }
+    this.requestRender();
+  }
+
+  /** Screen anchor for spatial handles that remains attached while the camera orbits. */
+  projectPartToViewport(
+    partId: string,
+    childNamePrefixes: readonly string[] = [],
+  ): { xPercent: number; yPercent: number } | null {
+    const object = this.partObjects.get(partId);
+    const camera = this.camera;
+    if (!object || !camera) return null;
+    this.specimenGroup?.updateMatrixWorld(true);
+
+    const targets: THREE.Object3D[] = [];
+    if (childNamePrefixes.length) {
+      object.traverse(child => {
+        if (childNamePrefixes.some(prefix => child.name.startsWith(prefix))) targets.push(child);
+      });
+    }
+    if (!targets.length) targets.push(object);
+
+    const world = new THREE.Vector3();
+    const anchor = new THREE.Vector3();
+    for (const target of targets) anchor.add(target.getWorldPosition(world));
+    anchor.multiplyScalar(1 / targets.length).project(camera);
+    if (!Number.isFinite(anchor.x) || !Number.isFinite(anchor.y) || anchor.z < -1 || anchor.z > 1) {
+      return null;
+    }
+    return {
+      xPercent: Math.max(3, Math.min(97, (anchor.x * 0.5 + 0.5) * 100)),
+      yPercent: Math.max(3, Math.min(97, (-anchor.y * 0.5 + 0.5) * 100)),
+    };
   }
 
   /**

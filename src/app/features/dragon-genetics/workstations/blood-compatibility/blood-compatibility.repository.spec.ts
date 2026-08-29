@@ -40,13 +40,14 @@ function emergencyRecord(id: string): BloodEmergencyRecord {
     donorId: 'clinic-cinder',
     donorName: 'Cinder',
     donorSampleCode: 'DN-01',
-    donorPhenotype: 'o-positive',
+    donorPhenotype: 'o-negative',
     donorPossibleGenotypes: ['OO'],
     patientTest: {
       specimenId: 'patient:ember',
       sampleCode: 'PT-01',
       antiA: true,
       antiB: true,
+      antiD: true,
       testedAtIso,
     },
     donorTest: {
@@ -54,6 +55,7 @@ function emergencyRecord(id: string): BloodEmergencyRecord {
       sampleCode: 'DN-01',
       antiA: false,
       antiB: false,
+      antiD: false,
       testedAtIso,
     },
     transfusionTrials: [

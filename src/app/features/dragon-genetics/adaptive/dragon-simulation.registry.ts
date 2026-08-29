@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE-HYBRID — retained simulation metadata; its dynamic experience page is retired.
+ * Inputs/signals: static simulation/level/section definitions and assignment normalization data.
+ * Data access: no persistence; consumed as canonical metadata by active hub and teacher services.
+ * Connects to: project-hub definitions, adaptive store, teacher settings, and Wise Dragon guidance.
+ */
 import {
   DragonAssignment,
   DragonSimulationDefinition,

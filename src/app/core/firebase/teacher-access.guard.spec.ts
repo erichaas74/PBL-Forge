@@ -7,10 +7,12 @@ import { SessionService } from './session.service';
 
 describe('teacherAccessGuard', () => {
   const teacher = signal(false);
+  const access = signal(true);
   const currentUser = { uid: 'test-user' };
 
   beforeEach(() => {
     teacher.set(false);
+    access.set(true);
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -19,13 +21,23 @@ describe('teacherAccessGuard', () => {
           useValue: {
             ensureUser: async () => currentUser,
             isTeacher: teacher,
+            hasTeacherAccess: access,
           },
         },
       ],
     });
   });
 
-  it('allows a verified teacher session', async () => {
+  it('allows every session while testing access is open', async () => {
+    const result = await TestBed.runInInjectionContext(() =>
+      teacherAccessGuard({} as Route, [] as UrlSegment[], {} as never),
+    );
+
+    expect(result).toBe(true);
+  });
+
+  it('allows a verified teacher when testing access is closed', async () => {
+    access.set(false);
     teacher.set(true);
 
     const result = await TestBed.runInInjectionContext(() =>
@@ -35,7 +47,8 @@ describe('teacherAccessGuard', () => {
     expect(result).toBe(true);
   });
 
-  it('redirects a student session away from teacher routes', async () => {
+  it('still supports the teacher-only policy when testing access is closed', async () => {
+    access.set(false);
     const router = TestBed.inject(Router);
 
     const result = await TestBed.runInInjectionContext(() =>

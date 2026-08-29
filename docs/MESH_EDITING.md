@@ -43,12 +43,12 @@ domesticated mini dragon of the Mini Dragon Show is a separate animal with its o
 | Gradient, overcast-sky, and ground textures                                    | `src/app/shared/assembly/rendering/stage-textures.ts`                                 |
 | Quality-gated AO, bloom, output, and antialiasing                              | `src/app/shared/assembly/rendering/stage-post-processing.ts`                          |
 | `profileId` routing                                                            | `src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.ts`                 |
-| **Body geometry** — torso, archetypes, spikes, sockets, glow row               | `src/app/shared/assembly/rendering/dragon-body-mesh.ts`                               |
+| **Body geometry** — torso, archetypes, spike rows, and sockets                 | `src/app/shared/assembly/rendering/dragon-body-mesh.ts`                               |
 | **Head orchestration** — joins the skull and decorative anatomy                | `src/app/shared/assembly/rendering/dragon-head-mesh.ts`                               |
 | **Head skull** — lofted skull geometry and neck socket                         | `src/app/shared/assembly/rendering/dragon-head-skull.ts`                              |
 | **Head-decoration orchestration**                                              | `src/app/shared/assembly/rendering/dragon-head-decorations.ts`                        |
 | **Head sensory features** — horns, brows, eyes, pupils, highlights             | `src/app/shared/assembly/rendering/dragon-head-sensory-features.ts`                   |
-| **Inherited head features** — genetic crest, glow, female frills               | `src/app/shared/assembly/rendering/dragon-head-expressive-features.ts`                |
+| **Inherited head features** — genetic crest and sex-specific frills            | `src/app/shared/assembly/rendering/dragon-head-expressive-features.ts`                |
 | **Male display frill** — curved spines, tessellated web, jaw spines            | `src/app/shared/assembly/rendering/dragon-head-male-frill.ts`                         |
 | **Jaw geometry** — tapered snout, nostrils, nose horn, teeth, fangs            | `src/app/shared/assembly/rendering/dragon-jaw-mesh.ts`                                |
 | **Limb compatibility exports**                                                 | `src/app/shared/assembly/rendering/dragon-limb-mesh.ts`                               |
@@ -56,11 +56,11 @@ domesticated mini dragon of the Mini Dragon Show is a separate animal with its o
 | **Grasping arms, hands, fingers, and thumbs**                                  | `src/app/shared/assembly/rendering/dragon-grasp-mesh.ts`                              |
 | **Feet, toes, and reusable talons**                                            | `src/app/shared/assembly/rendering/dragon-foot-mesh.ts`                               |
 | **Wing geometry** — membrane grid, leading-edge bone, finger struts, mirroring | `src/app/shared/assembly/rendering/dragon-wing-mesh.ts`                               |
-| **Tail geometry** — segments, vertebrae, glow nodes, clubs, spikes, stingers   | `src/app/shared/assembly/rendering/dragon-tail-mesh.ts`                               |
+| **Tail geometry** — segments, vertebrae, clubs, spikes, and stingers           | `src/app/shared/assembly/rendering/dragon-tail-mesh.ts`                               |
 | Shared mesh, detail-tier, and tapered-geometry helpers                         | `src/app/shared/assembly/rendering/dragon-geometry.ts`                                |
 | Texture-map contract and world-space tile sizes                                | `src/app/shared/assembly/rendering/dragon-texture-constants.ts`                       |
 | Tiled and box-projected UV assignment                                          | `src/app/shared/assembly/rendering/dragon-uv.ts`                                      |
-| Shared glow-node, joint-ball, and spacing helpers                              | `src/app/shared/assembly/rendering/dragon-anatomy.ts`                                 |
+| Shared horn, joint-ball, and spacing helpers                                   | `src/app/shared/assembly/rendering/dragon-anatomy.ts`                                 |
 | Shared style contracts, defaults, and Designer override                        | `src/app/shared/assembly/rendering/dragon-style.ts`                                   |
 | Material compatibility exports                                                 | `src/app/shared/assembly/rendering/dragon-materials.ts`                               |
 | Palette and inherited pigment derivation                                       | `src/app/shared/assembly/rendering/dragon-palette.ts`                                 |
@@ -97,6 +97,7 @@ domesticated mini dragon of the Mini Dragon Show is a separate animal with its o
 | Mesh tests                                                                     | `src/app/shared/assembly/rendering/dragon-procedural-mesh.factory.spec.ts`            |
 | Visual-parameter metadata, ranges, sections, and genetics ownership            | `src/app/shared/assembly/model-pack/dragon-visual-parameter-registry.ts`               |
 | Which sliders the Parts Lab shows (generated from the registry)                | `designer/src/app/parts-lab/parts-lab.page.ts`                                        |
+| Anatomy-layer grouping, protection, visibility, and gene badges                | `designer/src/app/parts-lab/part-anatomy-layers.ts`                                   |
 | Part catalog — dimensions, colour, mass, sockets, `visualProfile`              | `designer/src/app/assembly-garage/data/assembly-part-definitions.ts`                  |
 | Allowed profile ids (`SUPPORTED_DRAGON_PROCEDURAL_PROFILE_IDS`)                | `src/app/shared/assembly/model-pack/dragon-model-pack.models.ts`                      |
 | Genome → visual parameters                                                     | `src/app/features/dragon-genetics/simulation/domain/dragon-inheritance.ts`            |
@@ -182,13 +183,66 @@ reshaping geometry. It carries the `S` locus's dominant phenotype, and it is a
 phenotype and not a genotype on purpose — see the note where it is written in
 `dragon-inheritance.ts`.
 
-`glowMarkings` is the other flag: a real boolean, carrying the `N` locus's
-dominant phenotype, and stamped on the body, the head and every tail part —
-`GLOWING_PROFILE_IDS` in `dragon-inheritance.ts` is the list. It adds emissive
-nodes rather than reshaping anything, so it is the only trait that stays legible
-at thumbnail size and in a dark arena. It replaced `earShape`, whose two
-phenotypes were a small pointed flap and a small rounded one; nobody could tell
-them apart on a hatchling, which defeats the point of a visible trait.
+`backSpikeRows` is the inherited P-locus channel. `P_` builds three complete tall
+rows and `pp` builds one complete tall centre row. It is sampled through the body
+surface profile so side rows stay seated on every Arena archetype.
+
+The Arena body station keys — `bodyNeckWidth`, `bodyChestWidth`, `bodyChestHeight`,
+`bodyWaistWidth`, `bodyBellyDepth`, `bodyHipWidth`, `bodySpineArch`, and
+`bodyTailRootWidth` — are per-definition Designer refinements. They layer over the genetics-owned
+`bodyArchetype`, and the torso mesh, belly, end sockets, and mounted spike rows sample the same
+station contract. The Part Workshop writes these values through either sliders or direct canvas
+handles; do not move them into `DragonStyle`, because that would make one Arena body edit reshape
+every body type.
+
+The Part Workshop's Anatomy Layers are presentation metadata over this same contract, not a second
+parameter source. `part-anatomy-layers.ts` groups canonical keys into one-at-a-time editors, protects
+structural layers from being hidden, and marks layers whose preview defaults can be replaced by lesson
+gene expression. Add a new renderer key to the shared registry first, then place that key in the
+appropriate anatomy layer.
+
+Whole-dragon Parts Lab placement is a separate contract from shape and sockets. Definition dimensions
+and parameters answer “what does this catalog part look like?”; snap points answer “where may it
+connect?”; `DesignerDragonDraftStore.placementsByContextId` answers “where does this instance sit on
+this Arena body type or Mini breed?” Placement is applied to a clone of the Garage preset by
+`part-workshop-assembly.ts`, so it cannot leak from Regal to Bulwark or from Fairy to Puggle.
+
+Generated Arena back spikes are the exception to whole-part transforms. The body mesh owns a named
+`dragon-back-spike-rows` group and reads `backSpikeOffsetX/Y/Z`, `backSpikePitch/Yaw/Roll`, and
+`backSpikePlacementScale`. The Parts Lab stores those as one synthetic placement target and converts
+world offsets to body-relative fractions before rendering. Keep the keys registered even though they
+have no ordinary slider ranges; the registry still validates every serialized parameter.
+
+Classic head and jaw feature placement is definition-owned rather than assembly-context placement.
+Eyes, horns, brow spikes, inherited crest, sex display, Wise regalia, teeth, nostrils, nose horn,
+and fangs expose proportional offsets in the visual-parameter registry. Paired anatomy moves
+symmetrically: its Z offset changes pair spacing. Tooth rows additionally expose an authored span,
+splay, and rake, and the classic jaw size/count controls are per jaw so the lower row can be tuned
+without changing the upper row. These controls reshape generated children inside a part; the jaw
+hinge itself remains a socket and is still edited in the Snap Workshop.
+
+The isolated Parts Lab also projects registered head/jaw placement, rotation, and scale-like keys as
+procedural drag handles. The mapping is semantic and name-based: `*OffsetX/Y/Z`, `*Start`, and
+`*Axial` are movement; `*Splay`, `*Rake`, `*Sway`, `*Tilt`, and `*Lean` are rotation; size, length,
+radius, width, depth, height, span, and scale keys are resizing. The handle and exact slider write the
+same parameter. It is not a Three.js vertex or object transform and must never bypass the canonical
+registry.
+
+Classic surface authoring uses `surfaceRelief`, `surfaceRoughness`, `surfaceDetailScale`,
+`surfacePatternStrength`, and `surfacePatternScale`. `dragonPaletteForPart` resolves those literal
+keys, and `dragon-surface-materials.ts` applies them without mutating cached shared textures. A
+non-default detail scale clones the texture wrapper and UV matrix only; canvas pixels remain shared,
+and object disposal owns that clone. Membrane veins stay mapped once root-to-tip, so detail scale is
+reserved for tiled scale and keratin maps while relief and roughness still apply to membranes.
+
+Gene comparison in the Parts Lab is deliberately non-persistent. Authored, dominant, and recessive
+forms are applied to a cloned preview after draft shape and contextual placement are resolved. The
+student genetics builders remain authoritative for actual genome-to-phenotype construction.
+
+The horned-head sex switch follows the same non-persistent rule. `applyHeadSexPreview` clones the
+isolated or assembled blueprint and overrides `sex` only on selected `dragon-head-horned` instances.
+Female and male therefore show their different generated display anatomy without changing the
+authored model pack, Designer draft, or student genome.
 
 ## Making a number tunable instead of hardcoded
 

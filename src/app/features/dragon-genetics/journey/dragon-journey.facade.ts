@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE-HYBRID — retained journey state used by /explore, not a routed journey page.
+ * Inputs/signals: adaptive assignment, selected path, roster, workstation progress, and capstone state.
+ * Data access: journey progress/roster repositories plus project-hub and Arena repositories.
+ * Connects to: /explore current quest, teacher journey configuration, and workstation exit helpers.
+ */
 import { computed, effect, inject, Service, signal } from '@angular/core';
 import { DragonAdaptiveStore } from '../adaptive/dragon-adaptive.store';
 import { DragonArenaMissionRepository } from '../capstones/arena/dragon-arena-mission.repository';

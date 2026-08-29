@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — pure validator translating URL hints into trusted lesson launch context.
+ * Inputs/signals: path/lesson query values, workstation identity/route, and lesson-plan document.
+ * Data access: no persistence; reads the supplied normalized document only.
+ * Connects to: lesson-aware workstation shells, mission ribbons, and safe return URLs.
+ */
 import {
   DragonLessonPlanDocument,
   DragonPathContextId,

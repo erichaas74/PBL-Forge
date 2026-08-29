@@ -11,6 +11,9 @@ describe('CLASSIC_DRAGON_TEST_PRESET', () => {
         expect(state.parts.some(part => part.id === 'classic-dragon-body')).toBe(true);
         expect(state.parts.some(part => part.id === 'classic-dragon-snap-snout')).toBe(false);
 
+        const bodyColor = state.parts.find(part => part.roles?.includes('core'))?.color;
+        expect(new Set(state.parts.map(part => part.color))).toEqual(new Set([bodyColor]));
+
         const bodyChildren = state.joints
             .filter(joint => joint.parentPartId === 'classic-dragon-body')
             .map(joint => joint.childPartId);

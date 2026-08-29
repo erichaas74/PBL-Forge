@@ -30,6 +30,7 @@ export class SessionService {
   readonly role = this.roleSignal.asReadonly();
   readonly ready = this.readySignal.asReadonly();
   readonly isLocal = environment.useEmulators;
+  readonly teacherAccessOpen = environment.openTeacherAccess;
   readonly isLocalTeacher = computed(
     () => this.isLocal && this.user()?.email === 'teacher@pblforge.local',
   );
@@ -39,6 +40,7 @@ export class SessionService {
   readonly isTeacher = computed(
     () => this.isLocalTeacher() || this.role() === 'teacher' || this.role() === 'admin',
   );
+  readonly hasTeacherAccess = computed(() => this.teacherAccessOpen || this.isTeacher());
   readonly displayName = computed(() => {
     const currentUser = this.user();
     if (this.isLocal) {

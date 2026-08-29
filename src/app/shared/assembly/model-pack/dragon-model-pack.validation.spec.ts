@@ -5,13 +5,13 @@ describe('parseDragonModelPack', () => {
         const parsed = parseDragonModelPack(pack({
             patternColor: '#88aa44',
             spikeCount: 5,
-            glowMarkings: true,
+            backSpikeRows: 3,
         }));
 
         expect(parsed.models[0].blueprint.parts[0].visualProfile?.parameters).toEqual({
             patternColor: '#88aa44',
             spikeCount: 5,
-            glowMarkings: true,
+            backSpikeRows: 3,
         });
         expect('isSimulating' in parsed.models[0].blueprint).toBe(false);
     });

@@ -90,17 +90,17 @@ export interface DragonStyle {
 export const DEFAULT_DRAGON_STYLE: DragonStyle = {
   wing: DEFAULT_WING_SHAPE,
   body: {
-    spikeCount: 6,
-    spikeSpread: 0.73,
+    spikeCount: 9,
+    spikeSpread: 0.68,
     spikeHeight: 0.2,
     spikeRadius: 0.051,
     spikeLean: 0.56,
   },
   jaw: {
-    toothCount: 4,
-    toothHeight: 1.15,
-    toothRadius: 0.1,
-    toothStart: 0.28,
+    toothCount: 6,
+    toothHeight: 0.9,
+    toothRadius: 0.08,
+    toothStart: 0.34,
     noseHornLength: 0.62,
   },
   head: {

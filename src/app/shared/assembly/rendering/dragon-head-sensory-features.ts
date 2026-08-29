@@ -18,7 +18,9 @@ import {
 } from './dragon-materials';
 import { markSpecimenEyelid } from './specimen-facial-animation';
 import { DragonHeadStyle } from './dragon-style';
-import { visualString } from './dragon-visual-parameter-readers';
+import { visualNumber, visualString } from './dragon-visual-parameter-readers';
+
+const DEGREES_TO_RADIANS = Math.PI / 180;
 
 export function addDragonHeadHornsAndEyes(
   group: THREE.Group,
@@ -33,6 +35,20 @@ export function addDragonHeadHornsAndEyes(
   const scaleRef = dims.y / 2;
   const horn = hornMaterial(palette);
   const eyelid = scaleMaterial(palette, 0.55);
+  const hornOffset = {
+    x: visualNumber(part, 'hornOffsetX', 0) * dims.x,
+    y: visualNumber(part, 'hornOffsetY', 0) * dims.y,
+    z: visualNumber(part, 'hornOffsetZ', 0) * dims.z,
+  };
+  const hornSplay = visualNumber(part, 'hornSplay', 0) * DEGREES_TO_RADIANS;
+  const hornRake = visualNumber(part, 'hornRake', 0) * DEGREES_TO_RADIANS;
+  const browOffset = {
+    x: visualNumber(part, 'browOffsetX', 0) * dims.x,
+    y: visualNumber(part, 'browOffsetY', 0) * dims.y,
+    z: visualNumber(part, 'browOffsetZ', 0) * dims.z,
+  };
+  const browSplay = visualNumber(part, 'browSplay', 0) * DEGREES_TO_RADIANS;
+  const browRake = visualNumber(part, 'browRake', 0) * DEGREES_TO_RADIANS;
   for (const side of [-1, 1] as const) {
     // A length of zero means hornless, and is drawn as nothing at all: a
     // zero-height cone still leaves its base disc sitting on the skull.
@@ -45,7 +61,11 @@ export function addDragonHeadHornsAndEyes(
         palette,
       );
       mainHorn.name = `dragon-horn-${side < 0 ? 'left' : 'right'}`;
-      mainHorn.position.set(mount.x, mount.y, mount.z);
+      mainHorn.position.set(
+        mount.x + hornOffset.x,
+        mount.y + hornOffset.y,
+        mount.z + side * hornOffset.z,
+      );
       /*
        * Stood up off the temporal shelf and driven forward along the snout.
        *
@@ -60,17 +80,22 @@ export function addDragonHeadHornsAndEyes(
        * fork from the front, and the extra splay is what separates them into two
        * — while staying well short of the sideways sweep of cattle horns.
        */
-      mainHorn.rotation.set(side * 0.62, 0, -0.95);
+      mainHorn.rotation.set(side * (0.62 + hornSplay), 0, -0.95 + hornRake);
       group.add(mainHorn);
     }
 
     if (style.browLength > 0) {
       const browMount = dragonHeadSurfacePoint(dims, -0.02, side * 0.5, shape);
       const browSpike = buildHorn(scaleRef * style.browLength, scaleRef * 0.08, horn, palette);
-      browSpike.position.set(browMount.x, browMount.y, browMount.z);
+      browSpike.name = `dragon-brow-spike-${side < 0 ? 'left' : 'right'}`;
+      browSpike.position.set(
+        browMount.x + browOffset.x,
+        browMount.y + browOffset.y,
+        browMount.z + side * browOffset.z,
+      );
       // Forward too, and further over than the main pair: these sit ahead of the
       // horns, so a shared angle would bury them in the horn bases behind them.
-      browSpike.rotation.set(side * 0.3, 0, -1.15);
+      browSpike.rotation.set(side * (0.3 + browSplay), 0, -1.15 + browRake);
       group.add(browSpike);
     }
 
@@ -99,9 +124,13 @@ function buildEye(
   // Was `dims.y * 0.055`, which at viewport size is a couple of pixels and
   // reads as a dot rather than an eye. An eye is where a viewer looks first for
   // signs of life, so it is worth more of the skull than that.
-  const radius = dims.y * 0.085;
+  const radius = dims.y * 0.085 * visualNumber(part, 'eyeScale', 1);
   const socket = dragonHeadEyeSocket(dims, side, shape);
-  const centre = new THREE.Vector3(socket.x, socket.y, socket.z);
+  const centre = new THREE.Vector3(
+    socket.x + visualNumber(part, 'eyeOffsetX', 0) * dims.x,
+    socket.y + visualNumber(part, 'eyeOffsetY', 0) * dims.y,
+    socket.z + side * visualNumber(part, 'eyeOffsetZ', 0) * dims.z,
+  );
 
   // Outward is lateral. The socket is sunk into the skull by
   // `dragonHeadEyeSocket`, and its position is not a radius from any centre the

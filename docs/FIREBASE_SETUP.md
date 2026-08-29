@@ -1,141 +1,105 @@
-# Firebase setup and launch walkthrough
+# Firebase setup and deployment
 
-Everything through local development is already configured. The remaining steps require your own Google/Firebase account and district decisions.
+PBL Forge is configured for a local demo project and the production Firebase project
+`pbl-forge`. Firebase supplies authentication, roles, assignment/catalog records, legacy project
+progress, published dragon assets, and hosting. The current shared lesson plan, lesson responses,
+case progress, and most workstation records are browser-local; see
+[`LESSON_PLAN.md`](LESSON_PLAN.md#persistence-reality).
 
-## 1. Run the completed local foundation
+## Local emulator stack
 
-From `C:\Users\erich\Desktop\PBL-Forge`:
+From the repository root:
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Open http://localhost:4200. The catalog should show **Design a Mars Habitat** and **Watershed Detectives**. Open a project, complete an activity, and submit it. Saved responses appear in the Emulator UI at http://localhost:4000 under Firestore → `submissions`.
+This starts Auth on `127.0.0.1:9099`, Firestore on `127.0.0.1:8080`, the Emulator UI on
+`http://localhost:4000`, seeds Dragon Genetics records, and serves the student app at
+`http://localhost:4200`.
 
-The local build uses a disposable anonymous student account. Production does not enable anonymous sign-in automatically.
+The seed creates:
 
-## 2. Create separate Firebase projects
+| Role | Email | Password |
+| --- | --- | --- |
+| Teacher | `teacher@pblforge.local` | `dragon-demo-teacher` |
+| Student | `student@pblforge.local` | `dragon-demo-student` |
 
-In the [Firebase Console](https://console.firebase.google.com/), create two projects with your actual naming convention:
+It also creates the default class, assignment, released allele catalog, student override, and one
+published `dragon-genetics-lab` project. Emulator data is disposable unless emulator import/export
+is added separately.
 
-- `pbl-forge-dev` for connected development and pilot testing
-- `pbl-forge-prod` for real student use
+`npm start` serves only Angular. The development environment still points Firebase calls at the
+emulators, so use `npm run dev` whenever identity or Firestore behavior matters.
 
-Do not share one Firestore database between development and production. When Firestore asks for a location, select the region closest to the school population and keep the same region for future server-side services.
+## Configuration that is already checked in
 
-Analytics is not required. Leave it disabled until the district has explicitly approved the data collection.
+- `src/environments/environment.ts` uses the `demo-pbl-forge` emulator project.
+- `src/environments/environment.production.ts` contains the public web configuration for
+  `pbl-forge` and disables emulator connections.
+- `.firebaserc` selects `pbl-forge` as the default deployment target.
+- `firebase.json` configures Firestore rules/indexes, SPA Hosting rewrites, cache/security headers,
+  and emulator ports.
+- `scripts/firebase-cli.mjs` runs pinned `firebase-tools@14.27.0` and removes the unrelated
+  `OPENAI_API_KEY` from the child environment before Firebase debug logging.
 
-## 3. Register the production web app
+Firebase web configuration values are public identifiers. Never add a service-account JSON file,
+private key, or Admin SDK credential to either Angular application.
 
-In `pbl-forge-prod`:
+## Authentication and authorization
 
-1. Select **Project settings → Your apps → Web**.
-2. Register the app as `PBL Forge Web`.
-3. Copy the public Firebase configuration object.
-4. Replace every `REPLACE_WITH_...` value in `src/environments/environment.production.ts`.
+Production supports Google sign-in through the current session service. A signed-in user's public
+profile and role are read from `users/{uid}`. New browser-created profiles receive the `student`
+role; teacher/admin roles must be assigned by trusted administrative tooling.
 
-Firebase web configuration values are public identifiers, not secrets. Never add a service-account JSON file, private key, or Admin SDK credential to the Angular application.
+The temporary `openTeacherAccess` environment flag currently opens teacher navigation to every
+tester, including guests. This does not grant a teacher role: `firestore.rules` remains the authorization
+boundary for cloud data. The rules cover users, classes/members, projects/activities, submissions,
+Dragon Genetics assignments and overrides, progress, simulation runs, and published designer
+assets. Everything unmatched is denied.
 
-## 4. Enable Authentication
+## Rules testing
 
-In **Authentication → Sign-in method**:
-
-1. Enable Google if the district uses Google Workspace.
-2. Set a support email controlled by the school or project owner.
-3. Add the final Hosting/custom domain under **Authorized domains**.
-4. Do not enable anonymous authentication for production unless you deliberately want unsigned student sessions.
-
-Before broad use, confirm the district policy for student accounts, retention, and parent consent. Store only the minimum student information required for the learning experience.
-
-## 5. Create Firestore
-
-In **Firestore Database**:
-
-1. Create the database in production mode.
-2. Do not paste permissive starter rules into the console.
-3. Deploy the checked-in `firestore.rules` and `firestore.indexes.json` from the CLI.
-
-The current rule model provides these boundaries:
-
-- Anyone can read published project content.
-- Drafts are visible only to their owner or an administrator.
-- Only users with a trusted `teacher` role can create projects.
-- Students can create and update only their own submissions.
-- A project owner can read submissions associated with their project.
-- Everything unmatched is denied.
-
-Teacher roles must be assigned by trusted server/admin tooling—not by a browser form. The next backend milestone should provide a controlled invitation or role-assignment workflow.
-
-## 6. Connect the Firebase CLI
-
-Java 17 is installed on this machine, so the scripts currently invoke Firebase CLI 14.27 externally. When you install JDK 21, update the pinned CLI version in `package.json` to the current supported release.
-
-Log in and add project aliases:
+Run the isolated Firestore rules suite with:
 
 ```powershell
-npm run firebase -- login
-npm run firebase -- use --add
+npm run test:rules
 ```
 
-Choose the development project and name the alias `dev`. Run `use --add` again, choose production, and name it `prod`.
+The command starts the Firestore emulator for the test process. `npm run verify` also runs this suite
+after both apps build and test.
 
-Verify the selected target before every deployment:
+## Deploying
+
+The default target is the production project, so verify the selected project before deployment:
 
 ```powershell
 npm run firebase -- use
-```
-
-## 7. Deploy a development preview
-
-Select the development alias, build, and deploy:
-
-```powershell
-npm run firebase -- use dev
+npm run verify
 npm run deploy
 ```
 
-For a temporary Hosting preview URL:
+`npm run deploy` builds the student app and deploys Hosting plus Firestore rules/indexes. Hosting
+serves `dist/pbl-forge/browser` and rewrites client routes to `index.html`.
 
-```powershell
-npm run build
-npm run firebase -- hosting:channel:deploy pilot-1
-```
+For a non-production Firebase project, register a web app, add an alias with
+`npm run firebase -- use --add`, and use a deliberate environment configuration for that project.
+Do not point a development alias at the production Firestore database. A Hosting preview channel is
+still public and must rely on Authentication and Firestore rules, not URL secrecy.
 
-Preview URLs are public URLs. Firestore rules and Authentication must protect private data even when a URL is difficult to guess.
+## Production readiness gaps
 
-## 8. Production readiness checklist
+Before using real student data, confirm district policy for accounts, retention, consent, and
+shared-device behavior. The current app also needs an intentional cloud repository/publishing design
+for teacher lesson-plan changes, lesson responses, case records, and workstation-local records if
+students must continue across browsers or devices.
 
-Before selecting the production alias:
+Operationally, also establish:
 
-- Run `npm run verify` successfully.
-- Pilot with teacher-owned test accounts and synthetic student data.
-- Review Firestore rules with the exact queries used by the teacher dashboard.
-- Decide how classes and membership invitations are provisioned.
-- Establish a term-end submission deletion/export process.
-- Add Google Cloud budget alerts and monitor Firestore reads and writes.
-- Register App Check with reCAPTCHA Enterprise, observe metrics, then enable enforcement.
-- Add a custom domain and confirm the Authentication authorized-domain entry.
-- Confirm keyboard, screen-reader, Chromebook, and shared-device behavior.
-- Keep persistent Firestore disk caching disabled on shared student computers.
-
-Then deploy:
-
-```powershell
-npm run firebase -- use prod
-npm run deploy
-```
-
-## 9. Recommended next implementation milestone
-
-Build the teacher publishing workflow around immutable versions:
-
-```text
-projects/{projectId}
-projects/{projectId}/versions/{versionId}
-projects/{projectId}/activities/{activityId}
-assignments/{assignmentId}
-submissions/{studentId_assignmentId_activityId}
-```
-
-A trusted callable Cloud Function should validate a draft, create an immutable published version, and assign teacher/admin roles. Add Cloud Storage only when projects need images, audio, or downloads; do not store large files or executable HTML/JavaScript in Firestore.
+- a trusted teacher/admin invitation and role-assignment process;
+- class membership provisioning and removal;
+- term-end export/deletion procedures;
+- App Check rollout and monitoring;
+- budget/read monitoring and a separate non-production Firebase project; and
+- keyboard, screen-reader, Chromebook, projector, and shared-device verification.

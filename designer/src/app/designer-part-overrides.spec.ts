@@ -102,6 +102,46 @@ describe('designer part overrides', () => {
     expect(JSON.stringify(definition.snapPoints)).toBe(before);
   });
 
+  it('keeps body-station tuning scoped to one Arena body definition', () => {
+    const regal = ASSEMBLY_PART_DEFINITIONS.find(item => item.id === 'dragon-regal-body')!;
+    const bulwark = ASSEMBLY_PART_DEFINITIONS.find(item => item.id === 'dragon-bulwark-body')!;
+    const lateralSocket = regal.snapPoints.find(snap =>
+      snap.localPosition.x > 0 && Math.abs(snap.localPosition.z) > 0.01)!;
+
+    draft.setParameter(regal.id, 'bodyChestWidth', 1.42);
+
+    const appliedRegal = applyDesignerDraft(regal, draft);
+    expect(appliedRegal.visualProfile?.parameters?.['bodyChestWidth']).toBe(1.42);
+    expect(Math.abs(appliedRegal.snapPoints.find(snap => snap.id === lateralSocket.id)!.localPosition.z))
+      .toBeGreaterThan(Math.abs(lateralSocket.localPosition.z));
+    expect(applyDesignerDraft(bulwark, draft).visualProfile?.parameters?.['bodyChestWidth'])
+      .toBeUndefined();
+  });
+
+  it('lets a hand-placed body socket win over station reshaping', () => {
+    const regal = ASSEMBLY_PART_DEFINITIONS.find(item => item.id === 'dragon-regal-body')!;
+    const socket = regal.snapPoints.find(snap => Math.abs(snap.localPosition.z) > 0.01)!;
+    const moved = { x: 0.7, y: 0.8, z: 0.9 };
+
+    draft.setParameter(regal.id, 'bodyChestWidth', 1.6);
+    draft.setSnapOffset(regal.id, socket.id, moved);
+
+    expect(applyDesignerDraft(regal, draft).snapPoints.find(snap => snap.id === socket.id)?.localPosition)
+      .toEqual(moved);
+  });
+
+  it('can reset one anatomy-layer parameter without clearing the other layers', () => {
+    const definition = ASSEMBLY_PART_DEFINITIONS.find(item => item.id === 'dragon-regal-body')!;
+
+    draft.setParameter(definition.id, 'bodyChestWidth', 1.4);
+    draft.setParameter(definition.id, 'bodyBellyDepth', 1.3);
+    draft.clearParameter(definition.id, 'bodyBellyDepth');
+
+    const parameters = applyDesignerDraft(definition, draft).visualProfile?.parameters;
+    expect(parameters?.['bodyChestWidth']).toBe(1.4);
+    expect(parameters?.['bodyBellyDepth']).toBeUndefined();
+  });
+
   it('leaves a part alone when it has no offsets', () => {
     const definition = socketedDefinition();
     expect(withSnapOffsets(definition, {})).toBe(definition);
@@ -150,5 +190,29 @@ describe('DesignerDragonDraftStore persistence', () => {
     TestBed.resetTestingModule();
 
     expect(TestBed.inject(DesignerDragonDraftStore).snapOffsetsFor('dragon-foot')).toEqual({});
+  });
+
+  it('saves placements independently for each Arena body type or Mini breed', () => {
+    const store = TestBed.inject(DesignerDragonDraftStore);
+    store.setPlacement('regal-dragon', 'left-wing', {
+      offset: { x: 0.2, y: 0, z: 0 },
+      rotationDegrees: { x: 0, y: 12, z: 0 },
+      scale: 1.1,
+    });
+    store.setPlacement('mini-dragon-fairy', 'mini-left-wing', {
+      offset: { x: -0.1, y: 0.3, z: 0 },
+      rotationDegrees: { x: 5, y: 0, z: -8 },
+      scale: 0.9,
+    });
+    TestBed.resetTestingModule();
+    const reloaded = TestBed.inject(DesignerDragonDraftStore);
+
+    expect(reloaded.placementFor('regal-dragon', 'left-wing').offset.x).toBe(0.2);
+    expect(reloaded.placementFor('mini-dragon-fairy', 'mini-left-wing').offset.y).toBe(0.3);
+    expect(reloaded.placementFor('bulwark-dragon', 'left-wing')).toEqual({
+      offset: { x: 0, y: 0, z: 0 },
+      rotationDegrees: { x: 0, y: 0, z: 0 },
+      scale: 1,
+    });
   });
 });

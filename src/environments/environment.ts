@@ -1,6 +1,8 @@
 export const environment = {
   production: false,
   useEmulators: true,
+  // Temporary testing policy: every tester, including a guest, may open teacher routes.
+  openTeacherAccess: true,
   firebase: {
     apiKey: 'demo-api-key',
     authDomain: 'demo-pbl-forge.firebaseapp.com',

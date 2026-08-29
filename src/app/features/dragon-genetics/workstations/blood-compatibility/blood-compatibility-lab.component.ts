@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { AccountGeneticsFileComponent } from '../shared/account-genetics-file.component';
@@ -20,6 +21,7 @@ import {
   BloodPhenotypeId,
   BloodSpecimen,
   BloodTestEvidence,
+  BloodTestObservation,
   DonorCandidate,
   TransfusionTrial,
   antiserumReaction,
@@ -48,10 +50,13 @@ export class BloodCompatibilityLabComponent {
   private readonly repository = inject(BloodCompatibilityRepository);
 
   readonly studentId = input.required<string>();
+  readonly caseMode = input<BloodLabMode | null>(null);
+  readonly evidenceObserved = output<BloodTestObservation>();
   readonly bloodTypes = BLOOD_TYPE_DEFINITIONS;
   readonly reagents: readonly { marker: BloodMarker; name: string; code: string }[] = [
-    { marker: 'a', name: 'Anti-A serum', code: 'AA' },
-    { marker: 'b', name: 'Anti-B serum', code: 'AB' },
+    { marker: 'a', name: 'Anti-A serum', code: 'Anti-A' },
+    { marker: 'b', name: 'Anti-B serum', code: 'Anti-B' },
+    { marker: 'd', name: 'Anti-D serum', code: 'Anti-D' },
   ];
 
   readonly mode = signal<BloodLabMode>('standard');
@@ -60,7 +65,6 @@ export class BloodCompatibilityLabComponent {
   readonly stagedAccountRecord = signal<AccountGeneticsRecord | null>(null);
   readonly patientDragonId = signal<string | null>(null);
   readonly activeSpecimenId = signal<string | null>(null);
-  readonly pendingReagent = signal<BloodMarker | null>(null);
   readonly tests = signal<Readonly<Record<string, BloodTestEvidence>>>({});
   readonly patientTypeClaimId = signal<BloodPhenotypeId | null>(null);
   readonly stagedDonorId = signal<string | null>(null);
@@ -102,9 +106,7 @@ export class BloodCompatibilityLabComponent {
     const claimId = this.patientTypeClaimId();
     return claimId ? (this.bloodTypes.find((type) => type.id === claimId) ?? null) : null;
   });
-  readonly patientTypeClaimSymbol = computed(
-    () => this.patientTypeClaim()?.name.replace('+', '') ?? null,
-  );
+  readonly patientTypeClaimSymbol = computed(() => this.patientTypeClaim()?.name ?? null);
   readonly determinedBloodTypeByDragonId = computed<Readonly<Record<string, DragonCardBloodType>>>(
     () => {
       const determined: Record<string, DragonCardBloodType> = {};
@@ -161,7 +163,7 @@ export class BloodCompatibilityLabComponent {
       return 'A stable transfusion result is needed before the emergency record can be saved.';
     }
     if (this.patientTypeClaimId() !== this.patientBloodType()?.id) {
-      return 'Review the recorded patient type against both serum reactions.';
+      return 'Review the recorded patient type against all three serum reactions.';
     }
     if (this.explanation().trim().length < 16) {
       return 'Connect the patient markers, donor markers, and compatibility rule in your note.';
@@ -178,10 +180,19 @@ export class BloodCompatibilityLabComponent {
       this.loadedStudentId = studentId;
       this.records.set(this.repository.load(studentId));
     });
+    effect(() => {
+      const caseMode = this.caseMode();
+      if (caseMode && this.mode() !== caseMode) this.applyMode(caseMode);
+    });
     this.resetSupplies();
   }
 
   setMode(mode: BloodLabMode): void {
+    if (this.caseMode() && this.caseMode() !== mode) return;
+    this.applyMode(mode);
+  }
+
+  private applyMode(mode: BloodLabMode): void {
     if (this.mode() === mode) return;
     this.mode.set(mode);
     this.resetSupplies();
@@ -207,7 +218,6 @@ export class BloodCompatibilityLabComponent {
     this.patientDragonId.set(dragon.id);
     this.stagedAccountRecord.set(record);
     this.activeSpecimenId.set(`patient:${dragon.id}`);
-    this.pendingReagent.set(null);
     this.tests.set({});
     this.patientTypeClaimId.set(null);
     this.stagedDonorId.set(null);
@@ -217,20 +227,13 @@ export class BloodCompatibilityLabComponent {
     this.explanation.set('');
     this.resetSupplies();
     this.statusMessage.set(
-      `${dragon.name}'s sample is on the testing plate. Apply both antisera to determine the blood type.`,
+      `${dragon.name}'s sample is on the testing plate. Apply Anti-A, Anti-B, and Anti-D to determine the blood type.`,
     );
   }
 
   loadDonorSample(donorId: string): void {
     const donor = this.donors().find((candidate) => candidate.id === donorId);
     if (donor) this.loadSpecimen(donor);
-  }
-
-  selectReagent(marker: BloodMarker): void {
-    this.pendingReagent.set(marker);
-    this.statusMessage.set(
-      `${this.reagentName(marker)} selected. Apply it to the loaded sample or drag the vial onto the reaction plate.`,
-    );
   }
 
   startReagentDrag(event: DragEvent, marker: BloodMarker): void {
@@ -247,15 +250,12 @@ export class BloodCompatibilityLabComponent {
     }
   }
 
-  dropReagent(event: DragEvent): void {
+  dropReagent(event: DragEvent, wellMarker?: BloodMarker): void {
     event.preventDefault();
     const marker = event.dataTransfer?.getData(BLOOD_REAGENT_DRAG_TYPE);
-    if (marker === 'a' || marker === 'b') this.applyReagent(marker);
-  }
-
-  applyPendingReagent(): void {
-    const marker = this.pendingReagent();
-    if (marker) this.applyReagent(marker);
+    if ((marker === 'a' || marker === 'b' || marker === 'd') && (!wellMarker || marker === wellMarker)) {
+      this.applyReagent(marker);
+    }
   }
 
   applyReagent(marker: BloodMarker): void {
@@ -263,17 +263,20 @@ export class BloodCompatibilityLabComponent {
     if (!specimen) return;
     const existing = this.tests()[specimen.id] ?? this.emptyTest(specimen);
     const reaction = antiserumReaction(specimen, marker);
+    const evidenceField = marker === 'a' ? 'antiA' : marker === 'b' ? 'antiB' : 'antiD';
     const next: BloodTestEvidence = {
       ...existing,
-      [marker === 'a' ? 'antiA' : 'antiB']: reaction,
+      [evidenceField]: reaction,
       testedAtIso: new Date().toISOString(),
     };
     this.tests.update((tests) => ({ ...tests, [specimen.id]: next }));
-    this.pendingReagent.set(null);
-    const testComplete = next.antiA !== null && next.antiB !== null;
+    const testComplete = next.antiA !== null && next.antiB !== null && next.antiD !== null;
+    if (testComplete && (existing.antiA === null || existing.antiB === null || existing.antiD === null)) {
+      this.emitEvidenceObservation(specimen, next);
+    }
     this.statusMessage.set(
       testComplete
-        ? `${specimen.sampleCode} now has both reactions recorded. Use the visible evidence to record a blood type.`
+        ? `${specimen.sampleCode} now has all three reactions recorded. Use the visible evidence to record a blood type.`
         : `${this.reagentName(marker)} produced ${reaction ? 'agglutination' : 'a smooth suspension'} in ${specimen.sampleCode}.`,
     );
   }
@@ -439,12 +442,16 @@ export class BloodCompatibilityLabComponent {
 
   isFullyTested(specimenId: string): boolean {
     const test = this.tests()[specimenId];
-    return Boolean(test && test.antiA !== null && test.antiB !== null);
+    return Boolean(test && test.antiA !== null && test.antiB !== null && test.antiD !== null);
   }
 
   reactionFor(marker: BloodMarker): boolean | null {
     const test = this.activeTest();
-    return marker === 'a' ? (test?.antiA ?? null) : (test?.antiB ?? null);
+    return marker === 'a'
+      ? (test?.antiA ?? null)
+      : marker === 'b'
+        ? (test?.antiB ?? null)
+        : (test?.antiD ?? null);
   }
 
   donorUnits(donor: DonorCandidate): string {
@@ -454,11 +461,11 @@ export class BloodCompatibilityLabComponent {
   }
 
   donorBloodType(donor: DonorCandidate) {
-    return phenotypeForGenotype(donor.genotype);
+    return phenotypeForGenotype(donor.genotype, donor.rhPositive);
   }
 
   donorTypeSymbol(donor: DonorCandidate): string {
-    return this.donorBloodType(donor).name.replace('+', '');
+    return this.donorBloodType(donor).name;
   }
 
   donorUsable(donor: DonorCandidate): boolean {
@@ -468,11 +475,11 @@ export class BloodCompatibilityLabComponent {
   }
 
   reagentName(marker: BloodMarker): string {
-    return marker === 'a' ? 'Anti-A serum' : 'Anti-B serum';
+    return marker === 'a' ? 'Anti-A serum' : marker === 'b' ? 'Anti-B serum' : 'Anti-D serum';
   }
 
   markerName(marker: BloodMarker): string {
-    return marker === 'a' ? 'A' : 'B';
+    return marker === 'a' ? 'A' : marker === 'b' ? 'B' : 'D';
   }
 
   phenotypeName(id: BloodPhenotypeId): string {
@@ -481,7 +488,6 @@ export class BloodCompatibilityLabComponent {
 
   private loadSpecimen(specimen: BloodSpecimen): void {
     this.activeSpecimenId.set(specimen.id);
-    this.pendingReagent.set(null);
     this.statusMessage.set(`${specimen.sampleCode} loaded on the blood-testing plate.`);
   }
 
@@ -498,26 +504,41 @@ export class BloodCompatibilityLabComponent {
       sampleCode: specimen.sampleCode,
       antiA: null,
       antiB: null,
+      antiD: null,
       testedAtIso: new Date().toISOString(),
     };
   }
 
   private recordTypedDonorEvidence(donor: DonorCandidate): void {
     if (this.isFullyTested(donor.id)) return;
+    const evidence: BloodTestEvidence = {
+      specimenId: donor.id,
+      sampleCode: donor.sampleCode,
+      antiA: antiserumReaction(donor, 'a'),
+      antiB: antiserumReaction(donor, 'b'),
+      antiD: antiserumReaction(donor, 'd'),
+      testedAtIso: new Date().toISOString(),
+    };
     this.tests.update((tests) => ({
       ...tests,
-      [donor.id]: {
-        specimenId: donor.id,
-        sampleCode: donor.sampleCode,
-        antiA: antiserumReaction(donor, 'a'),
-        antiB: antiserumReaction(donor, 'b'),
-        testedAtIso: new Date().toISOString(),
-      },
+      [donor.id]: evidence,
     }));
+    this.emitEvidenceObservation(donor, evidence);
+  }
+
+  private emitEvidenceObservation(specimen: BloodSpecimen, evidence: BloodTestEvidence): void {
+    const phenotype = bloodTypeForReactions(evidence.antiA, evidence.antiB, evidence.antiD);
+    if (!phenotype) return;
+    this.evidenceObserved.emit({
+      specimen,
+      specimenRole: specimen.id.startsWith('patient:') ? 'patient' : 'donor',
+      evidence,
+      phenotype,
+    });
   }
 
   private bloodTypeForTest(test: BloodTestEvidence | null) {
-    return test ? bloodTypeForReactions(test.antiA, test.antiB) : null;
+    return test ? bloodTypeForReactions(test.antiA, test.antiB, test.antiD) : null;
   }
 
   private resetSupplies(): void {
@@ -528,14 +549,6 @@ export class BloodCompatibilityLabComponent {
 }
 
 function cardBloodType(phenotype: BloodPhenotypeId): DragonCardBloodType {
-  switch (phenotype) {
-    case 'a-positive':
-      return 'A';
-    case 'b-positive':
-      return 'B';
-    case 'ab-positive':
-      return 'AB';
-    case 'o-positive':
-      return 'O';
-  }
+  return BLOOD_TYPE_DEFINITIONS.find((definition) => definition.id === phenotype)!
+    .name as DragonCardBloodType;
 }

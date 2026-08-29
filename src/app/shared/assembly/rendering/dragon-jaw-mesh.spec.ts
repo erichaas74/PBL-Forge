@@ -117,12 +117,11 @@ describe('dragon upper jaw mesh', () => {
 });
 
 describe('dragon jaw tooth row', () => {
-    /**
-     * Row teeth are the unnamed cones on a jaw: the fangs are cones too, but they
-     * carry names and are placed off the row.
-     */
     function rowTeeth(jaw: THREE.Object3D): THREE.Mesh[] {
-        const teeth = jaw.children.filter((child): child is THREE.Mesh => child instanceof THREE.Mesh && child.geometry instanceof THREE.ConeGeometry && !child.name);
+        const teeth: THREE.Mesh[] = [];
+        jaw.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.name.startsWith('dragon-tooth-')) teeth.push(child);
+        });
         expect(teeth.length).toBeGreaterThan(0);
         return teeth;
     }
@@ -183,6 +182,51 @@ describe('dragon jaw tooth row', () => {
         expect(upper.parameters.height).toBeCloseTo(lower.parameters.height * 0.65);
         expect(upper.parameters.radius).toBeCloseTo(lower.parameters.radius * 0.75);
     });
+
+    it('edits row spacing and placement independently for one jaw', () => {
+        const dims = jawPart('dragon-lower-jaw').dimensions;
+        const base = jawPart('dragon-lower-jaw');
+        const moved = buildJaw({
+            ...base,
+            visualProfile: {
+                ...base.visualProfile!,
+                parameters: {
+                    toothCount: 3,
+                    toothStart: 0.3,
+                    toothRowSpan: 0.2,
+                    toothOffsetX: 0.1,
+                    toothOffsetY: -0.12,
+                    toothOffsetZ: 0.08,
+                },
+            },
+        });
+        const left = rowTeeth(moved)
+            .filter(tooth => tooth.name.includes('-left-'))
+            .sort((a, b) => b.position.x - a.position.x);
+
+        [0.4, 0.3, 0.2].forEach((along, index) => {
+            expect(left[index].position.x).toBeCloseTo(along * dims.x);
+        });
+        expect(left[0].position.y).toBeLessThan(rowTeeth(buildJaw(base))[0].position.y);
+        expect(Math.abs(left[0].position.z)).toBeGreaterThan(dims.z * 0.08);
+    });
+
+    it('adds symmetric tooth splay and a shared forward rake', () => {
+        const base = jawPart('dragon-lower-jaw');
+        const jaw = buildJaw({
+            ...base,
+            visualProfile: {
+                ...base.visualProfile!,
+                parameters: { toothCount: 1, toothSplay: 12, toothRake: -18 },
+            },
+        });
+        const [left, right] = rowTeeth(jaw)
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        expect(left.rotation.x).toBeCloseTo(-right.rotation.x);
+        expect(left.rotation.z).toBeCloseTo(-18 * Math.PI / 180);
+        expect(right.rotation.z).toBeCloseTo(left.rotation.z);
+    });
 });
 
 describe('dragon upper jaw fangs', () => {
@@ -193,7 +237,7 @@ describe('dragon upper jaw fangs', () => {
     }
 
     function toothHeightOf(jaw: THREE.Object3D): number {
-        const tooth = jaw.children.find((child): child is THREE.Mesh => child instanceof THREE.Mesh && child.geometry instanceof THREE.ConeGeometry && !child.name)!;
+        const tooth = jaw.getObjectByName('dragon-tooth-left-1') as THREE.Mesh;
         return (tooth.geometry as THREE.ConeGeometry).parameters.height;
     }
 
@@ -252,5 +296,20 @@ describe('dragon upper jaw fangs', () => {
 
         expect(fangs(lowerJaw).length).toBe(0);
     });
-});
 
+    it('moves the fang pair without moving the nostrils', () => {
+        const base = jawPart('dragon-upper-jaw');
+        const moved = buildJaw({
+            ...base,
+            visualProfile: {
+                ...base.visualProfile!,
+                parameters: { fangOffsetX: -0.1, fangOffsetY: 0.2, fangOffsetZ: 0.06 },
+            },
+        });
+        const fang = moved.getObjectByName('dragon-fang-right')!;
+        const nostril = moved.getObjectByName('dragon-nostril-right')!;
+
+        expect(fang.position.x).toBeCloseTo(nostril.position.x - base.dimensions.x * 0.1);
+        expect(fang.position.z).toBeGreaterThan(nostril.position.z);
+    });
+});

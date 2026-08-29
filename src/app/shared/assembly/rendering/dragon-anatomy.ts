@@ -1,22 +1,10 @@
 import * as THREE from 'three';
 import { AssemblyPart } from '../domain/assembly.models';
 import { detail, mesh, revolvedUv, sphereUv } from './dragon-geometry';
-import { DragonPalette, glowMaterial, scaleMaterial } from './dragon-materials';
+import { DragonPalette, scaleMaterial } from './dragon-materials';
 import { getActiveDragonStyle } from './dragon-style';
 import { HORN_TILE, SCALE_TILE } from './dragon-texture-constants';
 import { visualNumber } from './dragon-visual-parameter-readers';
-
-/** A flattened luminous node shared by body, head, and tail markings. */
-export function buildGlowNode(radius: number): THREE.Mesh {
-  const node = mesh(
-    new THREE.SphereGeometry(Math.max(radius, 0.01), detail(10), detail(8)),
-    glowMaterial(),
-  );
-  node.scale.set(0.55, 1, 1);
-  node.castShadow = false;
-  node.receiveShadow = false;
-  return node;
-}
 
 /** Ball scale for one part: its persisted override first, then shared style. */
 export function jointBallScale(part: AssemblyPart): number {

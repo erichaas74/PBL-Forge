@@ -8,7 +8,7 @@ import {
 } from './chromosome-diagram';
 
 /**
- * A chromosome pair drawn in the style of `docs/allelle-diagram.html`: two banded chromosomes
+ * A chromosome pair drawn in the style of `docs/oldDocs/allelle-diagram.html`: two banded chromosomes
  * with the allele letter for the focus gene on a leader line at each side.
  *
  * The component is decorative on its own — it is always `aria-hidden`, and the host supplies the

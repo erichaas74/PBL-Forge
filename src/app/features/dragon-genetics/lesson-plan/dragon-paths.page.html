@@ -13,9 +13,9 @@
         <h2 id="lesson-list-title">Learning path</h2>
         <span>The science and questions are identical on both paths.</span>
       </div>
-      @if (lessonPlan.publishedLessons().length) {
+      @if (lessonPlan.coreLessons().length) {
         <ol>
-          @for (lesson of lessonPlan.publishedLessons(); track lesson.id; let order = $index) {
+          @for (lesson of lessonPlan.coreLessons(); track lesson.id; let order = $index) {
             <li>
               <span>{{ order + 1 }}</span>
               <div>
@@ -33,6 +33,38 @@
         </div>
       }
     </section>
+
+    @if (lessonPlan.extraLessons().length || casesFor(path.id).length) {
+      <section class="lesson-list" aria-labelledby="extra-lesson-list-title">
+        <div>
+          <p>Optional work</p>
+          <h2 id="extra-lesson-list-title">Extra lessons and commissions</h2>
+          <span>These are open to you but are not part of the numbered path. They never block a lesson.</span>
+        </div>
+        <ol>
+          @for (lesson of lessonPlan.extraLessons(); track lesson.id) {
+            <li>
+              <span aria-hidden="true">+</span>
+              <div>
+                <strong>{{ lesson.title }}</strong>
+                <small>{{ lesson.learningGoal || 'Learning goal being prepared.' }}</small>
+              </div>
+              <a [routerLink]="['/dragon-genetics', 'path', path.id, 'lesson', lesson.id]">Open extra lesson →</a>
+            </li>
+          }
+          @for (commission of casesFor(path.id); track commission.id) {
+            <li>
+              <span aria-hidden="true">◇</span>
+              <div>
+                <strong>{{ commission.title }}</strong>
+                <small>{{ commission.subtitle }} · {{ commission.clientName }} — {{ commission.problem }}</small>
+              </div>
+              <a [routerLink]="caseUrl(path.id, commission)">View commission →</a>
+            </li>
+          }
+        </ol>
+      </section>
+    }
   } @else {
     <header class="plan-header home">
       <p>Dragon Genetics</p>
@@ -50,5 +82,50 @@
         </a>
       }
     </section>
+    @if (homeExtrasVisible()) {
+      <section class="lesson-list" aria-labelledby="home-extra-lessons-title">
+        <div>
+          <p>Optional work</p>
+          <h2 id="home-extra-lessons-title">Extra lessons and commissions</h2>
+          <span>Open to you on either path. They are not part of the numbered path and never block a lesson.</span>
+        </div>
+        <ol>
+          @for (lesson of lessonPlan.extraLessons(); track lesson.id) {
+            <li>
+              <span aria-hidden="true">+</span>
+              <div>
+                <strong>{{ lesson.title }}</strong>
+                <small>{{ lesson.learningGoal || 'Learning goal being prepared.' }}</small>
+              </div>
+              <span class="extra-lesson-links">
+                @for (pathId of pathIds; track pathId) {
+                  <a [routerLink]="['/dragon-genetics', 'path', pathId, 'lesson', lesson.id]">
+                    {{ lessonPlan.document().paths[pathId].shortTitle }} →
+                  </a>
+                }
+              </span>
+            </li>
+          }
+          @for (commission of homeCases(); track commission.id) {
+            <li>
+              <span aria-hidden="true">◇</span>
+              <div>
+                <strong>{{ commission.title }}</strong>
+                <small>{{ commission.subtitle }} · {{ commission.clientName }} — {{ commission.problem }}</small>
+              </div>
+              <span class="extra-lesson-links">
+                @for (pathId of pathIds; track pathId) {
+                  @if (offersCase(pathId, commission)) {
+                    <a [routerLink]="caseUrl(pathId, commission)">
+                      {{ lessonPlan.document().paths[pathId].shortTitle }} →
+                    </a>
+                  }
+                }
+              </span>
+            </li>
+          }
+        </ol>
+      </section>
+    }
   }
 </main>

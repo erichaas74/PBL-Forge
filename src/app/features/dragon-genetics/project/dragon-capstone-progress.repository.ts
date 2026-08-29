@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — publishes compact capstone outcomes for teacher reporting.
+ * Inputs/signals: selected path, Arena snapshot, kennel snapshot, or island world plus assignment.
+ * Data access: merges authenticated summaries into Firestore dragonLabProgress documents.
+ * Connects to: capstone route pages, DragonProjectHubFacade, and DragonTeacherPage.
+ */
 import { EnvironmentInjector, inject, Service } from '@angular/core';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { runInFirebaseContext } from '../../../core/firebase/firebase-context';

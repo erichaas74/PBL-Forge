@@ -20,7 +20,6 @@ export const WISE_DRAGON_PROFILE: DragonParentProfile = {
     spikes: ['P', 'p'],
     tail: ['K', 'k'],
     'body-color': ['B', 'b'],
-    glow: ['N', 'N'],
     fangs: ['g', 'g'],
     'eye-color': ['e', 'e'],
     'body-type': ['D', 'D'],
@@ -69,6 +68,7 @@ function buildWiseDragonSource() {
       Object.assign(parameters, {
         bodyArchetype: 'regal',
         backSpikeCount: 12,
+        backSpikeRows: 3,
         backSpikeScale: 1.22,
       });
     } else if (profileId === 'dragon-wing') {

@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — guarded teacher-only visual/genetic specimen test bench.
+ * Inputs/signals: species, expressive profile, mini-dragon forms, and specimen selection signals.
+ * Data access: committed model-pack, genetics catalogs, and procedural render adapters in memory.
+ * Connects to: shared specimen preview/rendering components used to validate student visuals.
+ */
 import { Component, computed, signal } from '@angular/core';
 import { SpecimenTestBenchComponent } from '../../shared/assembly/preview/specimen-test-bench.component';
 import { DRAGON_BENCH_COPY, DRAGON_BENCH_MOTIONS } from './simulation/data/dragon-bench-content';
@@ -12,8 +18,25 @@ import {
   genotypeChoices,
   normalizeGenomeForSex,
   sexChromosomes,
+  toCoreLabGenome,
 } from './simulation/domain/dragon-expressive-genome';
-import { DragonTraitGenotype } from './simulation/domain/dragon-lab.models';
+import {
+  DragonLabGenome,
+  DragonTraitDefinition,
+  DragonTraitGenotype,
+} from './simulation/domain/dragon-lab.models';
+import {
+  DRAGON_BODY_GENES,
+  DRAGON_BODY_TYPES,
+  DragonBodyGeneId,
+  DragonBodyTypeId,
+  bodyGenomeForType,
+  isDragonBodyType,
+} from './simulation/domain/dragon-body-type.genetics';
+import {
+  genotypeLabel as arenaGenotypeLabel,
+  showsArenaDominant,
+} from './simulation/domain/dragon-inheritance';
 import { createExpressiveDragonBenchBuild } from './simulation/domain/dragon-specimen.profile';
 import {
   MINI_DRAGON_GENES,
@@ -65,8 +88,8 @@ const DEFAULT_MINI_FORMS: Readonly<Record<MiniGeneId, string>> = {
  *
  * Two species share the bench, and the toggle between them is the point rather
  * than a convenience: the lab dragon models one relationship — a dominant
- * allele is enough — thirteen times over, while the mini dragon runs four
- * different inheritance patterns across twenty-four genes. Seeing them on the same
+ * allele is enough — plus the four-locus switchboard that selects six inherited body plans —
+ * while the mini dragon runs four different inheritance patterns across twenty-four genes. Seeing them on the same
  * instrument, framed and lit the same way, is what makes the second species
  * read as a different *genetics* rather than a different art style.
  */
@@ -78,6 +101,8 @@ const DEFAULT_MINI_FORMS: Readonly<Record<MiniGeneId, string>> = {
 })
 export class DragonTestBenchPage {
   readonly traits = EXPRESSIVE_DRAGON_TRAITS;
+  readonly bodyGenes = DRAGON_BODY_GENES;
+  readonly bodyTypes = DRAGON_BODY_TYPES;
   readonly copy = DRAGON_BENCH_COPY;
   readonly motions = DRAGON_BENCH_MOTIONS;
   readonly miniGenes = MINI_DRAGON_GENES;
@@ -85,6 +110,9 @@ export class DragonTestBenchPage {
 
   readonly species = signal<BenchSpecies>('lab');
   readonly profile = signal<ExpressiveDragonProfile>(cloneProfile(DEFAULT_EXPRESSIVE_DRAGON));
+  private readonly arenaGenome = signal<DragonLabGenome>(
+    bodyGenomeForType(toCoreLabGenome(DEFAULT_EXPRESSIVE_DRAGON), 'regal-dragon'),
+  );
   readonly miniForms = signal<Readonly<Record<MiniGeneId, string>>>({ ...DEFAULT_MINI_FORMS });
   /**
    * Which individual of that genotype. Bumping it redraws the same genome as a
@@ -93,14 +121,23 @@ export class DragonTestBenchPage {
    */
   private readonly miniIndividual = signal(1);
 
+  readonly expressedArenaGenome = computed<DragonLabGenome>(() => ({
+    ...this.arenaGenome(),
+    ...toCoreLabGenome(this.profile()),
+  }));
+
   readonly build = computed(() =>
     createExpressiveDragonBenchBuild('bench-dragon', this.profile(), {
       label: `${this.profile().sex === 'female' ? 'Female' : 'Male'} test dragon`,
+      arenaGenome: this.expressedArenaGenome(),
     }),
   );
 
   readonly genotypeSummary = computed(() =>
-    this.traits.map((trait) => `${trait.name} ${this.genotypeLabel(trait.id)}`).join(' · '),
+    [
+      ...this.traits.map((trait) => `${trait.name} ${this.genotypeLabel(trait.id)}`),
+      ...this.bodyGenes.map((trait) => `${trait.name} ${this.bodyGenotypeLabel(trait.id)}`),
+    ].join(' · '),
   );
 
   private readonly miniIndividualId = computed(() => `bench-mini-${this.miniIndividual()}`);
@@ -166,6 +203,58 @@ export class DragonTestBenchPage {
         ? `X${pair[0]}Y`
         : `X${pair[0]}X${pair[1]}`
       : pair.join('');
+  }
+
+  /** Loads a genetic body plan as an editable starting point. */
+  selectBodyType(typeId: DragonBodyTypeId): void {
+    const genome = bodyGenomeForType(this.expressedArenaGenome(), typeId);
+    this.arenaGenome.set(genome);
+    this.profile.update((current) => ({
+      ...current,
+      genome: {
+        ...current.genome,
+        wings: [...genome.wings],
+        horns: [...genome.horns],
+        tail: [...(genome.tail ?? current.genome.tail)] as DragonTraitGenotype,
+      },
+    }));
+  }
+
+  isBodyTypeSelected(typeId: DragonBodyTypeId): boolean {
+    return isDragonBodyType(this.expressedArenaGenome(), typeId);
+  }
+
+  bodyChoicesFor(trait: DragonTraitDefinition<DragonBodyGeneId>): GenotypeChoice[] {
+    return [
+      [trait.dominantAllele, trait.dominantAllele],
+      [trait.dominantAllele, trait.recessiveAllele],
+      [trait.recessiveAllele, trait.recessiveAllele],
+    ].map((genotype) => ({
+      genotype: genotype as DragonTraitGenotype,
+      label: genotype.join(''),
+    }));
+  }
+
+  isBodyGeneSelected(traitId: DragonBodyGeneId, choice: GenotypeChoice): boolean {
+    return this.expressedArenaGenome()[traitId]?.join('|') === choice.genotype.join('|');
+  }
+
+  selectBodyGene(traitId: DragonBodyGeneId, choice: GenotypeChoice): void {
+    this.arenaGenome.update((current) => ({
+      ...current,
+      [traitId]: [...choice.genotype],
+    }));
+  }
+
+  bodyPhenotypeOf(trait: DragonTraitDefinition<DragonBodyGeneId>): string {
+    return showsArenaDominant(this.expressedArenaGenome(), trait.id)
+      ? trait.dominantPhenotype
+      : trait.recessivePhenotype;
+  }
+
+  bodyGenotypeLabel(traitId: DragonBodyGeneId): string {
+    const pair = this.expressedArenaGenome()[traitId];
+    return pair ? arenaGenotypeLabel(pair) : '—';
   }
 
   // -- Mini dragon ----------------------------------------------------------

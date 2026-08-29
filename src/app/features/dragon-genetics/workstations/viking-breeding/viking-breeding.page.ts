@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit Working Dragons breeding-program investigation route.
+ * Inputs/signals: optional role query param and current workstation/student context.
+ * Data access: VikingBreedingComponent owns breeding records through its local repository/domain.
+ * Connects to: role registry, shared genetics records, retained inquiry manifests, and navigation.
+ */
 import { Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';

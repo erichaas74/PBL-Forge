@@ -84,15 +84,15 @@ export const EXPEDITION_QUESTS: readonly ExpeditionQuest[] = [
       'Two recessive forms at once. Both are common in the same conditions, so this one rewards noticing that heat drives both.',
   },
   {
-    id: 'lantern',
-    title: 'The Lantern',
-    brief: 'The cave survey needs a dragon that makes its own light.',
-    targets: [phenotype('glow', 'dominant')],
+    id: 'ridgeguard',
+    title: 'The Ridgeguard',
+    brief: 'The cliff survey needs a dragon protected by three tall rows of back spikes.',
+    targets: [phenotype('spikes', 'dominant')],
     surveyBudget: 2,
     sequenceBudget: 0,
     sampleSize: 8,
     teachingNote:
-      'Glow is favoured in darkness and punished where sighted predators hunt. Two islands are dark; only one is safe.',
+      'Three rows are favoured where predators are common, but costly where heat and food scarcity dominate.',
   },
   {
     id: 'hidden-line',
@@ -122,8 +122,8 @@ export const EXPEDITION_QUESTS: readonly ExpeditionQuest[] = [
     id: 'founder-stock',
     title: 'Founder Stock',
     brief:
-      'The archive wants an animal close to the ancestral population: carrying both alleles at scale armour, fire, and glow.',
-    targets: [carrier('scales'), carrier('fire'), carrier('glow')],
+      'The archive wants an animal close to the ancestral population: carrying both alleles at scale armour, fire, and back-spike rows.',
+    targets: [carrier('scales'), carrier('fire'), carrier('spikes')],
     surveyBudget: 3,
     sequenceBudget: 6,
     sampleSize: 12,

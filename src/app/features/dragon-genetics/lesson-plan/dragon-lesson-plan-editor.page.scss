@@ -29,3 +29,5 @@ textarea { min-height: 5rem; resize: vertical; }
 .microscope-picker button { min-height: 2.5rem; background: white; color: #24363b; }
 .microscope-picker button.attached { background: #425a42; color: white; }
 @media (max-width: 44rem) { .context-summary { grid-template-columns: 1fr; } li { grid-template-columns: 1fr; } }
+
+.extra-lesson-note { color: #6b6252; font-size: .85rem; }

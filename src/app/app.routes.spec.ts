@@ -30,6 +30,29 @@ describe('Dragon Genetics application routes', () => {
     expect(
       routes.find((route) => route.path === 'dragon-genetics/explore')?.loadComponent,
     ).toBeDefined();
+    expect(
+      routes.find(
+        (route) =>
+          route.path === 'dragon-genetics/path/:pathId/lesson/:lessonId/branch/:branch',
+      )?.loadComponent,
+    ).toBeDefined();
+  });
+
+  it('routes optional adventures and their refresh-safe chapters before shared lesson pages', () => {
+    for (const lessonId of ['pedigree-reading', 'pedigree-models']) {
+      const basePath = `dragon-genetics/path/:pathId/lesson/${lessonId}`;
+      expect(routes.find((route) => route.path === basePath)?.loadComponent).toBeDefined();
+      expect(
+        routes.find((route) => route.path === `${basePath}/adventure/:chapterId`)?.loadComponent,
+      ).toBeDefined();
+    }
+    expect(
+      routes.find(
+        (route) =>
+          route.path ===
+          'dragon-genetics/path/:pathId/lesson/:lessonId/branch/:branch/adventure/:chapterId',
+      )?.loadComponent,
+    ).toBeDefined();
   });
 
   it('does not expose the retired journey or adaptive catch-all routes', () => {

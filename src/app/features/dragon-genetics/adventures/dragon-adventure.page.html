@@ -1,0 +1,128 @@
+@if (definition(); as adventure) {
+  @if (chapter(); as activeChapter) {
+    <app-dragon-adventure-shell
+      [definition]="adventure"
+      [chapter]="activeChapter"
+      [progress]="progress()"
+      [pathLabel]="pathLabel()"
+      [completedCheckpointIds]="completedCheckpointIds()"
+      (chapterSelected)="goToChapter($event)"
+    >
+      @if (activeChapter.kind === 'offer' || activeChapter.kind === 'briefing') {
+        <figure class="adventure-art adventure-art--story">
+          <img
+            [src]="adventure.illustration.src"
+            [alt]="adventure.illustration.alt"
+            [style.object-position]="adventure.illustration.objectPosition ?? 'center'"
+            [attr.loading]="activeChapter.kind === 'offer' ? 'eager' : 'lazy'"
+            decoding="async"
+          />
+          <figcaption>{{ adventure.illustration.storyCaption }}</figcaption>
+        </figure>
+      } @else if (activeChapter.kind === 'decision') {
+        <figure class="adventure-art adventure-art--choice">
+          <img
+            [src]="adventure.illustration.src"
+            [alt]="adventure.illustration.alt"
+            [style.object-position]="adventure.illustration.objectPosition ?? 'center'"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>
+            <span aria-hidden="true">✦</span>
+            {{ adventure.illustration.choiceCaption }}
+          </figcaption>
+        </figure>
+      }
+      @switch (activeChapter.kind) {
+        @case ('offer') {
+          <div class="story-lead">
+            <blockquote>“{{ adventure.storyQuestion }}”</blockquote>
+            <p>{{ activeChapter.summary }}</p>
+          </div>
+          <dl class="commission-facts">
+            <div><dt>Request from</dt><dd>{{ adventure.clientName }}, {{ adventure.clientRole }}</dd></div>
+            <div><dt>Investigation</dt><dd>{{ adventure.workstation.title }}</dd></div>
+            <div><dt>Recognition</dt><dd>{{ adventure.rewardLabel }}</dd></div>
+          </dl>
+          <div class="actions">
+            <button type="button" class="primary" (click)="beginAdventure()">Accept and open the briefing</button>
+            <a [routerLink]="lessonUrl()">Save for later</a>
+          </div>
+        }
+        @case ('briefing') {
+          <div class="story-panels">
+            @for (panel of activeChapter.panels ?? []; track panel.title) {
+              <article>
+                <span aria-hidden="true">{{ $index + 1 }}</span>
+                <div><h3>{{ panel.title }}</h3><p>{{ panel.text }}</p>@if (panel.speaker) { <small>— {{ panel.speaker }}</small> }</div>
+              </article>
+            }
+          </div>
+          <div class="actions"><button type="button" class="primary" (click)="goToChapter('investigate')">Begin the investigation</button></div>
+        }
+        @case ('investigation') {
+          <div class="workspace-callout">
+            <div><p>Investigation workspace</p><h3>{{ adventure.workstation.title }}</h3><span>The lab opens as a free investigation. Save useful evidence there, then return to this checkpoint page.</span></div>
+            <button type="button" class="primary" (click)="openWorkstation()">Open workspace →</button>
+          </div>
+          <section class="record-summary">
+            <h3>Records found</h3>
+            @if (adventure.id === 'dragon-in-the-ash') {
+              <p>{{ patientEvidence().length }} patient blood record(s) · {{ donorEvidence().length }} donor record(s)</p>
+            } @else if (adventure.id === 'food-that-steals-fire') {
+              <p>{{ rescueEvidence().length }} Molecular Rescue Record(s)</p>
+            } @else {
+              <p>{{ pedigreeState()?.summary }}</p>
+            }
+          </section>
+          @if (statusMessage()) { <p class="status" role="status">{{ statusMessage() }}</p> }
+          <div class="actions">
+            <button type="button" class="secondary" (click)="refreshRecords()">Check saved records</button>
+            <button type="button" class="primary" (click)="continueFromInvestigation()">Continue to decision</button>
+          </div>
+        }
+        @case ('decision') {
+          @if (adventure.id === 'dragon-in-the-ash') {
+            <div class="decision-form">
+              <label>Patient evidence<select [value]="selectedPatientEvidenceId()" (change)="updatePatientEvidence($event)"><option value="">Choose an attached patient record</option>@for (record of patientEvidence(); track record.evidenceId) { <option [value]="record.evidenceId">{{ evidenceLabel(record) }}</option> }</select></label>
+              <label>Donor evidence<select [value]="selectedDonorEvidenceId()" (change)="updateDonorEvidence($event)"><option value="">Choose an attached donor record</option>@for (record of donorEvidence(); track record.evidenceId) { <option [value]="record.evidenceId">{{ evidenceLabel(record) }}</option> }</select></label>
+              <label>Marker reasoning<textarea [value]="diagnosis()" (input)="updateDiagnosis($event)" placeholder="Explain which A or B markers make this donor safe or unsafe."></textarea></label>
+            </div>
+          } @else if (adventure.id === 'food-that-steals-fire') {
+            <div class="decision-form">
+              <label>Molecular Rescue Record<select [value]="selectedRescueEvidenceId()" (change)="updateRescueEvidence($event)"><option value="">Choose an attached record</option>@for (record of rescueEvidence(); track record.evidenceId) { <option [value]="record.evidenceId">{{ rescueEvidenceLabel(record) }}</option> }</select></label>
+              <label>Molecular diagnosis<textarea [value]="diagnosis()" (input)="updateDiagnosis($event)" placeholder="Connect DNA to mRNA, protein, digestion, and symptoms."></textarea></label>
+              <label>Diet recommendation<textarea [value]="recommendation()" (input)="updateRecommendation($event)" placeholder="Name a diet and predict the patient response."></textarea></label>
+              <label>Merchant Varr says a tonic permanently repairs the damaged DNA.<select [value]="claimReview()" (change)="updateClaimReview($event)"><option value="">Review the claim</option><option value="supported">The evidence supports it</option><option value="contradicted">The evidence contradicts it</option><option value="insufficient">Evidence is insufficient</option></select></label>
+            </div>
+          } @else {
+            <div class="archive-verdict">
+              <p>Saved archive finding</p>
+              <h3>{{ pedigreeState()?.summary }}</h3>
+              <span>Your final model, sequence, carrier notes, and written hypothesis will be checked together. Nothing is erased if the archive returns it for revision.</span>
+            </div>
+          }
+          <div class="actions">
+            <button type="button" class="secondary" (click)="goToChapter('investigate')">Return to evidence</button>
+            <button type="button" class="primary" [disabled]="!canSubmit()" (click)="submitDecision()">Submit final decision</button>
+          </div>
+        }
+        @case ('outcome') {
+          <section class="outcome" [class.success]="progress().runtimeState === 'resolved'">
+            <p>{{ progress().runtimeState === 'resolved' ? 'Adventure complete' : 'Revision requested' }}</p>
+            <h3>{{ progress().runtimeState === 'resolved' ? 'The evidence holds.' : 'The record remains open.' }}</h3>
+            <span>{{ progress().outcomeMessage }}</span>
+            @if (progress().runtimeState === 'resolved') {
+              <strong>Recognition earned: {{ adventure.rewardLabel }}</strong>
+            }
+          </section>
+          <div class="actions">
+            @if (progress().runtimeState !== 'resolved') { <button type="button" class="primary" (click)="revise()">Return to the investigation</button> }
+            <a [routerLink]="lessonUrl()">Return to the lesson path</a>
+          </div>
+        }
+      }
+    </app-dragon-adventure-shell>
+  }
+}

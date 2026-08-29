@@ -102,23 +102,22 @@ export const DRAGON_TRAITS: readonly DragonTraitDefinition[] = [
   },
   {
     id: 'spikes',
-    name: 'Back spikes',
+    name: 'Back spike rows',
     geneSymbol: 'P',
     chromosomeModel: 4,
     dominantAllele: 'P',
     recessiveAllele: 'p',
-    dominantPhenotype: 'Many tall spikes',
-    recessivePhenotype: 'Few low spikes',
-    description: 'The P locus changes dorsal spike number and height.',
+    dominantPhenotype: 'Three tall rows',
+    recessivePhenotype: 'One tall row',
+    description: 'P_ grows three tall dorsal rows; pp keeps one tall centre row.',
   },
 ];
 
-/** The complete 24-locus build genome used by newly hatched classic Arena dragons. */
+/** The complete 23-locus build genome used by newly hatched classic Arena dragons. */
 export const ARENA_BUILD_TRAITS: readonly DragonTraitDefinition<ArenaBuildTraitId>[] = [
   ...DRAGON_TRAITS,
   arenaTrait('tail', 'Tail club form', 'K', 1, 'Crown-spiked club', 'Smooth tail tip'),
   arenaTrait('body-color', 'Color count', 'B', 3, 'Three-color coat', 'Single-color coat'),
-  arenaTrait('glow', 'Bioluminescence', 'N', 4, 'Glowing markings', 'Unlit markings'),
   arenaTrait('fangs', 'Fang length', 'G', 4, 'Long fangs', 'Short fangs'),
   arenaTrait('eye-color', 'Eye glow', 'E', 4, 'Amber eyes', 'Ice-blue eyes'),
   arenaTrait('body-type', 'Body plan', 'D', 1, 'High-chested body', 'Low-slung body'),
@@ -555,15 +554,6 @@ export interface EducationalDragonBuild {
   combatProfile: AssemblyCombatProfile;
 }
 
-/** Parts that carry the bioluminescent row when the `N` locus expresses it. */
-const GLOWING_PROFILE_IDS = new Set([
-  'dragon-body',
-  'dragon-head-horned',
-  'dragon-tail',
-  'dragon-tail-club',
-  'dragon-tail-stinger',
-]);
-
 /** Visible controls carried by one expressed dragon, never by the global Parts Lab style. */
 export interface DragonVisualExpression {
   /**
@@ -585,14 +575,15 @@ export interface DragonVisualExpression {
   crestScale?: number;
   /** Visual-only enlargement of the skull and jaws for inspection surfaces. */
   headScale?: number;
-  /** Living lanterns down the flanks, throat and tail. */
-  glowMarkings?: boolean;
   fangScale?: number;
   backSpikeCount?: number;
+  backSpikeRows?: 1 | 3;
   backSpikeScale?: number;
   eyeColor?: string;
   sex?: 'female' | 'male';
   tailClubForm?: 'large' | 'intermediate' | 'small';
+  /** Keep the published articulated tail's weapon terminal instead of replacing it with a club. */
+  tailStinger?: boolean;
   /**
    * How many of the dragon's three colours it actually wears — the B locus in the
    * expressive genome, which grades `BB` three, `Bb` two, `bb` one.
@@ -608,6 +599,10 @@ export interface DragonVisualExpression {
   wingScallop?: number;
   snoutScale?: number;
   armorScale?: number;
+  /** Two skull horns plus the upper-jaw nose horn, with the brow pair suppressed. */
+  hornPlan?: 'triple';
+  /** A real middle left/right leg chain, giving the animal six walking legs. */
+  additionalLegPair?: boolean;
 }
 
 /**
@@ -700,6 +695,8 @@ export function createEducationalAssembly(
       if (expression.bodyArchetype) parameters['bodyArchetype'] = expression.bodyArchetype;
       if (expression.backSpikeCount !== undefined)
         parameters['backSpikeCount'] = expression.backSpikeCount;
+      if (expression.backSpikeRows !== undefined)
+        parameters['backSpikeRows'] = expression.backSpikeRows;
       if (expression.backSpikeScale !== undefined)
         parameters['backSpikeScale'] = expression.backSpikeScale;
       if (expression.armorScale !== undefined) {
@@ -717,20 +714,12 @@ export function createEducationalAssembly(
       if (expression.crestScale !== undefined) parameters['crestScale'] = expression.crestScale;
       if (expression.eyeColor) parameters['eyeColor'] = expression.eyeColor;
       if (expression.sex) parameters['sex'] = expression.sex;
+      if (expression.hornPlan === 'triple') parameters['browLength'] = 0;
       if (expression.snoutScale !== undefined) {
         parameters['muzzleDepth'] = 0.32 * expression.snoutScale;
         parameters['muzzleWidth'] = 0.42 * expression.snoutScale;
         parameters['cheek'] = 0.28 * expression.snoutScale;
       }
-    }
-    /*
-     * Glow is the one expression that runs the length of the animal rather than
-     * belonging to a single body part. Whichever way a dragon is turned, and
-     * however small the thumbnail, some of it is lit — which is the entire
-     * reason this trait replaced ear shape.
-     */
-    if (expression.glowMarkings !== undefined && GLOWING_PROFILE_IDS.has(profileId)) {
-      parameters['glowMarkings'] = expression.glowMarkings;
     }
     if (profileId === 'dragon-upper-jaw' || profileId === 'dragon-lower-jaw') {
       if (expression.fangScale !== undefined) parameters['fangScale'] = expression.fangScale;
@@ -740,6 +729,22 @@ export function createEducationalAssembly(
     // still a foot when the parameter is written.
     if (profileId === 'dragon-foot' && expression.clawScale !== undefined) {
       parameters['clawScale'] = expression.clawScale;
+    }
+    if (
+      expression.tailStinger &&
+      (profileId === 'dragon-tail-stinger' || profileId === 'dragon-tail-club') &&
+      part.visualProfile
+    ) {
+      return {
+        ...part,
+        label: 'Tail stinger',
+        shape: 'sphere',
+        visualProfile: {
+          ...part.visualProfile,
+          profileId: 'dragon-tail-stinger',
+          parameters,
+        },
+      };
     }
     if (
       expression.tailClubForm &&
@@ -794,6 +799,10 @@ export function createEducationalAssembly(
         }
       : part;
   });
+
+  if (expression.additionalLegPair) {
+    addMiddleLegPair(blueprint);
+  }
 
   if (expression.forelimbs === 'grasping') {
     applyGraspingForelimbs(blueprint);
@@ -875,12 +884,19 @@ export function createEducationalAssembly(
     const primaryProfile = generated.combatProfile.parts[primaryId];
     if (primaryProfile) secondaryWingProfiles[part.id] = { ...primaryProfile };
   }
+  const middleLegProfiles: AssemblyCombatProfile['parts'] = {};
+  for (const part of blueprint.parts.filter((candidate) => candidate.id.includes('-middle-'))) {
+    const sourceId = part.id.replace('-middle-', '-rear-');
+    const sourceProfile = generated.combatProfile.parts[sourceId];
+    if (sourceProfile) middleLegProfiles[part.id] = { ...sourceProfile };
+  }
   const combatProfile: AssemblyCombatProfile = {
     ...generated.combatProfile,
     parts: Object.fromEntries(
       [
         ...Object.entries(generated.combatProfile.parts).filter(([partId]) => partIds.has(partId)),
         ...Object.entries(secondaryWingProfiles),
+        ...Object.entries(middleLegProfiles),
       ],
     ),
   };
@@ -898,9 +914,19 @@ function arenaVisualExpression(genome: DragonLabGenome): DragonVisualExpression 
   const bodyArchetype = has('body-type')
     ? chooseBodyArchetype(genome)
     : undefined;
+  const tailStinger = Boolean(
+    tail
+    && !dominant('tail')
+    && (bodyArchetype === 'prowler' || bodyArchetype === 'serpent'),
+  );
+  const tripleHornPlan = bodyArchetype === 'regal'
+    || bodyArchetype === 'courser'
+    || bodyArchetype === 'serpent';
 
   return {
-    ...(has('tail')
+    ...(tailStinger
+      ? { tailStinger: true }
+      : has('tail')
       ? {
           tailClubForm: tail?.[0] !== tail?.[1]
             ? 'intermediate' as const
@@ -918,12 +944,20 @@ function arenaVisualExpression(genome: DragonLabGenome): DragonVisualExpression 
               : 1 as const,
         }
       : {}),
-    ...(has('glow') ? { glowMarkings: dominant('glow') } : {}),
+    ...(has('spikes')
+      ? {
+          backSpikeCount: 8,
+          backSpikeRows: dominant('spikes') ? 3 as const : 1 as const,
+          backSpikeScale: 1.15,
+        }
+      : {}),
     ...(has('fangs') ? { fangScale: dominant('fangs') ? 1.48 : 0.48 } : {}),
     ...(has('eye-color')
       ? { eyeColor: dominant('eye-color') ? '#ff9f2e' : '#55d9ff' }
       : {}),
     ...(has('body-type') ? { bodyArchetype } : {}),
+    ...(tripleHornPlan ? { hornPlan: 'triple' as const } : {}),
+    ...(bodyArchetype === 'serpent' ? { additionalLegPair: true } : {}),
     ...(has('secondary-wings') ? { secondaryWings: dominant('secondary-wings') } : {}),
     ...(has('wing-shape')
       ? {
@@ -937,7 +971,6 @@ function arenaVisualExpression(genome: DragonLabGenome): DragonVisualExpression 
     ...(has('armor')
       ? {
           armorScale: dominant('armor') ? 1.55 : 0.55,
-          backSpikeScale: dominant('armor') ? 1.28 : 0.62,
         }
       : {}),
     ...(has('ear-frill') ? { sex: dominant('ear-frill') ? 'male' as const : 'female' as const } : {}),
@@ -989,6 +1022,39 @@ function addSecondaryWingPair(blueprint: AssemblyBlueprint): void {
       pivotOnChild: scaleVector(primaryJoint.pivotOnChild, factor),
     });
   }
+  realignPartsToJoints(blueprint);
+}
+
+/** Clone the complete rear left/right chains at the middle station. */
+function addMiddleLegPair(blueprint: AssemblyBlueprint): void {
+  const sourceParts = blueprint.parts.filter((part) => part.id.includes('-rear-'));
+  const sourceIds = new Set(sourceParts.map((part) => part.id));
+
+  for (const source of sourceParts) {
+    blueprint.parts.push({
+      ...structuredClone(source),
+      id: source.id.replace('-rear-', '-middle-'),
+      label: source.label?.replace('Rear', 'Middle'),
+    });
+  }
+
+  const sourceJoints = blueprint.joints.filter((joint) =>
+    sourceIds.has(joint.childPartId)
+    && (sourceIds.has(joint.parentPartId) || joint.parentPartId.includes('-body')),
+  );
+  for (const source of sourceJoints) {
+    const rootJoint = !sourceIds.has(source.parentPartId);
+    blueprint.joints.push({
+      ...structuredClone(source),
+      id: source.id.replaceAll('-rear-', '-middle-'),
+      parentPartId: source.parentPartId.replace('-rear-', '-middle-'),
+      childPartId: source.childPartId.replace('-rear-', '-middle-'),
+      pivotOnParent: rootJoint
+        ? { ...source.pivotOnParent, x: 0 }
+        : { ...source.pivotOnParent },
+    });
+  }
+
   realignPartsToJoints(blueprint);
 }
 

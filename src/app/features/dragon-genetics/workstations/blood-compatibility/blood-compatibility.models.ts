@@ -2,8 +2,16 @@ import { AccountDragonRecord } from '../shared/account-genetics-library.models';
 
 export type BloodAllele = 'A' | 'B' | 'O';
 export type BloodGenotype = 'AA' | 'AO' | 'BB' | 'BO' | 'AB' | 'OO';
-export type BloodMarker = 'a' | 'b';
-export type BloodPhenotypeId = 'a-positive' | 'b-positive' | 'ab-positive' | 'o-positive';
+export type BloodMarker = 'a' | 'b' | 'd';
+export type BloodPhenotypeId =
+  | 'a-positive'
+  | 'a-negative'
+  | 'b-positive'
+  | 'b-negative'
+  | 'ab-positive'
+  | 'ab-negative'
+  | 'o-positive'
+  | 'o-negative';
 export type BloodLabMode = 'standard' | 'challenge';
 
 export interface BloodTypeDefinition {
@@ -23,6 +31,7 @@ export interface BloodSpecimen {
   color: string;
   accentColor: string;
   genotype: BloodGenotype;
+  rhPositive: boolean;
 }
 
 export interface DonorCandidate extends BloodSpecimen {
@@ -37,7 +46,15 @@ export interface BloodTestEvidence {
   sampleCode: string;
   antiA: boolean | null;
   antiB: boolean | null;
+  antiD: boolean | null;
   testedAtIso: string;
+}
+
+export interface BloodTestObservation {
+  specimen: BloodSpecimen;
+  specimenRole: 'patient' | 'donor';
+  evidence: BloodTestEvidence;
+  phenotype: BloodTypeDefinition;
 }
 
 export interface TransfusionTrial {
@@ -84,6 +101,13 @@ export const BLOOD_TYPE_DEFINITIONS: readonly BloodTypeDefinition[] = [
     id: 'a-positive',
     name: 'A+',
     markerLabel: 'A antigen · Rh positive',
+    markers: ['a', 'd'],
+    possibleGenotypes: ['AA', 'AO'],
+  },
+  {
+    id: 'a-negative',
+    name: 'A-',
+    markerLabel: 'A antigen Â· no D antigen',
     markers: ['a'],
     possibleGenotypes: ['AA', 'AO'],
   },
@@ -91,6 +115,13 @@ export const BLOOD_TYPE_DEFINITIONS: readonly BloodTypeDefinition[] = [
     id: 'b-positive',
     name: 'B+',
     markerLabel: 'B antigen · Rh positive',
+    markers: ['b', 'd'],
+    possibleGenotypes: ['BB', 'BO'],
+  },
+  {
+    id: 'b-negative',
+    name: 'B-',
+    markerLabel: 'B antigen Â· no D antigen',
     markers: ['b'],
     possibleGenotypes: ['BB', 'BO'],
   },
@@ -98,6 +129,13 @@ export const BLOOD_TYPE_DEFINITIONS: readonly BloodTypeDefinition[] = [
     id: 'ab-positive',
     name: 'AB+',
     markerLabel: 'A and B antigens · Rh positive',
+    markers: ['a', 'b', 'd'],
+    possibleGenotypes: ['AB'],
+  },
+  {
+    id: 'ab-negative',
+    name: 'AB-',
+    markerLabel: 'A and B antigens Â· no D antigen',
     markers: ['a', 'b'],
     possibleGenotypes: ['AB'],
   },
@@ -105,16 +143,25 @@ export const BLOOD_TYPE_DEFINITIONS: readonly BloodTypeDefinition[] = [
     id: 'o-positive',
     name: 'O+',
     markerLabel: 'No A or B antigens · Rh positive',
+    markers: ['d'],
+    possibleGenotypes: ['OO'],
+  },
+  {
+    id: 'o-negative',
+    name: 'O-',
+    markerLabel: 'No A, B, or D antigens',
     markers: [],
     possibleGenotypes: ['OO'],
   },
 ];
 
-const FOUNDATION_PATIENT_GENOTYPES: Readonly<Record<string, BloodGenotype>> = {
-  ember: 'AB',
-  tide: 'AO',
-  moss: 'BO',
-  quartz: 'OO',
+const FOUNDATION_PATIENT_PROFILES: Readonly<
+  Record<string, { genotype: BloodGenotype; rhPositive: boolean }>
+> = {
+  ember: { genotype: 'AB', rhPositive: true },
+  tide: { genotype: 'AO', rhPositive: false },
+  moss: { genotype: 'BO', rhPositive: true },
+  quartz: { genotype: 'OO', rhPositive: false },
 };
 
 interface ClinicDonorDefinition {
@@ -124,6 +171,7 @@ interface ClinicDonorDefinition {
   color: string;
   accentColor: string;
   genotype: BloodGenotype;
+  rhPositive: boolean;
   standardCondition: string;
   challengeCondition: string;
   challengeStewardship: string;
@@ -139,6 +187,7 @@ const CLINIC_DONORS: readonly ClinicDonorDefinition[] = [
     color: '#47515a',
     accentColor: '#d9e2e7',
     genotype: 'OO',
+    rhPositive: false,
     standardCondition: 'Cleared for routine donation',
     challengeCondition: 'One reserve unit remains',
     challengeStewardship:
@@ -153,6 +202,7 @@ const CLINIC_DONORS: readonly ClinicDonorDefinition[] = [
     color: '#ae3f31',
     accentColor: '#f2a24f',
     genotype: 'BB',
+    rhPositive: true,
     standardCondition: 'Cleared for routine donation',
     challengeCondition: 'Two units available',
     challengeStewardship: 'Carries a rare flight-endurance line used by the breeding program.',
@@ -166,6 +216,7 @@ const CLINIC_DONORS: readonly ClinicDonorDefinition[] = [
     color: '#2d719d',
     accentColor: '#73d5e8',
     genotype: 'AO',
+    rhPositive: false,
     standardCondition: 'Cleared for routine donation',
     challengeCondition: 'Recovering from smoke exposure',
     challengeStewardship: 'Temporarily unavailable; donation would slow recovery.',
@@ -179,6 +230,7 @@ const CLINIC_DONORS: readonly ClinicDonorDefinition[] = [
     color: '#7561a5',
     accentColor: '#d9baf0',
     genotype: 'AB',
+    rhPositive: true,
     standardCondition: 'Cleared for routine donation',
     challengeCondition: 'One unit available after field duty',
     challengeStewardship:
@@ -189,6 +241,7 @@ const CLINIC_DONORS: readonly ClinicDonorDefinition[] = [
 ];
 
 export function bloodSpecimenForPatient(dragon: AccountDragonRecord): BloodSpecimen {
+  const profile = FOUNDATION_PATIENT_PROFILES[dragon.id] ?? generatedProfile(dragon.id);
   return {
     id: `patient:${dragon.id}`,
     sampleCode: 'PT-01',
@@ -197,7 +250,8 @@ export function bloodSpecimenForPatient(dragon: AccountDragonRecord): BloodSpeci
     dragonTitle: dragon.title,
     color: dragon.color,
     accentColor: dragon.accentColor,
-    genotype: FOUNDATION_PATIENT_GENOTYPES[dragon.id] ?? generatedGenotype(dragon.id),
+    genotype: profile.genotype,
+    rhPositive: profile.rhPositive,
   };
 }
 
@@ -211,6 +265,7 @@ export function clinicDonors(mode: BloodLabMode): readonly DonorCandidate[] {
     color: donor.color,
     accentColor: donor.accentColor,
     genotype: donor.genotype,
+    rhPositive: donor.rhPositive,
     condition: mode === 'standard' ? donor.standardCondition : donor.challengeCondition,
     stewardshipNote:
       mode === 'standard'
@@ -228,32 +283,41 @@ export function markersForGenotype(genotype: BloodGenotype): readonly BloodMarke
   return markers;
 }
 
-export function phenotypeForGenotype(genotype: BloodGenotype): BloodTypeDefinition {
-  const markers = markersForGenotype(genotype);
+export function markersForSpecimen(specimen: BloodSpecimen): readonly BloodMarker[] {
+  return [...markersForGenotype(specimen.genotype), ...(specimen.rhPositive ? (['d'] as const) : [])];
+}
+
+export function phenotypeForGenotype(
+  genotype: BloodGenotype,
+  rhPositive = true,
+): BloodTypeDefinition {
+  const markers = [...markersForGenotype(genotype), ...(rhPositive ? (['d'] as const) : [])];
   return bloodTypeForMarkers(markers);
 }
 
 export function bloodTypeForReactions(
   antiA: boolean | null,
   antiB: boolean | null,
+  antiD: boolean | null,
 ): BloodTypeDefinition | null {
-  if (antiA === null || antiB === null) return null;
+  if (antiA === null || antiB === null || antiD === null) return null;
   return bloodTypeForMarkers([
     ...(antiA ? (['a'] as const) : []),
     ...(antiB ? (['b'] as const) : []),
+    ...(antiD ? (['d'] as const) : []),
   ]);
 }
 
 export function antiserumReaction(specimen: BloodSpecimen, reagent: BloodMarker): boolean {
-  return markersForGenotype(specimen.genotype).includes(reagent);
+  return markersForSpecimen(specimen).includes(reagent);
 }
 
 export function transfusionCompatibility(
   donor: BloodSpecimen,
   recipient: BloodSpecimen,
 ): { compatible: boolean; unfamiliarMarkers: readonly BloodMarker[] } {
-  const recipientMarkers = new Set(markersForGenotype(recipient.genotype));
-  const unfamiliarMarkers = markersForGenotype(donor.genotype).filter(
+  const recipientMarkers = new Set(markersForSpecimen(recipient));
+  const unfamiliarMarkers = markersForSpecimen(donor).filter(
     (marker) => !recipientMarkers.has(marker),
   );
   return { compatible: unfamiliarMarkers.length === 0, unfamiliarMarkers };
@@ -262,21 +326,26 @@ export function transfusionCompatibility(
 export function possibleGenotypesForReactions(
   antiA: boolean | null,
   antiB: boolean | null,
+  antiD: boolean | null,
 ): readonly BloodGenotype[] {
-  return bloodTypeForReactions(antiA, antiB)?.possibleGenotypes ?? [];
+  return bloodTypeForReactions(antiA, antiB, antiD)?.possibleGenotypes ?? [];
 }
 
 function bloodTypeForMarkers(markers: readonly BloodMarker[]): BloodTypeDefinition {
   const hasA = markers.includes('a');
   const hasB = markers.includes('b');
-  const id: BloodPhenotypeId =
-    hasA && hasB ? 'ab-positive' : hasA ? 'a-positive' : hasB ? 'b-positive' : 'o-positive';
+  const rh = markers.includes('d') ? 'positive' : 'negative';
+  const abo = hasA && hasB ? 'ab' : hasA ? 'a' : hasB ? 'b' : 'o';
+  const id = `${abo}-${rh}` as BloodPhenotypeId;
   return BLOOD_TYPE_DEFINITIONS.find((definition) => definition.id === id)!;
 }
 
-function generatedGenotype(dragonId: string): BloodGenotype {
+function generatedProfile(dragonId: string): { genotype: BloodGenotype; rhPositive: boolean } {
   const genotypes: readonly BloodGenotype[] = ['AA', 'AO', 'BB', 'BO', 'AB', 'OO'];
-  return genotypes[stableHash(`${dragonId}:blood-locus`) % genotypes.length];
+  return {
+    genotype: genotypes[stableHash(`${dragonId}:blood-locus`) % genotypes.length],
+    rhPositive: stableHash(`${dragonId}:rh-d`) % 2 === 0,
+  };
 }
 
 function stableHash(value: string): number {

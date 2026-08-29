@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — lesson-specific cell-to-gene microscope route.
+ * Inputs/signals: path/lesson query params and discoveries from the shared genetics notebook signal.
+ * Data access: GeneticsProgramResolver and DragonWorkstationContextService provide released records.
+ * Connects to: GeneticsMicroscopeComponent and the originating shared lesson.
+ */
 import { Component, computed, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';

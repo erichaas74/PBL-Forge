@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — first shared-lesson investigation route for comparing mystery dragons.
+ * Inputs/signals: path/lesson query params and current student identity.
+ * Data access: MysteryPairComponent owns its local record through workstation context.
+ * Connects to: Meet the Dragons lesson and shared genetics notebook state.
+ */
 import { Component, computed, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';

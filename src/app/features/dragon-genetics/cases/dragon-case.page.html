@@ -1,0 +1,203 @@
+<main class="case-page">
+  @if (definition(); as caseDefinition) {
+    <nav>
+      <a [routerLink]="lessonUrl()">← Return to {{ lesson()?.title ?? 'lesson' }}</a>
+      <span>Optional commission</span>
+    </nav>
+
+    <header class="case-hero">
+      <p>{{ caseDefinition.subtitle }}</p>
+      <h1>{{ caseDefinition.title }}</h1>
+      <span>{{ caseDefinition.clientName }} · {{ caseDefinition.clientRole }}</span>
+    </header>
+
+    @if (progress().runtimeState === 'offered') {
+      <section class="commission-card">
+        <div>
+          <p>Alert</p>
+          <h2>{{ caseDefinition.id === 'dragon-in-the-ash' ? 'A patient needs evidence, not a guess.' : 'A clutch needs a molecular explanation.' }}</h2>
+          <span>{{ caseDefinition.problem }}</span>
+        </div>
+        <dl>
+          <div><dt>Constraint</dt><dd>{{ caseDefinition.constraint }}</dd></div>
+          <div><dt>Accepted evidence</dt><dd>{{ caseDefinition.acceptance }}</dd></div>
+        </dl>
+        <div class="case-actions">
+          <button type="button" class="primary" (click)="beginCase()">Accept commission</button>
+          <a [routerLink]="lessonUrl()">Save for later</a>
+          <a
+            [routerLink]="caseDefinition.workstation.route"
+            [queryParams]="{ path: pathId(), lesson: lessonId() }"
+            >Enter open lab</a
+          >
+        </div>
+      </section>
+    } @else {
+      <section class="objective-ribbon" aria-label="Current case objective">
+        <div><small>Current objective</small><strong>{{ caseDefinition.missionText }}</strong></div>
+        <a
+          [routerLink]="caseDefinition.workstation.route"
+          [queryParams]="workstationQueryParams()"
+          >Open {{ caseDefinition.workstation.title }} →</a
+        >
+      </section>
+
+      @if (caseDefinition.id === 'dragon-in-the-ash') {
+        <section class="case-grid">
+        <article class="evidence-panel">
+          <p>Evidence pouch</p>
+          <h2>Attached blood records</h2>
+          @if (patientEvidence().length || donorEvidence().length) {
+            <div class="evidence-columns">
+              <div>
+                <h3>Patient results</h3>
+                @for (record of patientEvidence(); track record.evidenceId) {
+                  <span>{{ evidenceLabel(record) }}</span>
+                } @empty {
+                  <small>No patient result attached.</small>
+                }
+              </div>
+              <div>
+                <h3>Donor results</h3>
+                @for (record of donorEvidence(); track record.evidenceId) {
+                  <span>{{ evidenceLabel(record) }}</span>
+                } @empty {
+                  <small>No donor result attached.</small>
+                }
+              </div>
+            </div>
+          } @else {
+            <div class="empty-evidence">
+              <strong>No blood evidence attached yet.</strong>
+              <span>Open the station, complete both serum reactions, and attach useful records.</span>
+            </div>
+          }
+        </article>
+
+        <article class="plan-panel">
+          <p>Case plan</p>
+          <h2>Commit before treatment</h2>
+          <label>
+            Patient evidence
+            <select [value]="selectedPatientEvidenceId()" (change)="updatePatientEvidence($event)">
+              <option value="">Choose an attached patient record</option>
+              @for (record of patientEvidence(); track record.evidenceId) {
+                <option [value]="record.evidenceId">{{ evidenceLabel(record) }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Donor evidence
+            <select [value]="selectedDonorEvidenceId()" (change)="updateDonorEvidence($event)">
+              <option value="">Choose an attached donor record</option>
+              @for (record of donorEvidence(); track record.evidenceId) {
+                <option [value]="record.evidenceId">{{ evidenceLabel(record) }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Diagnosis and marker reasoning
+            <textarea
+              [value]="diagnosis()"
+              (input)="updateDiagnosis($event)"
+              placeholder="Explain which A or B markers the patient has and why the donor should be safe."
+            ></textarea>
+          </label>
+          <button type="button" class="primary" [disabled]="!canSubmit()" (click)="submitPlan()">
+            Lock plan and submit to Bryn
+          </button>
+          <small>A submitted plan is preserved beside the treatment outcome.</small>
+        </article>
+        </section>
+      } @else {
+        <section class="case-grid">
+          <article class="evidence-panel">
+            <p>Molecular Trail</p>
+            <h2>Attached rescue records</h2>
+            @for (record of rescueEvidence(); track record.evidenceId) {
+              <div class="molecular-record">
+                <strong>{{ rescueEvidenceLabel(record) }}</strong>
+                <span>DNA → mRNA → protein → function → digestion → symptoms</span>
+                <small>{{ record.explanation }}</small>
+              </div>
+            } @empty {
+              <div class="empty-evidence">
+                <strong>No Molecular Rescue Record attached yet.</strong>
+                <span>Trace both samples, test their proteins, run food trials, and save the clinical record.</span>
+              </div>
+            }
+          </article>
+
+          <article class="plan-panel">
+            <p>Case plan</p>
+            <h2>Commit before changing the diet</h2>
+            <label>
+              Molecular Rescue Record
+              <select [value]="selectedRescueEvidenceId()" (change)="updateRescueEvidence($event)">
+                <option value="">Choose an attached clinical record</option>
+                @for (record of rescueEvidence(); track record.evidenceId) {
+                  <option [value]="record.evidenceId">{{ rescueEvidenceLabel(record) }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Molecular diagnosis
+              <textarea
+                [value]="diagnosis()"
+                (input)="updateDiagnosis($event)"
+                placeholder="Connect the DNA change to translation, Dracase function, and the patient's symptoms."
+              ></textarea>
+            </label>
+            <label>
+              Diet recommendation and prediction
+              <textarea
+                [value]="recommendation()"
+                (input)="updateRecommendation($event)"
+                placeholder="Name the diet and predict what will happen to digestion, energy, and symptoms."
+              ></textarea>
+            </label>
+            <label>
+              Merchant Varr claims a tonic permanently repairs the damaged DNA. The record…
+              <select [value]="claimReview()" (change)="updateClaimReview($event)">
+                <option value="">Review the claim</option>
+                <option value="supported">supports the claim</option>
+                <option value="contradicted">contradicts the claim</option>
+                <option value="insufficient">is insufficient to judge the claim</option>
+              </select>
+            </label>
+            <button type="button" class="primary" [disabled]="!canSubmit()" (click)="submitPlan()">
+              Lock plan and submit to Fen
+            </button>
+            <small>The plan is archived before the model evaluates the molecular record and diet trial.</small>
+          </article>
+        </section>
+      }
+
+      @if (progress().latestOutcome; as outcome) {
+        <section class="outcome-panel" [class.success]="outcome.compatible" aria-live="polite">
+          <p>{{ outcome.compatible ? 'Treatment outcome' : 'Evidence conflict' }}</p>
+          <h2>
+            @if (caseDefinition.id === 'food-that-steals-fire') {
+              {{ outcome.compatible ? 'Tide’s fire is returning.' : 'The diet change is paused.' }}
+            } @else {
+              {{ outcome.compatible ? 'The foundling is stabilizing.' : 'Treatment is paused.' }}
+            }
+          </h2>
+          <span>{{ outcome.explanation }}</span>
+          @if (outcome.compatible) {
+            <strong>Reward earned: {{ caseDefinition.id === 'food-that-steals-fire' ? 'Molecular Rescue Record' : 'Healer’s Seal' }}</strong>
+          } @else {
+            <a
+              [routerLink]="caseDefinition.workstation.route"
+              [queryParams]="workstationQueryParams()"
+              >Return to the lab with all evidence preserved →</a
+            >
+          }
+        </section>
+      }
+      @if (statusMessage()) {
+        <p class="case-status" role="status">{{ statusMessage() }}</p>
+      }
+    }
+  }
+</main>

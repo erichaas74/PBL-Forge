@@ -60,9 +60,11 @@ export const CLASSIC_DRAGON_PARTS: readonly CatalogPresetPart[] = [
 
 export const CLASSIC_DRAGON_TEST_PRESET: AssemblyPreset = preset(
   'classic-dragon-test',
-  'Classic Dragon Test',
-  'A catalog-built dragon with clawed feet, wing claws, snapping jaws, flapping wings, and a segmented tail chain.',
-  buildCatalogPresetAssembly(CLASSIC_DRAGON_PARTS, { x: 0, y: 1.32, z: 0 }),
+  'Classic Dragon',
+  'A balanced dragon with clawed feet, wing claws, snapping jaws, flapping wings, and a segmented tail.',
+  harmonizeClassicDragonPalette(
+    buildCatalogPresetAssembly(CLASSIC_DRAGON_PARTS, { x: 0, y: 1.32, z: 0 }),
+  ),
 );
 
 export function createClassicDragonTestPreset(
@@ -72,12 +74,33 @@ export function createClassicDragonTestPreset(
     CLASSIC_DRAGON_TEST_PRESET.id,
     CLASSIC_DRAGON_TEST_PRESET.name,
     CLASSIC_DRAGON_TEST_PRESET.description,
-    buildCatalogPresetAssembly(
-      CLASSIC_DRAGON_PARTS,
-      { x: 0, y: 1.32, z: 0 },
-      resolveDefinition,
+    harmonizeClassicDragonPalette(
+      buildCatalogPresetAssembly(
+        CLASSIC_DRAGON_PARTS,
+        { x: 0, y: 1.32, z: 0 },
+        resolveDefinition,
+      ),
     ),
   );
+}
+
+/**
+ * Catalog colors identify loose part families in the Parts Lab. Once those parts
+ * become one animal, the core pigment owns every biological surface.
+ */
+export function harmonizeClassicDragonPalette(blueprint: AssemblyBlueprint): AssemblyBlueprint {
+  const coreColor = blueprint.parts.find(part => part.roles?.includes('core'))?.color
+    ?? blueprint.parts.find(part => part.visualProfile?.profileId === 'dragon-body')?.color;
+  if (!coreColor) return blueprint;
+
+  return {
+    ...blueprint,
+    parts: blueprint.parts.map(part =>
+      part.visualProfile?.profileId.startsWith('dragon-')
+        ? { ...part, color: coreColor }
+        : part,
+    ),
+  };
 }
 
 export function buildCatalogPresetAssembly(

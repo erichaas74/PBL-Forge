@@ -67,5 +67,6 @@ Two ratchets guard things that had already drifted once, and both run in `verify
 
 ## Known-failing tests
 
-`allele-vault-workbench.component.spec.ts` has two failures asserting whitespace between rendered
-spans. They predate the current work — do not treat them as something you broke.
+`inquiry-registry.spec.ts` currently has one coverage failure: `microscope-dragon` exposes two
+eligible Grade 7 inquiry items while the registry ratchet requires three. It predates documentation
+work — do not treat it as something a docs-only change broke.

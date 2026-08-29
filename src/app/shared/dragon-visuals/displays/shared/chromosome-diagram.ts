@@ -1,7 +1,7 @@
 import { BERK, BERK_TRAIT_BANDS } from '../../../design/berk-palette';
 
 /**
- * Chromosome geometry and palette taken from `docs/allelle-diagram.html`.
+ * Chromosome geometry and palette taken from the archived `docs/oldDocs/allelle-diagram.html` prototype.
  *
  * The source diagram draws a chromosome as an 18 x 200 rounded bar with a centromere line,
  * pale banding, and four coloured trait bands whose allele letters sit on leader lines to the

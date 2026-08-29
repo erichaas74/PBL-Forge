@@ -13,7 +13,7 @@ describe('Trait Evidence card genetics', () => {
                 'Chr 4',
                 'Chr X',
             ]);
-            expect([...view.genesByChromosome.values()].flat()).toHaveLength(13);
+            expect([...view.genesByChromosome.values()].flat()).toHaveLength(12);
         }
     });
 

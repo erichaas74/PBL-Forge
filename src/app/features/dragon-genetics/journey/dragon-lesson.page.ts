@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — legacy journey lesson URLs are not registered by the router.
+ * Former inputs/signals: legacy pathId/lessonId params and computed lesson/progression state.
+ * Former data access: DragonJourneyFacade and its retained evidence/progress sources.
+ * Former connections: legacy journey map and workstation launch routes.
+ */
 import { Component, computed, effect, inject, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';

@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit Punnett Composer open-investigation route.
+ * Inputs/signals: current workstation context and child prediction/completion events.
+ * Data access: child repository persists crosses; DragonAdaptiveStore receives retained completion.
+ * Connects to: PunnettComposerComponent, project-hub progress, and lesson/home navigation.
+ */
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonAdaptiveStore } from '../../adaptive/dragon-adaptive.store';

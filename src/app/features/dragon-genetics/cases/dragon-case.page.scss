@@ -1,0 +1,249 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 82% 5%, rgb(211 91 59 / 16%), transparent 30rem),
+    #101b1a;
+  color: #edf4f2;
+}
+
+.case-page {
+  box-sizing: border-box;
+  width: min(100% - 2rem, 76rem);
+  margin-inline: auto;
+  padding: 1.25rem 0 4rem;
+}
+
+nav,
+.case-actions,
+.objective-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+a {
+  color: inherit;
+  font-weight: 800;
+}
+
+.case-hero {
+  padding: clamp(3rem, 8vw, 6rem) 0 2rem;
+}
+
+.case-hero p,
+.commission-card p,
+.case-grid article > p,
+.outcome-panel > p {
+  margin: 0 0 0.45rem;
+  color: #d5b96b;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.case-hero h1 {
+  max-width: 12ch;
+  margin: 0;
+  font: 800 clamp(3rem, 9vw, 6.5rem) / 0.92 Georgia, serif;
+}
+
+.case-hero span {
+  display: block;
+  margin-top: 1rem;
+  color: #b6ce8c;
+  font-weight: 800;
+}
+
+.commission-card,
+.evidence-panel,
+.plan-panel,
+.outcome-panel,
+.objective-ribbon {
+  border: 1px solid #50635c;
+  border-radius: 1rem;
+  background: #182825;
+  box-shadow: 0 1rem 2.5rem #0004;
+}
+
+.commission-card,
+.evidence-panel,
+.plan-panel,
+.outcome-panel {
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.commission-card h2,
+.case-grid h2,
+.outcome-panel h2 {
+  margin: 0 0 0.8rem;
+  font: 800 clamp(1.7rem, 4vw, 2.5rem) Georgia, serif;
+}
+
+dl {
+  display: grid;
+  gap: 0.8rem;
+  margin: 1.5rem 0;
+}
+
+dl div {
+  padding-left: 1rem;
+  border-left: 3px solid #d5b96b;
+}
+
+dt {
+  font-weight: 900;
+}
+
+dd {
+  margin: 0.3rem 0 0;
+  color: #c7d4cf;
+}
+
+.case-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+button,
+.case-actions a,
+.objective-ribbon a {
+  min-height: 2.75rem;
+  box-sizing: border-box;
+  padding: 0.7rem 1rem;
+  border: 1px solid #8ca085;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+button.primary {
+  border-color: #e5c977;
+  background: #d5b96b;
+  color: #17221e;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.objective-ribbon {
+  padding: 1rem;
+  background: #eef5dd;
+  color: #24363b;
+}
+
+.objective-ribbon small,
+.objective-ribbon strong {
+  display: block;
+}
+
+.case-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.8fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.evidence-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.evidence-columns div,
+.empty-evidence,
+.molecular-record {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem;
+  border: 1px solid #40534d;
+  border-radius: 0.65rem;
+  background: #10201d;
+}
+
+.molecular-record + .molecular-record {
+  margin-top: 0.75rem;
+}
+
+.molecular-record strong,
+.molecular-record span,
+.molecular-record small {
+  display: block;
+}
+
+.molecular-record span {
+  color: #b6ce8c;
+  font-weight: 900;
+}
+
+.evidence-columns h3 {
+  margin: 0;
+}
+
+.plan-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.plan-panel label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 800;
+}
+
+select,
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem;
+  border: 1px solid #71867d;
+  border-radius: 0.5rem;
+  background: #f5f1e5;
+  color: #17221e;
+  font: inherit;
+}
+
+textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.outcome-panel {
+  margin-top: 1rem;
+  border-color: #d06855;
+}
+
+.outcome-panel.success {
+  border-color: #91b868;
+  background: #1b3528;
+}
+
+.outcome-panel strong,
+.outcome-panel a {
+  display: block;
+  margin-top: 1rem;
+}
+
+.case-status {
+  color: #d5e3cf;
+  font-weight: 800;
+}
+
+@media (max-width: 52rem) {
+  .case-grid,
+  .evidence-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .objective-ribbon,
+  nav {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

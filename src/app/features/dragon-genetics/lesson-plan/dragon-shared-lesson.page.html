@@ -1,24 +1,42 @@
-<main class="plan-page">
+<main class="lesson-page">
   @if (path(); as path) {
     @if (lesson(); as lesson) {
-      <header class="plan-header">
-        <a [routerLink]="['/dragon-genetics', 'path', path.id]">← {{ path.title }} path</a>
-        <p>Shared Dragon Genetics lesson</p>
-        <h1>{{ lesson.title }}</h1>
-        <span>{{ lesson.learningGoal }}</span>
+      <header class="lesson-header">
+        <div class="lesson-header__title">
+          <small>{{ lesson.optional ? 'Dragon Genetics extra lesson' : 'Dragon Genetics lesson' }}</small>
+          <strong>{{ lesson.title }}</strong>
+        </div>
+        <a class="lesson-header__back" [routerLink]="['/dragon-genetics', 'path', path.id]">
+          <span aria-hidden="true">&larr;</span> {{ path.title }} path
+        </a>
+        @if (lesson.guide) {
+          <details class="lesson-header__guide">
+            <summary>Investigation guide</summary>
+            <p>{{ lesson.guide }}</p>
+          </details>
+        }
+        <button class="lesson-header__dragon" type="button" (click)="openWiseDragon()">
+          <span class="lesson-header__eye" aria-hidden="true"></span>
+          Ask the Wise Dragon
+        </button>
+        <output class="lesson-header__score" aria-label="Lesson score">
+          <small>Score</small>
+          <strong>{{ lessonScore() }}%</strong>
+        </output>
       </header>
-      @if (lesson.guide) {
-        <details class="empty-plan"><summary><strong>Open lesson guide</strong></summary><span>{{ lesson.guide }}</span></details>
-      }
       @if (lesson.workstations.length) {
-        <section class="lesson-list"><div><p>Investigation</p><h2>Explore the evidence</h2></div>
-          <ol>
-            @for (workstation of lesson.workstations; track workstation.id) {
-              <li><span aria-hidden="true">◇</span><div><strong>{{ workstation.title }}</strong><small>{{ workstation.guide }}</small></div><a [routerLink]="workstation.route" [queryParams]="{ path: path.id, lesson: lesson.id }">Open investigation →</a></li>
-            }
-          </ol>
+        <section class="lesson-investigations" aria-label="Lesson investigation">
+          @for (workstation of lesson.workstations; track workstation.id) {
+            <app-dragon-inline-workstation
+              [pathId]="path.id"
+              [lessonId]="lesson.id"
+              [workstation]="workstation"
+              (evidenceCaptured)="refreshEvidence()"
+            />
+          }
         </section>
       }
+      <div class="lesson-reflection">
       @if (lesson.questions.length) {
         @if (evidenceCaptureEnabled()) {
           <section class="lesson-list">
@@ -57,6 +75,27 @@
           </div>
         </section>
       }
+      @if (extraLessons().length) {
+        <section class="lesson-list branch-list">
+          <div>
+            <p>Optional advanced work</p>
+            <h2>Extra lessons</h2>
+            <span>Open in addition to this lesson. An extra lesson has no place in the numbered path and never blocks the next one.</span>
+          </div>
+          @for (extra of extraLessons(); track extra.id) {
+            <article class="branch-card">
+              <div>
+                <small>Extra lesson</small>
+                <strong>{{ extra.title }}</strong>
+                <span>{{ extra.learningGoal }}</span>
+              </div>
+              <a [routerLink]="['/dragon-genetics', 'path', path.id, 'lesson', extra.id]"
+                >Open extra lesson →</a
+              >
+            </article>
+          }
+        </section>
+      }
       <footer class="empty-plan">
         @if (nextLesson(); as next) {
           <a [routerLink]="['/dragon-genetics', 'path', path.id, 'lesson', next.id]">Next lesson: {{ next.title }} →</a>
@@ -64,6 +103,7 @@
           <a [routerLink]="['/dragon-genetics', 'path', path.id]">Return to learning path →</a>
         }
       </footer>
+      </div>
     } @else {
       <section class="empty-plan"><strong>Lesson unavailable</strong><span>This lesson is not published in the shared plan.</span><a [routerLink]="['/dragon-genetics', 'path', path.id]">Return to learning path</a></section>
     }

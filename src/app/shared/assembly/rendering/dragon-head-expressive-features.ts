@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { AssemblyPart } from '../domain/assembly.models';
-import { buildGlowNode, buildHorn } from './dragon-anatomy';
+import { buildHorn } from './dragon-anatomy';
 import { DragonHeadShape, dragonHeadSurfacePoint } from './dragon-head-profile';
 import { boxUv, createTaperedBoxGeometry, detail, mesh } from './dragon-geometry';
 import { buildMaleCrest } from './dragon-head-male-frill';
 import { DragonPalette, hornMaterial, membraneMaterial } from './dragon-materials';
 import { HORN_TILE } from './dragon-texture-constants';
 import { visualFlag, visualNumber, visualString } from './dragon-visual-parameter-readers';
+
+const DEGREES_TO_RADIANS = Math.PI / 180;
 
 export function addDragonHeadExpressiveFeatures(
   group: THREE.Group,
@@ -17,6 +19,8 @@ export function addDragonHeadExpressiveFeatures(
 ): void {
   const crestScale = visualNumber(part, 'crestScale', 0);
   if (crestScale > 0) {
+    const crestGroup = positionedFeatureGroup(part, dims, 'crest', 'dragon-genetic-crest-group');
+    crestGroup.rotation.z = visualNumber(part, 'crestTilt', 0) * DEGREES_TO_RADIANS;
     const material = hornMaterial(palette);
     for (const [index, axial] of [-0.3, -0.08, 0.14].entries()) {
       const crown = dragonHeadSurfacePoint(dims, axial, 0, shape);
@@ -27,27 +31,16 @@ export function addDragonHeadExpressiveFeatures(
       fin.name = `dragon-genetic-crest-${index + 1}`;
       fin.position.set(crown.x, crown.y + height * 0.06, 0);
       fin.rotation.z = 0.14;
-      group.add(fin);
+      crestGroup.add(fin);
     }
-  }
-
-  if (visualFlag(part, 'glowMarkings')) {
-    // The jaw hinge and the cheek: the two places a light on the skull is
-    // visible from the front, the side, and from above.
-    for (const side of [-1, 1] as const) {
-      for (const [index, axial] of [-0.34, -0.05].entries()) {
-        const mount = dragonHeadSurfacePoint(dims, axial, side * 0.78, shape);
-        const lantern = buildGlowNode(dims.y * (index === 0 ? 0.13 : 0.1));
-        lantern.name = `dragon-glow-head-${index + 1}-${side < 0 ? 'left' : 'right'}`;
-        lantern.position.set(mount.x, mount.y, mount.z);
-        group.add(lantern);
-      }
-    }
+    group.add(crestGroup);
   }
 
   const sex = visualString(part, 'sex', '');
+  const sexDisplay = positionedFeatureGroup(part, dims, 'sexDisplay', 'dragon-sex-display');
+  sexDisplay.rotation.z = visualNumber(part, 'sexDisplayTilt', 0) * DEGREES_TO_RADIANS;
   if (sex === 'male') {
-    buildMaleCrest(group, dims, palette, shape);
+    buildMaleCrest(sexDisplay, dims, palette, shape);
   } else if (sex === 'female') {
     const material = membraneMaterial(palette);
     const spineMaterial = hornMaterial(palette);
@@ -56,19 +49,56 @@ export function addDragonHeadExpressiveFeatures(
       frill.name = `dragon-female-frill-${side < 0 ? 'left' : 'right'}`;
       frill.position.set(-dims.x * 0.24, dims.y * 0.08, side * dims.z * 0.52);
       frill.rotation.set((side * Math.PI) / 2, 0, side * 0.2);
-      group.add(frill);
+      sexDisplay.add(frill);
 
       const spine = buildHorn(dims.z * 0.46, dims.z * 0.035, spineMaterial, palette, -0.08);
       spine.name = `dragon-female-frill-spine-${side < 0 ? 'left' : 'right'}`;
       spine.position.set(-dims.x * 0.24, dims.y * 0.08, side * dims.z * 0.48);
       spine.rotation.set((side * Math.PI) / 2, 0, -0.16);
-      group.add(spine);
+      sexDisplay.add(spine);
     }
   }
+  if (sexDisplay.children.length) group.add(sexDisplay);
 
   if (visualFlag(part, 'wiseAvatar')) {
-    addWiseDragonRegalia(group, dims, palette, shape);
+    const regalia = positionedFeatureGroup(part, dims, 'wiseRegalia', 'wise-dragon-regalia');
+    regalia.scale.setScalar(visualNumber(part, 'wiseRegaliaScale', 1));
+    addWiseDragonRegalia(regalia, dims, palette, shape);
+    group.add(regalia);
   }
+}
+
+function positionedFeatureGroup(
+  part: AssemblyPart,
+  dims: { x: number; y: number; z: number },
+  prefix: 'crest' | 'sexDisplay' | 'wiseRegalia',
+  name: string,
+): THREE.Group {
+  const feature = new THREE.Group();
+  feature.name = name;
+  const offset = prefix === 'crest'
+    ? {
+      x: visualNumber(part, 'crestOffsetX', 0),
+      y: visualNumber(part, 'crestOffsetY', 0),
+      z: visualNumber(part, 'crestOffsetZ', 0),
+    }
+    : prefix === 'sexDisplay'
+      ? {
+        x: visualNumber(part, 'sexDisplayOffsetX', 0),
+        y: visualNumber(part, 'sexDisplayOffsetY', 0),
+        z: visualNumber(part, 'sexDisplayOffsetZ', 0),
+      }
+      : {
+        x: visualNumber(part, 'wiseRegaliaOffsetX', 0),
+        y: visualNumber(part, 'wiseRegaliaOffsetY', 0),
+        z: visualNumber(part, 'wiseRegaliaOffsetZ', 0),
+      };
+  feature.position.set(
+    offset.x * dims.x,
+    offset.y * dims.y,
+    offset.z * dims.z,
+  );
+  return feature;
 }
 
 /** Spectacles and a keratin beard identify the elder without introducing non-assembly assets. */

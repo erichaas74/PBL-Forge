@@ -1,59 +1,36 @@
 <div class="lab">
   <header class="lab__head">
-    <span class="lab__eyebrow">Parts lab</span>
-    <h1>Part mesh workbench</h1>
+    <span class="lab__eyebrow">Dragon part workshop</span>
+    <h1>Shape, anatomy layers, sockets, genes, and testing in one place</h1>
     <p class="lab__lede">
-      Every part rendered on its own, from every angle. Switch between the lab dragon and Mini
-      Dragon, edit their shared procedural mesh factories, and save to rebuild without hunting
-      through a complete animal. Deep-link a part with <code>?part=&lt;id&gt;</code>.
+      Edit Arena dragon and Mini Dragon Show anatomy while the selected part stays visible. Changes
+      are saved to the shared local Designer draft and follow the part into the Assembly Garage.
     </p>
   </header>
 
   <div class="lab__controls">
     <div class="lab__control-group" role="group" aria-label="Part family">
       @for (option of families; track option) {
-        <button
-          type="button"
-          class="lab__chip"
+        <button type="button" class="lab__chip"
           [class.lab__chip--active]="family() === option"
           [attr.aria-pressed]="family() === option"
-          (click)="setFamily(option)"
-        >{{ option }}</button>
+          (click)="setFamily(option)">{{ option }}</button>
       }
     </div>
 
     @if (family() === 'dragon') {
-      <div class="lab__species" role="group" aria-label="Dragon species">
-        <span>Dragon species</span>
-        <button
-          type="button"
-          class="lab__chip"
+      <div class="lab__species" role="group" aria-label="Dragon collection">
+        <span>Collection</span>
+        <button type="button" class="lab__chip"
           [class.lab__chip--active]="dragonSpecies() === 'lab'"
           [attr.aria-pressed]="dragonSpecies() === 'lab'"
-          (click)="setDragonSpecies('lab')"
-        >Lab dragon</button>
-        <button
-          type="button"
-          class="lab__chip"
+          (click)="setDragonSpecies('lab')">Dragon Arena</button>
+        <button type="button" class="lab__chip"
           [class.lab__chip--active]="dragonSpecies() === 'mini'"
           [attr.aria-pressed]="dragonSpecies() === 'mini'"
-          (click)="setDragonSpecies('mini')"
-        >Mini dragon</button>
+          (click)="setDragonSpecies('mini')">Mini Dragon Show</button>
       </div>
     }
-
-    <label class="lab__field">
-      <span>Colour</span>
-      <input type="color" [value]="color()" (input)="onColor($event)" [disabled]="useDefinitionColor()" />
-    </label>
-
-    <button
-      type="button"
-      class="lab__chip"
-      [class.lab__chip--active]="useDefinitionColor()"
-      [attr.aria-pressed]="useDefinitionColor()"
-      (click)="toggleDefinitionColor()"
-    >Definition colours</button>
   </div>
 
   <div class="lab__filters">
@@ -67,26 +44,630 @@
         @for (option of groups(); track option) { <option [value]="option">{{ option }}</option> }
       </select>
     </label>
+    @if (family() === 'dragon' && dragonSpecies() === 'lab') {
+      <label class="lab__field lab__field--body-type">
+        <span>Arena body</span>
+        <select [value]="selectedArenaBody()?.id ?? ''" (change)="selectArenaBody($event)">
+          <option value="" disabled>Choose a body type</option>
+          @for (option of arenaBodyTypes; track option.id) {
+            <option [value]="option.id">{{ option.name }}</option>
+          }
+        </select>
+      </label>
+    }
     @if (comparison(); as compared) {
       <span class="lab__compare-status">Comparing with {{ compared.label }}</span>
       <button type="button" class="lab__reset" (click)="compareId.set(null)">Clear comparison</button>
     }
   </div>
 
-  <!-- Contact sheet -->
+  @if (selected(); as definition) {
+    <section class="lab__detail" aria-labelledby="detail-heading" data-bake="detail">
+      <div class="lab__workshop-head">
+        <div>
+          <span class="lab__context-label">{{ family() === 'dragon' ? speciesLabel() : family() }}</span>
+          <h2 id="detail-heading">{{ definition.label }}</h2>
+          <code>{{ definition.id }}</code>
+        </div>
+        <div class="lab__workshop-actions">
+          <button type="button" class="lab__record" (click)="record()">Record values</button>
+          <a class="lab__action-link" routerLink="/dragon-garage">View whole dragon</a>
+        </div>
+      </div>
+
+      @if (selectedArenaBody(); as bodyType) {
+        <p class="lab__body-note"><strong>{{ bodyType.name }}</strong> — {{ bodyType.description }}</p>
+      }
+
+      @if (family() === 'dragon') {
+        <section class="lab__preview-toolbar" aria-label="Assembly preview controls">
+          <div class="lab__segmented" role="group" aria-label="Preview scope">
+            <button type="button" [class.lab__segmented-active]="previewMode() === 'isolated'"
+              [attr.aria-pressed]="previewMode() === 'isolated'"
+              (click)="setPreviewMode('isolated')">Isolated part</button>
+            <button type="button" [class.lab__segmented-active]="previewMode() === 'assembly'"
+              [attr.aria-pressed]="previewMode() === 'assembly'"
+              (click)="setPreviewMode('assembly')">Whole dragon</button>
+          </div>
+
+          @if (profileId() === 'dragon-head-horned') {
+            <div class="lab__gene-preview">
+              <span>Head sex preview</span>
+              <div class="lab__segmented" role="group" aria-label="Head sex preview">
+                <button type="button" [class.lab__segmented-active]="headSexPreview() === 'authored'"
+                  [attr.aria-pressed]="headSexPreview() === 'authored'"
+                  (click)="setHeadSexPreview('authored')">Authored</button>
+                <button type="button" [class.lab__segmented-active]="headSexPreview() === 'female'"
+                  [attr.aria-pressed]="headSexPreview() === 'female'"
+                  (click)="setHeadSexPreview('female')">Female</button>
+                <button type="button" [class.lab__segmented-active]="headSexPreview() === 'male'"
+                  [attr.aria-pressed]="headSexPreview() === 'male'"
+                  (click)="setHeadSexPreview('male')">Male</button>
+              </div>
+            </div>
+          }
+
+          @if (previewMode() === 'assembly') {
+            <label class="lab__field lab__field--assembly">
+              <span>{{ dragonSpecies() === 'mini' ? 'Mini breed' : 'Arena body type' }}</span>
+              <select [value]="assemblyContextId()" (change)="selectAssemblyContext($event)">
+                @if (dragonSpecies() === 'mini') {
+                  @for (option of miniBreedOptions; track option.id) {
+                    <option [value]="option.presetId"
+                      [selected]="assemblyContextId() === option.presetId">{{ option.name }}</option>
+                  }
+                } @else {
+                  @for (option of arenaBodyTypes; track option.id) {
+                    <option [value]="option.id"
+                      [selected]="assemblyContextId() === option.id">{{ option.name }}</option>
+                  }
+                }
+              </select>
+            </label>
+
+            <div class="lab__gene-preview">
+              <span>Gene expression</span>
+              <div class="lab__segmented" role="group" aria-label="Gene expression preview">
+                <button type="button" [class.lab__segmented-active]="genePreviewMode() === 'authored'"
+                  [attr.aria-pressed]="genePreviewMode() === 'authored'"
+                  (click)="setGenePreviewMode('authored')">Authored</button>
+                <button type="button" [class.lab__segmented-active]="genePreviewMode() === 'dominant'"
+                  [attr.aria-pressed]="genePreviewMode() === 'dominant'"
+                  (click)="setGenePreviewMode('dominant')">Dominant</button>
+                <button type="button" [class.lab__segmented-active]="genePreviewMode() === 'recessive'"
+                  [attr.aria-pressed]="genePreviewMode() === 'recessive'"
+                  (click)="setGenePreviewMode('recessive')">Recessive</button>
+              </div>
+            </div>
+          }
+        </section>
+      }
+
+      <div class="lab__detail-body">
+        <div class="lab__stage-column">
+          <div class="lab__stage-wrap">
+            <div #stage class="lab__stage" data-bake="stage" role="img"
+              (pointerup)="onCanvasViewChanged()" (wheel)="onCanvasViewChanged()"
+              [attr.aria-label]="definition.label + ' — drag to turn'"></div>
+
+            @if (previewMode() === 'isolated' && inspectorTab() === 'shape' && bodyHandles().length) {
+              <button type="button" class="lab__handle-toggle"
+                [attr.aria-pressed]="showBodyHandles()"
+                (click)="showBodyHandles.update(value => !value)">
+                {{ showBodyHandles() ? 'Hide body handles' : 'Show body handles' }}
+              </button>
+
+              @if (showBodyHandles()) {
+                <div class="lab__body-handles" aria-label="Direct body-shape handles">
+                  @for (handle of bodyHandles(); track handle.key) {
+                    <button type="button" class="lab__body-handle"
+                      [class.lab__body-handle--horizontal]="handle.axis === 'horizontal'"
+                      [class.lab__body-handle--vertical]="handle.axis === 'vertical'"
+                      [class.lab__body-handle--active]="activeBodyHandleId() === handle.key"
+                      [style.left.%]="handle.x" [style.top.%]="handle.y"
+                      [attr.aria-label]="handle.label + ' ' + handle.control.value + '. Use arrow keys or drag.'"
+                      (pointerdown)="startBodyHandleDrag(handle, $event)"
+                      (pointermove)="moveBodyHandle(handle, $event)"
+                      (pointerup)="endBodyHandleDrag(handle, $event)"
+                      (pointercancel)="endBodyHandleDrag(handle, $event)"
+                      (keydown)="nudgeBodyHandle(handle, $event)">
+                      <span>{{ handle.label }}</span><strong>{{ handle.control.value }}</strong>
+                    </button>
+                  }
+                </div>
+              }
+            }
+
+            @if (previewMode() === 'isolated' && inspectorTab() === 'features' && proceduralHandles().length) {
+              <button type="button" class="lab__handle-toggle"
+                [attr.aria-pressed]="showProceduralHandles()"
+                (click)="showProceduralHandles.update(value => !value)">
+                {{ showProceduralHandles() ? 'Hide procedural handles' : 'Show procedural handles' }}
+              </button>
+
+              @if (showProceduralHandles()) {
+                <div class="lab__procedural-handles" aria-label="Selected layer procedural handles">
+                  <span class="lab__procedural-title">{{ selectedAnatomyLayer()?.label }}</span>
+                  @for (handle of proceduralHandles(); track handle.id) {
+                    <button type="button" class="lab__procedural-handle"
+                      [class.lab__procedural-handle--move]="handle.kind === 'move'"
+                      [class.lab__procedural-handle--rotate]="handle.kind === 'rotate'"
+                      [class.lab__procedural-handle--scale]="handle.kind === 'scale'"
+                      [class.lab__procedural-handle--active]="activeProceduralHandleId() === handle.id"
+                      [attr.aria-label]="handle.label + ' ' + handle.control.value + '. Drag or use arrow keys.'"
+                      (pointerdown)="startProceduralHandle(handle, $event)"
+                      (pointermove)="moveProceduralHandle(handle, $event)"
+                      (pointerup)="endProceduralHandle(handle, $event)"
+                      (pointercancel)="endProceduralHandle(handle, $event)"
+                      (keydown)="nudgeProceduralHandle(handle, $event)">
+                      <span>{{ handle.shortLabel }}</span><strong>{{ handle.control.value }}</strong>
+                    </button>
+                  }
+                </div>
+              }
+            }
+
+            @if (canPlaceSelectedLayer() && placementAnchor(); as anchor) {
+              <div class="lab__placement-handles" aria-label="Selected anatomy placement handles"
+                [style.left.%]="anchor.xPercent" [style.top.%]="anchor.yPercent">
+                @for (kind of placementHandleKinds; track kind) {
+                  <button type="button" class="lab__placement-handle"
+                    [class.lab__placement-handle--move]="kind === 'move'"
+                    [class.lab__placement-handle--rotate]="kind === 'rotate'"
+                    [class.lab__placement-handle--scale]="kind === 'scale'"
+                    [class.lab__placement-handle--active]="activePlacementHandle() === kind"
+                    [attr.aria-label]="kind + ' selected anatomy. Drag or use arrow keys.'"
+                    (pointerdown)="startPlacementHandle(kind, $event)"
+                    (pointermove)="movePlacementHandle(kind, $event)"
+                    (pointerup)="endPlacementHandle(kind, $event)"
+                    (pointercancel)="endPlacementHandle(kind, $event)"
+                    (keydown)="nudgePlacementHandle(kind, $event)">
+                    {{ kind === 'move' ? 'Move' : kind === 'rotate' ? 'Rotate' : 'Scale' }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          @if (contextLost()) {
+            <p class="lab__lost" role="alert">
+              The browser dropped the 3D context.
+              <button type="button" class="lab__reset" (click)="retryPreview()">Rebuild preview</button>
+            </p>
+          }
+
+          <p class="lab__canvas-help">Drag to rotate · scroll to zoom · the preview stays put while the inspector scrolls.</p>
+
+          <dl class="lab__meta">
+            <div><dt>Profile</dt><dd>{{ profileId() }}</dd></div>
+            <div><dt>Mesh</dt><dd>{{ meshType() }}</dd></div>
+            @if (scaledDimensions(); as dims) {
+              <div><dt>Size</dt><dd>{{ dims.x }} × {{ dims.y }} × {{ dims.z }}</dd></div>
+            }
+            <div><dt>Controls</dt><dd>{{ featureControlCount() }}</dd></div>
+          </dl>
+        </div>
+
+        <aside class="lab__side" aria-label="Part inspector">
+          <nav class="lab__tabs" aria-label="Part editing sections">
+            @for (tab of inspectorTabs; track tab.id) {
+              <button type="button" class="lab__tab"
+                [class.lab__tab--active]="inspectorTab() === tab.id"
+                [attr.aria-selected]="inspectorTab() === tab.id"
+                (click)="setInspectorTab(tab.id)">{{ tab.label }}</button>
+            }
+          </nav>
+
+          <div class="lab__inspector-pane">
+            @switch (inspectorTab()) {
+              @case ('shape') {
+                <section class="lab__panel" aria-labelledby="shape-heading">
+                  <div class="lab__scale-head">
+                    <div>
+                      <span class="lab__ownership">This part only</span>
+                      <h3 id="shape-heading">Overall dimensions</h3>
+                    </div>
+                    <button type="button" class="lab__reset" (click)="resetScale()">Reset</button>
+                  </div>
+
+                  <label class="lab__slider">
+                    <span>Length (X) <strong>×{{ scaleX() }}</strong></span>
+                    <input type="range" min="0.25" max="3" step="0.05" [value]="scaleX()"
+                      (input)="onScale('x', $event)" />
+                  </label>
+                  <label class="lab__slider">
+                    <span>Height (Y) <strong>×{{ scaleY() }}</strong></span>
+                    <input type="range" min="0.25" max="3" step="0.05" [value]="scaleY()"
+                      (input)="onScale('y', $event)" />
+                  </label>
+                  <label class="lab__slider">
+                    <span>Width (Z) <strong>×{{ scaleZ() }}</strong></span>
+                    <input type="range" min="0.25" max="3" step="0.05" [value]="scaleZ()"
+                      (input)="onScale('z', $event)" />
+                  </label>
+
+                  <p class="lab__hint">Dimensions are saved per definition. Genetics may scale the assembled animal again.</p>
+                  @if (bodyHandles().length) {
+                    <p class="lab__direct-note"><strong>Direct body editing is active.</strong> Drag the labelled handles on the canvas; horizontal handles change width and vertical handles change height, belly depth, or spine arch.</p>
+                  }
+                </section>
+              }
+
+              @case ('surface') {
+                <section class="lab__panel" aria-labelledby="surface-heading">
+                  <div class="lab__scale-head">
+                    <div>
+                      <span class="lab__ownership">This part only</span>
+                      <h3 id="surface-heading">Procedural surface</h3>
+                    </div>
+                    @if (surfaceControls().length) {
+                      <button type="button" class="lab__reset" (click)="resetSurface()">Reset surface</button>
+                    }
+                  </div>
+
+                  <div class="lab__appearance-row">
+                    <label class="lab__field">
+                      <span>Preview pigment</span>
+                      <input type="color" [value]="color()" (input)="onColor($event)"
+                        [disabled]="useDefinitionColor()" />
+                    </label>
+                    <button type="button" class="lab__chip"
+                      [class.lab__chip--active]="useDefinitionColor()"
+                      [attr.aria-pressed]="useDefinitionColor()"
+                      (click)="toggleDefinitionColor()">Definition pigment</button>
+                  </div>
+
+                  @if (surfaceControls().length) {
+                    <div class="lab__surface-preview" aria-label="Procedural texture channels">
+                      <span class="lab__surface-swatch lab__surface-swatch--color">Colour</span>
+                      <span class="lab__surface-swatch lab__surface-swatch--normal">Relief</span>
+                      <span class="lab__surface-swatch lab__surface-swatch--roughness">Roughness</span>
+                    </div>
+                    <p class="lab__hint">The renderer combines cached scale, keratin, or membrane maps with this part's pigment. Changes update both isolated and assembled previews.</p>
+
+                    <div class="lab__feature-list" data-surface-controls>
+                      @for (control of surfaceControls(); track control.key) {
+                        <article class="lab__feature-card">
+                          <div class="lab__feature-head">
+                            <div><span class="lab__ownership">{{ partParameterScopeLabel() }}</span><strong>{{ control.label }}</strong></div>
+                          </div>
+                          <label class="lab__slider">
+                            <span>Value <strong>{{ control.value }}</strong></span>
+                            <input type="range" [min]="control.min" [max]="control.max" [step]="control.step"
+                              [value]="control.value" (input)="onPartParameter(control, $event)" />
+                          </label>
+                        </article>
+                      }
+                    </div>
+
+                    @if (surfaceInheritedParameters().length) {
+                      <div class="lab__gene-values">
+                        <span class="lab__ownership">Inherited pigment layer</span>
+                        <dl class="lab__parameter-list">
+                          @for (parameter of surfaceInheritedParameters(); track parameter.key) {
+                            <div><dt>{{ parameter.label }}</dt><dd>{{ parameter.value }}</dd></div>
+                          }
+                        </dl>
+                      </div>
+                    }
+
+                    <p class="lab__direct-note"><strong>Procedural, not painted.</strong> Relief changes apparent depth; detail scale changes map frequency; roughness changes shine; pattern controls affect inherited splotch or zigzag masks when that gene is expressed.</p>
+                  } @else {
+                    <div class="lab__empty-state">
+                      <strong>No classic procedural surface on this profile</strong>
+                      <p>Primitive parts and Mini Dragon Show coats use different material systems. Their colour can still be previewed here, but these scale-surface controls do not apply.</p>
+                    </div>
+                  }
+                </section>
+              }
+
+              @case ('features') {
+                <section class="lab__panel" aria-labelledby="features-heading">
+                  <div class="lab__scale-head">
+                    <div>
+                      <span class="lab__ownership">Procedural anatomy</span>
+                      <h3 id="features-heading">Anatomy layers</h3>
+                    </div>
+                    <div class="lab__reset-actions">
+                      @if (parameterControls().length) {
+                        <button type="button" class="lab__reset" (click)="resetPartParameters()">Reset part</button>
+                      }
+                      @if (styleControls().length) {
+                        <button type="button" class="lab__reset" (click)="resetStyle()">Reset shared style</button>
+                      }
+                    </div>
+                  </div>
+
+                  @if (isWing()) {
+                    <div class="lab__preset-row" aria-label="Wing shape presets">
+                      @for (preset of wingPresetIds; track preset) {
+                        <button type="button" class="lab__chip" (click)="applyWingPreset(preset)">{{ preset }}</button>
+                      }
+                    </div>
+                  }
+
+                  <p class="lab__hint">Choose one layer to edit. Structural layers stay protected; inherited layers clearly show when lesson genes can replace the preview value.</p>
+
+                  <div class="lab__anatomy-layout">
+                    <div class="lab__layer-list" role="listbox" aria-label="Anatomy layers">
+                      @for (layer of anatomyLayers(); track layer.id) {
+                        <button type="button" class="lab__layer-button"
+                          [class.lab__layer-button--active]="selectedAnatomyLayer()?.id === layer.id"
+                          [class.lab__layer-button--hidden]="!layer.visible"
+                          [attr.aria-selected]="selectedAnatomyLayer()?.id === layer.id"
+                          [attr.data-layer-id]="layer.id"
+                          (click)="selectAnatomyLayer(layer)">
+                          <span class="lab__layer-topline">
+                            <span>{{ layer.category }}</span>
+                            <span>{{ layer.visible ? (layer.structural ? 'Protected' : 'Visible') : 'Hidden' }}</span>
+                          </span>
+                          <strong>{{ layer.label }}</strong>
+                        </button>
+                      }
+                    </div>
+
+                    @if (selectedAnatomyLayer(); as layer) {
+                      <article class="lab__layer-editor" [attr.data-active-layer]="layer.id">
+                        <div class="lab__layer-editor-head">
+                          <div>
+                            <span class="lab__ownership">{{ layer.category }} layer</span>
+                            <h4>{{ layer.label }}</h4>
+                          </div>
+                          <div class="lab__layer-actions">
+                            @if (layer.canToggle) {
+                              <button type="button" class="lab__visibility"
+                                [attr.aria-pressed]="layer.visible"
+                                (click)="toggleAnatomyLayer(layer)">
+                                {{ layer.visible ? 'Hide' : 'Show' }}
+                              </button>
+                            }
+                            @if (layer.editable) {
+                              <button type="button" class="lab__reset" (click)="resetAnatomyLayer(layer)">Reset layer</button>
+                            }
+                          </div>
+                        </div>
+
+                        <p class="lab__layer-description">{{ layer.description }}</p>
+
+                        <div class="lab__layer-statuses">
+                          @if (layer.structural) {
+                            <span class="lab__status-badge lab__status-badge--protected">Protected structure</span>
+                          }
+                          @if (layer.genes.length) {
+                            @for (gene of layer.genes; track gene.id) {
+                              <span class="lab__status-badge">{{ gene.label }} gene</span>
+                            }
+                          }
+                          @if (layer.canToggle && layer.genes.length) {
+                            <span class="lab__status-badge lab__status-badge--warning">Preview visibility</span>
+                          }
+                        </div>
+
+                        @if (layer.structural) {
+                          <p class="lab__layer-note">This layer can be reshaped, but it cannot be removed because joints or the main silhouette depend on it.</p>
+                        }
+                        @if (layer.genes.length) {
+                          <p class="lab__layer-note">Lesson gene expression can replace these authoring defaults when a student dragon is built.</p>
+                        }
+
+                        @if (previewMode() === 'assembly') {
+                          @if (layer.placement && selectedPlacement(); as placement) {
+                            <section class="lab__placement-panel" aria-label="Assembly placement">
+                              <div class="lab__scale-head">
+                                <div>
+                                  <span class="lab__ownership">{{ assemblyContextId() }} only</span>
+                                  <h5>Position, rotation, and scale</h5>
+                                </div>
+                                <button type="button" class="lab__reset" (click)="resetPlacement()">Reset placement</button>
+                              </div>
+
+                              @if (assemblyPartOptions().length > 1) {
+                                <label class="lab__field lab__field--instance">
+                                  <span>Assembly instance</span>
+                                  <select [value]="activeAssemblyPartId() ?? ''" (change)="selectAssemblyPart($event)">
+                                    @for (option of assemblyPartOptions(); track option.id) {
+                                      <option [value]="option.id">{{ option.label }}</option>
+                                    }
+                                  </select>
+                                </label>
+                              }
+
+                              <div class="lab__placement-grid">
+                                <label><span>Position X <strong>{{ placement.offset.x }}</strong></span>
+                                  <input type="range" min="-2" max="2" step="0.02" [value]="placement.offset.x"
+                                    (input)="onPlacementVector('offset', 'x', $event)" /></label>
+                                <label><span>Position Y <strong>{{ placement.offset.y }}</strong></span>
+                                  <input type="range" min="-2" max="2" step="0.02" [value]="placement.offset.y"
+                                    (input)="onPlacementVector('offset', 'y', $event)" /></label>
+                                <label><span>Position Z <strong>{{ placement.offset.z }}</strong></span>
+                                  <input type="range" min="-2" max="2" step="0.02" [value]="placement.offset.z"
+                                    (input)="onPlacementVector('offset', 'z', $event)" /></label>
+                                <label><span>Rotate X <strong>{{ placement.rotationDegrees.x }}°</strong></span>
+                                  <input type="range" min="-180" max="180" step="1" [value]="placement.rotationDegrees.x"
+                                    (input)="onPlacementVector('rotationDegrees', 'x', $event)" /></label>
+                                <label><span>Rotate Y <strong>{{ placement.rotationDegrees.y }}°</strong></span>
+                                  <input type="range" min="-180" max="180" step="1" [value]="placement.rotationDegrees.y"
+                                    (input)="onPlacementVector('rotationDegrees', 'y', $event)" /></label>
+                                <label><span>Rotate Z <strong>{{ placement.rotationDegrees.z }}°</strong></span>
+                                  <input type="range" min="-180" max="180" step="1" [value]="placement.rotationDegrees.z"
+                                    (input)="onPlacementVector('rotationDegrees', 'z', $event)" /></label>
+                                <label><span>Uniform scale <strong>×{{ placement.scale }}</strong></span>
+                                  <input type="range" min="0.1" max="3" step="0.02" [value]="placement.scale"
+                                    (input)="onPlacementScale($event)" /></label>
+                              </div>
+                              <p class="lab__hint">Use the anchored Move, Rotate, and Scale handles on the dragon for quick changes; use these sliders for exact X, Y, and Z values.</p>
+                            </section>
+                          } @else {
+                            <p class="lab__direct-note"><strong>Generated inside its parent part.</strong> Use this layer's placement controls below to move the feature on its parent. Whole-part handles remain available for wings, tails, separate horns, plates, fins, and back spikes.</p>
+                          }
+                        }
+
+                        @if (!layer.editable && !layer.inheritedParameters.length) {
+                          <div class="lab__empty-state">
+                            <strong>No direct slider for this layer</strong>
+                            <p>Its shape is built into the selected procedural profile. Use Shape for overall size or Genes to inspect its expression rule.</p>
+                          </div>
+                        }
+
+                        <div class="lab__feature-list">
+                          @for (control of layer.styleControls; track control.section + ':' + control.key) {
+                            <article class="lab__feature-card">
+                              <div class="lab__feature-head">
+                                <div><span class="lab__ownership">All {{ control.section }} profiles</span><strong>{{ control.label }}</strong></div>
+                              </div>
+                              <label class="lab__slider">
+                                <span>Value <strong>{{ control.value }}</strong></span>
+                                <input type="range" [min]="control.min" [max]="control.max" [step]="control.step"
+                                  [value]="control.value" (input)="onStyle(control, $event)" />
+                              </label>
+                            </article>
+                          }
+
+                          @for (control of layer.parameterControls; track control.key) {
+                            <article class="lab__feature-card">
+                              <div class="lab__feature-head">
+                                <div><span class="lab__ownership">{{ partParameterScopeLabel() }}</span><strong>{{ control.label }}</strong></div>
+                              </div>
+                              <label class="lab__slider">
+                                <span>Value <strong>{{ control.value }}</strong></span>
+                                <input type="range" [min]="control.min" [max]="control.max" [step]="control.step"
+                                  [value]="control.value" (input)="onPartParameter(control, $event)" />
+                              </label>
+                            </article>
+                          }
+                        </div>
+
+                        @if (layer.inheritedParameters.length) {
+                          <div class="lab__gene-values">
+                            <span class="lab__ownership">Current inherited preview</span>
+                            <dl class="lab__parameter-list">
+                              @for (parameter of layer.inheritedParameters; track parameter.key) {
+                                <div><dt>{{ parameter.label }}</dt><dd>{{ parameter.value }}</dd></div>
+                              }
+                            </dl>
+                          </div>
+                        }
+                      </article>
+                    }
+                  </div>
+                </section>
+              }
+
+              @case ('sockets') {
+                <section class="lab__panel" aria-labelledby="sockets-heading">
+                  <span class="lab__ownership">This part only</span>
+                  <h3 id="sockets-heading">Attachment sockets</h3>
+                  <p class="lab__hint">Sockets decide where this part connects. Their positions are stored in the same Designer draft.</p>
+
+                  @if (definition.snapPoints.length) {
+                    <ul class="lab__socket-list">
+                      @for (socket of definition.snapPoints; track socket.id) {
+                        <li><strong>{{ socket.label }}</strong><code>{{ socket.localPosition.x }}, {{ socket.localPosition.y }}, {{ socket.localPosition.z }}</code></li>
+                      }
+                    </ul>
+                    <a class="lab__primary-link" routerLink="/snap-workshop"
+                      [queryParams]="{ family: family(), species: dragonSpecies(), part: definition.id }">Edit {{ definition.snapPoints.length }} sockets visually</a>
+                  } @else {
+                    <div class="lab__empty-state">
+                      <strong>No authored sockets</strong>
+                      <p>This is usually a visual feature or a part whose attachment is derived from its dimensions.</p>
+                    </div>
+                  }
+                </section>
+              }
+
+              @case ('genes') {
+                <section class="lab__panel" aria-labelledby="genes-heading">
+                  <span class="lab__ownership">Expression context</span>
+                  <h3 id="genes-heading">Genes connected to this anatomy</h3>
+                  <p class="lab__hint">These labels show which lesson genes can replace or reshape this part. Designer draft values are authoring defaults, not a student genome.</p>
+
+                  @if (geneContext().length) {
+                    <ul class="lab__gene-list">
+                      @for (entry of geneContext(); track entry.id) {
+                        <li><span>{{ entry.id }}</span><div><strong>{{ entry.label }}</strong><p>{{ entry.relationship }}</p></div></li>
+                      }
+                    </ul>
+                  } @else {
+                    <div class="lab__empty-state">
+                      <strong>No direct gene relationship recorded</strong>
+                      <p>The part may be structural, decorative, or shared by several expressed forms.</p>
+                    </div>
+                  }
+
+                  @if (inheritedParameters().length) {
+                    <h4>Genetics-owned renderer values</h4>
+                    <dl class="lab__parameter-list">
+                      @for (parameter of inheritedParameters(); track parameter.key) {
+                        <div><dt>{{ parameter.label }}</dt><dd>{{ parameter.value }}</dd></div>
+                      }
+                    </dl>
+                  }
+                </section>
+              }
+
+              @case ('test') {
+                <section class="lab__panel" aria-labelledby="test-heading">
+                  <div class="lab__scale-head">
+                    <div><span class="lab__ownership">Current draft</span><h3 id="test-heading">Visual checks</h3></div>
+                    <a class="lab__action-link" routerLink="/dragon-garage">Test assembled</a>
+                  </div>
+
+                  <div class="lab__angles" data-bake="angles">
+                    <h4>Six-angle review</h4>
+                    <ul class="lab__angle-grid">
+                      @for (entry of angleStrip(); track entry.view.id) {
+                        <li>
+                          @if (entry.image) {
+                            <img class="lab__angle-image" [src]="entry.image" [alt]="entry.view.label" />
+                          } @else if (entry.pending) {
+                            <span class="lab__tile-empty">rendering…</span>
+                          }
+                          <span class="lab__angle-label">{{ entry.view.label }}</span>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+
+                  @if (acceptance(); as report) {
+                    <section class="lab__acceptance" [class.lab__acceptance--pass]="report.passed">
+                      <h4>Acceptance · {{ report.passed ? 'pass' : 'needs attention' }}</h4>
+                      <ul>
+                        @for (check of report.checks; track check.id) {
+                          <li [class.lab__check--pass]="check.passed"><strong>{{ check.passed ? 'Pass' : 'Check' }}</strong> {{ check.label }} — {{ check.detail }}</li>
+                        }
+                      </ul>
+                    </section>
+                  }
+
+                  @if (comparison(); as compared) {
+                    <section class="lab__comparison" aria-label="Part comparison">
+                      <div><strong>Selected</strong><span>{{ definition.label }}</span><code>{{ definition.dimensions.x }} × {{ definition.dimensions.y }} × {{ definition.dimensions.z }}</code></div>
+                      <div><strong>Compared</strong><span>{{ compared.label }}</span><code>{{ compared.dimensions.x }} × {{ compared.dimensions.y }} × {{ compared.dimensions.z }}</code></div>
+                    </section>
+                  }
+                </section>
+              }
+            }
+          </div>
+        </aside>
+      </div>
+    </section>
+  }
+
   <section class="lab__sheet" aria-labelledby="sheet-heading" data-bake="contact-sheet">
-    <h2 class="lab__section-title" id="sheet-heading">All {{ collectionLabel() }} parts ({{ tiles().length }})</h2>
+    <div class="lab__library-head">
+      <div><span class="lab__context-label">Part library</span><h2 id="sheet-heading">All {{ collectionLabel() }} parts ({{ tiles().length }})</h2></div>
+      <p>Select a part to load it into the workshop above.</p>
+    </div>
 
     <ul class="lab__grid">
       @for (tile of tiles(); track tile.definition.id) {
         <li>
-          <button
-            type="button"
-            class="lab__tile"
+          <button type="button" class="lab__tile"
             [class.lab__tile--active]="selected()?.id === tile.definition.id"
             [attr.aria-pressed]="selected()?.id === tile.definition.id"
-            (click)="select(tile.definition)"
-          >
+            (click)="select(tile.definition)">
             @if (tile.image) {
               <img class="lab__tile-image" [src]="tile.image" [alt]="tile.definition.label" />
             } @else if (tile.pending) {
@@ -98,219 +679,32 @@
             <span class="lab__tile-id">{{ tile.definition.visualProfile?.profileId ?? tile.definition.shape }}</span>
           </button>
           <button type="button" class="lab__compare" (click)="compare(tile.definition, $event)">
-            {{ compareId() === tile.definition.id ? 'Comparing' : 'Compare' }}
+            {{ compareId() === tile.definition.id ? 'Comparing' : 'Compare in Test' }}
           </button>
         </li>
       }
     </ul>
   </section>
 
-  <!-- Selected part -->
-  @if (selected(); as definition) {
-    <section class="lab__detail" aria-labelledby="detail-heading" data-bake="detail">
-      <h2 class="lab__section-title" id="detail-heading">{{ definition.label }}</h2>
-
-      <div class="lab__detail-body">
-        <div class="lab__stage-column">
-          <div
-            #stage
-            class="lab__stage"
-            data-bake="stage"
-            role="img"
-            [attr.aria-label]="definition.label + ' — drag to turn'"
-          ></div>
-
-          @if (contextLost()) {
-            <p class="lab__lost" role="alert">
-              The browser dropped the 3D context. It usually restores itself —
-              <button type="button" class="lab__reset" (click)="retryPreview()">rebuild now</button>
-              if it does not.
-            </p>
-          }
-
-          <dl class="lab__meta">
-            <div><dt>Part id</dt><dd>{{ definition.id }}</dd></div>
-            <div><dt>Visual profile</dt><dd>{{ profileId() }}</dd></div>
-            <div><dt>Mesh type</dt><dd>{{ meshType() }}</dd></div>
-            @if (scaledDimensions(); as dims) {
-              <div><dt>Dimensions</dt><dd>{{ dims.x }} × {{ dims.y }} × {{ dims.z }}</dd></div>
-            }
-          </dl>
-        </div>
-
-        <div class="lab__side">
-          <div class="lab__scale">
-            <div class="lab__scale-head">
-              <h3 class="lab__section-title">Dimensions</h3>
-              <button type="button" class="lab__reset" (click)="resetScale()">Reset</button>
-            </div>
-
-            <label class="lab__slider">
-              <span>X ×{{ scaleX() }}</span>
-              <input type="range" min="0.25" max="3" step="0.05"
-                     [value]="scaleX()" (input)="onScale('x', $event)" />
-            </label>
-            <label class="lab__slider">
-              <span>Y ×{{ scaleY() }}</span>
-              <input type="range" min="0.25" max="3" step="0.05"
-                     [value]="scaleY()" (input)="onScale('y', $event)" />
-            </label>
-            <label class="lab__slider">
-              <span>Z ×{{ scaleZ() }}</span>
-              <input type="range" min="0.25" max="3" step="0.05"
-                     [value]="scaleZ()" (input)="onScale('z', $event)" />
-            </label>
-
-            <p class="lab__hint">
-              The genetics pipeline scales these same dimensions per genome, so a part has to hold
-              up across the whole slider range — not just at ×1.
-            </p>
-
-            <button type="button" class="lab__record" (click)="record()">
-              Record these values
-            </button>
-          </div>
-
-          @if (styleControls().length) {
-            <div class="lab__scale">
-              <div class="lab__scale-head">
-                <h3 class="lab__section-title">Features</h3>
-                <button type="button" class="lab__reset" (click)="resetStyle()">Reset</button>
-              </div>
-
-              @if (isWing()) {
-                <div class="lab__control-group">
-                  @for (preset of wingPresetIds; track preset) {
-                    <button type="button" class="lab__chip" (click)="applyWingPreset(preset)">
-                      {{ preset }}
-                    </button>
-                  }
-                </div>
-              }
-
-              @for (control of styleControls(); track control.key) {
-                <label class="lab__slider">
-                  <span>{{ control.label }} {{ control.value }}</span>
-                  <input
-                    type="range"
-                    [min]="control.min"
-                    [max]="control.max"
-                    [step]="control.step"
-                    [value]="control.value"
-                    (input)="onStyle(control, $event)"
-                  />
-                </label>
-              }
-
-              <p class="lab__hint">
-                Counts are absolute; every length is a fraction of the part it sits on, so features
-                stay in proportion when genetics rescales the dragon. These values are saved in the
-                local designer draft and embedded when the Garage exports a model pack.
-              </p>
-              <p class="lab__hint">
-                These apply while this page is open. Record the values, apply them to the designer
-                catalog, then use the <a routerLink="/dragon-garage">Assembly Garage</a> to inspect
-                the complete model before publishing its pack.
-              </p>
-            </div>
-          }
-
-
-          @if (parameterControls().length) {
-            <div class="lab__scale">
-              <div class="lab__scale-head">
-                <h3 class="lab__section-title">Mini Dragon features</h3>
-                <button type="button" class="lab__reset" (click)="resetPartParameters()">Reset</button>
-              </div>
-              @for (control of parameterControls(); track control.key) {
-                <label class="lab__slider">
-                  <span>{{ control.label }} {{ control.value }}</span>
-                  <input type="range" [min]="control.min" [max]="control.max" [step]="control.step"
-                    [value]="control.value" (input)="onPartParameter(control, $event)" />
-                </label>
-              }
-              <p class="lab__hint">These per-part values use the same versioned registry and draft storage as the lab dragon.</p>
-            </div>
-          }
-
-          <div class="lab__angles" data-bake="angles">
-            <h3 class="lab__section-title">Every angle</h3>
-            <ul class="lab__angle-grid">
-              @for (entry of angleStrip(); track entry.view.id) {
-                <li>
-                  @if (entry.image) {
-                    <img class="lab__angle-image" [src]="entry.image" [alt]="entry.view.label" />
-                  } @else if (entry.pending) {
-                    <span class="lab__tile-empty">rendering…</span>
-                  }
-                  <span class="lab__angle-label">{{ entry.view.label }}</span>
-                </li>
-              }
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      @if (comparison(); as compared) {
-        <section class="lab__comparison" aria-label="Part comparison">
-          <div><strong>Selected</strong><span>{{ definition.label }}</span><code>{{ definition.dimensions.x }} × {{ definition.dimensions.y }} × {{ definition.dimensions.z }}</code></div>
-          <div><strong>Compared</strong><span>{{ compared.label }}</span><code>{{ compared.dimensions.x }} × {{ compared.dimensions.y }} × {{ compared.dimensions.z }}</code></div>
-        </section>
-      }
-
-      @if (acceptance(); as report) {
-        <section class="lab__acceptance" [class.lab__acceptance--pass]="report.passed" aria-labelledby="acceptance-heading">
-          <h3 id="acceptance-heading">Upgrade acceptance sheet · {{ report.passed ? 'pass' : 'needs attention' }}</h3>
-          <p>Review the six rendered angles above at the current values and at each slider extreme.</p>
-          <ul>
-            @for (check of report.checks; track check.id) {
-              <li [class.lab__check--pass]="check.passed"><strong>{{ check.passed ? 'Pass' : 'Check' }}</strong> {{ check.label }} — {{ check.detail }}</li>
-            }
-          </ul>
-        </section>
-      }
-    </section>
-  }
-
-  <!-- Recorded values -->
   <section class="lab__records" aria-labelledby="records-heading">
     <div class="lab__scale-head">
-      <h2 class="lab__section-title" id="records-heading">
-        Recorded values ({{ tuning.count() }})
-      </h2>
-      @if (tuning.count()) {
-        <button type="button" class="lab__reset" (click)="tuning.clear()">Clear all</button>
-      }
+      <h2 class="lab__section-title" id="records-heading">Recorded values ({{ tuning.count() }})</h2>
+      @if (tuning.count()) { <button type="button" class="lab__reset" (click)="tuning.clear()">Clear all</button> }
     </div>
 
     @if (!tuning.count()) {
-      <p class="lab__hint">
-        Nothing recorded yet. Tune a part with the sliders, then press
-        <strong>Record these values</strong> — entries are kept in this browser across reloads, so a
-        hot reload after a code edit will not lose them.
-      </p>
+      <p class="lab__hint">Tune a part and press <strong>Record values</strong>. Records survive reloads and hot updates.</p>
     } @else {
       <ul class="lab__record-list">
         @for (entry of tuning.all(); track entry.id) {
           <li>
             <span class="lab__record-name">{{ entry.label }}</span>
-            <span class="lab__record-values">
-              {{ entry.dimensions.x }} × {{ entry.dimensions.y }} × {{ entry.dimensions.z }}
-              @if (entry.styleSection) {
-                · {{ entry.styleSection }} features
-              }
-            </span>
+            <span class="lab__record-values">{{ entry.dimensions.x }} × {{ entry.dimensions.y }} × {{ entry.dimensions.z }} @if (entry.styleSection) { · {{ entry.styleSection }} features } @if (entry.parameterValues) { · part parameters }</span>
             <button type="button" class="lab__reset" (click)="tuning.remove(entry.id)">Remove</button>
           </li>
         }
       </ul>
-
-      <div class="lab__scale-head">
-        <h3 class="lab__section-title">Paste into source</h3>
-        <button type="button" class="lab__reset" (click)="copySnippet()">
-          {{ copied() ? 'Copied' : 'Copy' }}
-        </button>
-      </div>
+      <div class="lab__scale-head"><h3 class="lab__section-title">Paste into source</h3><button type="button" class="lab__reset" (click)="copySnippet()">{{ copied() ? 'Copied' : 'Copy' }}</button></div>
       <pre class="lab__snippet"><code>{{ tuning.snippet() }}</code></pre>
     }
   </section>

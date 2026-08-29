@@ -3,49 +3,83 @@
 The workspace contains two Angular applications. Student-facing PBL Forge code lives under
 `src/app`; private dragon authoring tools live under `designer/src/app`.
 
-## Application features
+## Student application
 
-- `src/app/features/dragon-genetics`: the three-week student experience, teacher dashboard, persistence, assessments, and arena integration.
-- `src/app/features/dragon-genetics/lesson-plan`: the authoritative student path and lesson flow. Public lessons use `/dragon-genetics/path/:pathId/lesson/:lessonId`; workstation routes remain explicit and receive `path` and `lesson` query parameters when launched from a lesson.
-- `src/app/features/dragon-genetics/workstations`: every active Dragon Genetics student workstation, grouped by lab with cross-lab chromosome and notebook code in `workstations/shared`.
-- `src/app/features/dragon-genetics/simulation`: Dragon Genetics inheritance, phenotype generation, simplified genome models, and source content extracted from the migration prototype.
-- Other folders under `src/app/features`: catalog, generic activity player, project view, and teacher studio.
+The current public lesson flow is owned by these Dragon Genetics folders:
 
-The older `journey` and adaptive simulation experience code is not a public routing layer. Do not add
-new lesson navigation to `/dragon-genetics/journey/**` or to a dynamic
-`/dragon-genetics/:simulationId` fallback. Add each workstation as an explicit route so it remains
-available for direct open-lab use and can be linked from the shared lesson plan later.
+- `lesson-plan/` — the executable shared lesson document, path-choice and lesson pages, and the
+  teacher editor. Public lesson URLs are
+  `/dragon-genetics/path/:pathId/lesson/:lessonId`.
+- `cases/` — optional field-case definitions, case state/outcome rules, and the nested branch page.
+- `orchestration/` — lesson launch context, evidence attachment, and host shells that connect a
+  portable workstation to lesson/case state.
+- `workstations/` — active student laboratory instruments, grouped by scientific domain. Cross-lab
+  chromosome, DNA, notebook, account-genetics, and host-context code lives in
+  `workstations/shared/`.
+- `simulation/` — classic-dragon inheritance, phenotype generation, and simplified genome models.
+- `capstones/` — capstone mission surfaces such as the Dragon Arena.
 
-## Shared runtime
+The older `journey/`, `adaptive/`, `project/`, and `inquiry/` folders still support retained hub,
+assignment, notebook, and legacy progress behavior. They are not the current public lesson-routing
+layer. Do not add new lesson navigation to a dynamic simulation fallback or `/journey/**`; add an
+explicit route in `src/app/app.routes.ts` and attach the workstation through the shared lesson plan.
 
-- `src/app/shared/assembly`: game-neutral assembly contracts, cloning, physics, rendering, viewport primitives, and the safe JSON storage boundary shared with Designer.
-- `src/app/shared/assembly-arena`: reusable battle physics, renderer, strategy runner, and controls.
-- `src/app/shared/creation-library`: built-in and browser-local assembly, move, and scenario assets.
-- `src/app/shared/dragon-visuals`: versioned semantic scene contracts, Angular signal bridge, replaceable visual-pack definitions, and declarative station/cutscene timelines. It must not import lesson, assessment, persistence, or routing code.
+Other `src/app/features/` folders contain generic project/catalog/activity surfaces that predate the
+current Dragon Genetics front door.
 
-Shared runtime code must not import from historical prototypes or private Designer source.
+## Shared student runtime
+
+- `src/app/shared/assembly/` — game-neutral assembly contracts, cloning, physics, persistence helpers,
+  generated dragon anatomy, Three.js rendering, and viewport primitives shared with Designer.
+- `src/app/shared/assembly-arena/` — reusable battle physics, rendering, strategies, and controls.
+- `src/app/shared/creation-library/` — built-in and browser-local assembly/move/scenario assets.
+- `src/app/shared/dragon-visuals/` — cross-workstation scientific and renderer primitives. It must
+  not own lesson, assessment, routing, or station-specific persistence.
+- `src/app/core/firebase/` — Firebase providers, identity/role handling, repositories, and guards.
+
+Shared runtime code must not import historical prototypes or private Designer source.
 
 ## Dragon Designer
 
-- `designer/src/app/parts-lab`: isolated mesh and visual-proportion authoring.
-- `designer/src/app/assembly-garage`: part, joint, physics, JSON, and model-pack authoring.
-- `designer/src/app/dragon-garage.page.ts`: dragon-only Garage host.
-- `model-packs/dragon-model-pack.v1.json`: committed, validated output consumed by PBL Forge.
+- `designer/src/app/parts-lab/` — mesh, surface, and proportion authoring.
+- `designer/src/app/assembly-garage/` — part, joint, physics, JSON, preset, and model-pack authoring.
+- `designer/src/app/dragon-garage.page.ts` — dragon-only Garage host.
+- `model-packs/dragon-model-pack.v1.json` — committed and validated data consumed by PBL Forge.
 
-Dragon Designer uses the shared assembly runtime and may publish validated model/arena artifacts to
-the dedicated `publishedDragonAssets` Firestore collection. It has no lesson, assessment, or student
-progress dependencies. PBL Forge must never import from `designer/**`; the
-`check:designer-boundary` command enforces that rule. See
-[`DRAGON_DESIGNER_ASSET_PIPELINE_PLAN.md`](DRAGON_DESIGNER_ASSET_PIPELINE_PLAN.md).
+Designer may import `src/app/shared/assembly`. PBL Forge must never import from `designer/**` or
+`assembly-garage`; `npm run check:designer-boundary` enforces the one-way boundary. Publishing a
+model means validating and committing the pack (or intentionally publishing through the Designer
+asset repository), not importing authoring code into the student app.
+
+## Workstation folder contract
+
+A routed workstation normally contains:
+
+```text
+workstations/<station>/
+  <station>.page.ts/.html/.scss       app-aware route container
+  <station>.component.ts/.html/.scss portable investigation surface
+  <station>.models.ts                 serializable contracts
+  <station>.domain.ts                 pure scientific rules
+  <station>.repository.ts             persistence boundary
+  <station>.manifest.ts               instrument capabilities, when used
+  *.spec.ts                           domain, component, and repository coverage
+```
+
+Small stations do not need empty files merely to match this shape, but identity, routing, and app
+progress stay in the page/host; scientific truth stays in domain/catalog files; persistent state
+stays behind a repository.
+
+Before changing a student workstation, read
+[`DRAGON_GENETICS_WORKSTATION_RULES.md`](DRAGON_GENETICS_WORKSTATION_RULES.md). For implementation
+boundaries and moving a workstation, read
+[`DRAGON_GENETICS_WORKSTATION_ARCHITECTURE.md`](DRAGON_GENETICS_WORKSTATION_ARCHITECTURE.md).
 
 ## Non-runtime folders
 
-- `public`: static files copied directly to the browser build.
-- `scripts`: local Firebase, seeding, verification, and security-rule tooling.
-- `designer`: the independently built, local-only Dragon Designer Angular application.
-- `model-packs`: reviewed build-time artifacts published by designer tools.
-- `docs`: implementation and deployment guidance.
-
-Before adding or rebuilding a Dragon Genetics workstation, follow
-[`DRAGON_GENETICS_WORKSTATION_RULES.md`](DRAGON_GENETICS_WORKSTATION_RULES.md). Those product rules
-override older scripted station patterns in historical planning documents.
+- `public/` — static files copied into the browser build.
+- `scripts/` — Firebase, seeding, browser driving, asset checks, and verification tooling.
+- `model-packs/` — reviewed build-time artifacts from Designer.
+- `docs/` — current product/development documentation.
+- `docs/oldDocs/` — historical proposals, old build notes, prototypes, and references; never a
+  current implementation contract.

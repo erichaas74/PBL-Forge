@@ -11,5 +11,28 @@
       <h1>Protein Synthesis &amp; Diet Rescue</h1>
     </div>
   </header>
-  <app-protein-rescue-lab [studentId]="studentId()" />
+  @if (branchCase(); as branch) {
+    <aside class="case-ribbon" aria-label="Current case objective">
+      <div>
+        <small>{{ branch.definition.subtitle }} · {{ branch.definition.clientName }}</small>
+        <strong>{{ branch.definition.missionText }}</strong>
+      </div>
+      <span>Both chromosome copies must be tested.</span>
+    </aside>
+  }
+  @if (pendingEvidence(); as evidence) {
+    <app-dragon-evidence-capture-card
+      [evidence]="evidence"
+      (capture)="capturePendingEvidence()"
+      (dismiss)="pendingEvidence.set(null)"
+    />
+  }
+  @if (evidenceMessage()) {
+    <p class="evidence-status" role="status">{{ evidenceMessage() }}</p>
+  }
+  <app-protein-rescue-lab
+    [studentId]="studentId()"
+    [casePatientId]="branchCase() ? 'tide' : null"
+    (recordSaved)="handleRecordSaved($event)"
+  />
 </div>

@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE-HYBRID — retained selectable capstone definitions used by /explore.
+ * Inputs/signals: static path metadata; selection state lives in DragonProjectHubFacade.
+ * Data access: no persistence; references project-hub activity IDs.
+ * Connects to: Arena/Hatchery, Companion Show, capstone selection, and teacher summaries.
+ */
 import { ProjectPathDefinition } from '../../project/domain/project-hub.models';
 
 export type DragonCapstonePathId = 'dragon-arena' | 'mini-dragon-show' | 'island-diversity';

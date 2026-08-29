@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit full Incubator Sampler open-lab route.
+ * Inputs/signals: current context, notebook discoveries, and lesson-aware return URL.
+ * Data access: child sampler repository plus shared workstation genetics records.
+ * Connects to: IncubatorSamplerComponent, retained activity progress, and lesson/home navigation.
+ */
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonJourneyNavigationService } from '../../journey/dragon-journey-navigation.service';

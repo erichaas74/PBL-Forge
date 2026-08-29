@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE-HYBRID — guarded teacher dashboard retaining legacy journey controls.
+ * Inputs/signals: authenticated teacher, assignment store, Firestore progress stream, and form state.
+ * Data access: dragonLabProgress in Firestore plus DragonAdaptiveStore assignment configuration.
+ * Connects to: legacy journey/capstone reporting, inquiry policy, /explore, and the new plan editor.
+ */
 import { AsyncPipe } from '@angular/common';
 import {
   Component,

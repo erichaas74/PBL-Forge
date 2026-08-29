@@ -37,6 +37,23 @@ describe('dragon palette', () => {
     expect(dragonPaletteForPart(bodyPart({ scalePattern: 'zigzag' })).pattern).toBe('plain');
   });
 
+  it('resolves per-part procedural surface controls without changing pigment ownership', () => {
+    const palette = dragonPaletteForPart(bodyPart({
+      surfaceRelief: 1.6,
+      surfaceRoughness: 0.55,
+      surfaceDetailScale: 2.25,
+      surfacePatternStrength: 0.4,
+      surfacePatternScale: 1.8,
+    }));
+
+    expect(palette.surfaceRelief).toBe(1.6);
+    expect(palette.surfaceRoughness).toBe(0.55);
+    expect(palette.surfaceDetailScale).toBe(2.25);
+    expect(palette.surfacePatternStrength).toBe(0.4);
+    expect(palette.surfacePatternScale).toBe(1.8);
+    expect(palette.scale.getHexString()).toBe(new THREE.Color('#22c55e').getHexString());
+  });
+
   it('derives secondary tones without mutating the base pigment', () => {
     const palette = createDragonPalette('#a855f7', 0.5);
 

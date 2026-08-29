@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit full-size Pedigree Lab open-investigation route.
+ * Inputs/signals: optional investigation query param and current workstation/student context.
+ * Data access: child pedigree repository and released account-genetics records.
+ * Connects to: DragonPedigreeLabComponent, retained progress/inquiry systems, and navigation.
+ */
 import { Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';

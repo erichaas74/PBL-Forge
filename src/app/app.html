@@ -12,7 +12,7 @@
 
     <nav aria-label="Main navigation">
       <a routerLink="/dragon-genetics" routerLinkActive="active">Student learning path</a>
-      @if (session.isTeacher()) {
+      @if (session.hasTeacherAccess()) {
         <a routerLink="/teacher" routerLinkActive="active">Teacher dashboard</a>
       }
     </nav>
@@ -40,7 +40,7 @@
       <p>Dragon Genetics</p>
       <h1>Checking your session…</h1>
     </section>
-  } @else if (!session.user()) {
+  } @else if (!session.user() && !openTeacherRoute()) {
     <section class="access-gate" aria-labelledby="access-title">
       <p>Testing access</p>
       <h1 id="access-title">Sign in to Dragon Genetics</h1>
@@ -69,7 +69,7 @@
 
 @defer (when showWiseDragonGuide()) {
   @if (showWiseDragonGuide()) {
-    <app-wise-dragon-guide [showLauncher]="!dragonGeneticsHome()" />
+    <app-wise-dragon-guide [showLauncher]="!dragonGeneticsHome() && !sharedLessonRoute()" />
   }
 }
 

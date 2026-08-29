@@ -18,6 +18,8 @@ describe('App', () => {
             ready: signal(true),
             isLocalTeacher: signal(false),
             isTeacher: signal(false),
+            hasTeacherAccess: signal(true),
+            teacherAccessOpen: true,
             isLocal: true,
             signInWithGoogle: async () => undefined,
             signInAsLocalStudent: async () => undefined,
@@ -40,6 +42,6 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.brand')?.textContent).toContain('Dragon Genetics');
     expect(compiled.querySelector('nav')?.textContent).toContain('Student learning path');
-    expect(compiled.querySelector('nav')?.textContent).not.toContain('Teacher dashboard');
+    expect(compiled.querySelector('nav')?.textContent).toContain('Teacher dashboard');
   });
 });

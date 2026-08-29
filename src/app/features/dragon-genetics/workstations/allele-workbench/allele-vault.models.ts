@@ -85,7 +85,7 @@ interface VaultGeneMetadata {
 }
 
 /**
- * The teacher's initial catalog contains the twelve autosomal loci plus the
+ * The teacher's initial catalog contains the eleven autosomal loci plus the
  * shared X-linked locus. Trait science comes from EXPRESSIVE_DRAGON_TRAITS;
  * this table owns only instrument-specific locus labels and icons.
  */
@@ -99,7 +99,6 @@ const VAULT_GENE_METADATA: readonly VaultGeneMetadata[] = [
   { id: 'scales', locus: 'SCL-17', icon: 'S' },
   { id: 'body-color', locus: 'CLR-12', icon: 'B' },
   { id: 'crest', locus: 'CRS-21', icon: 'R' },
-  { id: 'glow', locus: 'GLO-05', icon: 'N' },
   { id: 'fangs', locus: 'FNG-13', icon: 'G' },
   { id: 'spikes', locus: 'SPK-22', icon: 'P' },
   { id: 'eye-color', locus: 'EYE-07', icon: 'E' },
@@ -139,7 +138,7 @@ export const ALLELE_VAULT_ALLELES: readonly AlleleVaultAllele[] = ALLELE_VAULT_G
  * Normalizes persisted teacher catalogs after the original mock catalog put
  * eye color on chromosome 1. Unknown IDs are dropped, the former `eyes` slot
  * becomes the real chromosome-1 leg-arrangement locus, and the former complete
- * twelve-gene default gains the newly released X-linked locus.
+ * eleven-gene default gains the newly released X-linked locus.
  */
 export function normalizeAlleleVaultGeneIds(geneIds: readonly string[]): string[] {
   const valid = new Set(ALLELE_VAULT_GENES.map((gene) => gene.id));

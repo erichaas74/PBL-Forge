@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { AssemblyPart } from '../domain/assembly.models';
-import { buildGlowNode, buildJointBall, jointBallScale } from './dragon-anatomy';
+import { buildJointBall, jointBallScale } from './dragon-anatomy';
 import {
   boxUv,
   detail,
@@ -13,7 +13,7 @@ import { DRAGON_TALON_BLUNT_END, buildDragonTalon } from './dragon-limb-mesh';
 import { DragonPalette, hornMaterial, scaleMaterial } from './dragon-materials';
 import { DragonTailClubStyle, getActiveDragonStyle } from './dragon-style';
 import { HORN_TILE, SCALE_TILE } from './dragon-texture-constants';
-import { visualFlag, visualNumber } from './dragon-visual-parameter-readers';
+import { visualNumber } from './dragon-visual-parameter-readers';
 
 
 const TAIL_PROFILE: readonly [number, number][] = [
@@ -59,24 +59,6 @@ export function buildDragonTailSegment(part: AssemblyPart, palette: DragonPalett
     );
     ball.position.y = end * dims.y;
     group.add(ball);
-  }
-
-  // One lantern per side per segment. Across a whole tail that is a line of
-  // lights trailing the animal, and it is the part of the glow a student sees
-  // most in the arena, where the tail swings out past the body.
-  if (visualFlag(part, 'glowMarkings')) {
-    // The segment is a lathe about Y: `t` runs its length and the profile gives
-    // the radius there, so a node has to be seated against that radius rather
-    // than at a guessed fraction of the part's width.
-    const seatT = 0.1;
-    const seatRadius = tailProfileRadius(seatT) * dims.x;
-    for (const side of [-1, 1] as const) {
-      const node = buildGlowNode(dims.x * 0.32);
-      node.name = `dragon-glow-tail-${side < 0 ? 'left' : 'right'}`;
-      node.position.set(0, seatT * dims.y, side * seatRadius * 1.02);
-      node.rotation.y = Math.PI / 2;
-      group.add(node);
-    }
   }
 
   return group;
@@ -138,16 +120,6 @@ export function buildDragonTailClub(part: AssemblyPart, palette: DragonPalette):
     spike.quaternion.setFromUnitVectors(coneAxis, outward);
     spike.position.copy(root).addScaledVector(outward, spikeLength * 0.5);
     group.add(spike);
-  }
-
-  // The brightest node on the animal, on the one part that swings out past the
-  // whole silhouette. A tail sweep from a glowing dragon draws its own arc.
-  if (visualFlag(part, 'glowMarkings')) {
-    const beacon = buildGlowNode(dims.z * 0.42);
-    beacon.name = 'dragon-glow-tail-beacon';
-    beacon.position.set(0, knobCentre.y - dims.z * 0.55, 0);
-    beacon.scale.set(1, 0.72, 1);
-    group.add(beacon);
   }
 
   return group;

@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — capability registry for every explicitly addressable investigation.
+ * Inputs/signals: static workstation manifests and generated microscope-level manifests.
+ * Data access: no persistence; validates IDs, probes, routes, modes, and aliases at module load.
+ * Connects to: route coverage tests, inquiry policy, teacher tools, and Wise Dragon anchors.
+ */
 import {
   InstrumentManifest,
   isProbeId,

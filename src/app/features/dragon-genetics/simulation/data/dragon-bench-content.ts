@@ -97,8 +97,8 @@ export const DRAGON_BENCH_COPY: SpecimenBenchCopy = {
     'This score measures one thing: how this dragon performs in the arena model, using the weights '
     + 'shown above. It is not a measure of biological fitness. Change the environment — a cave, a '
     + 'contest for mates, a food shortage — and different traits would win. Real fitness always '
-    + 'depends on where an organism lives. Several genes on this bench — bioluminescence, body '
-    + 'colour, scale pattern, eye glow — change the animal without changing this number at all.',
+    + 'depends on where an organism lives. Several genes on this bench — body colour, scale '
+    + 'pattern, back-spike rows, and eye colour — change the animal without changing this number at all.',
 };
 
 /**

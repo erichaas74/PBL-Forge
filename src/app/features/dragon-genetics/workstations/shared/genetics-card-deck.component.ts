@@ -15,6 +15,7 @@ export class GeneticsCardDeckComponent {
   readonly selectedSpecimenId = input<string | null>(null);
   readonly disabled = input(false);
   readonly compact = input(false);
+  readonly deferAnimatedPortrait = input(false);
   readonly ariaLabel = input('Dragon card deck selector');
   readonly selectedGeneId = input<string | null>(null);
   readonly revealedGeneIds = input<readonly string[]>([]);

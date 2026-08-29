@@ -16,14 +16,13 @@ export type DragonTraitId =
   | 'spikes';
 
 /**
- * The Arena animal carries as many modeled loci as the Mini Dragon (24), while the eight
- * long-running lesson loci above remain the required compatibility core for older saves.
+ * The Arena animal carries 23 modeled loci, while the eight long-running lesson loci above remain
+ * the required compatibility core for older saves.
  */
 export type ArenaBuildTraitId =
   | DragonTraitId
   | 'tail'
   | 'body-color'
-  | 'glow'
   | 'fangs'
   | 'eye-color'
   | 'body-type'

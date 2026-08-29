@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit Island Diversity management route and retained outcome surface.
+ * Inputs/signals: emitted stored-world snapshots plus current student and assignment context.
+ * Data access: child world repository locally; CapstoneProgressRepository publishes compact outcomes.
+ * Connects to: IslandDiversityManagerComponent, teacher capstone reporting, and home navigation.
+ */
 import { Component, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonCapstoneProgressRepository } from '../../project/dragon-capstone-progress.repository';

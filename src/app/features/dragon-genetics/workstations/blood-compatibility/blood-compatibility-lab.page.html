@@ -11,5 +11,28 @@
       <h1>Dragon Blood Type Compatibility Lab</h1>
     </div>
   </header>
-  <app-blood-compatibility-lab [studentId]="studentId()" />
+  @if (branchCase(); as branch) {
+    <aside class="case-ribbon" aria-label="Current case objective">
+      <div>
+        <small>{{ branch.definition.subtitle }} · {{ branch.definition.clientName }}</small>
+        <strong>{{ branch.definition.missionText }}</strong>
+      </div>
+      <span>Challenge supply is active.</span>
+    </aside>
+  }
+  @if (pendingEvidence(); as evidence) {
+    <app-dragon-evidence-capture-card
+      [evidence]="evidence"
+      (capture)="capturePendingEvidence()"
+      (dismiss)="pendingEvidence.set(null)"
+    />
+  }
+  @if (evidenceMessage()) {
+    <p class="evidence-status" role="status">{{ evidenceMessage() }}</p>
+  }
+  <app-blood-compatibility-lab
+    [studentId]="studentId()"
+    [caseMode]="branchCase() ? 'challenge' : null"
+    (evidenceObserved)="handleEvidenceObserved($event)"
+  />
 </div>

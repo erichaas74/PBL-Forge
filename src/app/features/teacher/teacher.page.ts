@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — /teacher now loads DragonTeacherPage instead of this generic dashboard.
+ * Former inputs/signals: session identity and published-project Observable.
+ * Former data access: ProjectRepository and SessionService.
+ * Former connections: generic catalog/project authoring links.
+ */
 import { AsyncPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';

@@ -96,6 +96,7 @@ export {
   applyAssemblyDamageAppearance,
   applyAssemblyHitFlash,
   applyAssemblyTeamTint,
+  applyAssemblySelectionFocus,
   applyAssemblyTraitFocus,
   prepareAssemblyAppearance,
 } from './assembly-appearance';

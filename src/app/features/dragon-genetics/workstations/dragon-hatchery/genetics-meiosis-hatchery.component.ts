@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — no active route container or component imports this hatchery variant.
+ * Former inputs/signals: student ID, released specimens, stage/selection state, and meiosis records.
+ * Former data access: shared genetics catalogs and hatchery repository/domain state.
+ * Former connections: embedded adaptive simulation experience; active routes use newer hatchery surfaces.
+ */
 import { Component, computed, effect, input, signal, untracked } from '@angular/core';
 import { SpecimenViewportComponent } from '../../../../shared/assembly/preview/specimen-viewport.component';
 import { GeneticsCardDeckComponent } from '../shared/genetics-card-deck.component';

@@ -40,6 +40,7 @@ export class AccountGeneticsFileComponent {
   readonly selectedRecordId = input<string | null>(null);
   readonly dragonsOnly = input(false);
   readonly compact = input(false);
+  readonly deferAnimatedPortrait = input(false);
   readonly initiallyOpen = input(false);
   readonly disabled = input(false);
   readonly label = input<string | null>(null);

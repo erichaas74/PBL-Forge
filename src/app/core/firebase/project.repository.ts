@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — data service used only by the retired generic catalog/project pages.
+ * Former inputs/signals: project/activity IDs, authenticated response writes, and published-project state.
+ * Former data access: generic Firestore project, activity, and response collections plus built-in fallback.
+ * Former connections: CatalogPage, ProjectPage, ActivityPlayerPage, and generic TeacherPage.
+ */
 import { inject, Service, signal } from '@angular/core';
 import {
   collection,

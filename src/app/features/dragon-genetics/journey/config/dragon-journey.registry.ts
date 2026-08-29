@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE-HYBRID — retained legacy lesson/capstone graph with no public journey routes.
+ * Inputs/signals: static path, lesson, workstation-visit, evidence, and starter-pair definitions.
+ * Data access: no persistence; normalization consumes assignment journey settings.
+ * Connects to: /explore recommendations, teacher journey controls, and DragonJourneyFacade.
+ */
 import {
   DragonClassJourneyPlan,
   DragonLearningPathDefinition,

@@ -265,6 +265,8 @@ export interface PedigreeInvestigationRecord {
   testedDragonIds: readonly string[];
   dnaTests: readonly PedigreeDnaTestRecord[];
   model: InheritanceModel | null;
+  /** Models the student has actually opened against this record, in first-tested order. */
+  modelHistory: readonly InheritanceModel[];
   carrierNotes: readonly PedigreeCarrierNote[];
   hypothesis: string;
   trayDragonIds: readonly string[];
@@ -286,6 +288,7 @@ export function createEmptyInvestigationRecord(): PedigreeInvestigationRecord {
     testedDragonIds: [],
     dnaTests: [],
     model: null,
+    modelHistory: [],
     carrierNotes: [],
     hypothesis: '',
     trayDragonIds: [],

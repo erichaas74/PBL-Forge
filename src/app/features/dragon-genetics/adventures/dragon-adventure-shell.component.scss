@@ -1,0 +1,78 @@
+:host { display: block; min-height: 100%; }
+
+.adventure {
+  --accent: #547f50;
+  --accent-dark: #244c36;
+  min-height: 100vh;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  color: #243034;
+  background: radial-gradient(circle at 85% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 30%), #f5f1e5;
+}
+.adventure[data-theme='frost'] { --accent: #4f8292; --accent-dark: #254c5b; }
+.adventure[data-theme='stone'] { --accent: #7b6a50; --accent-dark: #4b3b2b; }
+.adventure[data-theme='ash'] { --accent: #a04c2d; --accent-dark: #512a22; }
+.adventure[data-theme='fire'] { --accent: #b56925; --accent-dark: #623313; }
+
+.adventure__hero, .chapter-card, .checkpoint-card {
+  max-width: 1180px;
+  margin-inline: auto;
+}
+.adventure__hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  color: #fffaf0;
+  background: linear-gradient(125deg, var(--accent-dark), var(--accent));
+  border-radius: 1.3rem 1.3rem .35rem .35rem;
+  box-shadow: 0 18px 50px #29261f26;
+}
+p { margin: 0 0 .45rem; font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+h1, h2 { margin: 0; font-family: Georgia, 'Times New Roman', serif; line-height: 1.05; }
+h1 { font-size: clamp(2.1rem, 5vw, 4.25rem); }
+.adventure__hero span { display: block; margin-top: .55rem; }
+.adventure__hero aside { min-width: 12rem; align-self: center; padding-left: 1.5rem; border-left: 1px solid #ffffff55; }
+.adventure__hero aside > * { display: block; }
+
+.chapter-track {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: .45rem;
+  max-width: 1180px;
+  margin: .7rem auto 1.25rem;
+}
+.chapter-track button {
+  min-height: 3.25rem;
+  padding: .55rem;
+  border: 1px solid #bbb29f;
+  border-radius: .45rem;
+  color: #746e62;
+  background: #ece7da;
+  text-transform: capitalize;
+}
+.chapter-track button.available { cursor: pointer; color: #2d3838; background: #fffdf7; }
+.chapter-track button.current { color: white; background: var(--accent-dark); border-color: var(--accent-dark); }
+.chapter-track button span { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; margin-right: .25rem; border-radius: 50%; background: #ffffff22; }
+
+.adventure__layout { display: grid; grid-template-columns: minmax(0, 1fr) 18.5rem; gap: 1rem; max-width: 1180px; margin: auto; align-items: start; }
+.chapter-card, .checkpoint-card { box-sizing: border-box; width: 100%; padding: clamp(1.2rem, 3vw, 2.2rem); border: 1px solid #d0c7b3; background: #fffdf7; box-shadow: 0 12px 35px #49402f12; }
+.chapter-card { min-height: 31rem; border-radius: .5rem; }
+.chapter-card > header { padding-bottom: 1.4rem; border-bottom: 1px solid #ded6c6; }
+.chapter-card h2, .checkpoint-card h2 { font-size: clamp(1.65rem, 3vw, 2.5rem); }
+.chapter-card header > span { display: block; max-width: 50rem; margin-top: .7rem; line-height: 1.55; }
+.checkpoint-card { position: sticky; top: 1rem; padding: 1.3rem; border-radius: .5rem; }
+.checkpoint-card h2 { font-size: 1.55rem; }
+.checkpoint-card ol { display: grid; gap: .75rem; padding: 0; list-style: none; }
+.checkpoint-card li { display: flex; gap: .6rem; color: #6b685f; line-height: 1.3; }
+.checkpoint-card li span { color: #8a8377; font-size: 1.2rem; }
+.checkpoint-card li.complete { color: var(--accent-dark); font-weight: 750; }
+.checkpoint-card li.complete span { color: var(--accent); }
+.checkpoint-card small { color: #716d64; line-height: 1.4; }
+
+@media (max-width: 760px) {
+  .adventure__hero { display: block; }
+  .adventure__hero aside { margin-top: 1.2rem; padding: 1rem 0 0; border-top: 1px solid #ffffff55; border-left: 0; }
+  .chapter-track { overflow-x: auto; grid-template-columns: repeat(5, minmax(8rem, 1fr)); }
+  .adventure__layout { grid-template-columns: 1fr; }
+  .checkpoint-card { position: static; grid-row: 1; }
+}

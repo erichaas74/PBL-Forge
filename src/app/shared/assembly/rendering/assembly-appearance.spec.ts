@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {
   applyAssemblyDamageAppearance,
   applyAssemblyHitFlash,
+  applyAssemblySelectionFocus,
   applyAssemblyTeamTint,
   applyAssemblyTraitFocus,
   prepareAssemblyAppearance,
@@ -73,5 +74,16 @@ describe('assembly appearance', () => {
     expect(material.color.getHex()).toBe(0x336699);
     expect(material.opacity).toBeCloseTo(0.8);
     expect(material.transparent).toBe(true);
+  });
+
+  it('fades preserved keratin when Designer selects a different anatomy layer', () => {
+    const { root, material } = preparedMesh();
+    material.userData['preserveAppearance'] = true;
+
+    applyAssemblySelectionFocus(root, false);
+    expect(material.opacity).toBeCloseTo(0.8 * 0.38);
+
+    applyAssemblySelectionFocus(root, null);
+    expect(material.color.getHex()).toBe(0x336699);
   });
 });

@@ -13,8 +13,9 @@ import { DragonJawStyle, getActiveDragonStyle } from './dragon-style';
 import { KERATIN_TILE, SCALE_TILE } from './dragon-texture-constants';
 import { visualNumber } from './dragon-visual-parameter-readers';
 
-/** Length of jaw the tooth row covers, as a fraction of jaw length. */
-const TOOTH_ROW_SPAN = 0.6;
+/** Default length of jaw the tooth row covers, as a fraction of jaw length. */
+const DEFAULT_TOOTH_ROW_SPAN = 0.6;
+const DEGREES_TO_RADIANS = Math.PI / 180;
 
 /**
  * How far the jaw box narrows by its front face. Shared with the placement
@@ -43,10 +44,10 @@ const FANG_LENGTH_RATIO = 1.5;
  * slider says, and adding teeth extends the row backwards instead of shifting
  * the one already placed.
  */
-function toothRow(count: number, start: number): number[] {
+function toothRow(count: number, start: number, span: number): number[] {
   const total = Math.max(0, Math.round(count));
   if (total <= 1) return total === 1 ? [start] : [];
-  const step = TOOTH_ROW_SPAN / (total - 1);
+  const step = span / (total - 1);
   return Array.from({ length: total }, (_, index) => start - index * step);
 }
 
@@ -84,9 +85,13 @@ export function buildDragonJaw(
     return dims.y * 0.5 * (1 - blend * (1 - JAW_FRONT_SCALE_Y));
   }
 
-  // The fangs hang from these same stations, so both read one value.
-  const nostrilRadius = Math.max(dims.y * 0.15, dims.z * 0.045);
-  const nostrilLateralZ = dims.z * NOSTRIL_LATERAL - nostrilRadius;
+  const nostrilScale = visualNumber(part, 'nostrilScale', 1);
+  const nostrilRadius = Math.max(dims.y * 0.15, dims.z * 0.045) * nostrilScale;
+  const nostrilAlong = NOSTRIL_ALONG + visualNumber(part, 'nostrilOffsetX', 0);
+  const nostrilY = topSurfaceY(nostrilAlong) + visualNumber(part, 'nostrilOffsetY', 0) * dims.y;
+  const nostrilLateralZ = dims.z * (
+    NOSTRIL_LATERAL + visualNumber(part, 'nostrilOffsetZ', 0)
+  ) - nostrilRadius;
 
   if (variant === 'upper') {
     // Nostrils stay smooth: scale relief on a 2cm sphere just reads as noise.
@@ -99,7 +104,7 @@ export function buildDragonJaw(
       // *tapered* top rather than the height of the flat rear section — the
       // snout has already dropped by this far forward, so the old fixed height
       // left them hanging above the surface.
-      nostril.position.set(dims.x * NOSTRIL_ALONG, topSurfaceY(NOSTRIL_ALONG), side * nostrilLateralZ);
+      nostril.position.set(dims.x * nostrilAlong, nostrilY, side * nostrilLateralZ);
       group.add(nostril);
     }
   }
@@ -129,7 +134,7 @@ export function buildDragonJaw(
    */
   const noseHornLength = dims.y * style.noseHornLength;
   if (variant === 'upper' && noseHornLength > 0) {
-    const along = NOSTRIL_ALONG - 0.14;
+    const along = NOSTRIL_ALONG - 0.14 + visualNumber(part, 'noseHornOffsetX', 0);
     const noseHorn = buildHorn(
       noseHornLength,
       Math.max(dims.y, dims.z) * 0.11,
@@ -142,11 +147,20 @@ export function buildDragonJaw(
     noseHorn.name = 'dragon-nose-horn';
     // Sunk a little into the bridge so the base disc finishes inside the jaw
     // rather than standing on the surface.
-    noseHorn.position.set(dims.x * along, topSurfaceY(along) - noseHornLength * 0.06, 0);
+    noseHorn.position.set(
+      dims.x * along,
+      topSurfaceY(along) - noseHornLength * 0.06
+        + visualNumber(part, 'noseHornOffsetY', 0) * dims.y,
+      visualNumber(part, 'noseHornOffsetZ', 0) * dims.z,
+    );
     // Upright with a slight forward lean. The snout is already sloping away
     // ahead of it, and laying the horn over as far as the pair on the skull would
     // point it along the nose instead of up off it.
-    noseHorn.rotation.set(0, 0, -0.22);
+    noseHorn.rotation.set(
+      visualNumber(part, 'noseHornSway', 0) * DEGREES_TO_RADIANS,
+      0,
+      -0.22 + visualNumber(part, 'noseHornRake', 0) * DEGREES_TO_RADIANS,
+    );
     group.add(noseHorn);
   }
 
@@ -161,6 +175,14 @@ export function buildDragonJaw(
   const rowToothThicknessScale = variant === 'upper' ? 0.75 : 1;
   const rowToothHeight = toothHeight * rowToothLengthScale;
   const rowToothRadius = toothRadius * rowToothThicknessScale;
+  const toothRowSpan = visualNumber(part, 'toothRowSpan', DEFAULT_TOOTH_ROW_SPAN);
+  const toothOffset = {
+    x: visualNumber(part, 'toothOffsetX', 0) * dims.x,
+    y: visualNumber(part, 'toothOffsetY', 0) * dims.y,
+    z: visualNumber(part, 'toothOffsetZ', 0) * dims.z,
+  };
+  const toothSplay = visualNumber(part, 'toothSplay', 0) * DEGREES_TO_RADIANS;
+  const toothRake = visualNumber(part, 'toothRake', 0) * DEGREES_TO_RADIANS;
   /**
    * Every tooth is rooted on the jaw's mid-height and grows out from there —
    * fixed, not tunable. Hanging them off the bottom face made a long tooth read
@@ -172,7 +194,7 @@ export function buildDragonJaw(
     return (pointDown ? -1 : 1) * height * 0.5;
   }
 
-  for (const along of toothRow(style.toothCount, style.toothStart)) {
+  for (const [index, along] of toothRow(style.toothCount, style.toothStart, toothRowSpan).entries()) {
     for (const side of [-1, 1]) {
       const tooth = mesh(
         revolvedUv(
@@ -184,12 +206,17 @@ export function buildDragonJaw(
         ),
         enamel,
       );
+      tooth.name = `dragon-tooth-${side < 0 ? 'left' : 'right'}-${index + 1}`;
       tooth.position.set(
-        along * dims.x,
-        rootedAtMidline(rowToothHeight),
-        side * dims.z * 0.32 * (1 - Math.max(0, along) * 0.4),
+        along * dims.x + toothOffset.x,
+        rootedAtMidline(rowToothHeight) + toothOffset.y,
+        side * (dims.z * 0.32 * (1 - Math.max(0, along) * 0.4) + toothOffset.z),
       );
-      if (pointDown) tooth.rotation.x = Math.PI;
+      tooth.rotation.set(
+        (pointDown ? Math.PI : 0) + side * toothSplay,
+        0,
+        toothRake,
+      );
       group.add(tooth);
     }
   }
@@ -199,6 +226,13 @@ export function buildDragonJaw(
     // row so they stay inside the snout, which is tapered to 0.5 depth at the
     // tip: a fang on the tooth line would break the surface here.
     const fangHeight = toothHeight * FANG_LENGTH_RATIO * fangScale;
+    const fangOffset = {
+      x: visualNumber(part, 'fangOffsetX', 0) * dims.x,
+      y: visualNumber(part, 'fangOffsetY', 0) * dims.y,
+      z: visualNumber(part, 'fangOffsetZ', 0) * dims.z,
+    };
+    const fangSplay = visualNumber(part, 'fangSplay', 0) * DEGREES_TO_RADIANS;
+    const fangRake = visualNumber(part, 'fangRake', 0) * DEGREES_TO_RADIANS;
     for (const side of [-1, 1]) {
       const fang = mesh(
         revolvedUv(
@@ -211,8 +245,14 @@ export function buildDragonJaw(
         enamel,
       );
       fang.name = `dragon-fang-${side < 0 ? 'left' : 'right'}`;
-      fang.position.set(dims.x * NOSTRIL_ALONG, rootedAtMidline(fangHeight), side * nostrilLateralZ);
-      fang.rotation.x = Math.PI;
+      const fangLateralZ = dims.z * NOSTRIL_LATERAL
+        - Math.max(dims.y * 0.15, dims.z * 0.045);
+      fang.position.set(
+        dims.x * NOSTRIL_ALONG + fangOffset.x,
+        rootedAtMidline(fangHeight) + fangOffset.y,
+        side * (fangLateralZ + fangOffset.z),
+      );
+      fang.rotation.set(Math.PI + side * fangSplay, 0, fangRake);
       group.add(fang);
     }
   }

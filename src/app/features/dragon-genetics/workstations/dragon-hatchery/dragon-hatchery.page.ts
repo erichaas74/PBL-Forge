@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit full Dragon Hatchery open-lab and Arena-entry route.
+ * Inputs/signals: current student/assignment context and lesson-aware return URL.
+ * Data access: DragonHatcheryBreedingLabComponent owns local breeding/roster persistence.
+ * Connects to: account genetics, Arena champion selection, retained progress, and navigation.
+ */
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonJourneyNavigationService } from '../../journey/dragon-journey-navigation.service';

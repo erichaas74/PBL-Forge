@@ -364,7 +364,7 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
   dragonBody(
     'dragon-bulwark-body',
     'Bulwark Dragon Body',
-    { x: 2.8, y: 1.32, z: 1.86 },
+    { x: 1.68, y: 1.32, z: 1.86 },
     6.4,
     '#7f1d1d',
     (dimensions, archetype) => [
@@ -452,6 +452,38 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
     // narrows ahead of its middle — so this edge is the real top surface.
     childSnapPosition: { x: -0.2, y: 0.1, z: 0 },
     behavior: BREAKABLE_LIGHT,
+    visualParameters: {
+      surfaceRelief: 1,
+      surfaceRoughness: 1,
+      surfaceDetailScale: 1,
+      surfacePatternStrength: 1,
+      surfacePatternScale: 1,
+      toothCount: 6,
+      toothHeight: 0.95,
+      toothRadius: 0.11,
+      toothStart: 0.25,
+      toothRowSpan: 0.6,
+      toothOffsetX: 0,
+      toothOffsetY: 0,
+      toothOffsetZ: 0,
+      toothSplay: 0,
+      toothRake: 0,
+      nostrilOffsetX: 0.05,
+      nostrilOffsetY: -0.04,
+      nostrilOffsetZ: -0.02,
+      nostrilScale: 1.04,
+      noseHornLength: 0.62,
+      noseHornOffsetX: 0,
+      noseHornOffsetY: 0,
+      noseHornOffsetZ: 0,
+      noseHornSway: 0,
+      noseHornRake: 0,
+      fangOffsetX: 0,
+      fangOffsetY: 0,
+      fangOffsetZ: 0,
+      fangSplay: 0,
+      fangRake: 0,
+    },
     extraSnapPoints: [
       // Back-bottom corner of the upper jaw: the jaw joint. The lower jaw hangs
       // from its own back-top corner on the same point, so the two are flush
@@ -462,7 +494,7 @@ export const ASSEMBLY_PART_DEFINITIONS: readonly AssemblyPartDefinition[] = [
   // Same length as the upper jaw so the two line up front and back. The teeth
   // are longer than either jaw is tall and pass through the opposite one — that
   // is what lets the mouth shut flush instead of resting on its own teeth.
-  dragonPart('dragon-lower-jaw', 'Lower Jaw', 'box', { x: 0.52, y: 0.09, z: 0.24 }, 0.15, '#f59e0b', {
+  dragonPart('dragon-lower-jaw', 'Lower Jaw', 'box', { x: 0.52, y: 0.09, z: 0.252 }, 0.15, '#f59e0b', {
     parentSnapId: 'dragon-lower-jaw-socket',
     childSnapId: 'dragon-lower-jaw-root',
     jointType: 'hinge',
@@ -905,6 +937,7 @@ interface AttachPartOptions {
   childSnapPosition?: Vector3Data;
   childRotation?: QuaternionData;
   behavior?: AssemblyJointBehavior;
+  visualParameters?: Record<string, string | number | boolean>;
   extraSnapPoints?: AssemblySnapDefinition[];
 }
 
@@ -1234,6 +1267,7 @@ function attachablePart(
   color: string,
   options: AttachPartOptions,
 ): AssemblyPartDefinition {
+  const defaultVisualProfile = getDefaultVisualProfile(family, id, shape);
   return {
     id,
     label,
@@ -1242,7 +1276,15 @@ function attachablePart(
     dimensions,
     mass,
     color,
-    visualProfile: getDefaultVisualProfile(family, id, shape),
+    visualProfile: options.visualParameters
+      ? {
+          ...defaultVisualProfile,
+          parameters: {
+            ...defaultVisualProfile.parameters,
+            ...options.visualParameters,
+          },
+        }
+      : defaultVisualProfile,
     snapPoints: [
       socket(
         options.childSnapId,

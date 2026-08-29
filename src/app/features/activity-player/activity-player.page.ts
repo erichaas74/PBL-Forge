@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — generic activity URLs redirect and no active route imports this page.
+ * Former inputs/signals: project/activity route IDs and local choice, match, reflection, and feedback state.
+ * Former data access: ProjectRepository plus SessionService for response persistence.
+ * Former connections: generic project and catalog surfaces.
+ */
 import { AsyncPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';

@@ -183,6 +183,27 @@ export function applyAssemblyTraitFocus(root: THREE.Object3D, focused: boolean |
   });
 }
 
+/**
+ * Private authoring selection focus. Unlike lesson trait focus it also fades
+ * keratin and other preserveAppearance materials so one chosen layer is
+ * unmistakable inside a busy complete specimen.
+ */
+export function applyAssemblySelectionFocus(root: THREE.Object3D, focused: boolean | null): void {
+  forEachStandardMaterial(root, (material) => {
+    const base = material.userData['appearanceBase'] as MaterialAppearanceBase | undefined;
+    if (!base) return;
+    if (focused === null || focused) {
+      material.color.setHex(base.color);
+      material.opacity = base.opacity;
+      material.transparent = base.transparent;
+      return;
+    }
+    material.color.setHex(base.color).lerp(TRAIT_MUTED_COLOR, 0.84);
+    material.opacity = base.opacity * 0.38;
+    material.transparent = true;
+  });
+}
+
 export function reapplyStoredAppearance(root: THREE.Object3D): void {
   const tint = root.userData['teamTint'] as TeamTintState | undefined;
   if (tint) applyAssemblyTeamTint(root, tint.emissive, tint.intensity);

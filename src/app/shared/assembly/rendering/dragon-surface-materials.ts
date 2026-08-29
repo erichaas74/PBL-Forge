@@ -11,8 +11,26 @@ import {
 } from './dragon-textures';
 
 function reliefScale(palette: DragonPalette, base: number): THREE.Vector2 {
-  const depth = base * (0.85 + palette.seed * 0.3);
+  const depth = base * palette.surfaceRelief * (0.85 + palette.seed * 0.3);
   return new THREE.Vector2(depth, depth);
+}
+
+/**
+ * Gives one material its own UV transform without mutating the cached texture
+ * shared by every dragon. The cloned wrapper still shares the canvas pixels;
+ * only its repeat matrix is private and is disposed with the material.
+ */
+function detailTexture(texture: THREE.Texture | null, scale: number): THREE.Texture | null {
+  if (!texture || scale === 1) return texture;
+  const clone = texture.clone();
+  clone.repeat.multiplyScalar(scale);
+  clone.userData = { ...clone.userData, sharedDragonTexture: false };
+  clone.needsUpdate = true;
+  return clone;
+}
+
+function roughness(palette: DragonPalette, fallback: number): number {
+  return Math.max(0, Math.min(1, fallback * palette.surfaceRoughness));
 }
 
 function patternMaskOf(palette: DragonPalette): THREE.Texture | null {
@@ -68,11 +86,11 @@ export function scaleMaterial(palette: DragonPalette, relief = 0.9): THREE.MeshS
   const mask = patternMaskOf(palette);
   const material = new THREE.MeshStandardMaterial({
     color: mask ? new THREE.Color(0xffffff) : palette.scale,
-    map: skin.map,
-    normalMap: skin.normalMap,
+    map: detailTexture(skin.map, palette.surfaceDetailScale),
+    normalMap: detailTexture(skin.normalMap, palette.surfaceDetailScale),
     normalScale: reliefScale(palette, relief),
-    roughnessMap: skin.roughnessMap,
-    roughness: skin.roughnessMap ? 1 : 0.58,
+    roughnessMap: detailTexture(skin.roughnessMap, palette.surfaceDetailScale),
+    roughness: roughness(palette, skin.roughnessMap ? 1 : 0.58),
     metalness: 0.015,
   });
 
@@ -82,8 +100,8 @@ export function scaleMaterial(palette: DragonPalette, relief = 0.9): THREE.MeshS
       mask,
       palette.scale,
       palette.patternColor ?? palette.scaleDeep,
-      palette.pattern === 'zigzag' ? 0.52 : 0.7,
-      palette.pattern === 'zigzag' ? 0.5 : 0.55,
+      (palette.pattern === 'zigzag' ? 0.52 : 0.7) * palette.surfacePatternStrength,
+      (palette.pattern === 'zigzag' ? 0.5 : 0.55) * palette.surfacePatternScale,
     );
   }
   return material;
@@ -93,11 +111,11 @@ export function bellyMaterial(palette: DragonPalette): THREE.MeshStandardMateria
   const skin = dragonScaleTextures();
   return new THREE.MeshStandardMaterial({
     color: palette.scaleDeep,
-    map: skin.map,
-    normalMap: skin.normalMap,
+    map: detailTexture(skin.map, palette.surfaceDetailScale),
+    normalMap: detailTexture(skin.normalMap, palette.surfaceDetailScale),
     normalScale: reliefScale(palette, 0.6),
-    roughnessMap: skin.roughnessMap,
-    roughness: skin.roughnessMap ? 1 : 0.66,
+    roughnessMap: detailTexture(skin.roughnessMap, palette.surfaceDetailScale),
+    roughness: roughness(palette, skin.roughnessMap ? 1 : 0.66),
     metalness: 0,
   });
 }
@@ -109,11 +127,11 @@ export function hornMaterial(
   const keratin = dragonHornTextures();
   return new THREE.MeshStandardMaterial({
     color: palette.horn,
-    map: keratin.map,
-    normalMap: keratin.normalMap,
+    map: detailTexture(keratin.map, palette.surfaceDetailScale),
+    normalMap: detailTexture(keratin.normalMap, palette.surfaceDetailScale),
     normalScale: reliefScale(palette, 0.75),
-    roughnessMap: keratin.roughnessMap,
-    roughness: keratin.roughnessMap ? 1 : 0.42,
+    roughnessMap: detailTexture(keratin.roughnessMap, palette.surfaceDetailScale),
+    roughness: roughness(palette, keratin.roughnessMap ? 1 : 0.42),
     metalness: 0.015,
     side,
   });
@@ -123,11 +141,11 @@ export function clawMaterial(palette: DragonPalette): THREE.MeshStandardMaterial
   const keratin = dragonKeratinTextures();
   return new THREE.MeshStandardMaterial({
     color: palette.claw,
-    map: keratin.map,
-    normalMap: keratin.normalMap,
+    map: detailTexture(keratin.map, palette.surfaceDetailScale),
+    normalMap: detailTexture(keratin.normalMap, palette.surfaceDetailScale),
     normalScale: reliefScale(palette, 0.5),
-    roughnessMap: keratin.roughnessMap,
-    roughness: keratin.roughnessMap ? 1 : 0.4,
+    roughnessMap: detailTexture(keratin.roughnessMap, palette.surfaceDetailScale),
+    roughness: roughness(palette, keratin.roughnessMap ? 1 : 0.4),
     metalness: 0.02,
   });
 }
@@ -136,9 +154,9 @@ export function toothMaterial(palette: DragonPalette): THREE.MeshStandardMateria
   const keratin = dragonKeratinTextures();
   return new THREE.MeshStandardMaterial({
     color: palette.tooth,
-    normalMap: keratin.normalMap,
+    normalMap: detailTexture(keratin.normalMap, palette.surfaceDetailScale),
     normalScale: reliefScale(palette, 0.35),
-    roughness: 0.35,
+    roughness: roughness(palette, 0.35),
     metalness: 0.02,
   });
 }
@@ -152,7 +170,7 @@ export function membraneMaterial(palette: DragonPalette): THREE.MeshStandardMate
     normalMap: skin.normalMap,
     normalScale: reliefScale(palette, 0.7),
     roughnessMap: skin.roughnessMap,
-    roughness: skin.roughnessMap ? 1 : 0.62,
+    roughness: roughness(palette, skin.roughnessMap ? 1 : 0.62),
     alphaMap: skin.alphaMap,
     metalness: 0,
     transparent: true,

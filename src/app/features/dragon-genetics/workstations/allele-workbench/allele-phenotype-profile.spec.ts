@@ -3,9 +3,9 @@ import { allelePairToExpressiveProfile } from './allele-phenotype-profile';
 
 describe('allelePairToExpressiveProfile', () => {
     it('maps every released gene to the matching renderer trait', () => {
-        expect(ALLELE_VAULT_GENES.length).toBe(13);
+        expect(ALLELE_VAULT_GENES.length).toBe(12);
         expect(ALLELE_VAULT_GENES.map((gene) => gene.renderTraitId)).toEqual(ALLELE_VAULT_GENES.map((gene) => gene.id));
-        expect(['Chr 1', 'Chr 2', 'Chr 3', 'Chr 4', 'Chr X'].map((chromosome) => ALLELE_VAULT_GENES.filter((gene) => gene.chromosome === chromosome).length)).toEqual([3, 3, 3, 3, 1]);
+        expect(['Chr 1', 'Chr 2', 'Chr 3', 'Chr 4', 'Chr X'].map((chromosome) => ALLELE_VAULT_GENES.filter((gene) => gene.chromosome === chromosome).length)).toEqual([3, 3, 3, 2, 1]);
         expect(ALLELE_VAULT_GENES.every((gene) => /^#[0-9a-f]{6}$/i.test(gene.locusColor))).toBe(true);
     });
 

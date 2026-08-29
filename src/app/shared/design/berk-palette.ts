@@ -15,7 +15,7 @@
  *
  * ## Why the stations moved off navy
  *
- * `DRAGON_GENETICS_VISUAL_LAB_PLAN.md` asks for "dark blue-gray laboratory
+ * The established laboratory palette uses "dark blue-gray laboratory
  * walls… brass or amber safety accents", and the stations delivered that as a
  * cool navy console. Then the shell and the arena were rethemed to Berk — warm
  * parchment over an overcast north-Atlantic day — and the stations were left

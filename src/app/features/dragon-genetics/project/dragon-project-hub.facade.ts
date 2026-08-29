@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE-HYBRID — state adapter for the retained /explore project hub.
+ * Inputs/signals: session, assignment, local activity repositories, capstone records, and selection.
+ * Data access: local workstation/progress stores plus Firestore capstone selection publishing.
+ * Connects to: /explore, retained DragonJourneyFacade, testing shortcuts, and trait-evidence progress.
+ */
 import { computed, effect, inject, Service, signal } from '@angular/core';
 import { SessionService } from '../../../core/firebase/session.service';
 import { ProjectHubAssignment } from '../../project/domain/project-hub.models';

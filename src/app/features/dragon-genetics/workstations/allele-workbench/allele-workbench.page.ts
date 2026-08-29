@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit Allele Workbench route and lesson-aware host.
+ * Inputs/signals: path/lesson query params, claim feedback, and pending allele-expression evidence.
+ * Data access: workstation context, adaptive assignment, lesson plan, and local evidence repository.
+ * Connects to: AlleleVaultWorkbenchComponent, shared lesson evidence, and its lesson return route.
+ */
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';

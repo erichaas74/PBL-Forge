@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -45,6 +46,8 @@ export class ProteinRescueLabComponent implements OnDestroy {
   private readonly repository = inject(ProteinRescueRepository);
 
   readonly studentId = input.required<string>();
+  readonly casePatientId = input<string | null>(null);
+  readonly recordSaved = output<ProteinRescueCaseRecord>();
   readonly foods = DRAGON_FOODS;
   readonly genotypeClaims: readonly DracaseGenotype[] = ['DD', 'Dd', 'dd'];
 
@@ -116,6 +119,7 @@ export class ProteinRescueLabComponent implements OnDestroy {
   });
 
   private loadedStudentId: string | null = null;
+  private loadedCasePatientId: string | null = null;
   private translationTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
@@ -124,6 +128,17 @@ export class ProteinRescueLabComponent implements OnDestroy {
       if (studentId === this.loadedStudentId) return;
       this.loadedStudentId = studentId;
       this.records.set(this.repository.load(studentId));
+    });
+    effect(() => {
+      const casePatientId = this.casePatientId();
+      if (!casePatientId || casePatientId === this.loadedCasePatientId) return;
+      const casePatient = casePatientId
+        ? this.accountSnapshot().dragons.find((candidate) => candidate.id === casePatientId)
+        : null;
+      if (casePatient) {
+        this.loadedCasePatientId = casePatientId;
+        this.loadPatientRecord(casePatient);
+      }
     });
   }
 
@@ -353,6 +368,7 @@ export class ProteinRescueLabComponent implements OnDestroy {
       savedAtIso,
     };
     this.records.set(this.repository.save(this.studentId(), record));
+    this.recordSaved.emit(record);
     this.caseFileOpen.set(true);
     this.statusMessage.set(`${patient.dragon.name} rescue record saved to the clinical case file.`);
   }

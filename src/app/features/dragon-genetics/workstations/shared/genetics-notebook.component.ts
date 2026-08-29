@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — visual notebook component imported only by the retired adaptive page.
+ * Former inputs/signals: allele/gene/experiment records and local filter/selection signals.
+ * Former data access: caller-supplied shared notebook values; no persistence of its own.
+ * Former connections: DragonSimulationExperiencePage; active lessons render evidence directly.
+ */
 import { Component, computed, input, signal } from '@angular/core';
 import {
   AlleleVaultAllele,

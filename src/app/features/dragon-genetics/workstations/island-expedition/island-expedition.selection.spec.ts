@@ -120,10 +120,9 @@ describe('island expedition selection model', () => {
     expect(frequencies('ashfall').color.dominantForm).toBeGreaterThan(0.8);
     // Chalk flats with hawks overhead: pale hide hides.
     expect(frequencies('palewind').color.dominantForm).toBeLessThan(0.2);
-    // Permanent dark, nothing hunting by sight: glow pays.
-    expect(frequencies('nightglass').glow.dominantForm).toBeGreaterThan(0.8);
-    // Bright open cliffs with raptors: glow advertises you.
-    expect(frequencies('stormcrag').glow.dominantForm).toBeLessThan(0.2);
+    // Predator-rich cold cliffs reward the defensive three-row phenotype.
+    expect(frequencies('stormcrag').spikes.dominantForm)
+      .toBeGreaterThan(frequencies('sunspire').spikes.dominantForm);
   });
 
   it('keeps the recently colonized island close to founder frequencies', () => {

@@ -61,11 +61,11 @@ describe('DragonCardDeckSelectorComponent', () => {
         expect(drop.textContent).toContain('?');
         expect(drop.getAttribute('aria-label')).toBe('Blood type not tested');
 
-        fixture.componentRef.setInput('bloodTypeByDragonId', { [DRAGONS[0].id]: 'AB' });
+        fixture.componentRef.setInput('bloodTypeByDragonId', { [DRAGONS[0].id]: 'AB+' });
         fixture.detectChanges();
 
         expect(drop.textContent).toContain('AB');
-        expect(drop.getAttribute('aria-label')).toBe('Blood type AB');
+        expect(drop.getAttribute('aria-label')).toBe('Blood type AB+');
     });
 
     it('flips the active card from the deck control below the stack', () => {

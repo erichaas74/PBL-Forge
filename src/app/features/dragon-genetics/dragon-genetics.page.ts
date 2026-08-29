@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE-HYBRID — explicitly routed /explore hub, not the public application home.
+ * Inputs/signals: legacy journey/project view models plus local saga-panel interaction signals.
+ * Data access: DragonProjectHubFacade and DragonJourneyFacade combine assignment and saved progress.
+ * Connects to: the new path chooser, open-lab routes, retained journey status, and capstone previews.
+ */
 import { NgOptimizedImage } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';

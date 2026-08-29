@@ -99,11 +99,11 @@ function visibleSurfaceOf(assembly: {
 }
 
 describe('dragon inheritance bridge', () => {
-    it('hatches a 24-locus Arena genome to match the Mini Dragon gene count', () => {
+    it('hatches a complete 23-locus Arena genome', () => {
         const [child] = breedLabClutch(DRAGON_PARENTS[0], DRAGON_PARENTS[1], 7, 1);
 
-        expect(ARENA_BUILD_TRAITS.length).toBe(24);
-        expect(Object.keys(child.genome).length).toBe(24);
+        expect(ARENA_BUILD_TRAITS.length).toBe(23);
+        expect(Object.keys(child.genome).length).toBe(23);
     });
 
     it('adds a real second wing pair when the Q locus is expressed', () => {

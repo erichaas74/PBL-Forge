@@ -92,12 +92,22 @@ function normalizeInvestigation(value: unknown): PedigreeInvestigationRecord {
   if (!isRecord(value)) return empty;
 
   const dnaTests = asArray(value['dnaTests']).filter(isDnaTest);
+  const model = INHERITANCE_MODELS.includes(value['model'] as InheritanceModel)
+    ? (value['model'] as InheritanceModel)
+    : null;
+  const modelHistory = [
+    ...new Set(
+      asArray(value['modelHistory']).filter((candidate): candidate is InheritanceModel =>
+        INHERITANCE_MODELS.includes(candidate as InheritanceModel),
+      ),
+    ),
+  ];
+  if (model && !modelHistory.includes(model)) modelHistory.push(model);
   return {
     dnaTests,
     testedDragonIds: [...new Set(dnaTests.map((test) => test.dragonId))],
-    model: INHERITANCE_MODELS.includes(value['model'] as InheritanceModel)
-      ? (value['model'] as InheritanceModel)
-      : null,
+    model,
+    modelHistory,
     carrierNotes: asArray(value['carrierNotes']).filter(isCarrierNote),
     hypothesis: typeof value['hypothesis'] === 'string' ? value['hypothesis'].slice(0, 1200) : '',
     trayDragonIds: asArray(value['trayDragonIds'])

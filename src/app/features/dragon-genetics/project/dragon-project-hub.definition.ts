@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE-HYBRID — retained /explore activity graph, not the public lesson graph.
+ * Inputs/signals: static activity, stage, skill, prerequisite, and capstone-path definitions.
+ * Data access: adaptive simulation registry supplies canonical activity titles/goals.
+ * Connects to: DragonProjectHubFacade, /explore cards, testing shortcut, and Wise Dragon content.
+ */
 import {
   ProjectActivityDefinition,
   ProjectHubDefinition,

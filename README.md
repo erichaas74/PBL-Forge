@@ -1,75 +1,82 @@
 # PBL Forge
 
-PBL Forge is an Angular and Firebase foundation for delivering project-based learning experiences to students. It includes a Firestore-backed project catalog, sequenced activity player, response saving, teacher dashboards, local demo data, and tested deny-by-default security rules. The featured Dragon Genetics experience is a complete three-week Grade 7 heredity PBL with genetics simulation, official breeding, and a physics arena.
+PBL Forge is an Angular/Firebase learning application centered on a Grade 7 Dragon Genetics
+experience. Students choose an Arena or Mini Show breeding context, complete the same five core
+genetics lessons, investigate scientific models in open workstations, and can take optional
+evidence-driven field cases.
 
-Student application code lives under `src/app`. The private Parts Lab and Dragon Garage are a
-separate Angular application under `designer/`; they publish committed model data through
-`model-packs/` and are never included in the student app. See [Code organization](docs/CODE_ORGANIZATION.md),
-the [Dragon Designer asset pipeline](docs/DRAGON_DESIGNER_ASSET_PIPELINE_PLAN.md), the
-[Dragon Genetics visual laboratory plan](docs/DRAGON_GENETICS_VISUAL_LAB_PLAN.md), and the
-[station simulation build guides](docs/dragon-genetics-simulations/README.md).
+The repository also contains Dragon Designer, a private Angular authoring app for procedural dragon
+parts and validated model packs. Designer source is never shipped in or imported by the student app.
+
+Start with the [documentation index](docs/README.md), the
+[current lesson plan](docs/LESSON_PLAN.md), and the [application setup](docs/APP_SETUP.md).
+Historical proposals and superseded build notes are preserved in
+[docs/oldDocs](docs/oldDocs/README.md).
 
 ## Start locally
 
-Prerequisites on this machine are already satisfied: Node 22, npm, and Java 17.
+Prerequisites: a supported Node version from `package.json`, npm, and Java for Firebase emulators.
 
 ```powershell
 npm install
 npm run dev
 ```
 
-The first run can take a minute while Firebase downloads its local emulator assets.
-
 - Student app: http://localhost:4200
 - Firebase Emulator UI: http://localhost:4000
 - Firestore emulator: `127.0.0.1:8080`
 - Authentication emulator: `127.0.0.1:9099`
 
-`npm run dev` starts both emulators, seeds three projects, and starts Angular. No cloud Firebase account is used.
+Open Dragon Genetics at http://localhost:4200/dragon-genetics. The guarded teacher dashboard is at
+http://localhost:4200/teacher and the shared-plan editor is at
+http://localhost:4200/teacher/lesson-plan.
 
-Open the Dragon Genetics experience directly at http://localhost:4200/dragon-genetics. Its teacher dashboard is at http://localhost:4200/teacher/dragon-genetics.
-
-## Verify the project
+To run only one Angular application:
 
 ```powershell
-npm run build
+npm start                 # student app on 4200
+npm run start:designer    # private Designer on 4300
+```
+
+## Applications and boundaries
+
+| Application | Source | Purpose |
+| --- | --- | --- |
+| PBL Forge | `src/` | Student lessons, workstations, cases, teacher surfaces, and Firebase integration |
+| Dragon Designer | `designer/` | Local/private mesh, part, preset, and model-pack authoring |
+
+Shared assembly code lives in `src/app/shared/assembly`. Reviewed Designer output is committed as
+`model-packs/dragon-model-pack.v1.json`. `npm run check:designer-boundary` prevents the student app
+from importing private authoring code.
+
+## Verification
+
+```powershell
+npm run lint
 npm run test:ci
-npm run test:rules
+npm run test:designer:ci
+npm run build
+npm run build:designer
 ```
 
-Or run the full sequence:
-
-```powershell
-npm run verify
-```
+`npm run verify` runs the complete suite, including Firestore rules and accessibility checks. See
+[APP_SETUP.md](docs/APP_SETUP.md#verification) for the known pre-existing test note.
 
 ## Key commands
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Start the complete local stack with demo content |
-| `npm run start:designer` | Start the local-only Dragon Designer on port 4300 |
-| `npm run seed` | Reseed a running Firestore emulator |
-| `npm run build` | Validate model packs and build the student application |
-| `npm run build:designer` | Build Dragon Designer independently |
-| `npm run generate:dragon-pack` | Regenerate the baseline pack from the checked-in designer preset |
-| `npm run check:model-packs` | Validate published dragon models without a browser |
-| `npm run test:ci` | Run Angular tests in headless Chrome |
+| `npm run dev` | Start emulators, seed Dragon Genetics data, and serve the student app |
+| `npm start` | Serve only the student Angular app |
+| `npm run start:designer` | Serve Dragon Designer on port 4300 |
+| `npm run browse -- <args>` | Drive and inspect a real Chromium session |
+| `npm run seed` | Reseed running Auth/Firestore emulators |
+| `npm run generate:dragon-pack` | Regenerate the baseline committed model pack |
+| `npm run check:model-packs` | Validate published model-pack data |
+| `npm run build` | Run student boundaries/asset checks and build PBL Forge |
+| `npm run build:designer` | Validate the pack and build Designer |
 | `npm run test:rules` | Run Firestore authorization tests |
-| `npm run firebase -- <command>` | Run the pinned Firebase CLI with credential-safe logging |
-| `npm run deploy` | Build and deploy the complete app to Hosting plus Firestore |
+| `npm run deploy` | Build and deploy Hosting plus Firestore configuration |
 
-## Architecture
-
-```text
-Angular SPA ── Firebase Hosting
-     ├─────── Firebase Authentication
-     ├─────── Cloud Firestore (projects, activities, submissions, dragonLabProgress)
-     └─────── Cloud Storage later (media only)
-```
-
-The browser never receives Admin SDK credentials. Firestore rules, rather than Angular route guards, enforce authorization.
-
-See [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md) for the account setup and production launch walkthrough.
-
-See [docs/DRAGON_GENETICS_IMPLEMENTATION.md](docs/DRAGON_GENETICS_IMPLEMENTATION.md) for the instructional sequence, assessment model, data captured, and classroom launch checklist.
+Firebase configuration, local accounts, current persistence boundaries, and production gaps are
+documented in [FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md).

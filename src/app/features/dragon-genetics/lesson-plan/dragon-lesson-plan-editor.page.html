@@ -23,12 +23,12 @@
       <ol>
         @for (lesson of lessonPlan.document().lessons; track lesson.id; let order = $index) {
           <li>
-            <div class="lesson-order"><strong>{{ order + 1 }}</strong><button type="button" [disabled]="$first" (click)="moveLesson(lesson.id, -1)" [attr.aria-label]="'Move ' + lesson.title + ' earlier'">↑</button><button type="button" [disabled]="$last" (click)="moveLesson(lesson.id, 1)" [attr.aria-label]="'Move ' + lesson.title + ' later'">↓</button></div>
+            <div class="lesson-order"><strong>{{ lesson.optional ? '+' : coreLessonNumber(lesson) }}</strong><button type="button" [disabled]="$first" (click)="moveLesson(lesson.id, -1)" [attr.aria-label]="'Move ' + lesson.title + ' earlier'">↑</button><button type="button" [disabled]="$last" (click)="moveLesson(lesson.id, 1)" [attr.aria-label]="'Move ' + lesson.title + ' later'">↓</button></div>
             <div class="lesson-fields">
               <label>Lesson title<input [value]="lesson.title" (change)="updateText(lesson, 'title', $event)" /></label>
               <label>Shared learning goal<textarea [value]="lesson.learningGoal" (change)="updateText(lesson, 'learningGoal', $event)"></textarea></label>
               <label>Student guide<textarea [value]="lesson.guide" (change)="updateText(lesson, 'guide', $event)"></textarea></label>
-              <div class="lesson-meta"><span>{{ lesson.workstations.length }} workstations</span><span>{{ lesson.questions.length }} questions</span><label><input type="checkbox" [checked]="lesson.published" (click)="togglePublished(lesson)" /> Published to students</label></div>
+              <div class="lesson-meta"><span>{{ lesson.workstations.length }} workstations</span><span>{{ lesson.questions.length }} questions</span><label><input type="checkbox" [checked]="lesson.published" (click)="togglePublished(lesson)" /> {{ lesson.optional ? 'Open this extra lesson to students' : 'Published to students' }}</label>@if (lesson.optional) {<span class="extra-lesson-note">Extra lesson · offered from {{ anchorLessonTitle(lesson) }}, outside the numbered path</span>}</div>
               <details class="microscope-picker">
                 <summary>Focused microscope workstations</summary>
                 <p>Attach any independently explorable microscope level to this lesson.</p>
@@ -46,6 +46,25 @@
                   }
                 </div>
               </details>
+              @if (casesForLesson(lesson).length) {
+                <details class="microscope-picker">
+                  <summary>Optional case branches</summary>
+                  <p>Students open these from the extra lessons and commissions list. A case returns to this lesson and never blocks the next one.</p>
+                  <div>
+                    @for (caseDefinition of casesForLesson(lesson); track caseDefinition.id) {
+                      <button
+                        type="button"
+                        [class.attached]="caseSettings.isEnabled(caseDefinition.id)"
+                        [attr.aria-pressed]="caseSettings.isEnabled(caseDefinition.id)"
+                        (click)="toggleCase(caseDefinition)"
+                      >
+                        {{ caseSettings.isEnabled(caseDefinition.id) ? 'Disable' : 'Enable' }}
+                        {{ caseDefinition.title }}
+                      </button>
+                    }
+                  </div>
+                </details>
+              }
             </div>
           </li>
         }

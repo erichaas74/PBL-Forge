@@ -53,6 +53,57 @@ describe('dragon head mesh', () => {
     expect(horn.position.y).toBeGreaterThan(0);
   });
 
+  it('moves the paired horns symmetrically and adjusts their authored angles', () => {
+    const dims = { x: 0.6, y: 0.45, z: 0.42 };
+    const base = headPart('box', dims);
+    const regular = buildHead(base);
+    const moved = buildHead({
+      ...base,
+      visualProfile: {
+        ...base.visualProfile!,
+        parameters: {
+          hornOffsetX: 0.12,
+          hornOffsetY: -0.08,
+          hornOffsetZ: 0.1,
+          hornSplay: 10,
+          hornRake: 15,
+        },
+      },
+    });
+
+    for (const side of ['left', 'right'] as const) {
+      const before = regular.getObjectByName(`dragon-horn-${side}`)!;
+      const after = moved.getObjectByName(`dragon-horn-${side}`)!;
+      expect(after.position.x - before.position.x).toBeCloseTo(dims.x * 0.12);
+      expect(after.position.y - before.position.y).toBeCloseTo(dims.y * -0.08);
+      expect(Math.abs(after.position.z) - Math.abs(before.position.z)).toBeCloseTo(dims.z * 0.1);
+      expect(after.rotation.z - before.rotation.z).toBeCloseTo(15 * Math.PI / 180);
+    }
+    expect(moved.getObjectByName('dragon-horn-left')!.rotation.x)
+      .toBeCloseTo(-moved.getObjectByName('dragon-horn-right')!.rotation.x);
+  });
+
+  it('moves and scales both eyes without moving the skull', () => {
+    const dims = { x: 0.6, y: 0.45, z: 0.42 };
+    const base = headPart('box', dims);
+    const regular = buildHead(base);
+    const moved = buildHead({
+      ...base,
+      visualProfile: {
+        ...base.visualProfile!,
+        parameters: { eyeOffsetX: 0.1, eyeOffsetY: 0.12, eyeOffsetZ: 0.08, eyeScale: 1.4 },
+      },
+    });
+    const before = regular.getObjectByName('dragon-eyeball-right') as THREE.Mesh;
+    const after = moved.getObjectByName('dragon-eyeball-right') as THREE.Mesh;
+
+    expect(after.position.x - before.position.x).toBeCloseTo(dims.x * 0.1);
+    expect(after.position.y - before.position.y).toBeCloseTo(dims.y * 0.12);
+    expect(after.position.z - before.position.z).toBeCloseTo(dims.z * 0.08);
+    expect((after.geometry as THREE.SphereGeometry).parameters.radius)
+      .toBeCloseTo((before.geometry as THREE.SphereGeometry).parameters.radius * 1.4);
+  });
+
   /**
    * The hornless phenotype used to be a second profile, `dragon-head-snout`.
    * With one skull left it rides the horn lengths instead, so zero has to mean
@@ -103,7 +154,38 @@ describe('dragon head mesh', () => {
     expect(
       Array.from({ length: 5 }, (_, index) =>
         head.getObjectByName(`wise-dragon-beard-tine-${index + 1}`),
-      ).every(Boolean),
+    ).every(Boolean),
     ).toBe(true);
+  });
+
+  it('positions inherited crest, sex display, and Wise regalia as separate head layers', () => {
+    const dims = { x: 0.7, y: 0.52, z: 0.48 };
+    const base = headPart('box', dims);
+    const head = buildHead({
+      ...base,
+      visualProfile: {
+        ...base.visualProfile!,
+        parameters: {
+          crestScale: 1,
+          crestOffsetX: 0.1,
+          crestOffsetY: 0.2,
+          sex: 'female',
+          sexDisplayOffsetZ: -0.15,
+          wiseAvatar: true,
+          wiseRegaliaOffsetY: -0.1,
+          wiseRegaliaScale: 1.25,
+        },
+      },
+    });
+
+    expect(head.getObjectByName('dragon-genetic-crest-group')!.position.x)
+      .toBeCloseTo(dims.x * 0.1);
+    expect(head.getObjectByName('dragon-genetic-crest-group')!.position.y)
+      .toBeCloseTo(dims.y * 0.2);
+    expect(head.getObjectByName('dragon-sex-display')!.position.z)
+      .toBeCloseTo(dims.z * -0.15);
+    expect(head.getObjectByName('wise-dragon-regalia')!.position.y)
+      .toBeCloseTo(dims.y * -0.1);
+    expect(head.getObjectByName('wise-dragon-regalia')!.scale.x).toBeCloseTo(1.25);
   });
 });

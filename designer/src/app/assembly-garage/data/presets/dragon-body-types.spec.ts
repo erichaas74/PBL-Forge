@@ -20,6 +20,8 @@ describe('dragon body type presets', () => {
       expect(new Set(childIds).size).toBe(childIds.length);
       expect(parts.filter(part => !childIds.includes(part.id))).toHaveLength(1);
       expect(parts.find(part => !childIds.includes(part.id))?.roles).toContain('core');
+      const bodyColor = parts.find(part => part.roles?.includes('core'))?.color;
+      expect(new Set(parts.map(part => part.color)), preset.id).toEqual(new Set([bodyColor]));
 
       for (const joint of joints) {
         expect(partIds.has(joint.parentPartId)).toBe(true);

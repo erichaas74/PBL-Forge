@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — /dragon-genetics/journey routes are intentionally absent.
+ * Former inputs/signals: optional legacy pathId route param and DragonJourneyFacade state.
+ * Former data access: retained journey facade, assignment, roster, and progress repositories.
+ * Former connections: legacy journey lesson page; the facade remains active in /explore.
+ */
 import { Component, effect, inject, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';

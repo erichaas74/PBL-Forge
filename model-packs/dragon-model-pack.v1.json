@@ -7,8 +7,8 @@
   "models": [
     {
       "id": "classic-dragon",
-      "label": "Classic Dragon Test",
-      "description": "A catalog-built dragon with clawed feet, wing claws, snapping jaws, flapping wings, and a segmented tail chain.",
+      "label": "Classic Dragon",
+      "description": "A balanced dragon with clawed feet, wing claws, snapping jaws, flapping wings, and a segmented tail.",
       "blueprint": {
         "parts": [
           {
@@ -41,8 +41,8 @@
               "meshType": "procedural",
               "materialId": "dragon-scales",
               "parameters": {
-                "spikeCount": 6,
-                "spikeSpread": 0.73,
+                "spikeCount": 9,
+                "spikeSpread": 0.68,
                 "spikeHeight": 0.2,
                 "spikeRadius": 0.051,
                 "spikeLean": 0.56,
@@ -182,7 +182,7 @@
               "z": 0,
               "w": 1
             },
-            "color": "#f97316",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-head-horned",
               "meshType": "procedural",
@@ -276,17 +276,42 @@
               "z": 0,
               "w": 1
             },
-            "color": "#fbbf24",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-upper-jaw",
               "meshType": "procedural",
               "materialId": "dragon-horn",
               "parameters": {
-                "toothCount": 4,
-                "toothHeight": 1.15,
-                "toothRadius": 0.1,
-                "toothStart": 0.28,
-                "noseHornLength": 0.62
+                "toothCount": 6,
+                "toothHeight": 0.95,
+                "toothRadius": 0.11,
+                "toothStart": 0.25,
+                "noseHornLength": 0.62,
+                "surfaceRelief": 1,
+                "surfaceRoughness": 1,
+                "surfaceDetailScale": 1,
+                "surfacePatternStrength": 1,
+                "surfacePatternScale": 1,
+                "toothRowSpan": 0.6,
+                "toothOffsetX": 0,
+                "toothOffsetY": 0,
+                "toothOffsetZ": 0,
+                "toothSplay": 0,
+                "toothRake": 0,
+                "nostrilOffsetX": 0.05,
+                "nostrilOffsetY": -0.04,
+                "nostrilOffsetZ": -0.02,
+                "nostrilScale": 1.04,
+                "noseHornOffsetX": 0,
+                "noseHornOffsetY": 0,
+                "noseHornOffsetZ": 0,
+                "noseHornSway": 0,
+                "noseHornRake": 0,
+                "fangOffsetX": 0,
+                "fangOffsetY": 0,
+                "fangOffsetZ": 0,
+                "fangSplay": 0,
+                "fangRake": 0
               }
             },
             "snapPoints": [
@@ -351,7 +376,7 @@
             "dimensions": {
               "x": 0.52,
               "y": 0.09,
-              "z": 0.24
+              "z": 0.252
             },
             "position": {
               "x": 2.3523500000000004,
@@ -364,16 +389,16 @@
               "z": 0,
               "w": 1
             },
-            "color": "#f59e0b",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-lower-jaw",
               "meshType": "procedural",
               "materialId": "dragon-horn",
               "parameters": {
-                "toothCount": 4,
-                "toothHeight": 1.15,
-                "toothRadius": 0.1,
-                "toothStart": 0.28,
+                "toothCount": 6,
+                "toothHeight": 0.9,
+                "toothRadius": 0.08,
+                "toothStart": 0.34,
                 "noseHornLength": 0.62
               }
             },
@@ -442,7 +467,7 @@
               "z": 0,
               "w": 1
             },
-            "color": "#166534",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
@@ -528,7 +553,7 @@
               "z": 0,
               "w": 1
             },
-            "color": "#166534",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
@@ -614,7 +639,7 @@
               "z": 0,
               "w": 1
             },
-            "color": "#14532d",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
@@ -700,7 +725,7 @@
               "z": 0,
               "w": 1
             },
-            "color": "#14532d",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
@@ -786,7 +811,7 @@
               "z": 0.1888588949765006,
               "w": 0.9820042351172704
             },
-            "color": "#15803d",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
@@ -872,7 +897,7 @@
               "z": 0.1888588949765006,
               "w": 0.9820042351172704
             },
-            "color": "#15803d",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
@@ -958,7 +983,7 @@
               "z": -0.23770262642713455,
               "w": 0.9713379748520296
             },
-            "color": "#166534",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
@@ -1044,7 +1069,7 @@
               "z": -0.23770262642713455,
               "w": 0.9713379748520296
             },
-            "color": "#166534",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-leg",
               "meshType": "procedural",
@@ -1131,7 +1156,7 @@
               "z": 0.1888588949765006,
               "w": 0.9820042351172704
             },
-            "color": "#365314",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-foot",
               "meshType": "procedural",
@@ -1205,7 +1230,7 @@
               "z": 0.1888588949765006,
               "w": 0.9820042351172704
             },
-            "color": "#365314",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-foot",
               "meshType": "procedural",
@@ -1279,7 +1304,7 @@
               "z": -0.23770262642713455,
               "w": 0.9713379748520296
             },
-            "color": "#365314",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-foot",
               "meshType": "procedural",
@@ -1353,7 +1378,7 @@
               "z": -0.23770262642713455,
               "w": 0.9713379748520296
             },
-            "color": "#365314",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-foot",
               "meshType": "procedural",
@@ -1426,7 +1451,7 @@
               "z": 0,
               "w": 1
             },
-            "color": "#a855f7",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-wing",
               "meshType": "procedural",
@@ -1516,7 +1541,7 @@
               "z": 0,
               "w": 1
             },
-            "color": "#a855f7",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-wing",
               "meshType": "procedural",
@@ -1607,7 +1632,7 @@
               "z": -0.7071067811865475,
               "w": 0.7071067811865476
             },
-            "color": "#facc15",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-wing-claw",
               "meshType": "procedural",
@@ -1676,7 +1701,7 @@
               "z": -0.7071067811865475,
               "w": 0.7071067811865476
             },
-            "color": "#facc15",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-wing-claw",
               "meshType": "procedural",
@@ -1743,7 +1768,7 @@
               "z": -0.7071067811865475,
               "w": 0.7071067811865476
             },
-            "color": "#78350f",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-tail",
               "meshType": "procedural",
@@ -1828,7 +1853,7 @@
               "z": -0.7071067811865475,
               "w": 0.7071067811865476
             },
-            "color": "#854d0e",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-tail",
               "meshType": "procedural",
@@ -1913,7 +1938,7 @@
               "z": -0.7071067811865475,
               "w": 0.7071067811865476
             },
-            "color": "#854d0e",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-tail",
               "meshType": "procedural",
@@ -1999,7 +2024,7 @@
               "z": -0.7071067811865475,
               "w": 0.7071067811865476
             },
-            "color": "#b45309",
+            "color": "#dc2626",
             "visualProfile": {
               "profileId": "dragon-tail-stinger",
               "meshType": "procedural",

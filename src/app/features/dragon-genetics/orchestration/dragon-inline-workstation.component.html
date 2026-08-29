@@ -1,0 +1,90 @@
+<section class="inline-workstation" [attr.aria-label]="workstation().title">
+  @if (pendingEvidence(); as evidence) {
+    <app-dragon-evidence-capture-card
+      [evidence]="evidence"
+      (capture)="capturePendingEvidence()"
+      (dismiss)="pendingEvidence.set(null)"
+    />
+  }
+  @if (evidenceMessage()) {
+    <p class="inline-workstation__status" role="status">{{ evidenceMessage() }}</p>
+  }
+
+  <div class="inline-workstation__surface">
+    @defer (on viewport; prefetch on idle) {
+      @switch (workstation().id) {
+        @case ('mystery-pair') {
+          <app-mystery-pair [studentId]="studentId()" [pathId]="pathId()" />
+        }
+        @case ('breeding-incubator') {
+          <app-incubator-sampler
+            [studentId]="studentId()"
+            [revealedGeneIds]="revealedGeneIds()"
+            goal="Breed example dragons and compare how many offspring arrive in each visible-trait bucket."
+            (batchSaved)="handleBatchSaved($event)"
+          />
+        }
+        @case ('cell-gene-microscope') {
+          <app-genetics-microscope
+            [program]="program()"
+            [studentId]="studentId()"
+            [revealedGeneIds]="revealedGeneIds()"
+          />
+        }
+        @case ('allele-workbench') {
+          @if (context.availableGenes().length) {
+            <app-allele-vault-workbench
+              [genes]="context.availableGenes()"
+              [alleles]="context.availableAlleles()"
+              [notebook]="context.geneticsNotebook()"
+              [claimFeedback]="claimFeedback()"
+              (interaction)="handleAlleleInteraction($event)"
+            />
+          } @else {
+            <p class="inline-workstation__empty" role="status">
+              No gene samples have been released for this assignment.
+            </p>
+          }
+        }
+        @case ('meiosis-hatchery') {
+          @if (pathId() === 'mini-show') {
+            <app-mini-meiosis-hatchery />
+          } @else {
+            <app-dragon-hatchery-breeding-lab
+              [studentId]="studentId()"
+              [seed]="hatcherySeed()"
+            />
+          }
+        }
+        @default {
+          @if (microscopeDefinition(); as microscope) {
+            <p class="inline-workstation__record" role="status">
+              {{ savedMicroscopeRecordCount() }} exploration
+              {{ savedMicroscopeRecordCount() === 1 ? 'record' : 'records' }} saved for this microscope.
+            </p>
+            <app-genome-microscope
+              [studentId]="studentId()"
+              [dragons]="context.availableDragons()"
+              [genes]="context.availableGenes()"
+              [alleles]="context.availableAlleles()"
+              [initialLevel]="microscope.level"
+              [levelScope]="microscopeLevelScope()"
+              [scientificGoal]="microscope.goal"
+              (evidenceChanged)="recordMicroscopeEvidence($event)"
+            />
+          } @else {
+            <div class="inline-workstation__fallback">
+              <strong>This investigation still opens in its dedicated laboratory.</strong>
+              <a
+                [routerLink]="workstation().route"
+                [queryParams]="launchQueryParams()"
+              >Open {{ workstation().title }} →</a>
+            </div>
+          }
+        }
+      }
+    } @placeholder {
+      <div class="inline-workstation__loading" role="status">Preparing investigation…</div>
+    }
+  </div>
+</section>

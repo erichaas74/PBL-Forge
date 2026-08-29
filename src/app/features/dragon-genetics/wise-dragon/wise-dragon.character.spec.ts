@@ -1,8 +1,8 @@
 import { WISE_DRAGON_PROFILE, WISE_DRAGON_SOURCE } from './wise-dragon.character';
 
 describe('Wise Dragon character model', () => {
-  it('uses a complete 24-locus elder genome', () => {
-    expect(Object.keys(WISE_DRAGON_PROFILE.genome).length).toBe(24);
+  it('uses a complete 23-locus elder genome', () => {
+    expect(Object.keys(WISE_DRAGON_PROFILE.genome).length).toBe(23);
   });
 
   it('publishes a bespoke regal descriptor with avatar head controls', () => {

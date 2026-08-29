@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — canonical public lesson container shared by both breeding paths.
+ * Inputs/signals: :pathId/:lessonId plus local response and evidence signals.
+ * Data access: lesson-plan, workstation-context, and browser-local evidence/response repositories.
+ * Connects to: lesson workstations, offered extra lessons, adjacent lessons, and path navigation.
+ */
 import { Component, computed, effect, inject, linkedSignal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -7,13 +13,15 @@ import {
   dragonLessonEvidenceTitle,
 } from '../orchestration/dragon-lesson-evidence.models';
 import { DragonLessonEvidenceRepository } from '../orchestration/dragon-lesson-evidence.repository';
+import { DragonInlineWorkstationComponent } from '../orchestration/dragon-inline-workstation.component';
 import { DragonWorkstationContextService } from '../workstations/shared/dragon-workstation-context.service';
 import { DragonLessonPlanRepository } from './dragon-lesson-plan.repository';
 import { isDragonPathContextId } from './dragon-lesson-plan.models';
+import { WiseDragonGuideService } from '../wise-dragon/wise-dragon-guide.service';
 
 @Component({
   selector: 'app-dragon-shared-lesson-page',
-  imports: [RouterLink],
+  imports: [RouterLink, DragonInlineWorkstationComponent],
   templateUrl: './dragon-shared-lesson.page.html',
   styleUrl: './dragon-paths.page.scss',
 })
@@ -23,6 +31,7 @@ export class DragonSharedLessonPage {
   private readonly router = inject(Router);
   private readonly evidenceRepository = inject(DragonLessonEvidenceRepository);
   private readonly workstationContext = inject(DragonWorkstationContextService);
+  readonly wiseDragonGuide = inject(WiseDragonGuideService);
   private readonly routeParams = toSignal(this.route.paramMap, {
     initialValue: this.route.snapshot.paramMap,
   });
@@ -44,8 +53,17 @@ export class DragonSharedLessonPage {
       ) ?? false,
   );
   readonly nextLesson = computed(() => {
-    const lessons = this.lessonPlan.publishedLessons();
+    if (this.lesson()?.optional) return null;
+    const lessons = this.lessonPlan.coreLessons();
     return lessons[lessons.findIndex((lesson) => lesson.id === this.lessonId()) + 1] ?? null;
+  });
+  /** Extra lessons this lesson offers, shown only while the teacher has them open. */
+  readonly extraLessons = computed(() => this.lessonPlan.extraLessonsFor(this.lessonId()));
+  readonly lessonScore = computed(() => {
+    const questions = this.lesson()?.questions ?? [];
+    if (!questions.length) return 0;
+    const completed = questions.filter((question) => this.responseFor(question.id).trim()).length;
+    return Math.round((completed / questions.length) * 100);
   });
 
   constructor() {
@@ -90,6 +108,14 @@ export class DragonSharedLessonPage {
         evidenceId,
       ),
     );
+  }
+
+  refreshEvidence(): void {
+    this.evidence.set(this.loadEvidence());
+  }
+
+  openWiseDragon(): void {
+    this.wiseDragonGuide.show();
   }
 
   private loadResponses(): Readonly<Record<string, string>> {

@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — generic simulation visual imported only by the retired adaptive page.
+ * Former inputs/signals: simulation definition/state inputs and interaction outputs.
+ * Former data access: caller-supplied adaptive metadata; no repository access.
+ * Former connections: DragonSimulationExperiencePage; dedicated active workstations own their visuals.
+ */
 import { Component, computed, input, output } from '@angular/core';
 import { DragonSimulationDefinition } from '../../adaptive/dragon-simulation.models';
 

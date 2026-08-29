@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — routed Wise Dragon evidence-coaching chamber.
+ * Inputs/signals: query params, session identity, student claim/reasoning, selected evidence, and voice.
+ * Data access: account genetics, hatchery and arena repositories, plus WiseDragonSessionStore.
+ * Connects to: Arena evidence, specimen viewport/rendering, and the global Wise Dragon guide flow.
+ */
 import {
   Component,
   OnDestroy,

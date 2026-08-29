@@ -1,0 +1,37 @@
+:host {
+  display: block;
+}
+
+.inline-workstation {
+  overflow: clip;
+}
+
+.inline-workstation__surface {
+  min-height: 18rem;
+  background: #eef0e8;
+}
+
+.inline-workstation__status,
+.inline-workstation__record,
+.inline-workstation__empty {
+  margin: 0;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #cfc5ad;
+  background: #fff4cf;
+  font-weight: 800;
+}
+
+.inline-workstation__fallback,
+.inline-workstation__loading {
+  display: grid;
+  place-content: center;
+  gap: .75rem;
+  min-height: 18rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.inline-workstation__fallback a {
+  color: inherit;
+  font-weight: 900;
+}

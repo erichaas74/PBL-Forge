@@ -206,6 +206,30 @@
   font-weight: 950;
 }
 
+.dragon-card__portrait-placeholder {
+  display: grid;
+  min-height: 11.5rem;
+  place-content: center;
+  gap: 0.35rem;
+  color: rgb(255 240 199 / 72%);
+  text-align: center;
+}
+
+.dragon-card__portrait-placeholder span {
+  font-family: var(--font-display, serif);
+  font-size: 4rem;
+  font-weight: 950;
+  line-height: 1;
+  opacity: 0.48;
+}
+
+.dragon-card__portrait-placeholder small {
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .dragon-card__role,
 .dragon-card__record {
   margin: 0;

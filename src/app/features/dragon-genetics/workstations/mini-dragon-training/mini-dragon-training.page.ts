@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit Mini Dragon Training route within the shared kennel workflow.
+ * Inputs/signals: kennel snapshot, student/assignment context, and training-session changes.
+ * Data access: MiniDragonKennelStore locally; CapstoneProgressRepository publishes show progress.
+ * Connects to: MiniDragonTrainingComponent, Companion Show kennel, and teacher summaries.
+ */
 import { Component, effect, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonCapstoneProgressRepository } from '../../project/dragon-capstone-progress.repository';

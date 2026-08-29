@@ -49,3 +49,42 @@
   font-family: var(--font-display);
   font-size: var(--text-2xl);
 }
+
+.case-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #d5b96b;
+  border-radius: 0.8rem;
+  background: #fff4cf;
+  color: #24363b;
+}
+
+.case-ribbon small,
+.case-ribbon strong {
+  display: block;
+}
+
+.case-ribbon small {
+  color: #7a4f1d;
+  font-weight: 900;
+}
+
+.case-ribbon > span,
+.evidence-status {
+  font-weight: 800;
+}
+
+.evidence-status {
+  margin: 0;
+  color: #eef5dd;
+}
+
+@media (max-width: 40rem) {
+  .case-ribbon {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

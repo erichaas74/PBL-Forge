@@ -38,4 +38,4 @@ previous and next cards can be selected directly, and the same selection can be 
 horizontal swipe or Left/Right Arrow without changing the card data or investigation state.
 
 The card treatment in this workstation is the pilot for the account-wide proposal in
-`docs/DRAGON_CARD_DECK_ROLLOUT.md`.
+`docs/oldDocs/DRAGON_CARD_DECK_ROLLOUT.md` (historical rollout note).

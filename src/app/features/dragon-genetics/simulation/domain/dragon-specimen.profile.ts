@@ -19,12 +19,20 @@ import {
 } from './dragon-phenotype-builder';
 import { PUBLISHED_CLASSIC_DRAGON_PRESET } from '../../../../data/published-dragon-models';
 import { DragonGeneLocus, DragonGenome, DragonPhenotype } from './dragon-genetics.models';
-import { DragonLabGenome, DragonOffspring, DragonParentProfile } from './dragon-lab.models';
 import {
+  ArenaBuildTraitId,
+  DragonLabGenome,
+  DragonOffspring,
+  DragonParentProfile,
+} from './dragon-lab.models';
+import {
+  ARENA_BUILD_TRAITS,
   DRAGON_TRAITS,
   DragonIdentityPaint,
   createEducationalAssembly,
   createVisualGenome,
+  genotypeLabel,
+  showsArenaDominant,
   showsDominantPhenotype,
 } from './dragon-inheritance';
 import {
@@ -217,10 +225,15 @@ export function createExpressiveDragonBenchBuild(
     label?: string;
     generation?: number;
     identity?: DragonIdentityPaint;
+    /** Optional extended Arena loci used by the teacher bench to express body types. */
+    arenaGenome?: DragonLabGenome;
   } = {},
 ): DragonBenchBuild {
   const generation = options.generation ?? 0;
-  const coreGenome = toCoreLabGenome(profile);
+  const coreGenome: DragonLabGenome = {
+    ...(options.arenaGenome ?? {}),
+    ...toCoreLabGenome(profile),
+  };
   /*
    * One fixed pair of hues for the bench, because the B locus no longer picks a
    * hue — it counts how many of the dragon's colours are used. The bench is one
@@ -230,19 +243,22 @@ export function createExpressiveDragonBenchBuild(
   const identity: DragonIdentityPaint =
     options.identity ?? { color: '#98552f', accentColor: '#c47b42' };
   const engineGenome = createVisualGenome(id, coreGenome, generation, identity);
-  // Tail length stays fixed here: the K locus changes the club end, not the whole tail.
-  engineGenome.loci['tail-length'].maternal.value = 0.62;
-  engineGenome.loci['tail-length'].paternal.value = 0.62;
+  // The 12-gene tools do not model tail length: there K changes only the club end. The teacher
+  // bench can supply T, in which case the inherited long/short tail must reach the actual mesh.
+  if (!options.arenaGenome?.['tail-length']) {
+    engineGenome.loci['tail-length'].maternal.value = 0.62;
+    engineGenome.loci['tail-length'].paternal.value = 0.62;
+  }
 
   const build = createEducationalAssembly(coreGenome, engineGenome, identity, {
     forelimbs: dominant(profile, 'legs') ? 'walking' : 'grasping',
     clawScale: dominant(profile, 'claws') ? 1.5 : 0.62,
     crestScale: dominant(profile, 'crest') ? 1.1 : 0.32,
     headScale: 1.09,
-    glowMarkings: dominant(profile, 'glow'),
     fangScale: dominant(profile, 'fangs') ? 1.28 : 0.58,
-    backSpikeCount: dominant(profile, 'spikes') ? 10 : 3,
-    backSpikeScale: dominant(profile, 'spikes') ? 1.15 : 0.52,
+    backSpikeCount: 8,
+    backSpikeRows: dominant(profile, 'spikes') ? 3 : 1,
+    backSpikeScale: 1.15,
     eyeColor: dominant(profile, 'eye-color') ? '#ff9f2e' : '#46a9ff',
     sex: profile.sex,
     tailClubForm: tailClubForm(profile),
@@ -257,7 +273,7 @@ export function createExpressiveDragonBenchBuild(
         profileId: DRAGON_SPECIMEN_PROFILE_ID,
         generation,
         accentColor: identity.color,
-        traits: buildExpressiveTraitReadouts(profile),
+        traits: buildExpressiveTraitReadouts(profile, options.arenaGenome),
       }),
     },
     combatProfile: build.combatProfile,
@@ -322,7 +338,10 @@ export function dragonParentExpressiveProfile(
   };
 }
 
-function buildExpressiveTraitReadouts(profile: ExpressiveDragonProfile): SpecimenTraitReadout[] {
+function buildExpressiveTraitReadouts(
+  profile: ExpressiveDragonProfile,
+  arenaGenome?: DragonLabGenome,
+): SpecimenTraitReadout[] {
   return [
     {
       id: 'sex-chromosomes',
@@ -359,7 +378,46 @@ function buildExpressiveTraitReadouts(profile: ExpressiveDragonProfile): Specime
       roles: expressiveTraitRoles(trait.id),
       expressed: showsExpressiveDominant(profile, trait),
     })),
+    ...(arenaGenome ? arenaTraitReadouts(arenaGenome) : []),
   ];
+}
+
+const BENCH_BODY_TRAIT_IDS = new Set<ArenaBuildTraitId>([
+  'body-type',
+  'secondary-wings',
+  'tail-length',
+  'armor',
+]);
+
+function arenaTraitReadouts(genome: DragonLabGenome): SpecimenTraitReadout[] {
+  return ARENA_BUILD_TRAITS
+    .filter((trait) => BENCH_BODY_TRAIT_IDS.has(trait.id) && genome[trait.id])
+    .map((trait) => {
+      const pair = genome[trait.id]!;
+      const expressed = showsArenaDominant(genome, trait.id);
+      return {
+        id: `trait:${trait.id}`,
+        label: trait.name,
+        valueLabel: `${genotypeLabel(pair)} · ${expressed ? trait.dominantPhenotype : trait.recessivePhenotype}`,
+        detail: `Chr ${trait.chromosomeModel}. ${trait.description}`,
+        roles: arenaTraitRoles(trait.id),
+        expressed,
+      };
+    });
+}
+
+function arenaTraitRoles(traitId: ArenaBuildTraitId): readonly AssemblyPartRole[] {
+  switch (traitId) {
+    case 'secondary-wings':
+      return ['wing'];
+    case 'tail-length':
+      return ['tail'];
+    case 'armor':
+    case 'body-type':
+      return ['core'];
+    default:
+      return [];
+  }
 }
 
 function dominant(profile: ExpressiveDragonProfile, traitId: ExpressiveDragonTraitId): boolean {
@@ -417,10 +475,6 @@ function expressiveTraitRoles(traitId: ExpressiveDragonTraitId): readonly Assemb
       return ['head'];
     case 'spikes':
       return ['core'];
-    // The lantern row is the one trait that is not confined to a body region:
-    // it runs the head, the torso and the tail together.
-    case 'glow':
-      return ['head', 'core', 'tail'];
     case 'scales':
     case 'body-color':
       return [];
@@ -490,8 +544,9 @@ function describeLabGenome(
     forelimbs: showsDominantPhenotype(genome.legs, 'legs') ? 'walking' : 'grasping',
     clawScale: showsDominantPhenotype(genome.claws, 'claws') ? 1.5 : 0.62,
     crestScale: showsDominantPhenotype(genome.crest, 'crest') ? 1.1 : 0.32,
-    backSpikeCount: showsDominantPhenotype(genome.spikes, 'spikes') ? 10 : 3,
-    backSpikeScale: showsDominantPhenotype(genome.spikes, 'spikes') ? 1.15 : 0.52,
+    backSpikeCount: 8,
+    backSpikeRows: showsDominantPhenotype(genome.spikes, 'spikes') ? 3 : 1,
+    backSpikeScale: 1.15,
   });
 
   return describeSpecimen(id, build.assembly, {

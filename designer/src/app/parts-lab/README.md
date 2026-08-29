@@ -1,13 +1,67 @@
-# Parts lab
+# Dragon Part Workshop
 
-A workbench for the part meshes themselves, and the feedback loop for improving them.
+A unified workbench for Arena and Mini Dragon Show part meshes. The selected mesh remains visible
+while the right-side inspector switches between Shape, Layers, Surface, Sockets, Genes, and Test. The
+contact-sheet library now sits below the active workshop instead of separating part selection from
+editing.
 
-**What it does and does not change.** The feature sliders drive `setDragonStyleOverride`, a
-module-level hook in the shared `dragon-style.ts`, so they change how *every* part on that profile
-renders — all horned heads share one `style.head`. The dimension sliders save per definition and are
-what the Garage stamps and rebuilds at. Neither touches a part's **sockets**; those live in
+The Layers inspector groups the flat renderer parameter list into anatomical ideas: core form,
+belly, armor forms, spike rows, feather mantle, dorsal scales, plates, fins, and other appendages.
+Only one layer editor is open at a time. Each layer has its own reset; optional layers can be hidden
+for preview, structural layers are protected, and gene-connected layers warn that lesson expression
+can replace the authoring default. The grouping metadata lives in `part-anatomy-layers.ts`; parameter
+keys remain owned by the shared visual-parameter registry.
+
+When a selected layer owns placement, rotation, or size parameters, **procedural handles** appear
+over the isolated preview. Blue handles move generated children, amber handles rotate them, and
+green handles resize them. Dragging and keyboard nudging write the same canonical value as the
+layer slider. These are semantic parameter handles rather than vertex gizmos: a Teeth spacing
+handle regenerates the paired row, and a Horn splay handle preserves bilateral symmetry.
+
+The **Surface** inspector controls the classic dragon's generated material per definition. It keeps
+genetics-owned pigment and pattern choice intact while exposing relief depth, roughness, texture
+detail frequency, marking intensity, and marking frequency. Texture-frequency changes clone only a
+small UV-transform wrapper; the cached canvas texture pixels remain shared across dragons. Wing
+membrane veins remain anatomy-mapped and do not tile like scale or keratin maps.
+
+The stage can switch between **Isolated part** and **Whole dragon**. Whole-dragon mode uses the
+same six Arena body presets and five Mini Dragon breed presets as Assembly Garage, highlights the
+selected layer, and fades the rest of the specimen. The Arena body or Mini breed selector changes
+the placement context without changing the selected catalog part.
+
+Wings, tails, Mini horns, plates, fins, dorsal rows, and Arena back-spike rows expose anchored Move,
+Rotate, and Scale handles in whole-dragon mode. Exact X/Y/Z controls sit in the selected layer
+editor. Those values are saved by assembly context and part instance: moving a Fairy Dragon wing
+does not move the Puggle wing, and moving a Regal wing does not move a Bulwark wing. Back spikes are
+a generated child group, so their placement is stored as body-relative offsets and does not move the
+torso. Shape dimensions remain saved by definition as before.
+
+The **Authored / Dominant / Recessive** switch is a comparison tool. It applies the selected
+gene-connected layer's representative phenotype values to a cloned preview only; it never writes a
+genotype or replaces the authored draft. Returning to Authored shows exactly what is saved.
+
+The classic horned head also exposes an explicit **Authored / Female / Male** switch beside the
+preview scope. It changes the sex-linked crest/frill form in isolated and whole-dragon previews,
+but never writes the genetics-owned `sex` parameter back to the Designer draft. Authored restores
+the value supplied by the selected dragon or model pack.
+
+Arena body definitions expose per-body station controls for the neck, chest, waist, belly, hips,
+spine, and tail root. Mini Dragon Show bodies reuse their existing morphology parameters. Both show
+labelled drag handles over the canvas; dragging a handle and moving the matching inspector slider
+write the same per-definition draft value. Arrow keys nudge a focused handle by one registered step.
+
+**What it does and does not change.** Legacy shared layer sliders drive `setDragonStyleOverride`, a
+module-level hook in the shared `dragon-style.ts`, so they change every part using that style
+section. Head, jaw, body-station, and surface controls are definition-owned and do not leak to other
+catalog parts. Dimension sliders also save per definition and are what the Garage stamps and
+rebuilds at. None touches a part's **sockets**; those live in
 `snapPoints` and are edited in the [Snap Workshop](../snap-workshop/README.md). Nothing here writes
 source — everything is a local draft plus a paste-ready snippet.
+
+Body-station controls are the exception to the shared-style rule: they are registered visual
+parameters stored by definition id, so tuning Regal does not reshape Bulwark, Courser, Prowler,
+Double-Wing, or Serpent. The body archetype remains genetics-owned; station values refine the chosen
+archetype instead of replacing it.
 
 ## Why it exists
 
@@ -16,8 +70,9 @@ every part from lathes, cones, and shape extrusions sized from `part.dimensions`
 it fast to edit and slow to evaluate: checking a change used to mean build, serve, navigate, and
 find a dragon carrying the part.
 
-This page renders one part at a time, isolated, from six angles, and deep-links by part id so a
-script can drive it headlessly. The loop drops from minutes to seconds.
+This page renders one part at a time from six angles and can place that same part inside a complete
+Arena or Mini assembly. It deep-links by part id, view, assembly, and expression mode so a script can
+drive it headlessly. The loop drops from minutes to seconds.
 
 ## Using it
 
@@ -25,27 +80,29 @@ script can drive it headlessly. The loop drops from minutes to seconds.
 
 ```text
 /parts-lab?family=dragon&part=dragon-left-wing&tile=220
+/parts-lab?family=dragon&part=dragon-left-wing&view=assembly&assembly=regal-dragon&gene=dominant
 ```
 
 - **Contact sheet** — every part in the family, baked through the shared thumbnail context (one
   WebGL context for the whole grid, plus one live viewer).
-- **Live stage** — orbit the selected part. Runs at `quality: 'high'`, unlike the embedded viewers,
-  because this is where quality is judged.
+- **Live stage** — orbit an isolated part or its complete assembly. The selected assembly anatomy
+  stays in full colour while non-selected parts fade for context.
 - **Dimension sliders** — the genetics pipeline scales these same dimensions per genome, so a part
   has to hold up across the range, not just at ×1. Drag them before declaring a part finished.
 - **Uniform colour by default** — the authored definition colours are a rainbow, which is useful in
   the garage and useless for judging form. A bright hue reads as detail that is not there.
 
-## Tuning features live
+## Tuning anatomy layers live
 
-Selecting a part reveals sliders for the feature counts and proportions that used to be hardcoded
-inside its builder:
+Selecting a part reveals a short layer list. Selecting one layer reveals only the feature counts and
+proportions belonging to that anatomy, instead of mixing the entire parameter registry into one
+scrolling stack:
 
 | Part | Controls |
 | --- | --- |
 | Body | spike count, ridge length, spike height/thickness/lean |
-| Jaw | teeth per side, tooth length, tooth thickness |
-| Horned head | horn length, horn thickness, brow spike |
+| Jaw | per-jaw teeth count/size, row span, XYZ placement, splay/rake; upper-jaw nostrils, nose horn, and fangs |
+| Horned head | skull proportions; eye, horn, brow-spike, crest, sex-display, and Wise-regalia placement |
 | Clawed foot | talon count, talon length, talon thickness |
 | Club tail | spike count, spike length, spike thickness |
 | Wing | camber, finger sag, dihedral, trailing scallop (+ four presets) |
@@ -56,11 +113,11 @@ These are usually more useful than the overall X/Y/Z scale sliders, which only s
 the genetics pipeline rescales parts per genome, and a spike measured in world units would drift
 out of proportion with the body carrying it.
 
-The values drive `setDragonStyleOverride` in the shared `dragon-style.ts`,
-a module-level hook that is `null` in production so `DEFAULT_DRAGON_STYLE` is what everyone else
-renders. It applies while the Parts Lab is open and is cleared when you navigate away. Record the
-chosen values, apply them to the designer catalog, then verify the assembled model in
-`/dragon-garage` before exporting a pack.
+Legacy shared-style values still drive `setDragonStyleOverride` in the shared `dragon-style.ts`.
+Head and jaw controls are deliberately per-definition visual parameters, so tuning lower-jaw teeth
+does not alter the upper row and every placement survives in the Designer draft. Record the chosen
+values, apply them to the designer catalog, then verify the assembled model in `/dragon-garage`
+before exporting a pack.
 
 ## Building and adding meshes
 

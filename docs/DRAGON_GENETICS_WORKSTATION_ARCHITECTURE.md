@@ -1,147 +1,107 @@
-# Dragon Genetics workstation architecture and portability audit
+# Dragon Genetics workstation architecture
 
-**Audit date:** 2026-08-15  
-**Product contract:** [`DRAGON_GENETICS_WORKSTATION_RULES.md`](DRAGON_GENETICS_WORKSTATION_RULES.md)
+**Product contract:**
+[`DRAGON_GENETICS_WORKSTATION_RULES.md`](DRAGON_GENETICS_WORKSTATION_RULES.md)
 
-This is the implementation contract for keeping workstation science, app state, markup, and visual
-design independent. It also explains how to embed a workstation in another Angular host without
-silently creating a second source of truth.
+This is the current implementation boundary for keeping scientific rules, app identity, lesson/case
+orchestration, persistence, markup, and visual design separable.
 
-## The Angular boundary
+## Angular boundary
 
 ```text
-route/page container
-  └─ DragonWorkstationContextService
-       ├─ SessionService                 current student identity
-       └─ DragonAdaptiveStore            assignment, released catalog, notebook
-            ↓ explicit signal inputs
+routed *.page or orchestration host
+  ├─ reads route and query parameters
+  ├─ DragonWorkstationContextService
+  │    ├─ SessionService              current student identity
+  │    ├─ DragonAdaptiveStore         assignment, released catalog, notebook
+  │    └─ AccountGeneticsLibrary      student-owned dragons and records
+  ├─ lesson/case evidence repository
+  └─ passes explicit inputs
+          ↓
 standalone workstation component
-  ├─ component.html                      structure and accessible interaction
-  ├─ component.scss/css                  component-scoped visual design
-  ├─ component.ts                        view state and UI event orchestration
-  ├─ domain.ts                           pure scientific rules
-  ├─ models.ts                           serializable contracts
-  └─ repository.ts                       device/database persistence boundary
-            ↓ typed outputs
-route/page container                     app progress sync and navigation
+  ├─ external HTML and SCSS/CSS       accessible interaction and scoped design
+  ├─ component TypeScript             transient view/instrument state
+  ├─ domain TypeScript                pure scientific rules
+  ├─ models TypeScript                serializable contracts
+  └─ station repository               browser-local persistence boundary
+          ↓ typed outputs
+routed page/orchestration host         evidence capture, app progress, navigation
 ```
 
-The page is the app-aware container. A workstation component must not inject `SessionService`, read
-route parameters, or decide which teacher records are released. It receives those values through
-inputs. App progress publishing and navigation remain in the page.
+The page or host is app-aware. A portable workstation component does not read route parameters,
+choose the signed-in user, or decide which teacher records are released. It receives stable values
+through inputs and emits typed scientific records or interaction events.
 
-This is deliberately not a rule that every component must be "dumb." A large laboratory is a
-feature component and may own transient selection, drag, animation, and instrument state. Scientific
-calculations belong in domain files, persistent state belongs behind a repository, and app identity
-belongs in the host context.
+A workstation component is not required to be a passive presentation component. A lab may own
+transient selections, drag state, animation, cameras, and instrument controls. Pure calculations
+belong in domain files, durable records behind repositories, and cross-app identity in the host.
 
-## Sources of truth
+## Current sources of truth
 
-| Concern                                   | Owner                                                      | Workstation access                                                                            |
-| ----------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Signed-in or local student identity       | `DragonWorkstationContextService.studentId`                | Required `studentId` input                                                                    |
-| Local identity fallback and normalization | `dragon-workstation-context.models.ts`                     | Shared helper; never repeat the literal in runtime workstation code                           |
-| Assignment and released allele records    | `DragonAdaptiveStore`, exposed by the context service      | `availableGenes` and `availableAlleles` inputs                                                |
-| Genetics notebook                         | `DragonAdaptiveStore.geneticsNotebook`                     | `notebook` input to presentational notebook/workbench UI                                      |
-| Chromosome geometry and loci              | `shared/dragon-chromosome.catalog.ts`                      | Import the catalog; do not restate bands or loci                                              |
-| Cell/chromosome navigation                | `shared/cell-chromosome-viewport.component.*`              | Pass `CellChromosomeViewportItem[]`; keep domain-to-view adaptation in the owning workstation |
-| Allele DNA                                | `shared/dragon-gene-dna.catalog.ts` and the allele catalog | Import or receive released records                                                            |
-| Classic dragon inheritance                | `simulation/domain/dragon-inheritance.ts`                  | Import domain definitions                                                                     |
-| Account dragons/chromosomes               | `AccountGeneticsLibraryService`                            | Inject the shared library using the required student ID                                       |
-| Workstation records                       | The station's repository                                   | Inject the repository; do not call `localStorage` from a component                            |
-| App progress/Firestore sync               | Routed page or project facade                              | Typed component output only                                                                   |
+| Concern | Owner | Workstation access |
+| --- | --- | --- |
+| Student identity and local fallback | `DragonWorkstationContextService` and `dragon-workstation-context.models.ts` | Required `studentId` input |
+| Assignment and released allele records | `DragonAdaptiveStore` | `availableGenes` / `availableAlleles` inputs |
+| Shared genetics notebook | `DragonAdaptiveStore.geneticsNotebook` | Notebook input or shared adapter |
+| Student-owned dragon/chromosome records | `AccountGeneticsLibraryService` | Host-provided identity or explicit library access in station service |
+| Chromosome geometry and loci | `workstations/shared/dragon-chromosome.catalog.ts` | Shared import; never restated locally |
+| Allele DNA and released samples | shared DNA/allele catalogs plus assignment release | Shared import or host input |
+| Classic inheritance and phenotype | `simulation/domain/` | Shared domain import |
+| Mini-dragon inheritance and anatomy | `workstations/companion-show/` plus shared mini renderer | Mini-species domain import |
+| Workstation experiment records | station repository | Repository API, normally browser-local today |
+| Lesson evidence and case progress | `orchestration/` and `cases/` repositories | Host capture/output boundary |
+| App progress/Firestore sync | routed page, adaptive store, or project facade | Typed component output only |
 
-The DNA comparison workstation was the one active component still reading `localStorage` directly.
-It now uses `DnaComparisonRepository`, and its public data contracts live in
-`dna-process.models.ts` rather than in an Angular component file.
+## Lesson and case launch context
 
-## Audit result by active workstation
+Core lesson links pass `path` and `lesson` query parameters to an explicit workstation route. The
+routed page reads those parameters and lets an investigation attach supported evidence back to the
+lesson record.
 
-| Workstation         | Angular input boundary                                                           | Shared/persistent truth                                         | Audit status                                                        |
-| ------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Allele Workbench    | released genes, released alleles, notebook, feedback; emits interactions         | assignment catalog + shared notebook                            | Separated                                                           |
-| Blood Compatibility | required student ID                                                              | account library + blood repository/domain                       | Separated                                                           |
-| Companion Show      | required student ID, optional goal; emits snapshots                              | mini-dragon domain + show repository                            | Separated; component is large but domain/persistence are outside it |
-| DNA Process Lab     | required student ID, optional goal/case/chromosome/catalog; emits tool selection | released catalog + DNA comparison repository                    | Separated in this audit                                             |
-| Dragon Hatchery     | required student ID, optional deterministic seed                                 | account library + breeding repository + meiosis/hatchery domain | Structurally separated; product-contract issue remains below        |
-| Genome Microscope   | account dragons, released genes/alleles, chromosome labels; emits evidence state | account library + assignment/chromosome/DNA catalogs             | Separated reusable open workstation                                 |
-| Incubator Sampler   | required student ID, optional goal                                               | account library + sampler repository/domain                     | Separated                                                           |
-| Island Diversity    | required student ID; emits stored worlds                                         | account library + island repository/domain                      | Separated                                                           |
-| Pedigree Lab        | required student ID, optional goal/investigation ID                              | pedigree repository/domain/population/layout                    | Separated                                                           |
-| Protein Rescue      | required student ID                                                              | account library + rescue repository/models                      | Separated                                                           |
-| Punnett Composer    | required student ID, optional goal; emits saved crosses                          | account library + composer repository/models                    | Separated                                                           |
-| Trait Evidence      | required student ID; emits snapshots                                             | evidence content/domain/repository                              | Separated                                                           |
+Case links use
+`/dragon-genetics/path/:pathId/lesson/:lessonId/branch/:caseId`. The case page owns acceptance,
+committed plans, model outcomes, revision, and return navigation. It launches the same portable
+workstation with case/branch context; the workstation does not own the story route.
 
-All Angular components and routed pages under `workstations/` now use external `.html` and
-`.scss`/`.css` files. Angular's default emulated encapsulation keeps one workstation stylesheet from
-selecting another workstation's internal DOM. The `check:workstations` command enforces external
-templates/styles, forbids direct session coupling outside the context adapter, checks linked files,
-and rejects component-owned `local-student` input defaults.
+Directly opening a workstation route remains supported. In that mode it uses the current student
+context and station repository without requiring a lesson or case.
 
-## Moving a workstation within this app
+## Persistence boundary
 
-1. Import the standalone workstation component, not its routed `*.page.ts` host.
-2. Get app-owned values from `DragonWorkstationContextService` in the new container.
-3. Pass a stable `studentId`. It is required for every stateful workstation.
-4. Pass released catalogs and notebook state when the component exposes those inputs. Do not pass
-   the complete built-in catalog when the assignment releases only a subset.
-5. Handle typed outputs in the container for navigation or app progress sync.
-6. Keep the station folder together. Its HTML and SCSS are part of the component, while its domain,
-   models, content, and repository files are the science/persistence boundary.
-7. Run `npm run check:workstations`, the station specs, and `npm run build`.
+Most station repositories currently use the safe JSON `localStorage` helper and key records by a
+normalized student ID. Components should not add new direct `localStorage` access: keep storage
+normalization, schema migration, and corrupt-data fallback in a repository.
 
-Example container:
+Some older components still access browser storage directly. Treat those as migration debt, not a
+pattern. A future Firestore implementation should keep the same station-facing repository contract
+so scientific interaction code does not change when synchronization is added.
 
-```ts
-import { Component, inject } from '@angular/core';
-import { DragonWorkstationContextService } from './workstations/shared/dragon-workstation-context.service';
-import { DragonDnaRepairLabComponent } from './workstations/dna-process-lab/dragon-dna-repair-lab.component';
+## Mechanical checks
 
-@Component({
-  imports: [DragonDnaRepairLabComponent],
-  template: `
-    <app-dragon-dna-repair-lab
-      [studentId]="context.studentId()"
-      [genes]="context.availableGenes()"
-      [alleles]="context.availableAlleles()"
-    />
-  `,
-})
-export class ExampleWorkstationHost {
-  readonly context = inject(DragonWorkstationContextService);
-}
-```
+`npm run check:workstations` enforces key boundaries under `workstations/`:
 
-The inline template in this small example is acceptable for documentation; routed workstation
-implementations in this repository must use external HTML and CSS.
+- routed and workstation components use external templates and styles;
+- workstation components do not couple directly to the session service;
+- linked component files exist; and
+- stateful stations do not silently default to a shared `local-student` identity.
 
-## Moving a workstation to another Angular application
+The TypeScript boundary check separately prevents student code from importing Designer authoring
+source. Product rules such as open-order investigation, no question dock, and accessible
+select-and-place alternatives still require component tests and browser inspection.
 
-Copy the station folder and only the shared runtime dependencies it imports. Do not copy a routed
-page or `DragonWorkstationContextService`; those are PBL Forge adapters. In the destination app:
+## Moving or embedding a workstation
 
-- provide the required `studentId` from that app's identity/session layer;
-- replace repository implementations if browser-local persistence is not appropriate;
-- provide released catalog/notebook data through inputs;
-- bring the shared assembly or DNA visual components used by the station;
-- supply the global design tokens from `src/styles.scss`, or define equivalent CSS custom
-  properties in the destination theme; and
-- preserve click/select alternatives for every drag operation.
+Inside PBL Forge:
 
-Repository classes are `providedIn: 'root'`, so no additional provider is needed when moving a
-station inside PBL Forge. Outside this app, keep the same repository API and substitute storage at
-the dependency-injection boundary instead of rewriting component behavior.
+1. Import the workstation component, not its routed `*.page.ts` host.
+2. Read identity, assignment, and released catalogs in the new container.
+3. Pass a stable `studentId` and only the released data the station expects.
+4. Handle typed outputs in the container for evidence, navigation, or progress.
+5. Keep station HTML, styles, domain, models, and repository together.
+6. Run `npm run check:workstations`, station specs, and `npm run build`.
 
-## Remaining audit findings
-
-These are product/cleanup findings, not hidden architecture dependencies:
-
-1. **Dragon Hatchery still violates the open-workstation contract.** Its active surface contains
-   numbered setup sections, a phase rail, and `Step 1` through `Step 5` narration. That is scripted
-   guidance forbidden by the authoritative workstation rules. Its science and file boundaries are
-   now isolated, but the interaction must be redesigned as an open-order instrument before it can
-   pass the product rejection checklist.
-2. **Several UI orchestrators remain large.** Pedigree, meiosis, and companion-show components have
-   pure domain and repository layers already, but their view-state files are still long. Split them
-   by actual instrument subpanels only when those subpanels need independent tests or reuse; do not
-   create a shared visual mega-component or move station-specific CSS into global styles.
+In another Angular application, copy the station folder and only the shared runtime dependencies it
+imports. Replace the host context and repository implementation at their boundaries. Preserve CSS
+tokens, keyboard/select alternatives for drag interactions, and the scientific catalogs used by the
+station. Do not copy PBL Forge routes, lesson orchestration, or `DragonWorkstationContextService` as
+if they were part of the instrument.

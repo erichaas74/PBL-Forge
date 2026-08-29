@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — canonical route registry for the student and teacher applications.
+ * Inputs/signals: Angular navigation URLs, path/lesson/branch parameters, and teacher guard results.
+ * Data access: lazy imports route containers; generated microscope metadata supplies level routes.
+ * Connects to: public lesson pages, cases, open workstations, capstones, and guarded teacher tools.
+ */
 import { Routes } from '@angular/router';
 import { teacherAccessGuard } from './core/firebase/teacher-access.guard';
 import { MICROSCOPE_LEVEL_ROUTES } from './features/dragon-genetics/workstations/genome-microscope/microscope-level.routes';
@@ -23,10 +29,56 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'dragon-genetics/path/:pathId/lesson/pedigree-reading/adventure/:chapterId',
+    data: { lessonId: 'pedigree-reading' },
+    loadComponent: () =>
+      import('./features/dragon-genetics/adventures/dragon-adventure.page').then(
+        (m) => m.DragonAdventurePage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/path/:pathId/lesson/pedigree-reading',
+    data: { lessonId: 'pedigree-reading' },
+    loadComponent: () =>
+      import('./features/dragon-genetics/adventures/dragon-adventure.page').then(
+        (m) => m.DragonAdventurePage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/path/:pathId/lesson/pedigree-models/adventure/:chapterId',
+    data: { lessonId: 'pedigree-models' },
+    loadComponent: () =>
+      import('./features/dragon-genetics/adventures/dragon-adventure.page').then(
+        (m) => m.DragonAdventurePage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/path/:pathId/lesson/pedigree-models',
+    data: { lessonId: 'pedigree-models' },
+    loadComponent: () =>
+      import('./features/dragon-genetics/adventures/dragon-adventure.page').then(
+        (m) => m.DragonAdventurePage,
+      ),
+  },
+  {
     path: 'dragon-genetics/path/:pathId/lesson/:lessonId',
     loadComponent: () =>
       import('./features/dragon-genetics/lesson-plan/dragon-shared-lesson.page').then(
         (m) => m.DragonSharedLessonPage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/path/:pathId/lesson/:lessonId/branch/:branch/adventure/:chapterId',
+    loadComponent: () =>
+      import('./features/dragon-genetics/adventures/dragon-adventure.page').then(
+        (m) => m.DragonAdventurePage,
+      ),
+  },
+  {
+    path: 'dragon-genetics/path/:pathId/lesson/:lessonId/branch/:branch',
+    loadComponent: () =>
+      import('./features/dragon-genetics/adventures/dragon-adventure.page').then(
+        (m) => m.DragonAdventurePage,
       ),
   },
   {

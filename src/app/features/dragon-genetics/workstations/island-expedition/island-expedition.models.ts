@@ -61,7 +61,7 @@ export const EXPEDITION_LOCUS_IDS = [
   'wings',
   'fire',
   'color',
-  'glow',
+  'spikes',
   'horns',
 ] as const;
 
@@ -153,16 +153,18 @@ export const EXPEDITION_LOCI: readonly ExpeditionLocus[] = [
     ecologyHint: 'Whichever hide matches the ground hides better — and only matters where predators hunt.',
   },
   {
-    id: 'glow',
-    name: 'Glow organs',
-    dominantAllele: 'G',
-    recessiveAllele: 'g',
-    dominantForm: 'Glowing',
-    recessiveForm: 'Dull',
-    // Light helps you forage in the dark and tells predators exactly where you are.
-    dominantFitness: (e) => fitness(1 + 0.075 * e.nightActivity - 0.06 * e.predatorPressure),
-    recessiveFitness: (e) => fitness(1 + 0.03 * e.predatorPressure),
-    ecologyHint: 'Glow earns its keep in the dark, unless something is hunting by sight.',
+    id: 'spikes',
+    name: 'Back spike rows',
+    dominantAllele: 'P',
+    recessiveAllele: 'p',
+    dominantForm: 'Three tall rows',
+    recessiveForm: 'One tall row',
+    // Extra rows deter predators but cost material and energy to grow and carry.
+    dominantFitness: (e) =>
+      fitness(1 + 0.075 * e.predatorPressure - 0.055 * e.foodScarcity - 0.025 * e.heatLoad),
+    recessiveFitness: (e) =>
+      fitness(1 + 0.04 * e.foodScarcity + 0.02 * e.heatLoad - 0.035 * e.predatorPressure),
+    ecologyHint: 'Three rows deter predators; one row costs less where food is scarce or heat is high.',
   },
   {
     id: 'horns',

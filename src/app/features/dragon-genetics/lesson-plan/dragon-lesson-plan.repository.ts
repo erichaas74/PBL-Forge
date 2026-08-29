@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — owning state service for the current shared lesson document.
+ * Inputs/signals: teacher mutations update a document signal and computed published-lessons list.
+ * Data access: versioned browser localStorage with code defaults and normalization fallback.
+ * Connects to: public path/lesson pages, teacher editor, case validation, and workstation launches.
+ */
 import { Service, computed, signal } from '@angular/core';
 import {
   DEFAULT_DRAGON_LESSON_PLAN,
@@ -7,19 +13,29 @@ import {
   normalizeDragonLessonPlan,
 } from './dragon-lesson-plan.models';
 
-const STORAGE_KEY = 'pbl-forge.dragon-genetics.lesson-plan.v6';
+const STORAGE_KEY = 'pbl-forge.dragon-genetics.lesson-plan.v7';
 
 @Service()
 export class DragonLessonPlanRepository {
   private readonly documentSignal = signal(loadDocument());
   readonly document = this.documentSignal.asReadonly();
   readonly publishedLessons = computed(() => this.document().lessons.filter((lesson) => lesson.published));
+  /** The numbered learning path. Extra lessons are published but never take a sequence position. */
+  readonly coreLessons = computed(() =>
+    this.publishedLessons().filter((lesson) => !lesson.optional),
+  );
+  /** Extra lessons the teacher has opened to students. */
+  readonly extraLessons = computed(() => this.publishedLessons().filter((lesson) => lesson.optional));
+
+  extraLessonsFor(anchorLessonId: string): readonly DragonSharedLesson[] {
+    return this.extraLessons().filter((lesson) => lesson.anchorLessonId === anchorLessonId);
+  }
 
   save(change: (document: DragonLessonPlanDocument) => DragonLessonPlanDocument): void {
     const current = this.documentSignal();
     const next = normalizeDragonLessonPlan({
       ...change(structuredClone(current)),
-      schemaVersion: 6,
+      schemaVersion: 7,
       revision: current.revision + 1,
       updatedAtIso: new Date().toISOString(),
     });
@@ -36,6 +52,8 @@ export class DragonLessonPlanRepository {
       learningGoal: '',
       guide: '',
       published: false,
+      optional: false,
+      anchorLessonId: null,
       questions: [],
       workstations: [],
     };

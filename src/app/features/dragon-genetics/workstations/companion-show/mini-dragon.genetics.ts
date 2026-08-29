@@ -13,6 +13,14 @@
  * can compute, not so the surface can display them.
  */
 
+import {
+  MiniDragonCoatPaint,
+  resolveMiniDragonCoatPaint,
+} from '../../../../shared/assembly/rendering/mini-dragon-coat';
+import {
+  miniDragonStableHash as stableHash,
+} from '../../../../shared/assembly/rendering/mini-dragon-random';
+
 export type MiniGeneId =
   | 'coat'
   | 'plumage'
@@ -572,46 +580,7 @@ function isValidMiniGenotype(geneId: MiniGeneId, value: unknown): value is MiniG
 // Appearance derived from the genome.
 // ---------------------------------------------------------------------------
 
-export interface MiniCoatPaint {
-  /** Base coat colour. */
-  color: string;
-  /**
-   * Second coat colour. Equal to `color` unless the specimen is codominant, in
-   * which case both alleles' colours appear on the same animal.
-   */
-  patchColor: string;
-  emberColor: string;
-  /** High-contrast, non-inherited display colour used by ornaments and membranes. */
-  accentColor: string;
-  /** Stable non-inherited layout; it changes placement, never inherited coat identity. */
-  patternStyle: string;
-  /** The inherited back-scale form also owns the coat's tactile material family. */
-  surfaceStyle: string;
-}
-
-const ASH_HUE = 24;
-const GOLD_HUE = 44;
-
-const EMBER_COLORS: Readonly<Record<string, string>> = {
-  'ember:rose': '#ff6f91',
-  'ember:blue': '#63c8ff',
-  'ember:pale': '#ffe9c2',
-};
-
-/**
- * Saturated display colours deliberately span the whole wheel. They are
- * individual variation, like freckles, and are never used to identify an
- * inherited locus.
- */
-const MINI_DISPLAY_ACCENTS = [
-  '#00d9ff', '#2166ff', '#7047eb', '#bd3cff', '#ff3aa7', '#ff4057',
-  '#ff681f', '#ffb000', '#f0e323', '#8edb28', '#00c875', '#00b7a8',
-  '#ff78d1', '#7cf4ff', '#b9ff4a', '#ff8b63',
-] as const;
-
-const MINI_PATTERN_STYLES = [
-  'saddle', 'blaze', 'bands', 'constellation', 'harlequin', 'freckles',
-] as const;
+export type MiniCoatPaint = MiniDragonCoatPaint;
 
 /**
  * How a mini dragon is painted.
@@ -623,34 +592,14 @@ const MINI_PATTERN_STYLES = [
  * amount of jitter leaks a genotype.
  */
 export function miniCoatPaint(genome: MiniGenome, individualId: string): MiniCoatPaint {
-  const patternForm = miniPhenotypeFormId('pattern', genome);
-  const emberForm = miniPhenotypeFormId('ember', genome);
-  const coatForm = miniPhenotypeFormId('coat', genome);
-  const lightness = 22 + (stableHash(`${individualId}:light`) % 35);
-  const saturation = 20 + (stableHash(`${individualId}:sat`) % 45);
-
-  const ash = `hsl(${ASH_HUE}, ${Math.round(saturation * 0.55)}%, ${Math.max(14, lightness - 8)}%)`;
-  const gold = `hsl(${GOLD_HUE}, ${Math.min(100, saturation + 35)}%, ${Math.min(66, lightness + 10)}%)`;
-
-  const color = patternForm === 'pattern:ash' ? ash : gold;
-  const patchColor = patternForm === 'pattern:ash-gold' ? ash : color;
-
-  const accentColor = MINI_DISPLAY_ACCENTS[
-    stableHash(`${individualId}:display-accent`) % MINI_DISPLAY_ACCENTS.length
-  ];
-  const patternStyle = MINI_PATTERN_STYLES[
-    stableHash(`${individualId}:marking-layout`) % MINI_PATTERN_STYLES.length
-  ];
-  const surfaceStyle = coatForm === 'coat:fluffy' ? 'bumpy' : 'sleek';
-
-  return {
-    color,
-    patchColor,
-    emberColor: EMBER_COLORS[emberForm] ?? '#ffe9c2',
-    accentColor,
-    patternStyle,
-    surfaceStyle,
-  };
+  return resolveMiniDragonCoatPaint(
+    {
+      pattern: miniPhenotypeFormId('pattern', genome),
+      ember: miniPhenotypeFormId('ember', genome),
+      coat: miniPhenotypeFormId('coat', genome),
+    },
+    individualId,
+  );
 }
 
 /**
@@ -901,27 +850,4 @@ export const MINI_FOUNDERS: readonly MiniFounderDefinition[] = [
 
 export function miniFounder(id: string): MiniFounderDefinition | null {
   return MINI_FOUNDERS.find((founder) => founder.id === id) ?? null;
-}
-
-/**
- * FNV-1a with an avalanche finalizer.
- *
- * The finalizer is load-bearing, not decoration. Plain FNV-1a mixes its low bits
- * terribly — because the prime is odd, the lowest bit of the result is just the
- * parity of the low bits of the input — so `hash(seed) % 2`, which is how an
- * allele is drawn, does not segregate: seeds that differ only in a trailing
- * index alternate in lockstep instead. A twelve-pup litter from two
- * heterozygous parents came back twelve-for-twelve dominant before this was
- * added, which is not Mendelian inheritance, it is a counter.
- */
-function stableHash(value: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  hash ^= hash >>> 16;
-  hash = Math.imul(hash, 2246822507);
-  hash ^= hash >>> 13;
-  return hash >>> 0;
 }

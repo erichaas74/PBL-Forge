@@ -65,6 +65,37 @@ describe('ProteinRescueLabComponent', () => {
         expect(component.translationFor(second.id)).not.toBeNull();
     });
 
+    it('loads the authored patient only when the optional case supplies one', () => {
+        expect(component.patientId()).toBeNull();
+
+        fixture.componentRef.setInput('casePatientId', 'tide');
+        fixture.detectChanges();
+
+        expect(component.patientId()).toBe('tide');
+        expect(component.patient()?.genotype).toBe('dd');
+    });
+
+    it('emits the scientific record after the student completes and saves it', () => {
+        const saved = vi.fn();
+        component.recordSaved.subscribe(saved);
+        const tide = component.accountSnapshot().dragons.find((dragon) => dragon.id === 'tide')!;
+        component.loadPatientRecord(tide);
+        component.patient()!.samples.forEach((sample) => testSample(sample.id));
+        component.selectFood('emberroot-stew');
+        component.runFoodTrial();
+        component.setClaim('dd');
+        component.toggleRecommendation('emberroot-stew');
+        component.updateExplanation(
+            'Both copies stop early, so avoiding Dracose prevents the digestive symptoms.',
+        );
+
+        component.saveCase();
+
+        expect(saved).toHaveBeenCalledOnce();
+        expect(saved.mock.calls[0][0].sampleEvidence).toHaveLength(2);
+        expect(saved.mock.calls[0][0].digestionTrials[0].result).toBe('no-dracose');
+    });
+
     function testSample(sampleId: string): void {
         component.loadSample(sampleId);
         component.recordTranscript();

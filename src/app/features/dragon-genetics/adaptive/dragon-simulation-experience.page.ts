@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — the dynamic /dragon-genetics/:simulationId fallback was removed.
+ * Former inputs/signals: simulationId/query params, adaptive run/question state, and embedded lab state.
+ * Former data access: DragonAdaptiveStore and shared workstation context/catalogs.
+ * Former connections: legacy generated-question UI and embedded versions of dedicated workstations.
+ */
 import {
   Component,
   computed,

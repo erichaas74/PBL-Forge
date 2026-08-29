@@ -6,6 +6,11 @@ import {
   createMiniDragonAuthoringPreset,
   createMiniDragonBreedAuthoringPresets,
 } from './mini-dragon-model-export';
+import { MINI_DRAGON_REFERENCE_FORMS } from '@pbl/assembly/rendering/mini-dragon-breed-morphology';
+import {
+  miniDragonHexColor,
+  resolveMiniDragonCoatPaint,
+} from '@pbl/assembly/rendering/mini-dragon-coat';
 
 describe('Mini Dragon model-pack publication', () => {
   it('versions a complete connected Mini Dragon beside the lab dragon', () => {
@@ -96,6 +101,18 @@ describe('Mini Dragon model-pack publication', () => {
     }
 
     const puggle = byId.get('mini-dragon-puggle')!;
+    const pugglePaint = resolveMiniDragonCoatPaint(
+      MINI_DRAGON_REFERENCE_FORMS.puggle,
+      'breed-reference-puggle',
+    );
+    expect(new Set(puggle.state.parts.map(part => part.color))).toEqual(
+      new Set([miniDragonHexColor(pugglePaint.color)]),
+    );
+    expect(puggle.state.parts.every(part =>
+      part.visualProfile?.parameters?.['miniPatchColor'] === miniDragonHexColor(pugglePaint.patchColor)
+      && part.visualProfile.parameters?.['miniAccentColor'] === pugglePaint.accentColor
+      && part.visualProfile.parameters?.['miniPatternStyle'] === pugglePaint.patternStyle
+    )).toBe(true);
     expect(puggle.state.parts.find(part => part.id === 'mini-head')
       ?.visualProfile?.parameters?.['miniEyeSize']).toBeGreaterThan(0.9);
     expect(puggle.state.parts.find(part => part.id === 'mini-horn-left')

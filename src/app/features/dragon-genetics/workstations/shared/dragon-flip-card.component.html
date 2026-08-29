@@ -27,18 +27,29 @@
         @if (renderPortrait()) {
           @if (card().source; as portraitSource) {
             @if (animatedPortrait() && active()) {
-              <app-specimen-viewport
-                [source]="portraitSource"
-                [ariaLabel]="card().name + ' animated dragon portrait'"
-                [interactive]="false"
-                [animated]="!flipped()"
-                [idleMotion]="cardIdleMotion"
-                [autoAbilities]="cardShowcaseAbilities"
-                [controls]="false"
-                [transparent]="true"
-                [showGroundShadow]="false"
-                [framePadding]="1.14"
-              />
+              @if (!deferAnimatedPortrait() || animatedPortraitReady()) {
+                <app-specimen-viewport
+                  [source]="portraitSource"
+                  [ariaLabel]="card().name + ' animated dragon portrait'"
+                  [interactive]="false"
+                  [animated]="!flipped()"
+                  [idleMotion]="cardIdleMotion"
+                  [autoAbilities]="cardShowcaseAbilities"
+                  [controls]="false"
+                  [transparent]="true"
+                  [showGroundShadow]="false"
+                  [framePadding]="1.14"
+                />
+              } @else {
+                <div
+                  class="dragon-card__portrait-placeholder"
+                  role="status"
+                  [attr.aria-label]="'Preparing ' + card().name + ' animated dragon portrait'"
+                >
+                  <span aria-hidden="true">{{ card().name.slice(0, 1) }}</span>
+                  <small>Preparing dragon&hellip;</small>
+                </div>
+              }
             } @else {
               <app-specimen-thumb
                 [source]="portraitSource"

@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — generic PBL project/activity contracts used by the retired project UI.
+ * Former inputs/signals: serializable project, activity, and response values; this module is pure.
+ * Former data access: none directly; ProjectRepository mapped these contracts to Firestore.
+ * Former connections: retired catalog, project, activity-player, teacher, and project repository.
+ */
 export type ProjectStatus = 'draft' | 'published' | 'archived';
 export type ProjectAccent = 'ember' | 'fury' | 'gold';
 export type ActivityType = 'choice' | 'matching' | 'reflection';

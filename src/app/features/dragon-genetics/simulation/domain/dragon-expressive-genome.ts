@@ -12,7 +12,6 @@ export type ExpressiveDragonTraitId =
   | 'scales'
   | 'body-color'
   | 'crest'
-  | 'glow'
   | 'fangs'
   | 'spikes'
   | 'eye-color';
@@ -94,16 +93,8 @@ export const EXPRESSIVE_DRAGON_TRAITS: readonly ExpressiveDragonTraitDefinition[
     heterozygousPhenotype: 'Two colors',
   },
   trait('crest', 'Crest height', 'R', 'Chr 3', 'Tall crest', 'Low crest', 'Changes the height of crown fins on the head.'),
-  /*
-   * Bioluminescence replaced an ear-shape gene whose two phenotypes — a small
-   * pointed flap or a small rounded one — were nearly impossible to tell apart
-   * on a thumbnail, which made it useless for the one job a trait has here:
-   * being read off the animal. Light is a channel nothing else in this genome
-   * uses, so it can never be mistaken for a horn, a crest, or a colour.
-   */
-  trait('glow', 'Bioluminescence', 'N', 'Chr 4', 'Glowing markings', 'No glow', 'Lights a row of living lanterns along the flanks, throat and tail.'),
   trait('fangs', 'Fang length', 'G', 'Chr 4', 'Long fangs', 'Short fangs', 'Changes the size of the real jaw teeth.'),
-  trait('spikes', 'Back spikes', 'P', 'Chr 4', 'Many tall spikes', 'Few low spikes', 'Changes dorsal spike number and height.'),
+  trait('spikes', 'Back spike rows', 'P', 'Chr 4', 'Three tall rows', 'One tall row', 'P_ grows three rows of tall dorsal spikes; pp grows one tall centre row.'),
   {
     ...trait('eye-color', 'Eye glow', 'E', 'Chr X', 'Amber eyes', 'Blue eyes', 'An X-linked eye trait used to compare XX and XY inheritance.'),
     inheritance: 'x-linked',
@@ -122,7 +113,6 @@ export const DEFAULT_EXPRESSIVE_DRAGON: ExpressiveDragonProfile = {
     scales: ['S', 's'],
     'body-color': ['B', 'b'],
     crest: ['R', 'r'],
-    glow: ['N', 'n'],
     fangs: ['G', 'g'],
     spikes: ['P', 'p'],
     'eye-color': ['E', 'e'],

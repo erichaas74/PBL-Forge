@@ -1,3 +1,9 @@
+/**
+ * Runtime status: RETIRED — generic /project/:projectId now redirects to /dragon-genetics.
+ * Former inputs/signals: projectId route parameter and project/activity Observables.
+ * Former data access: ProjectRepository project and activity collections.
+ * Former connections: generic activity-player routes.
+ */
 import { AsyncPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';

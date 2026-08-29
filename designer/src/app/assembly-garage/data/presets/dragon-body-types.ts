@@ -8,6 +8,7 @@ import { AssemblyPartDefinition } from '../assembly-part-definitions';
 import {
   buildCatalogPresetAssembly,
   CatalogPresetPart,
+  harmonizeClassicDragonPalette,
 } from './classic-dragon-test';
 
 interface DragonWingEntry {
@@ -172,6 +173,22 @@ const BODY_PRESET_CONFIGS: readonly DragonBodyPresetConfig[] = [
   },
 ];
 
+/** Lightweight Arena metadata for Designer surfaces that do not need a full assembly. */
+export interface DragonBodyTypeOption {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly bodyDefinitionId: string;
+}
+
+export const DRAGON_BODY_TYPE_OPTIONS: readonly DragonBodyTypeOption[] =
+  BODY_PRESET_CONFIGS.map(({ id, name, description, bodyDefinitionId }) => ({
+    id,
+    name,
+    description,
+    bodyDefinitionId,
+  }));
+
 export const DRAGON_BODY_TYPE_PRESETS: readonly AssemblyPreset[] =
   createDragonBodyTypePresets();
 
@@ -185,10 +202,12 @@ export function createDragonBodyTypePresets(
     config.name,
     config.description,
     reinforceDragonJoints(
-      buildCatalogPresetAssembly(
-        dragonBodyPresetParts(config),
-        config.basePosition,
-        resolveDefinition,
+      harmonizeClassicDragonPalette(
+        buildCatalogPresetAssembly(
+          dragonBodyPresetParts(config),
+          config.basePosition,
+          resolveDefinition,
+        ),
       ),
     ),
   ));

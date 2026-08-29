@@ -1,7 +1,7 @@
 <aside class="evidence-card" aria-label="Capture lesson evidence">
   <small>Evidence available</small>
   <strong>{{ summary() }}</strong>
-  <span>Attach this expression result to your lesson synthesis?</span>
+  <span>{{ prompt() }}</span>
   <div>
     <button type="button" class="capture" (click)="capture.emit()">Attach evidence</button>
     <button type="button" (click)="dismiss.emit()">Not now</button>

@@ -1,0 +1,54 @@
+<main class="adventure" [attr.data-theme]="definition().theme">
+  <header class="adventure__hero">
+    <div>
+      <p>{{ definition().kind === 'commission' ? 'Optional commission' : 'Optional adventure' }}</p>
+      <h1>{{ definition().title }}</h1>
+      <span>{{ definition().subtitle }} · {{ pathLabel() }}</span>
+    </div>
+    <aside>
+      <small>Client</small>
+      <strong>{{ definition().clientName }}</strong>
+      <span>{{ definition().clientRole }}</span>
+    </aside>
+  </header>
+
+  <nav class="chapter-track" aria-label="Adventure chapters">
+    @for (item of definition().chapters; track item.id; let index = $index) {
+      <button
+        type="button"
+        [class.current]="item.id === chapter().id"
+        [class.available]="chapterIsAvailable(index)"
+        [disabled]="!chapterIsAvailable(index)"
+        (click)="chapterSelected.emit(item.id)"
+      >
+        <span>{{ index + 1 }}</span>
+        {{ item.kind === 'investigation' ? 'Investigate' : item.kind }}
+      </button>
+    }
+  </nav>
+
+  <div class="adventure__layout">
+    <section class="chapter-card">
+      <header>
+        <p>{{ chapter().kicker }}</p>
+        <h2>{{ chapter().title }}</h2>
+        <span>{{ chapter().summary }}</span>
+      </header>
+      <ng-content />
+    </section>
+
+    <aside class="checkpoint-card">
+      <p>Case checkpoints</p>
+      <h2>Evidence trail</h2>
+      <ol>
+        @for (checkpoint of definition().checkpoints; track checkpoint.id) {
+          <li [class.complete]="checkpointComplete(checkpoint.id)">
+            <span aria-hidden="true">{{ checkpointComplete(checkpoint.id) ? '✓' : '○' }}</span>
+            {{ checkpoint.label }}
+          </li>
+        }
+      </ol>
+      <small>Checkpoints update from records saved in the investigation workspace.</small>
+    </aside>
+  </div>
+</main>

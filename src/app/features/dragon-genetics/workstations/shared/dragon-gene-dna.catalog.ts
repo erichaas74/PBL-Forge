@@ -406,27 +406,6 @@ export const DRAGON_GENE_DNA_CATALOG: readonly DragonGeneDnaRecord[] = [
     },
   ),
   defineGene(
-    'glow',
-    '#ff6d68',
-    'TCACCTGAGCTACCTGACGGATTC',
-    { type: 'substitution', index: 2, referenceBase: 'A', variantBase: 'G' },
-    {
-      proteinId: 'luciferin-oxidase',
-      proteinCode: 'ENZ-N05',
-      name: 'Luciferin oxidase',
-      role: 'enzyme',
-      cellRole: 'Breaks a charged luciferin molecule apart, releasing light as it does.',
-      traitContribution:
-        'The light-releasing fragment is the glow itself, so the trait appears only while this reaction runs.',
-      molecules: {
-        action: 'break-down',
-        fragmentA: ['spent-luciferin', 'Spent luciferin'],
-        fragmentB: ['light-fragment', 'Light-releasing fragment'],
-        joined: ['charged-luciferin', 'Charged luciferin'],
-      },
-    },
-  ),
-  defineGene(
     'fangs',
     '#49a8ff',
     'GACTGCTACCGTACTGGCCCAGAA',

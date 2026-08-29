@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — explicit DNA replication, mutation, repair, and expression lab route.
+ * Inputs/signals: current workstation context and lesson-aware return URL.
+ * Data access: child lab repositories and shared gene/DNA catalogs supply scientific state.
+ * Connects to: DragonDnaRepairLabComponent, retained activity progress, and lesson/home navigation.
+ */
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonJourneyNavigationService } from '../../journey/dragon-journey-navigation.service';

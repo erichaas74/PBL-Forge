@@ -1,3 +1,9 @@
+/**
+ * Runtime status: ACTIVE — source contract and default data for the current public curriculum.
+ * Inputs/signals: normalized teacher-authored document data; this module itself is pure and signal-free.
+ * Data access: default five-lesson document in code, with repository normalization at the boundary.
+ * Connects to: path/lesson pages, teacher editor, workstation launch context, and case anchors.
+ */
 export type DragonPathContextId = 'arena' | 'mini-show';
 
 export interface DragonLessonPlanQuestion {
@@ -13,6 +19,14 @@ export interface DragonLessonPlanWorkstation {
   route: string;
   guide: string;
   required: boolean;
+  /**
+   * Extra query parameters the lesson launch appends to the workstation route.
+   *
+   * A workstation that hosts several authored investigations (the Pedigree Lab archive) needs the
+   * lesson to say which one it opens. The route itself stays parameter-free so launch-context
+   * validation keeps comparing routes literally.
+   */
+  launchParams?: Readonly<Record<string, string>>;
 }
 
 export interface DragonSharedLesson {
@@ -20,7 +34,17 @@ export interface DragonSharedLesson {
   title: string;
   learningGoal: string;
   guide: string;
+  /** For an optional lesson this is the teacher's "open it to students" switch. */
   published: boolean;
+  /**
+   * An extra lesson sits outside the numbered core sequence.
+   *
+   * It is never counted in the learning path order and never blocks the next lesson. Students
+   * reach it from the extra-lesson section of {@link anchorLessonId} and from the path index.
+   */
+  optional?: boolean;
+  /** Which core lesson offers this extra lesson. Ignored unless `optional` is true. */
+  anchorLessonId?: string | null;
   questions: readonly DragonLessonPlanQuestion[];
   workstations: readonly DragonLessonPlanWorkstation[];
 }
@@ -39,7 +63,7 @@ export interface DragonPathContext {
  * questions.
  */
 export interface DragonLessonPlanDocument {
-  schemaVersion: 6;
+  schemaVersion: 7;
   revision: number;
   title: string;
   updatedAtIso: string;
@@ -48,7 +72,7 @@ export interface DragonLessonPlanDocument {
 }
 
 export const DEFAULT_DRAGON_LESSON_PLAN: DragonLessonPlanDocument = {
-  schemaVersion: 6,
+  schemaVersion: 7,
   revision: 1,
   title: 'Dragon Genetics',
   updatedAtIso: '2026-08-22T00:00:00.000Z',
@@ -273,6 +297,140 @@ export const DEFAULT_DRAGON_LESSON_PLAN: DragonLessonPlanDocument = {
         },
       ],
     },
+    {
+      id: 'pedigree-reading',
+      title: 'Reading a Pedigree',
+      learningGoal:
+        'Use pedigree records to determine which living dragons must carry an allele that is no longer visible.',
+      guide:
+        'Open the Frost King archive, read the register in any order, and choose the inheritance model you think the records support. Mark the dragons your reasoning forces, and spend a sequencing sample only where the pedigree cannot settle the answer.',
+      published: true,
+      optional: true,
+      anchorLessonId: 'meiosis-and-dragon-eggs',
+      workstations: [
+        {
+          id: 'pedigree-lab',
+          title: 'Pedigree Lab',
+          route: '/dragon-genetics/pedigree-lab',
+          guide:
+            'Trace Vyrak’s descendants, record carrier calls with the relationship that forces them, and check a call against a sequencing result.',
+          required: true,
+          launchParams: { investigation: 'frost-scale' },
+        },
+      ],
+      questions: [
+        {
+          id: 'pedigree-reading-appearance',
+          prompt: 'Which dragons show the lost appearance, and in which generations do they appear?',
+          kind: 'written-response',
+        },
+        {
+          id: 'pedigree-reading-carrier',
+          prompt:
+            'Name one dragon your records prove must carry the allele, and give the family relationship that forces it.',
+          kind: 'written-response',
+        },
+        {
+          id: 'pedigree-reading-model',
+          prompt: 'Which inheritance model did you choose, and which record would be impossible under a different one?',
+          kind: 'written-response',
+        },
+        {
+          id: 'pedigree-reading-sequencing',
+          prompt: 'Where did a sequencing result agree with your deduction, and where did it change it?',
+          kind: 'written-response',
+        },
+      ],
+    },
+    {
+      id: 'pedigree-models',
+      title: 'Choosing Between Inheritance Models',
+      learningGoal:
+        'Use contradictions across a whole pedigree to decide between competing inheritance models, and spend limited sequencing where it separates them.',
+      guide:
+        'Open the Stonewake archive and test more than one model against the same records. Read which records a model cannot explain, then choose the sequencing sample that separates the models still standing.',
+      published: true,
+      optional: true,
+      anchorLessonId: 'meiosis-and-dragon-eggs',
+      workstations: [
+        {
+          id: 'pedigree-lab',
+          title: 'Pedigree Lab',
+          route: '/dragon-genetics/pedigree-lab',
+          guide:
+            'Compare inheritance models against the Stonewake tail records, and use the contradiction list as evidence rather than a score.',
+          required: true,
+          launchParams: { investigation: 'stonewake-tail' },
+        },
+      ],
+      questions: [
+        {
+          id: 'pedigree-models-first',
+          prompt: 'Which model did you test first, and which record did it fail to explain?',
+          kind: 'written-response',
+        },
+        {
+          id: 'pedigree-models-sample',
+          prompt: 'Which dragon did you sequence to separate two models, and why that dragon rather than another?',
+          kind: 'written-response',
+        },
+        {
+          id: 'pedigree-models-middle',
+          prompt: 'Under the model that survived, what does the middle appearance tell you about allele copies?',
+          kind: 'written-response',
+        },
+        {
+          id: 'pedigree-models-breeding',
+          prompt:
+            'What would change about a pairing you were willing to authorise if the bloodline also carried a harmful recessive?',
+          kind: 'written-response',
+        },
+      ],
+    },
+    {
+      id: 'pedigree-chromosome',
+      title: 'Locating a Gene on a Chromosome',
+      learningGoal:
+        'Use sex-linked inheritance evidence to determine which chromosome a gene sits on, and state the limit of that evidence.',
+      guide:
+        'Open the Duskmere archive. Compare which sexes show the trait across generations, then find the single result that no autosomal model can account for. State where the gene sits and what would disprove your claim.',
+      published: false,
+      optional: true,
+      anchorLessonId: 'meiosis-and-dragon-eggs',
+      workstations: [
+        {
+          id: 'pedigree-lab',
+          title: 'Pedigree Lab',
+          route: '/dragon-genetics/pedigree-lab',
+          guide:
+            'Trace the Duskmere eye through the mothers’ lines, and sequence a male at that locus when you are ready to test an autosomal model.',
+          required: true,
+          launchParams: { investigation: 'duskmere-eye' },
+        },
+      ],
+      questions: [
+        {
+          id: 'pedigree-chromosome-pattern',
+          prompt: 'What is the pattern of which sexes show the trait, across the generations you traced?',
+          kind: 'written-response',
+        },
+        {
+          id: 'pedigree-chromosome-disproof',
+          prompt: 'Which single result made every autosomal model impossible, and why?',
+          kind: 'written-response',
+        },
+        {
+          id: 'pedigree-chromosome-males',
+          prompt: 'Under an X-linked recessive model, why can a male never be a silent carrier at this locus?',
+          kind: 'written-response',
+        },
+        {
+          id: 'pedigree-chromosome-limit',
+          prompt: 'What would you have to observe in a future clutch for your chromosome claim to be wrong?',
+          kind: 'written-response',
+        },
+      ],
+    },
   ],
 };
 
@@ -281,13 +439,13 @@ export function isDragonPathContextId(value: string | null): value is DragonPath
 }
 
 export function normalizeDragonLessonPlan(value: unknown): DragonLessonPlanDocument {
-  if (!isRecord(value) || value['schemaVersion'] !== 6) return structuredClone(DEFAULT_DRAGON_LESSON_PLAN);
+  if (!isRecord(value) || value['schemaVersion'] !== 7) return structuredClone(DEFAULT_DRAGON_LESSON_PLAN);
   const paths = isRecord(value['paths']) ? value['paths'] : {};
   const lessons = Array.isArray(value['lessons'])
     ? value['lessons'].flatMap((item, index) => normalizeLesson(item, index))
     : [];
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     revision: positiveInteger(value['revision'], 1),
     title: text(value['title'], DEFAULT_DRAGON_LESSON_PLAN.title),
     updatedAtIso: text(value['updatedAtIso'], DEFAULT_DRAGON_LESSON_PLAN.updatedAtIso),
@@ -319,6 +477,8 @@ function normalizeLesson(value: unknown, index: number): DragonSharedLesson[] {
     learningGoal: text(value['learningGoal'], ''),
     guide: text(value['guide'], ''),
     published: value['published'] === true,
+    optional: value['optional'] === true,
+    anchorLessonId: slug(text(value['anchorLessonId'], '')) || null,
     questions: Array.isArray(value['questions'])
       ? value['questions'].flatMap(normalizeQuestion)
       : [],
@@ -348,13 +508,23 @@ function normalizeWorkstation(value: unknown, index: number): DragonLessonPlanWo
   const id = slug(text(value['id'], `workstation-${index + 1}`));
   const route = text(value['route'], '');
   if (!route.startsWith('/dragon-genetics/')) return [];
+  const launchParams = normalizeLaunchParams(value['launchParams']);
   return [{
     id,
     title: text(value['title'], `Workstation ${index + 1}`),
     route,
     guide: text(value['guide'], ''),
     required: value['required'] !== false,
+    ...(launchParams ? { launchParams } : {}),
   }];
+}
+
+function normalizeLaunchParams(value: unknown): Readonly<Record<string, string>> | null {
+  if (!isRecord(value)) return null;
+  const entries = Object.entries(value).filter(
+    (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim() !== '',
+  );
+  return entries.length ? Object.fromEntries(entries.map(([key, item]) => [key, item.trim()])) : null;
 }
 
 function uniqueById(lessons: readonly DragonSharedLesson[]): DragonSharedLesson[] {
