@@ -90,6 +90,7 @@ export function getAssemblyRenderSignature(part: AssemblyPart): string {
       ? {
           meshType: profile.meshType,
           profileId: profile.profileId,
+          generatorId: profile.generatorId ?? null,
           assetId: profile.assetId ?? null,
           materialId: profile.materialId ?? null,
           parameters,

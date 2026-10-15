@@ -29,8 +29,9 @@ current Dragon Genetics front door.
 
 ## Shared student runtime
 
-- `src/app/shared/assembly/` — game-neutral assembly contracts, cloning, physics, persistence helpers,
-  generated dragon anatomy, Three.js rendering, and viewport primitives shared with Designer.
+- `src/app/shared/assembly/` — game-neutral assembly contracts, the universal part graph and package
+  schema, generator plugins, cloning, physics, persistence helpers, generated anatomy/machines,
+  Three.js rendering, and viewport primitives shared with Designer.
 - `src/app/shared/assembly-arena/` — reusable battle physics, rendering, strategies, and controls.
 - `src/app/shared/creation-library/` — built-in and browser-local assembly/move/scenario assets.
 - `src/app/shared/dragon-visuals/` — cross-workstation scientific and renderer primitives. It must
@@ -41,7 +42,9 @@ Shared runtime code must not import historical prototypes or private Designer so
 
 ## Dragon Designer
 
-- `designer/src/app/parts-lab/` — mesh, surface, and proportion authoring.
+- `designer/src/app/parts-lab/` — schema-generated mesh, surface, custom-piece, and proportion authoring.
+- `designer/src/app/project-packages/` — private Dragon, Vehicle, Robot, and Primitive manifests and
+  inspector schemas built on the shared package contract.
 - `designer/src/app/assembly-garage/` — part, joint, physics, JSON, preset, and model-pack authoring.
 - `designer/src/app/dragon-garage.page.ts` — dragon-only Garage host.
 - `model-packs/dragon-model-pack.v1.json` — committed and validated data consumed by PBL Forge.

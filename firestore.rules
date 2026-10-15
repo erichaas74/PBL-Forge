@@ -301,6 +301,182 @@ service cloud.firestore {
         && request.resource.data.arenaScenario.id == 'dragon-duel-ring';
     }
 
+    function dragonPart(partId) {
+      return get(/databases/$(database)/documents/dragonParts/$(partId));
+    }
+
+    function ownsDragonPart(partId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/dragonParts/$(partId))
+        && (isAdmin() || dragonPart(partId).data.ownerUid == request.auth.uid);
+    }
+
+    function editsDragonPart(partId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/dragonParts/$(partId))
+        && (isAdmin()
+          || dragonPart(partId).data.ownerUid == request.auth.uid
+          || request.auth.uid in dragonPart(partId).data.editorUids);
+    }
+
+    function readsDragonPart(partId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/dragonParts/$(partId))
+        && (isAdmin()
+          || dragonPart(partId).data.status == 'published'
+          || dragonPart(partId).data.ownerUid == request.auth.uid
+          || request.auth.uid in dragonPart(partId).data.editorUids
+          || request.auth.uid in dragonPart(partId).data.viewerUids);
+    }
+
+    function validDragonPart(partId) {
+      return request.resource.data.keys().hasAll([
+          'schemaVersion', 'ownerUid', 'editorUids', 'viewerUids', 'name', 'description',
+          'tags', 'sourceDefinitionId', 'profileId', 'status', 'currentRevisionId',
+          'publishedRevisionId', 'revisionNumber', 'createdAt', 'updatedAt', 'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'ownerUid', 'editorUids', 'viewerUids', 'name', 'description',
+          'tags', 'sourceDefinitionId', 'profileId', 'status', 'currentRevisionId',
+          'publishedRevisionId', 'revisionNumber', 'createdAt', 'updatedAt', 'updatedBy'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.ownerUid is string
+        && request.resource.data.ownerUid.size() > 0
+        && request.resource.data.ownerUid.size() <= 128
+        && request.resource.data.editorUids is list
+        && request.resource.data.editorUids.size() <= 24
+        && request.resource.data.viewerUids is list
+        && request.resource.data.viewerUids.size() <= 48
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 500
+        && request.resource.data.tags is list
+        && request.resource.data.tags.size() <= 12
+        && request.resource.data.sourceDefinitionId is string
+        && request.resource.data.sourceDefinitionId.size() > 0
+        && request.resource.data.sourceDefinitionId.size() <= 128
+        && request.resource.data.profileId is string
+        && request.resource.data.profileId.size() > 0
+        && request.resource.data.profileId.size() <= 128
+        && request.resource.data.status in ['draft', 'review', 'published', 'archived']
+        && request.resource.data.currentRevisionId is string
+        && request.resource.data.currentRevisionId.size() <= 128
+        && request.resource.data.publishedRevisionId is string
+        && request.resource.data.publishedRevisionId.size() <= 128
+        && request.resource.data.revisionNumber is int
+        && request.resource.data.revisionNumber >= 0
+        && request.resource.data.revisionNumber <= 1000000
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy == request.auth.uid
+        && (request.resource.data.status != 'published'
+          || (request.resource.data.publishedRevisionId.size() > 0
+            && existsAfter(
+              /databases/$(database)/documents/dragonParts/$(partId)/revisions/$(request.resource.data.publishedRevisionId)
+            )));
+    }
+
+    function unchangedDragonPartIdentity() {
+      return request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.sourceDefinitionId == resource.data.sourceDefinitionId
+        && request.resource.data.profileId == resource.data.profileId
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function validDragonPartRevisionAdvance(partId) {
+      return request.resource.data.revisionNumber == resource.data.revisionNumber + 1
+        && request.resource.data.currentRevisionId.size() > 0
+        && existsAfter(
+          /databases/$(database)/documents/dragonParts/$(partId)/revisions/$(request.resource.data.currentRevisionId)
+        )
+        && getAfter(
+          /databases/$(database)/documents/dragonParts/$(partId)/revisions/$(request.resource.data.currentRevisionId)
+        ).data.revisionNumber == request.resource.data.revisionNumber;
+    }
+
+    function validDragonPartRevision(partId, revisionId) {
+      return request.resource.data.keys().hasAll([
+          'schemaVersion', 'partId', 'revisionNumber', 'parentRevisionId',
+          'sourceDefinitionId', 'profileId', 'dimensions', 'snapPoints', 'parameters',
+          'assetIds', 'changeNote', 'createdBy', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'partId', 'revisionNumber', 'parentRevisionId',
+          'sourceDefinitionId', 'profileId', 'dimensions', 'snapPoints', 'parameters',
+          'assetIds', 'changeNote', 'createdBy', 'createdAt'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.partId == partId
+        && request.resource.data.revisionNumber == dragonPart(partId).data.revisionNumber + 1
+        && request.resource.data.parentRevisionId == dragonPart(partId).data.currentRevisionId
+        && request.resource.data.sourceDefinitionId == dragonPart(partId).data.sourceDefinitionId
+        && request.resource.data.profileId == dragonPart(partId).data.profileId
+        && request.resource.data.dimensions is map
+        && request.resource.data.dimensions.keys().hasOnly(['x', 'y', 'z'])
+        && request.resource.data.dimensions.x is number
+        && request.resource.data.dimensions.x > 0
+        && request.resource.data.dimensions.y is number
+        && request.resource.data.dimensions.y > 0
+        && request.resource.data.dimensions.z is number
+        && request.resource.data.dimensions.z > 0
+        && request.resource.data.snapPoints is map
+        && request.resource.data.snapPoints.size() <= 48
+        && request.resource.data.parameters is map
+        && request.resource.data.parameters.size() <= 192
+        && request.resource.data.assetIds is list
+        && request.resource.data.assetIds.size() <= 32
+        && request.resource.data.changeNote is string
+        && request.resource.data.changeNote.size() <= 300
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && getAfter(
+          /databases/$(database)/documents/dragonParts/$(partId)
+        ).data.currentRevisionId == revisionId
+        && getAfter(
+          /databases/$(database)/documents/dragonParts/$(partId)
+        ).data.revisionNumber == request.resource.data.revisionNumber;
+    }
+
+    function validDragonPartAsset(partId) {
+      return request.resource.data.keys().hasAll([
+          'schemaVersion', 'partId', 'fileName', 'storagePath', 'byteLength', 'meshCount',
+          'triangleCount', 'materialCount', 'textureCount', 'maxTextureDimension',
+          'createdBy', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'partId', 'fileName', 'storagePath', 'byteLength', 'meshCount',
+          'triangleCount', 'materialCount', 'textureCount', 'maxTextureDimension',
+          'createdBy', 'createdAt'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.partId == partId
+        && request.resource.data.fileName is string
+        && request.resource.data.fileName.size() > 0
+        && request.resource.data.fileName.size() <= 96
+        && request.resource.data.storagePath is string
+        && request.resource.data.storagePath.size() <= 300
+        && request.resource.data.byteLength is int
+        && request.resource.data.byteLength > 0
+        && request.resource.data.byteLength <= 5242880
+        && request.resource.data.meshCount is int
+        && request.resource.data.meshCount > 0
+        && request.resource.data.meshCount <= 32
+        && request.resource.data.triangleCount is int
+        && request.resource.data.triangleCount > 0
+        && request.resource.data.triangleCount <= 50000
+        && request.resource.data.materialCount is int
+        && request.resource.data.materialCount <= 4
+        && request.resource.data.textureCount is int
+        && request.resource.data.textureCount <= 8
+        && request.resource.data.maxTextureDimension is int
+        && request.resource.data.maxTextureDimension <= 2048
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if signedIn()
@@ -352,6 +528,70 @@ service cloud.firestore {
       match /activities/{activityId} {
         allow read: if isPublished(projectId) || ownsProject(projectId);
         allow write: if ownsProject(projectId);
+      }
+    }
+
+    // Collaborative Designer parts. The mutable root is a pointer and permission
+    // record; geometry lives in immutable revisions so every save can be restored.
+    match /dragonParts/{partId} {
+      // Use the query candidate (`resource`) here. Calling get() on the same
+      // wildcard path works for one document but cannot authorize collection queries.
+      allow read: if signedIn()
+        && (isAdmin()
+          || resource.data.status == 'published'
+          || resource.data.ownerUid == request.auth.uid
+          || request.auth.uid in resource.data.editorUids
+          || request.auth.uid in resource.data.viewerUids);
+      allow create: if isTeacher()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.editorUids.size() == 0
+        && request.resource.data.viewerUids.size() == 0
+        && request.resource.data.currentRevisionId == ''
+        && request.resource.data.publishedRevisionId == ''
+        && request.resource.data.revisionNumber == 0
+        && request.resource.data.status == 'draft'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && validDragonPart(partId);
+      allow update: if signedIn()
+        && validDragonPart(partId)
+        && unchangedDragonPartIdentity()
+        && request.resource.data.updatedAt == request.time
+        && (
+          (ownsDragonPart(partId)
+            && ((request.resource.data.currentRevisionId == resource.data.currentRevisionId
+                && request.resource.data.revisionNumber == resource.data.revisionNumber)
+              || validDragonPartRevisionAdvance(partId)))
+          || (editsDragonPart(partId)
+            && request.resource.data.editorUids == resource.data.editorUids
+            && request.resource.data.viewerUids == resource.data.viewerUids
+            && request.resource.data.publishedRevisionId == resource.data.publishedRevisionId
+            && request.resource.data.status == resource.data.status
+            && ((request.resource.data.currentRevisionId == resource.data.currentRevisionId
+                && request.resource.data.revisionNumber == resource.data.revisionNumber)
+              || validDragonPartRevisionAdvance(partId)))
+        );
+      allow delete: if false;
+
+      match /revisions/{revisionId} {
+        allow get, list: if readsDragonPart(partId)
+          && (dragonPart(partId).data.status != 'published'
+            || ownsDragonPart(partId)
+            || editsDragonPart(partId)
+            || request.auth.uid in dragonPart(partId).data.viewerUids
+            || dragonPart(partId).data.publishedRevisionId == revisionId);
+        allow create: if signedIn()
+          && editsDragonPart(partId)
+          && validDragonPartRevision(partId, revisionId);
+        allow update, delete: if false;
+      }
+
+      match /assets/{assetId} {
+        allow read: if readsDragonPart(partId);
+        allow create: if signedIn()
+          && editsDragonPart(partId)
+          && validDragonPartAsset(partId);
+        allow update, delete: if false;
       }
     }
 

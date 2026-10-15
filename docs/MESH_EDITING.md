@@ -33,6 +33,10 @@ domesticated mini dragon of the Mini Dragon Show is a separate animal with its o
 | Concern                                                                        | Path                                                                                  |
 | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
 | Shared assembly object routing                                                 | `src/app/shared/assembly/rendering/three-assembly-mesh.factory.ts`                    |
+| Universal part graph and package-schema contracts                             | `src/app/shared/assembly/domain/assembly-part-{graph,schema}.ts`                      |
+| Project generator plugin registry                                              | `src/app/shared/assembly/rendering/assembly-generator-registry.ts`                    |
+| Vehicle and Robot procedural generators                                        | `src/app/shared/assembly/rendering/machine-procedural-mesh.factory.ts`                |
+| Designer package manifests and schema controls                                 | `designer/src/app/project-packages/assembly-project-packages.ts`                     |
 | Primitive geometry, materials, and render signatures                           | `src/app/shared/assembly/rendering/assembly-primitive-rendering.ts`                   |
 | Appearance, damage, highlighting, and material traversal                       | `src/app/shared/assembly/rendering/assembly-appearance.ts`                            |
 | Geometry, material, and owned-texture disposal                                 | `src/app/shared/assembly/rendering/assembly-object-disposal.ts`                       |
@@ -48,6 +52,7 @@ domesticated mini dragon of the Mini Dragon Show is a separate animal with its o
 | **Head skull** — lofted skull geometry and neck socket                         | `src/app/shared/assembly/rendering/dragon-head-skull.ts`                              |
 | **Head-decoration orchestration**                                              | `src/app/shared/assembly/rendering/dragon-head-decorations.ts`                        |
 | **Head sensory features** — horns, brows, eyes, pupils, highlights             | `src/app/shared/assembly/rendering/dragon-head-sensory-features.ts`                   |
+| **Custom head/jaw recipe** — bounded primitives, transforms, mirror, materials | `src/app/shared/assembly/rendering/dragon-custom-part-recipe.ts`                      |
 | **Inherited head features** — genetic crest and sex-specific frills            | `src/app/shared/assembly/rendering/dragon-head-expressive-features.ts`                |
 | **Male display frill** — curved spines, tessellated web, jaw spines            | `src/app/shared/assembly/rendering/dragon-head-male-frill.ts`                         |
 | **Jaw geometry** — tapered snout, nostrils, nose horn, teeth, fangs            | `src/app/shared/assembly/rendering/dragon-jaw-mesh.ts`                                |
@@ -244,14 +249,37 @@ isolated or assembled blueprint and overrides `sex` only on selected `dragon-hea
 Female and male therefore show their different generated display anatomy without changing the
 authored model pack, Designer draft, or student genome.
 
+The universal Builder is persistent and definition-owned. Its `customPartRecipe` parameter is a
+versioned JSON string because the existing visual-parameter contract only admits scalar values.
+`dragon-custom-part-recipe.ts` retains the versioned compatibility parser for that payload, while
+`three-assembly-mesh.factory.ts` appends its generated group to every package part after the selected
+generator builds the base object. Version two discriminates primitive and
+imported-asset pieces while parsing version-one primitives as a migration. Keep the recipe bounded and
+fail-safe: unknown versions and malformed pieces render nothing, values are clamped, identifiers are
+restricted, and no more than 32 pieces are accepted. Positions and scale are fractions of the parent
+dimensions; mirrored Z is centerline spacing. Add future fields through another explicit migration
+rather than silently changing version-two semantics.
+
+Designer GLB imports are validated and normalized in `assembly-imported-asset.ts`, persisted by
+`ImportedPartAssetsStore`, and registered with the shared `assembly-asset-loader.ts` cache. The recipe
+stores only the content-derived asset id, never the binary or a blob URL. This makes local reloads
+durable without inflating the model pack. The Parts Lab Shared tab can move those bytes between
+Designer browsers through a part-scoped Cloud Storage path. Student publication remains a separate
+contract: the student runtime does not resolve private shared-part records, so an imported binary
+still needs a reviewed public asset/manifest before a model pack can use it in PBL Forge.
+
 ## Making a number tunable instead of hardcoded
 
-Three steps, and it becomes both a Parts Lab slider and a per-part override:
+For Dragon renderer parameters, three steps make it both a Parts Lab slider and a per-part override:
 
 1. Add the field to the style interface and `DEFAULT_DRAGON_STYLE` in `dragon-style.ts`.
 2. In the builder, replace the literal with
    `visualNumber(part, 'yourKey', defaults.yourKey)`.
-3. Add a row to `STYLE_CONTROLS` with a min, max, and step.
+3. Add a row to the canonical visual-parameter registry with its range and ownership.
+
+For Vehicle, Robot, or a new project package, add the control to the relevant
+`AssemblyPartProfileSchema` and read the same key in its registered generator. Number, boolean,
+select, colour, surface, and direct-handle metadata all come from that one schema row.
 
 Keep it a fraction of `dims`, never a world measurement — genetics rescales
 these parts per genome.

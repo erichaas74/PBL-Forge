@@ -166,6 +166,7 @@ function optionalVisualProfile(value: unknown, label: string): AssemblyVisualPro
   return {
     profileId,
     meshType,
+    generatorId: optionalString(profile['generatorId'], `${label}.generatorId`),
     materialId: optionalString(profile['materialId'], `${label}.materialId`),
     assetId: optionalString(profile['assetId'], `${label}.assetId`),
     parameters,

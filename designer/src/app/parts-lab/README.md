@@ -1,9 +1,9 @@
-# Dragon Part Workshop
+# Universal Part Workshop
 
-A unified workbench for Arena and Mini Dragon Show part meshes. The selected mesh remains visible
-while the right-side inspector switches between Shape, Layers, Surface, Sockets, Genes, and Test. The
-contact-sheet library now sits below the active workshop instead of separating part selection from
-editing.
+A unified workbench for Dragon, Vehicle, Robot, and Primitive package parts. The selected mesh remains
+visible while the capability-filtered inspector switches between Shape, Layers, Builder, Shared,
+Surface, Sockets, Genes, and Test. Package controls are data, not page-specific slider code; see
+[`docs/ASSEMBLY_PROJECT_PACKAGES.md`](../../../../docs/ASSEMBLY_PROJECT_PACKAGES.md).
 
 The Layers inspector groups the flat renderer parameter list into anatomical ideas: core form,
 belly, armor forms, spike rows, feather mantle, dorsal scales, plates, fins, and other appendages.
@@ -23,6 +23,61 @@ genetics-owned pigment and pattern choice intact while exposing relief depth, ro
 detail frequency, marking intensity, and marking frequency. Texture-frequency changes clone only a
 small UV-transform wrapper; the cached canvas texture pixels remain shared across dragons. Wing
 membrane veins remain anatomy-mapped and do not tile like scale or keratin maps.
+
+The **Builder** inspector is the custom-part recipe editor for every package profile that advertises
+the capability. It adds bounded sphere, box, cylinder, and cone pieces or imports one self-contained
+binary glTF 2.0 (`.glb`) file as a piece. The stored material slots retain their historical ids but
+are presented as primary, hard-accent, light-hard, translucent, and dark-detail surfaces. Imported
+pieces may keep their original materials. Every piece exposes parent-relative position, rotation, and non-uniform scale;
+it can be mirrored, hidden, duplicated, renamed, selected in an outliner, and removed. The selected
+piece is highlighted in both isolated and whole-dragon previews.
+
+Imported GLBs are checked before use: 5 MB, 32 meshes, 50,000 triangles, four materials, eight
+textures, and 2048 pixels on either texture edge are the current maxima. Animations, skinned meshes,
+embedded lights, and embedded cameras are rejected. Accepted geometry is centred and uniformly
+normalized so its longest source dimension is one before the ordinary parent-relative transform is
+applied. The binary is content-addressed and stored in IndexedDB; the recipe stores only its local
+asset id and source filename. Reopening the Designer hydrates assets referenced by the selected recipe.
+
+Recipes live in the definition-owned `customPartRecipe` visual parameter and version-one primitive
+recipes migrate in memory to version two. The JSON recipe can cross model-pack validation/export, but
+the imported binary does not belong inside that JSON. The Shared tab uploads it separately to the
+part's Cloud Storage asset path. Student model-pack publication still needs a reviewed public asset
+manifest or a separately deployed `models/<assetId>.glb`; the student runtime does not read private
+Designer library records.
+
+## Shared project-part library
+
+The **Shared** tab accepts every bundled project-package definition. Local editing still works
+without Firebase. After connecting, a Designer user can create an owned part, invite editors or
+viewers by Firebase UID, load or copy a part, append a revision, restore an old revision as a new one,
+and move the current part through draft, review, published, or archived states.
+
+Firestore stores the mutable ownership and pointer record at `dragonParts/{partId}` and immutable
+snapshots at `dragonParts/{partId}/revisions/{revisionId}`. A snapshot carries the source definition,
+profile, dimensions, absolute socket positions, visual parameters, custom-piece recipe, and referenced
+asset IDs. Saving performs an optimistic current-revision check and writes the new revision and root
+pointer atomically. A racing save is reported as a conflict instead of silently overwriting work.
+
+Imported GLBs remain content-addressed. The validated bytes are uploaded to
+`dragon-parts/{partId}/assets/{assetId}.glb`, while their inspection metadata lives in the part's
+Firestore `assets` subcollection. Loading a remote revision downloads any missing bytes, validates
+them again, and installs them through the existing IndexedDB and renderer-cache path.
+
+Publishing records the current revision in `publishedRevisionId`. Later edits advance
+`currentRevisionId` without changing that pointer, so signed-in readers continue to load the stable
+published geometry until the owner publishes again. Owners manage access and workflow; editors can
+append revisions and edit metadata; viewers can load and create an owned copy.
+
+Production creation is teacher-only under `firestore.rules`. Invited editor/viewer UIDs may be other
+authenticated users. Deploy both `firestore.rules` and `storage.rules`, and give collaborators access
+to the separately built private Designer application. The repository's default Firebase Hosting
+target still serves PBL Forge, not `dist/dragon-designer`.
+
+The format remains intentionally bounded: at most 32 flat parent-relative pieces. It does not yet
+provide vertex editing, nested parent/child transforms, row/radial generators, per-piece sockets, undo
+history, boolean operations, or a three-axis canvas gizmo. Malformed recipes are ignored or clamped by
+the shared renderer rather than being allowed to break a dragon preview.
 
 The stage can switch between **Isolated part** and **Whole dragon**. Whole-dragon mode uses the
 same six Arena body presets and five Mini Dragon breed presets as Assembly Garage, highlights the

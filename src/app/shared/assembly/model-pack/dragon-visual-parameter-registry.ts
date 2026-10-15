@@ -73,6 +73,9 @@ export const DRAGON_VISUAL_PARAMETER_REGISTRY: readonly DragonVisualParameterDef
   classic('surfaceDetailScale', SKIN_PROFILES, 'number', 1, 'Texture detail scale', { min: 0.25, max: 4, step: 0.05 }),
   classic('surfacePatternStrength', SKIN_PROFILES, 'number', 1, 'Pattern strength', { min: 0, max: 1.5, step: 0.02 }),
   classic('surfacePatternScale', SKIN_PROFILES, 'number', 1, 'Pattern scale', { min: 0.25, max: 4, step: 0.05 }),
+  // Universal composition is appended by the assembly renderer, so every
+  // classic profile can carry the same bounded primitive/imported-piece recipe.
+  classic('customPartRecipe', SKIN_PROFILES, 'string', '', 'Custom procedural pieces'),
   classic('jointBall', JOINT_PROFILES, 'number', 1.02, 'Joint ball', { min: 0.6, max: 1.8, step: 0.02, styleSection: 'joint' }),
   classic('bodyArchetype', ['dragon-body'], 'string', 'classic', 'Body archetype', { geneticsOwned: true }),
   classic('bodyNeckWidth', ['dragon-body'], 'number', 1, 'Neck width', { min: 0.45, max: 1.7, step: 0.02 }),
@@ -259,6 +262,7 @@ export const DRAGON_VISUAL_PARAMETER_REGISTRY: readonly DragonVisualParameterDef
   mini('miniNoseHornScale', ['mini-dragon-nose-horn'], 0, 'Nose horn scale', 0, 1.5),
   mini('miniSerpentSegmentScale', ['mini-dragon-serpent-body-segment'], 0, 'Serpent segment scale', 0, 1.5),
   mini('miniForkTailScale', ['mini-dragon-fork-tail-branch'], 1, 'Fork-tail scale', 0, 1.5),
+  { key: 'customPartRecipe', profiles: MINI_ALL, type: 'string', defaultValue: '', label: 'Custom procedural pieces', species: 'mini' },
   { key: 'miniPatchColor', profiles: MINI_ALL, type: 'string', defaultValue: '#6e422b', label: 'Patch colour', species: 'mini' },
   { key: 'miniEmberColor', profiles: MINI_ALL, type: 'string', defaultValue: '#ff7aa8', label: 'Ember colour', species: 'mini' },
   { key: 'miniAccentColor', profiles: MINI_ALL, type: 'string', defaultValue: '#00d9ff', label: 'Display accent', species: 'mini' },

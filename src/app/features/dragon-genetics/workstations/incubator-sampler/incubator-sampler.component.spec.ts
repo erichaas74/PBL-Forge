@@ -34,8 +34,10 @@ describe('IncubatorSamplerComponent', () => {
         expect(inventories[1].componentInstance.sexFilter()).toBe('male');
         expect(inventories.every(({ componentInstance }) => componentInstance.dragonsOnly())).toBe(true);
         expect(
-          inventories.every(({ componentInstance }) => componentInstance.deferAnimatedPortrait()),
-        ).toBe(true);
+          inventories.every(({ componentInstance }) => componentInstance.animatedPortrait()),
+        ).toBe(false);
+        expect(fixture.nativeElement.querySelector('.dragon-card__portrait app-specimen-viewport')).toBeNull();
+        expect(fixture.nativeElement.querySelector('.dragon-card__portrait app-specimen-thumb')).not.toBeNull();
         expect(inventories.every(({ componentInstance }) => componentInstance.open())).toBe(true);
         expect(fixture.debugElement.queryAll(By.directive(DragonCardDeckSelectorComponent)).length).toBe(2);
         expect(fixture.nativeElement.textContent).toContain('FEMALE DRAGONS · EGG PARENT');

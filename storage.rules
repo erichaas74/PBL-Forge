@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function part(partId) {
+      return firestore.get(/databases/(default)/documents/dragonParts/$(partId));
+    }
+
+    function canReadPart(partId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/dragonParts/$(partId))
+        && (part(partId).data.status == 'published'
+          || part(partId).data.ownerUid == request.auth.uid
+          || request.auth.uid in part(partId).data.editorUids
+          || request.auth.uid in part(partId).data.viewerUids);
+    }
+
+    function canEditPart(partId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/dragonParts/$(partId))
+        && (part(partId).data.ownerUid == request.auth.uid
+          || request.auth.uid in part(partId).data.editorUids);
+    }
+
+    match /dragon-parts/{partId}/assets/{fileName} {
+      allow read: if canReadPart(partId);
+      allow create: if canEditPart(partId)
+        && fileName.matches('local-[a-f0-9]{8,64}\\.glb')
+        && request.resource.size > 0
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType == 'model/gltf-binary';
+      allow update, delete: if false;
+    }
+  }
+}

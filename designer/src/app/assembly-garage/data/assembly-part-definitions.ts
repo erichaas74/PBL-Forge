@@ -1432,6 +1432,9 @@ function visualProfile(
   return {
     profileId,
     meshType,
+    generatorId: profileId.startsWith('car-')
+      ? 'vehicle'
+      : profileId.startsWith('robot-') ? 'robot' : undefined,
     materialId,
     parameters,
   };

@@ -4,8 +4,10 @@ import { instantiateAssemblyAsset, loadAssemblyAssetTemplate } from './assembly-
 import { prepareAssemblyAppearance, reapplyStoredAppearance } from './assembly-appearance';
 import { disposeAssemblyObject } from './assembly-object-disposal';
 import { createAssemblyGeometry, createAssemblyMaterial } from './assembly-primitive-rendering';
-import { createDragonProceduralObject } from './dragon-procedural-mesh.factory';
-import { createMiniDragonProceduralObject } from './mini-dragon-procedural-mesh.factory';
+import { createRegisteredAssemblyObject } from './assembly-generator-registry';
+import { ensureBuiltInAssemblyGenerators } from './built-in-assembly-generators';
+import { addDragonCustomPartPieces } from './dragon-custom-part-recipe';
+import { dragonPaletteForPart } from './dragon-materials';
 
 export interface AssemblyObjectOptions {
   /**
@@ -26,7 +28,9 @@ export function createAssemblyObject(
   const root = new THREE.Group();
   root.userData['partId'] = part.id;
 
-  const content = buildContent(part);
+  ensureBuiltInAssemblyGenerators();
+
+  const content = composeContent(part, buildContent(part));
   root.add(content);
   prepareAssemblyAppearance(root);
 
@@ -36,9 +40,10 @@ export function createAssemblyObject(
       if (!template || !root.parent) return;
       const authored = instantiateAssemblyAsset(template);
       applyProfileTransform(authored, part);
+      const replacement = composeContent(part, authored);
       disposeAssemblyObject(content);
       root.remove(content);
-      root.add(authored);
+      root.add(replacement);
       prepareAssemblyAppearance(root);
       reapplyStoredAppearance(root);
       options.onAsyncReady?.();
@@ -52,10 +57,7 @@ function buildContent(part: AssemblyPart): THREE.Object3D {
   const meshType = part.visualProfile?.meshType;
 
   if (meshType === 'procedural' || meshType === 'asset') {
-    // Two independent procedural species. The mini dragon is asked first because
-    // its profile ids are its own namespace; neither factory answers for the
-    // other's parts, so the order only decides which lookup happens twice.
-    const procedural = createMiniDragonProceduralObject(part) ?? createDragonProceduralObject(part);
+    const procedural = createRegisteredAssemblyObject(part);
     if (procedural) {
       applyProfileTransform(procedural, part);
       return procedural;
@@ -66,6 +68,15 @@ function buildContent(part: AssemblyPart): THREE.Object3D {
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
+}
+
+/** Custom primitives and imported pieces are a capability of every package part. */
+function composeContent(part: AssemblyPart, base: THREE.Object3D): THREE.Group {
+  const group = new THREE.Group();
+  group.name = 'assembly-part-composition';
+  group.add(base);
+  addDragonCustomPartPieces(group, part, part.dimensions, dragonPaletteForPart(part));
+  return group;
 }
 
 function applyProfileTransform(object: THREE.Object3D, part: AssemblyPart): void {

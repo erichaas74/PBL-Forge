@@ -1,6 +1,6 @@
 import { PartWorkshopDragonSpecies } from './part-workshop-context';
 
-export type PartAnatomyLayerCategory = 'Form' | 'Surface' | 'Appendage' | 'Support';
+export type PartAnatomyLayerCategory = 'Form' | 'Surface' | 'Appendage' | 'Support' | 'Mechanism';
 
 /**
  * A human-sized editing layer over the renderer's flat parameter contract.

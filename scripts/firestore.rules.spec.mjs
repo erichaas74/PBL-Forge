@@ -4,13 +4,30 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  doc,
+  collection,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+  writeBatch,
+} from 'firebase/firestore';
+import { getBytes, ref, uploadBytes } from 'firebase/storage';
 
-const projectId = 'demo-pbl-forge-rules';
+// Keep this aligned with the project passed by `npm run test:rules`: Storage
+// rules resolve Firestore cross-service reads through the emulator's project.
+const projectId = 'demo-pbl-forge';
 const testEnv = await initializeTestEnvironment({
   projectId,
   firestore: {
     rules: fs.readFileSync('firestore.rules', 'utf8'),
+  },
+  storage: {
+    rules: fs.readFileSync('storage.rules', 'utf8'),
   },
 });
 
@@ -70,8 +87,49 @@ function simulationRunData(overrides = {}) {
   };
 }
 
+function sharedPartData(ownerUid = 'teacher-1') {
+  return {
+    schemaVersion: 1,
+    ownerUid,
+    editorUids: [],
+    viewerUids: [],
+    name: 'Shared horned head',
+    description: 'A restorable Designer part',
+    tags: ['head'],
+    sourceDefinitionId: 'dragon-head-horned',
+    profileId: 'dragon-head-horned',
+    status: 'draft',
+    currentRevisionId: '',
+    publishedRevisionId: '',
+    revisionNumber: 0,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    updatedBy: ownerUid,
+  };
+}
+
+function sharedRevisionData(partId, createdBy, overrides = {}) {
+  return {
+    schemaVersion: 1,
+    partId,
+    revisionNumber: 1,
+    parentRevisionId: '',
+    sourceDefinitionId: 'dragon-head-horned',
+    profileId: 'dragon-head-horned',
+    dimensions: { x: 1.4, y: 0.9, z: 1.1 },
+    snapPoints: {},
+    parameters: { customPartRecipe: '' },
+    assetIds: [],
+    changeNote: 'Initial version',
+    createdBy,
+    createdAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
 try {
   await testEnv.clearFirestore();
+  await testEnv.clearStorage();
   await testEnv.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
     await setDoc(doc(db, 'users/teacher-1'), { role: 'teacher' });
@@ -426,6 +484,169 @@ try {
   await test('the public app can read published Dragon Garage assets', async () => {
     const db = testEnv.unauthenticatedContext().firestore();
     await assertSucceeds(getDoc(doc(db, 'publishedDragonAssets/current')));
+  });
+
+  await test('a teacher can create an owned shared Dragon part', async () => {
+    const db = testEnv.authenticatedContext('teacher-1').firestore();
+    await assertSucceeds(setDoc(doc(db, 'dragonParts/shared-head'), sharedPartData()));
+  });
+
+  await test('a student cannot create a shared Dragon part', async () => {
+    const db = testEnv.authenticatedContext('student-1').firestore();
+    await assertFails(setDoc(doc(db, 'dragonParts/student-head'), sharedPartData('student-1')));
+  });
+
+  await test('the owner can invite an editor and viewer', async () => {
+    const db = testEnv.authenticatedContext('teacher-1').firestore();
+    await assertSucceeds(updateDoc(doc(db, 'dragonParts/shared-head'), {
+      editorUids: ['teacher-2'],
+      viewerUids: ['student-1'],
+      updatedAt: serverTimestamp(),
+      updatedBy: 'teacher-1',
+    }));
+  });
+
+  await test('an editor can atomically append an immutable part revision', async () => {
+    const db = testEnv.authenticatedContext('teacher-2').firestore();
+    const batch = writeBatch(db);
+    batch.set(
+      doc(db, 'dragonParts/shared-head/revisions/revision-1'),
+      sharedRevisionData('shared-head', 'teacher-2'),
+    );
+    batch.update(doc(db, 'dragonParts/shared-head'), {
+      currentRevisionId: 'revision-1',
+      revisionNumber: 1,
+      status: 'draft',
+      updatedAt: serverTimestamp(),
+      updatedBy: 'teacher-2',
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  await test('an editor cannot change sharing permissions', async () => {
+    const db = testEnv.authenticatedContext('teacher-2').firestore();
+    await assertFails(updateDoc(doc(db, 'dragonParts/shared-head'), {
+      editorUids: [],
+      updatedAt: serverTimestamp(),
+      updatedBy: 'teacher-2',
+    }));
+  });
+
+  await test('a revision cannot be rewritten or attached without advancing the root', async () => {
+    const db = testEnv.authenticatedContext('teacher-2').firestore();
+    await assertFails(updateDoc(
+      doc(db, 'dragonParts/shared-head/revisions/revision-1'),
+      { changeNote: 'Rewritten' },
+    ));
+    await assertFails(setDoc(
+      doc(db, 'dragonParts/shared-head/revisions/orphan'),
+      sharedRevisionData('shared-head', 'teacher-2', {
+        revisionNumber: 2,
+        parentRevisionId: 'revision-1',
+      }),
+    ));
+  });
+
+  await test('a viewer can read but an unrelated user cannot read a draft part', async () => {
+    const viewerDb = testEnv.authenticatedContext('student-1').firestore();
+    const unrelatedDb = testEnv.authenticatedContext('student-2').firestore();
+    await assertSucceeds(getDoc(doc(viewerDb, 'dragonParts/shared-head')));
+    await assertSucceeds(getDoc(doc(viewerDb, 'dragonParts/shared-head/revisions/revision-1')));
+    await assertFails(getDoc(doc(unrelatedDb, 'dragonParts/shared-head')));
+  });
+
+  await test('shared-part collection queries are constrained by ownership or access', async () => {
+    const ownerDb = testEnv.authenticatedContext('teacher-1').firestore();
+    const viewerDb = testEnv.authenticatedContext('student-1').firestore();
+    await assertSucceeds(getDocs(query(
+      collection(ownerDb, 'dragonParts'),
+      where('ownerUid', '==', 'teacher-1'),
+    )));
+    await assertSucceeds(getDocs(query(
+      collection(viewerDb, 'dragonParts'),
+      where('viewerUids', 'array-contains', 'student-1'),
+    )));
+    await assertFails(getDocs(collection(viewerDb, 'dragonParts')));
+  });
+
+  await test('only the owner can publish the current shared revision', async () => {
+    const editorDb = testEnv.authenticatedContext('teacher-2').firestore();
+    await assertFails(updateDoc(doc(editorDb, 'dragonParts/shared-head'), {
+      status: 'published',
+      publishedRevisionId: 'revision-1',
+      updatedAt: serverTimestamp(),
+      updatedBy: 'teacher-2',
+    }));
+    const ownerDb = testEnv.authenticatedContext('teacher-1').firestore();
+    await assertSucceeds(updateDoc(doc(ownerDb, 'dragonParts/shared-head'), {
+      status: 'published',
+      publishedRevisionId: 'revision-1',
+      updatedAt: serverTimestamp(),
+      updatedBy: 'teacher-1',
+    }));
+  });
+
+  await test('a signed-in user can read the published part and its published revision', async () => {
+    const db = testEnv.authenticatedContext('student-2').firestore();
+    await assertSucceeds(getDoc(doc(db, 'dragonParts/shared-head')));
+    await assertSucceeds(getDoc(doc(db, 'dragonParts/shared-head/revisions/revision-1')));
+  });
+
+  await test('a new edit leaves the published revision readable and keeps the draft private', async () => {
+    const editorDb = testEnv.authenticatedContext('teacher-2').firestore();
+    const batch = writeBatch(editorDb);
+    batch.set(
+      doc(editorDb, 'dragonParts/shared-head/revisions/revision-2'),
+      sharedRevisionData('shared-head', 'teacher-2', {
+        revisionNumber: 2,
+        parentRevisionId: 'revision-1',
+        changeNote: 'Unpublished adjustment',
+      }),
+    );
+    batch.update(doc(editorDb, 'dragonParts/shared-head'), {
+      currentRevisionId: 'revision-2',
+      revisionNumber: 2,
+      updatedAt: serverTimestamp(),
+      updatedBy: 'teacher-2',
+    });
+    await assertSucceeds(batch.commit());
+
+    const publicDb = testEnv.authenticatedContext('student-2').firestore();
+    await assertSucceeds(getDoc(doc(publicDb, 'dragonParts/shared-head/revisions/revision-1')));
+    await assertFails(getDoc(doc(publicDb, 'dragonParts/shared-head/revisions/revision-2')));
+  });
+
+  const sharedGlbPath = 'dragon-parts/shared-head/assets/local-01234567.glb';
+  const sharedGlb = new Uint8Array([0x67, 0x6c, 0x54, 0x46]);
+
+  await test('the part owner can upload a bounded GLB with the required content type', async () => {
+    const storage = testEnv.authenticatedContext('teacher-1').storage();
+    await assertSucceeds(uploadBytes(ref(storage, sharedGlbPath), sharedGlb, {
+      contentType: 'model/gltf-binary',
+    }));
+  });
+
+  await test('a published-part reader can download its GLB but cannot overwrite it', async () => {
+    const storage = testEnv.authenticatedContext('student-2').storage();
+    await assertSucceeds(getBytes(ref(storage, sharedGlbPath)));
+    await assertFails(uploadBytes(ref(storage, sharedGlbPath), sharedGlb, {
+      contentType: 'model/gltf-binary',
+    }));
+  });
+
+  await test('storage rejects the wrong content type and unrelated private paths', async () => {
+    const ownerStorage = testEnv.authenticatedContext('teacher-1').storage();
+    await assertFails(uploadBytes(
+      ref(ownerStorage, 'dragon-parts/shared-head/assets/local-abcdef12.glb'),
+      sharedGlb,
+      { contentType: 'application/octet-stream' },
+    ));
+    const unrelatedStorage = testEnv.authenticatedContext('student-2').storage();
+    await assertFails(uploadBytes(
+      ref(unrelatedStorage, 'dragon-parts/not-shared/assets/local-abcdef12.glb'),
+      sharedGlb,
+      { contentType: 'model/gltf-binary' },
+    ));
   });
 
   await test('a student can create their own deterministic simulation run', async () => {

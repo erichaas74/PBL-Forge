@@ -1,5 +1,6 @@
 export const environment = {
   production: false,
+  useEmulators: true,
   firebase: {
     apiKey: 'demo-api-key',
     authDomain: 'demo-pbl-forge.firebaseapp.com',

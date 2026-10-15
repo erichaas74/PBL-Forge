@@ -1,7 +1,7 @@
 # Firebase setup and deployment
 
 PBL Forge is configured for a local demo project and the production Firebase project
-`pbl-forge`. Firebase supplies authentication, roles, assignment/catalog records, legacy project
+`dragon-genetics-lab`. Firebase supplies authentication, roles, assignment/catalog records, legacy project
 progress, published dragon assets, and hosting. The current shared lesson plan, lesson responses,
 case progress, and most workstation records are browser-local; see
 [`LESSON_PLAN.md`](LESSON_PLAN.md#persistence-reality).
@@ -37,8 +37,9 @@ emulators, so use `npm run dev` whenever identity or Firestore behavior matters.
 
 - `src/environments/environment.ts` uses the `demo-pbl-forge` emulator project.
 - `src/environments/environment.production.ts` contains the public web configuration for
-  `pbl-forge` and disables emulator connections.
-- `.firebaserc` selects `pbl-forge` as the default deployment target.
+  `dragon-genetics-lab` and disables emulator connections. Dragon Designer's production environment
+  uses the same project.
+- `.firebaserc` selects `dragon-genetics-lab` as the default deployment target.
 - `firebase.json` configures Firestore rules/indexes, SPA Hosting rewrites, cache/security headers,
   and emulator ports.
 - `scripts/firebase-cli.mjs` runs pinned `firebase-tools@14.27.0` and removes the unrelated
@@ -46,6 +47,12 @@ emulators, so use `npm run dev` whenever identity or Firestore behavior matters.
 
 Firebase web configuration values are public identifiers. Never add a service-account JSON file,
 private key, or Admin SDK credential to either Angular application.
+
+The new project is separate from the previous `pbl-forge` project; existing users, roles, records,
+and uploaded assets are not copied by changing this configuration. Its Firestore database is in
+`us-central1` with deletion protection enabled. Configure Google sign-in in Firebase Authentication
+and provision the project's Storage bucket before using cloud sign-in and asset publishing.
+Local development continues to use the `demo-pbl-forge` emulators.
 
 ## Authentication and authorization
 

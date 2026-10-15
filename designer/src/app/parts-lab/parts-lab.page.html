@@ -1,10 +1,10 @@
 <div class="lab">
   <header class="lab__head">
-    <span class="lab__eyebrow">Dragon part workshop</span>
-    <h1>Shape, anatomy layers, sockets, genes, and testing in one place</h1>
+    <span class="lab__eyebrow">Universal part workshop</span>
+    <h1>Shape, generate, import, connect, and test parts from every project package</h1>
     <p class="lab__lede">
-      Edit Arena dragon and Mini Dragon Show anatomy while the selected part stays visible. Changes
-      are saved to the shared local Designer draft and follow the part into the Assembly Garage.
+      The same schema-driven inspector edits Dragon anatomy, Vehicle components, Robot mechanisms,
+      and neutral primitives. Changes stay with the part and follow it into the Assembly Garage.
     </p>
   </header>
 
@@ -14,7 +14,7 @@
         <button type="button" class="lab__chip"
           [class.lab__chip--active]="family() === option"
           [attr.aria-pressed]="family() === option"
-          (click)="setFamily(option)">{{ option }}</button>
+          (click)="setFamily(option)">{{ familyLabel(option) }}</button>
       }
     </div>
 
@@ -65,13 +65,13 @@
     <section class="lab__detail" aria-labelledby="detail-heading" data-bake="detail">
       <div class="lab__workshop-head">
         <div>
-          <span class="lab__context-label">{{ family() === 'dragon' ? speciesLabel() : family() }}</span>
+          <span class="lab__context-label">{{ family() === 'dragon' ? speciesLabel() : projectPackage().label }}</span>
           <h2 id="detail-heading">{{ definition.label }}</h2>
           <code>{{ definition.id }}</code>
         </div>
         <div class="lab__workshop-actions">
           <button type="button" class="lab__record" (click)="record()">Record values</button>
-          <a class="lab__action-link" routerLink="/dragon-garage">View whole dragon</a>
+          <a class="lab__action-link" routerLink="/dragon-garage">Open Assembly Garage</a>
         </div>
       </div>
 
@@ -240,6 +240,7 @@
 
           <dl class="lab__meta">
             <div><dt>Profile</dt><dd>{{ profileId() }}</dd></div>
+            <div><dt>Package</dt><dd>{{ projectPackage().label }}</dd></div>
             <div><dt>Mesh</dt><dd>{{ meshType() }}</dd></div>
             @if (scaledDimensions(); as dims) {
               <div><dt>Size</dt><dd>{{ dims.x }} × {{ dims.y }} × {{ dims.z }}</dd></div>
@@ -250,7 +251,7 @@
 
         <aside class="lab__side" aria-label="Part inspector">
           <nav class="lab__tabs" aria-label="Part editing sections">
-            @for (tab of inspectorTabs; track tab.id) {
+            @for (tab of visibleInspectorTabs(); track tab.id) {
               <button type="button" class="lab__tab"
                 [class.lab__tab--active]="inspectorTab() === tab.id"
                 [attr.aria-selected]="inspectorTab() === tab.id"
@@ -293,6 +294,397 @@
                 </section>
               }
 
+              @case ('builder') {
+                <section class="lab__panel" aria-labelledby="builder-heading" data-custom-part-builder>
+                  <div class="lab__scale-head">
+                    <div>
+                      <span class="lab__ownership">This part only</span>
+                      <h3 id="builder-heading">Custom part pieces</h3>
+                    </div>
+                    @if (customRecipe().pieces.length) {
+                      <button type="button" class="lab__reset" (click)="clearCustomPieces()">Clear pieces</button>
+                    }
+                  </div>
+
+                  @if (customBuilderAvailable()) {
+                    <p class="lab__hint">Add generated primitives or imported GLBs to any package part. Every piece stays attached to its parent, scales with it, and is saved in the Designer draft.</p>
+
+                    <div class="lab__builder-add" aria-label="Add procedural piece">
+                      <span>Add piece</span>
+                      @for (shape of customPieceShapes; track shape.id) {
+                        <button type="button" class="lab__chip" (click)="addCustomPiece(shape.id)">
+                          + {{ shape.label }}
+                        </button>
+                      }
+                      <label class="lab__import-button" [class.lab__import-button--busy]="assetImporting()">
+                        <input type="file" accept=".glb,model/gltf-binary"
+                          [disabled]="assetImporting() || customRecipe().pieces.length >= 32"
+                          (change)="importCustomAsset($event)" />
+                        {{ assetImporting() ? 'Checking GLB…' : '+ Import GLB' }}
+                      </label>
+                      <span class="lab__builder-limit">{{ customRecipe().pieces.length }} / 32</span>
+                    </div>
+
+                    @if (assetImportError(); as message) {
+                      <p class="lab__import-message lab__import-message--error" role="alert">{{ message }}</p>
+                    } @else if (lastImportedAsset(); as asset) {
+                      <p class="lab__import-message" role="status">
+                        Imported <strong>{{ asset.fileName }}</strong> · {{ asset.inspection.triangleCount }} triangles ·
+                        {{ asset.inspection.meshCount }} meshes ·
+                        {{ asset.inspection.byteLength }} bytes
+                        @if (!asset.persisted) { · session only because browser storage is unavailable }
+                      </p>
+                    }
+
+                    @if (customRecipe().pieces.length) {
+                      <div class="lab__builder-layout">
+                        <div class="lab__piece-list" role="listbox" aria-label="Custom pieces">
+                          @for (piece of customRecipe().pieces; track piece.id) {
+                            <button type="button" class="lab__piece-button"
+                              [class.lab__piece-button--active]="selectedCustomPiece()?.id === piece.id"
+                              [class.lab__piece-button--hidden]="!piece.visible"
+                              [attr.aria-selected]="selectedCustomPiece()?.id === piece.id"
+                              [attr.data-custom-piece-id]="piece.id"
+                              (click)="selectCustomPiece(piece)">
+                              <span>
+                                <strong>{{ piece.label }}</strong>
+                                <small>{{ piece.kind === 'primitive' ? piece.shape : 'Imported GLB' }} · {{ piece.material }}</small>
+                              </span>
+                              <span class="lab__piece-badges">
+                                @if (piece.mirrored) { <small>Pair</small> }
+                                <small>{{ piece.visible ? 'Visible' : 'Hidden' }}</small>
+                              </span>
+                            </button>
+                          }
+                        </div>
+
+                        @if (selectedCustomPiece(); as piece) {
+                          <article class="lab__piece-editor" [attr.data-active-custom-piece]="piece.id">
+                            <div class="lab__piece-editor-head">
+                              <div>
+                                <span class="lab__ownership">Selected recipe piece</span>
+                                <h4>{{ piece.label }}</h4>
+                              </div>
+                              <div class="lab__piece-actions">
+                                <button type="button" class="lab__visibility" (click)="toggleCustomPieceVisibility()">
+                                  {{ piece.visible ? 'Hide' : 'Show' }}
+                                </button>
+                                <button type="button" class="lab__visibility"
+                                  [attr.aria-pressed]="piece.mirrored" (click)="toggleCustomPieceMirror()">
+                                  {{ piece.mirrored ? 'Unmirror' : 'Mirror' }}
+                                </button>
+                                <button type="button" class="lab__reset" (click)="duplicateCustomPiece()">Duplicate</button>
+                                <button type="button" class="lab__reset lab__reset--danger" (click)="removeCustomPiece()">Remove</button>
+                              </div>
+                            </div>
+
+                            <div class="lab__builder-fields">
+                              <label class="lab__field">
+                                <span>Name</span>
+                                <input type="text" maxlength="48" [value]="piece.label"
+                                  (input)="updateCustomPieceLabel($event)" />
+                              </label>
+                              @if (piece.kind === 'primitive') {
+                                <label class="lab__field">
+                                  <span>Primitive</span>
+                                  <select [value]="piece.shape" (change)="updateCustomPieceShape($event)">
+                                    @for (shape of customPieceShapes; track shape.id) {
+                                      <option [value]="shape.id" [selected]="shape.id === piece.shape">{{ shape.label }}</option>
+                                    }
+                                  </select>
+                                </label>
+                              }
+                              <label class="lab__field">
+                                <span>Material slot</span>
+                                <select [value]="piece.material" (change)="updateCustomPieceMaterial($event)">
+                                  @for (material of (piece.kind === 'asset' ? customAssetMaterialSlots : customMaterialSlots); track material.id) {
+                                    <option [value]="material.id" [selected]="material.id === piece.material">{{ material.label }}</option>
+                                  }
+                                </select>
+                              </label>
+                              @if (piece.kind === 'asset') {
+                                <div class="lab__asset-source" [title]="piece.sourceFileName">
+                                  <span>Imported GLB</span>
+                                  <strong>{{ piece.sourceFileName }}</strong>
+                                </div>
+                              }
+                            </div>
+
+                            @if (piece.kind === 'asset') {
+                              @if (selectedImportedAsset(); as asset) {
+                                <dl class="lab__asset-inspection">
+                                  <div><dt>Triangles</dt><dd>{{ asset.inspection.triangleCount }}</dd></div>
+                                  <div><dt>Meshes</dt><dd>{{ asset.inspection.meshCount }}</dd></div>
+                                  <div><dt>Materials</dt><dd>{{ asset.inspection.materialCount }}</dd></div>
+                                  <div><dt>Textures</dt><dd>{{ asset.inspection.textureCount }}</dd></div>
+                                  <div><dt>Stored</dt><dd>{{ asset.persisted ? 'IndexedDB' : 'Session' }}</dd></div>
+                                </dl>
+                              } @else {
+                                <p class="lab__import-message lab__import-message--error">The local GLB is not available in this browser. Re-import {{ piece.sourceFileName }} to restore its geometry.</p>
+                              }
+                            }
+
+                            <section class="lab__piece-transform" aria-label="Piece position">
+                              <h5>Position on parent</h5>
+                              <div class="lab__piece-vector-grid">
+                                <label><span>Forward X <strong>{{ piece.offset.x }}</strong></span>
+                                  <input type="range" min="-1" max="1" step="0.01" [value]="piece.offset.x"
+                                    (input)="updateCustomPieceVector('offset', 'x', $event)" /></label>
+                                <label><span>Up Y <strong>{{ piece.offset.y }}</strong></span>
+                                  <input type="range" min="-1" max="1" step="0.01" [value]="piece.offset.y"
+                                    (input)="updateCustomPieceVector('offset', 'y', $event)" /></label>
+                                <label><span>Side Z <strong>{{ piece.offset.z }}</strong></span>
+                                  <input type="range" min="-1" max="1" step="0.01" [value]="piece.offset.z"
+                                    (input)="updateCustomPieceVector('offset', 'z', $event)" /></label>
+                              </div>
+                            </section>
+
+                            <section class="lab__piece-transform" aria-label="Piece rotation">
+                              <h5>Rotation</h5>
+                              <div class="lab__piece-vector-grid">
+                                <label><span>Pitch X <strong>{{ piece.rotationDegrees.x }}°</strong></span>
+                                  <input type="range" min="-180" max="180" step="1" [value]="piece.rotationDegrees.x"
+                                    (input)="updateCustomPieceVector('rotationDegrees', 'x', $event)" /></label>
+                                <label><span>Yaw Y <strong>{{ piece.rotationDegrees.y }}°</strong></span>
+                                  <input type="range" min="-180" max="180" step="1" [value]="piece.rotationDegrees.y"
+                                    (input)="updateCustomPieceVector('rotationDegrees', 'y', $event)" /></label>
+                                <label><span>Roll Z <strong>{{ piece.rotationDegrees.z }}°</strong></span>
+                                  <input type="range" min="-180" max="180" step="1" [value]="piece.rotationDegrees.z"
+                                    (input)="updateCustomPieceVector('rotationDegrees', 'z', $event)" /></label>
+                              </div>
+                            </section>
+
+                            <section class="lab__piece-transform" aria-label="Piece scale">
+                              <h5>Scale relative to parent</h5>
+                              <div class="lab__piece-vector-grid">
+                                <label><span>Length X <strong>{{ piece.scale.x }}</strong></span>
+                                  <input type="range" min="0.02" max="1.5" step="0.01" [value]="piece.scale.x"
+                                    (input)="updateCustomPieceVector('scale', 'x', $event)" /></label>
+                                <label><span>Height Y <strong>{{ piece.scale.y }}</strong></span>
+                                  <input type="range" min="0.02" max="1.5" step="0.01" [value]="piece.scale.y"
+                                    (input)="updateCustomPieceVector('scale', 'y', $event)" /></label>
+                                <label><span>Width Z <strong>{{ piece.scale.z }}</strong></span>
+                                  <input type="range" min="0.02" max="1.5" step="0.01" [value]="piece.scale.z"
+                                    (input)="updateCustomPieceVector('scale', 'z', $event)" /></label>
+                              </div>
+                            </section>
+
+                            <p class="lab__direct-note"><strong>Mirrored spacing:</strong> Side Z becomes the distance from the centerline. Position and scale are ratios of the parent, so the recipe follows later part resizing.</p>
+                          </article>
+                        }
+                      </div>
+                    } @else {
+                      <div class="lab__empty-state">
+                        <strong>No custom pieces yet</strong>
+                        <p>Add a cone for a tooth or tool, a sphere for a joint or sensor, a box for armor or bodywork, or a cylinder for a shaft, ridge, or axle.</p>
+                      </div>
+                    }
+                  } @else {
+                    <div class="lab__empty-state">
+                      <strong>This package disabled custom pieces</strong>
+                      <p>The selected profile does not advertise the custom-piece capability.</p>
+                    </div>
+                  }
+                </section>
+              }
+
+              @case ('shared') {
+                <section class="lab__panel lab__shared" aria-labelledby="shared-heading" data-shared-parts>
+                  <div class="lab__scale-head">
+                    <div>
+                      <span class="lab__ownership">Firestore + Cloud Storage</span>
+                      <h3 id="shared-heading">Shared project-part library</h3>
+                    </div>
+                    @if (sharedUser()) {
+                      <button type="button" class="lab__reset" [disabled]="sharedBusy()"
+                        (click)="reloadSharedLibrary()">Refresh</button>
+                    }
+                  </div>
+
+                  @if (sharedError(); as message) {
+                    <p class="lab__import-message lab__import-message--error" role="alert">{{ message }}</p>
+                  } @else if (sharedMessage(); as message) {
+                    <p class="lab__import-message" role="status">{{ message }}</p>
+                  }
+
+                  @if (!sharedUser()) {
+                    <div class="lab__empty-state">
+                      <strong>Connect before sharing</strong>
+                      <p>Local drafts keep working without a database. Connecting adds owned parts, invited editing, immutable revisions, GLB transfer, and publication.</p>
+                      <button type="button" class="lab__primary-button" [disabled]="sharedBusy()"
+                        data-shared-action="connect"
+                        (click)="connectSharedLibrary()">
+                        {{ sharedBusy() ? 'Connecting…' : 'Connect shared library' }}
+                      </button>
+                    </div>
+                  } @else if (sharedUser(); as user) {
+                    <div class="lab__shared-identity">
+                      <div>
+                        <span>Connected as</span>
+                        <strong>{{ user.displayName }}</strong>
+                        @if (user.email) { <small>{{ user.email }}</small> }
+                      </div>
+                      <code [title]="user.uid">{{ user.uid }}</code>
+                      <button type="button" class="lab__visibility" (click)="copySharedUserId()">Copy my UID</button>
+                      <button type="button" class="lab__reset" [disabled]="sharedBusy()"
+                        (click)="disconnectSharedLibrary()">Disconnect</button>
+                    </div>
+
+                    <section class="lab__shared-create" aria-labelledby="shared-create-heading">
+                      <div>
+                        <span class="lab__ownership">Current local part</span>
+                        <h4 id="shared-create-heading">Create a shared part</h4>
+                      </div>
+                      <div class="lab__shared-fields">
+                        <label class="lab__field">
+                          <span>Name</span>
+                          <input type="text" maxlength="80" data-shared-field="name" [value]="sharedName()"
+                            (input)="updateSharedField('name', $event)" />
+                        </label>
+                        <label class="lab__field">
+                          <span>Tags, comma separated</span>
+                          <input type="text" maxlength="400" data-shared-field="tags" [value]="sharedTags()"
+                            (input)="updateSharedField('tags', $event)" />
+                        </label>
+                        <label class="lab__field lab__shared-field-wide">
+                          <span>Description</span>
+                          <textarea maxlength="500" [value]="sharedDescription()"
+                            (input)="updateSharedField('description', $event)"></textarea>
+                        </label>
+                        <label class="lab__field lab__shared-field-wide">
+                          <span>Revision note</span>
+                          <input type="text" maxlength="300" placeholder="What changed?"
+                            [value]="sharedChangeNote()" (input)="updateSharedField('note', $event)" />
+                        </label>
+                      </div>
+                      <button type="button" class="lab__primary-button"
+                        data-shared-action="create"
+                        [disabled]="sharedBusy() || !customBuilderAvailable()"
+                        (click)="createSharedPart()">
+                        {{ sharedBusy() ? 'Saving…' : 'Share current part as new' }}
+                      </button>
+                      @if (!customBuilderAvailable()) {
+                        <p class="lab__hint">Select any part from the active project package before creating a shared version.</p>
+                      }
+                    </section>
+
+                    @if (sharedParts().length) {
+                      <div class="lab__shared-layout">
+                        <div class="lab__shared-list" role="listbox" aria-label="Accessible shared parts">
+                          @for (part of sharedParts(); track part.id) {
+                            <button type="button" class="lab__shared-part"
+                              [attr.data-shared-part-id]="part.id"
+                              [class.lab__shared-part--active]="selectedSharedPart()?.id === part.id"
+                              [attr.aria-selected]="selectedSharedPart()?.id === part.id"
+                              (click)="selectSharedPart(part)">
+                              <span><strong>{{ part.name }}</strong><small>{{ part.sourceDefinitionId }}</small></span>
+                              <span><small>{{ part.status }}</small><strong>r{{ part.revisionNumber }}</strong></span>
+                            </button>
+                          }
+                        </div>
+
+                        @if (selectedSharedPart(); as part) {
+                          <article class="lab__shared-detail">
+                            <div class="lab__piece-editor-head">
+                              <div>
+                                <span class="lab__ownership">{{ selectedSharedAccess() }} access</span>
+                                <h4>{{ part.name }}</h4>
+                              </div>
+                              <div class="lab__piece-actions">
+                                <button type="button" class="lab__visibility" [disabled]="sharedBusy()"
+                                  data-shared-action="load-current"
+                                  (click)="loadSelectedSharedPart()">Load {{ selectedSharedAccess() === 'published' ? 'published' : 'latest' }}</button>
+                                <button type="button" class="lab__visibility" [disabled]="sharedBusy()"
+                                  data-shared-action="copy"
+                                  (click)="copySelectedSharedPart()">Save as my copy</button>
+                              </div>
+                            </div>
+
+                            <dl class="lab__shared-facts">
+                              <div><dt>Status</dt><dd>{{ part.status }}</dd></div>
+                              <div><dt>Current</dt><dd>r{{ part.revisionNumber }}</dd></div>
+                              <div><dt>Published snapshot</dt><dd>{{ part.publishedRevisionId || 'none' }}</dd></div>
+                              <div><dt>Updated</dt><dd>{{ part.updatedAt.toLocaleString() }}</dd></div>
+                              <div><dt>Loaded</dt><dd>{{ loadedSharedRevisionId() || 'not loaded' }}</dd></div>
+                            </dl>
+
+                            @if (canEditSelectedSharedPart()) {
+                              <div class="lab__shared-actions">
+                                <button type="button" class="lab__primary-button" [disabled]="sharedBusy()"
+                                  data-shared-action="save-revision"
+                                  (click)="saveSharedRevision()">Save current local part as revision</button>
+                                <button type="button" class="lab__visibility" [disabled]="sharedBusy()"
+                                  (click)="saveSharedMetadata()">Save name and description</button>
+                              </div>
+                            }
+
+                            @if (ownsSelectedSharedPart()) {
+                              <section class="lab__shared-owner" aria-label="Owner controls">
+                                <label class="lab__field">
+                                  <span>Workflow state</span>
+                                  <select [value]="part.status" [disabled]="sharedBusy()"
+                                    data-shared-status
+                                    (change)="changeSharedStatus($event)">
+                                    <option value="draft">Draft</option>
+                                    <option value="review">Ready for review</option>
+                                    <option value="published">Published</option>
+                                    <option value="archived">Archived</option>
+                                  </select>
+                                </label>
+                                <label class="lab__field">
+                                  <span>Editor UIDs, one per line</span>
+                                  <textarea [value]="sharedEditorUids()"
+                                    (input)="updateSharedField('editors', $event)"></textarea>
+                                </label>
+                                <label class="lab__field">
+                                  <span>Viewer UIDs, one per line</span>
+                                  <textarea [value]="sharedViewerUids()"
+                                    (input)="updateSharedField('viewers', $event)"></textarea>
+                                </label>
+                                <button type="button" class="lab__visibility" [disabled]="sharedBusy()"
+                                  (click)="saveSharedAccess()">Save access</button>
+                                <p class="lab__hint">An editor can load and save revisions. A viewer can load and copy. Publishing lets any signed-in Designer user load the published revision.</p>
+                              </section>
+                            }
+
+                            <section class="lab__shared-history" aria-labelledby="shared-history-heading">
+                              <h5 id="shared-history-heading">Version history</h5>
+                              @if (sharedRevisions().length) {
+                                @for (revision of sharedRevisions(); track revision.id) {
+                                  <div class="lab__shared-revision">
+                                    <span><strong>r{{ revision.revisionNumber }}</strong><small>{{ revision.createdAt.toLocaleString() }}</small></span>
+                                    <p>{{ revision.changeNote || 'No revision note' }}</p>
+                                    <div>
+                                      <button type="button" class="lab__visibility" [disabled]="sharedBusy()"
+                                        [attr.data-shared-load-revision]="revision.revisionNumber"
+                                        (click)="loadSharedHistoryRevision(revision)">Load</button>
+                                      @if (canEditSelectedSharedPart()) {
+                                        <button type="button" class="lab__reset" [disabled]="sharedBusy()"
+                                          [attr.data-shared-restore-revision]="revision.revisionNumber"
+                                          (click)="restoreSharedRevision(revision)">Restore as newest</button>
+                                      }
+                                    </div>
+                                  </div>
+                                }
+                              } @else if (selectedSharedAccess() === 'published') {
+                                <p class="lab__hint">Only the published revision is visible. Use Load published or save an editable copy.</p>
+                              } @else {
+                                <p class="lab__hint">No version history is available yet.</p>
+                              }
+                            </section>
+                          </article>
+                        }
+                      </div>
+                    } @else {
+                      <div class="lab__empty-state">
+                        <strong>No shared parts yet</strong>
+                        <p>Create one from any selected part. Imported GLBs are uploaded automatically with its first revision.</p>
+                      </div>
+                    }
+                  }
+                </section>
+              }
+
               @case ('surface') {
                 <section class="lab__panel" aria-labelledby="surface-heading">
                   <div class="lab__scale-head">
@@ -300,7 +692,7 @@
                       <span class="lab__ownership">This part only</span>
                       <h3 id="surface-heading">Procedural surface</h3>
                     </div>
-                    @if (surfaceControls().length) {
+                    @if (surfaceControls().length || surfaceOptionControls().length) {
                       <button type="button" class="lab__reset" (click)="resetSurface()">Reset surface</button>
                     }
                   </div>
@@ -317,7 +709,7 @@
                       (click)="toggleDefinitionColor()">Definition pigment</button>
                   </div>
 
-                  @if (surfaceControls().length) {
+                  @if (surfaceControls().length || surfaceOptionControls().length) {
                     <div class="lab__surface-preview" aria-label="Procedural texture channels">
                       <span class="lab__surface-swatch lab__surface-swatch--color">Colour</span>
                       <span class="lab__surface-swatch lab__surface-swatch--normal">Relief</span>
@@ -338,6 +730,35 @@
                           </label>
                         </article>
                       }
+                      @for (control of surfaceOptionControls(); track control.key) {
+                        <article class="lab__feature-card">
+                          <div class="lab__feature-head">
+                            <div><span class="lab__ownership">{{ partParameterScopeLabel() }}</span><strong>{{ control.label }}</strong></div>
+                          </div>
+                          <p class="lab__control-description">{{ control.description }}</p>
+                          @if (control.type === 'boolean') {
+                            <label class="lab__toggle-control">
+                              <input type="checkbox" [checked]="control.value" (change)="onOptionControl(control, $event)" />
+                              <span>{{ control.value ? 'Enabled' : 'Disabled' }}</span>
+                            </label>
+                          } @else if (control.type === 'select') {
+                            <label class="lab__field">
+                              <span>Option</span>
+                              <select [value]="control.value" (change)="onOptionControl(control, $event)">
+                                @for (option of control.options ?? []; track option.value) {
+                                  <option [value]="option.value">{{ option.label }}</option>
+                                }
+                              </select>
+                            </label>
+                          } @else {
+                            <label class="lab__field lab__color-control">
+                              <span>Colour</span>
+                              <input type="color" [value]="control.value" (input)="onOptionControl(control, $event)" />
+                              <code>{{ control.value }}</code>
+                            </label>
+                          }
+                        </article>
+                      }
                     </div>
 
                     @if (surfaceInheritedParameters().length) {
@@ -354,8 +775,8 @@
                     <p class="lab__direct-note"><strong>Procedural, not painted.</strong> Relief changes apparent depth; detail scale changes map frequency; roughness changes shine; pattern controls affect inherited splotch or zigzag masks when that gene is expressed.</p>
                   } @else {
                     <div class="lab__empty-state">
-                      <strong>No classic procedural surface on this profile</strong>
-                      <p>Primitive parts and Mini Dragon Show coats use different material systems. Their colour can still be previewed here, but these scale-surface controls do not apply.</p>
+                      <strong>No package surface controls on this profile</strong>
+                      <p>The preview pigment still works, and custom pieces can supply their own material slot.</p>
                     </div>
                   }
                 </section>
@@ -365,11 +786,11 @@
                 <section class="lab__panel" aria-labelledby="features-heading">
                   <div class="lab__scale-head">
                     <div>
-                      <span class="lab__ownership">Procedural anatomy</span>
-                      <h3 id="features-heading">Anatomy layers</h3>
+                      <span class="lab__ownership">{{ projectPackage().label }} package schema</span>
+                      <h3 id="features-heading">{{ family() === 'dragon' ? 'Anatomy layers' : 'Part controls' }}</h3>
                     </div>
                     <div class="lab__reset-actions">
-                      @if (parameterControls().length) {
+                      @if (schemaControls().length) {
                         <button type="button" class="lab__reset" (click)="resetPartParameters()">Reset part</button>
                       }
                       @if (styleControls().length) {
@@ -386,7 +807,7 @@
                     </div>
                   }
 
-                  <p class="lab__hint">Choose one layer to edit. Structural layers stay protected; inherited layers clearly show when lesson genes can replace the preview value.</p>
+                  <p class="lab__hint">Controls are generated from the selected package profile. Structural sections remain protected; Dragon layers also show where lesson genes can replace an authored value.</p>
 
                   <div class="lab__anatomy-layout">
                     <div class="lab__layer-list" role="listbox" aria-label="Anatomy layers">
@@ -529,10 +950,41 @@
                                 <div><span class="lab__ownership">{{ partParameterScopeLabel() }}</span><strong>{{ control.label }}</strong></div>
                               </div>
                               <label class="lab__slider">
-                                <span>Value <strong>{{ control.value }}</strong></span>
+                                <span>Value <strong>{{ control.value }}{{ control.unit ?? '' }}</strong></span>
                                 <input type="range" [min]="control.min" [max]="control.max" [step]="control.step"
                                   [value]="control.value" (input)="onPartParameter(control, $event)" />
                               </label>
+                              <p class="lab__control-description">{{ control.description }}</p>
+                            </article>
+                          }
+
+                          @for (control of layer.optionControls; track control.key) {
+                            <article class="lab__feature-card">
+                              <div class="lab__feature-head">
+                                <div><span class="lab__ownership">{{ partParameterScopeLabel() }}</span><strong>{{ control.label }}</strong></div>
+                              </div>
+                              <p class="lab__control-description">{{ control.description }}</p>
+                              @if (control.type === 'boolean') {
+                                <label class="lab__toggle-control">
+                                  <input type="checkbox" [checked]="control.value" (change)="onOptionControl(control, $event)" />
+                                  <span>{{ control.value ? 'Enabled' : 'Disabled' }}</span>
+                                </label>
+                              } @else if (control.type === 'select') {
+                                <label class="lab__field">
+                                  <span>Option</span>
+                                  <select [value]="control.value" (change)="onOptionControl(control, $event)">
+                                    @for (option of control.options ?? []; track option.value) {
+                                      <option [value]="option.value">{{ option.label }}</option>
+                                    }
+                                  </select>
+                                </label>
+                              } @else {
+                                <label class="lab__field lab__color-control">
+                                  <span>Colour</span>
+                                  <input type="color" [value]="control.value" (input)="onOptionControl(control, $event)" />
+                                  <code>{{ control.value }}</code>
+                                </label>
+                              }
                             </article>
                           }
                         </div>

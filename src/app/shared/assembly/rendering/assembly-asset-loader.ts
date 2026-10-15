@@ -11,9 +11,12 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
  * procedural/primitive fallback — art can land one part at a time.
  */
 const templateCache = new Map<string, Promise<THREE.Group | null>>();
+const registeredTemplates = new Map<string, THREE.Group>();
 const warnedAssetIds = new Set<string>();
 
 export function loadAssemblyAssetTemplate(assetId: string): Promise<THREE.Group | null> {
+  const registered = registeredTemplates.get(assetId);
+  if (registered) return Promise.resolve(registered);
   const cached = templateCache.get(assetId);
   if (cached) return cached;
 
@@ -33,6 +36,37 @@ export function loadAssemblyAssetTemplate(assetId: string): Promise<THREE.Group 
 
   templateCache.set(assetId, pending);
   return pending;
+}
+
+/** Makes a parsed local Designer asset available without requiring a network URL. */
+export function registerAssemblyAssetTemplate(assetId: string, template: THREE.Group): void {
+  if (!/^[a-zA-Z0-9._-]{1,96}$/.test(assetId)) {
+    throw new Error('Assembly asset ids may contain only letters, numbers, dots, underscores, and hyphens.');
+  }
+  const previous = registeredTemplates.get(assetId);
+  if (previous && previous !== template) disposeTemplate(previous);
+  markTemplateResourcesShared(template);
+  registeredTemplates.set(assetId, template);
+  templateCache.delete(assetId);
+  warnedAssetIds.delete(assetId);
+}
+
+/** Synchronous lookup used by procedural recipes after the Designer hydrates IndexedDB. */
+export function instantiateRegisteredAssemblyAsset(assetId: string): THREE.Group | null {
+  const template = registeredTemplates.get(assetId);
+  return template ? instantiateAssemblyAsset(template) : null;
+}
+
+export function hasRegisteredAssemblyAsset(assetId: string): boolean {
+  return registeredTemplates.has(assetId);
+}
+
+export function unregisterAssemblyAssetTemplate(assetId: string): void {
+  const template = registeredTemplates.get(assetId);
+  if (template) disposeTemplate(template);
+  registeredTemplates.delete(assetId);
+  templateCache.delete(assetId);
+  warnedAssetIds.delete(assetId);
 }
 
 export function instantiateAssemblyAsset(template: THREE.Group): THREE.Group {
@@ -65,6 +99,8 @@ export function resetAssemblyAssetCache(): void {
     });
   }
   templateCache.clear();
+  for (const template of registeredTemplates.values()) disposeTemplate(template);
+  registeredTemplates.clear();
   warnedAssetIds.clear();
 }
 

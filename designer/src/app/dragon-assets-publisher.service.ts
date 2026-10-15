@@ -8,7 +8,7 @@ import {
   PublishedDragonAssetsV1,
 } from '@pbl/assembly/model-pack/published-dragon-assets.models';
 import { parsePublishedDragonAssets } from '@pbl/assembly/model-pack/published-dragon-assets.validation';
-import { environment } from '../environments/environment';
+import { connectDesignerFirebase } from './designer-firebase';
 
 @Service()
 export class DragonAssetsPublisherService {
@@ -89,17 +89,7 @@ export class DragonAssetsPublisherService {
   }
 
   private async connect() {
-    const [{ getApp, getApps, initializeApp }, authApi, firestoreApi] = await Promise.all([
-      import('firebase/app'),
-      import('firebase/auth'),
-      import('firebase/firestore'),
-    ]);
-    const app = getApps().some(candidate => candidate.name === 'dragon-designer')
-      ? getApp('dragon-designer')
-      : initializeApp(environment.firebase, 'dragon-designer');
-    const auth = authApi.getAuth(app);
-    const firestore = firestoreApi.getFirestore(app);
-    return { authApi, firestoreApi, auth, firestore };
+    return connectDesignerFirebase();
   }
 }
 

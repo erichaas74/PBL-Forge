@@ -13,6 +13,12 @@ export interface DesignerPartPlacement {
   scale: number;
 }
 
+export interface DesignerPartDraftSnapshot {
+  readonly dimensions: Vector3Data;
+  readonly snapPoints: SnapOffsetMap;
+  readonly parameters: Record<string, string | number | boolean>;
+}
+
 export type DesignerPartPlacementMap = Record<string, DesignerPartPlacement>;
 
 interface DesignerDragonDraftV4 {
@@ -97,6 +103,27 @@ export class DesignerDragonDraftStore {
       delete next[definitionId];
       return { ...current, parametersByDefinitionId: next };
     });
+    this.persist();
+  }
+
+  /** Atomically replaces the definition-owned fields when a shared revision is opened. */
+  replacePartDraft(definitionId: string, snapshot: DesignerPartDraftSnapshot): void {
+    this.draft.update(current => ({
+      ...current,
+      dimensionsByDefinitionId: {
+        ...current.dimensionsByDefinitionId,
+        [definitionId]: { ...snapshot.dimensions },
+      },
+      snapPointsByDefinitionId: {
+        ...current.snapPointsByDefinitionId,
+        [definitionId]: Object.fromEntries(Object.entries(snapshot.snapPoints)
+          .map(([id, point]) => [id, { ...point }])),
+      },
+      parametersByDefinitionId: {
+        ...current.parametersByDefinitionId,
+        [definitionId]: { ...snapshot.parameters },
+      },
+    }));
     this.persist();
   }
 

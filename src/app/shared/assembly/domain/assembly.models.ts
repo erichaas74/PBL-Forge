@@ -81,6 +81,8 @@ export interface AssemblyAttachmentRule {
 export interface AssemblyVisualProfile {
   profileId: AssemblyVisualProfileId | string;
   meshType: AssemblyVisualMeshType;
+  /** Optional project-package generator. Older packs fall back to profile discovery. */
+  generatorId?: string;
   materialId?: string;
   assetId?: string;
   /** Per-specimen procedural controls. Unlike the Parts Lab style override, these travel with one dragon. */

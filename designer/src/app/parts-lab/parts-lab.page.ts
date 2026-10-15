@@ -11,6 +11,11 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AssemblyBlueprint, Vector3Data } from '@pbl/assembly/domain/assembly.models';
+import {
+  AssemblyInspectorControlDefinition,
+  AssemblyPartProfileSchema,
+  AssemblyProjectPackageManifest,
+} from '@pbl/assembly/domain/assembly-part-schema';
 import { describeSpecimen } from '@pbl/assembly/preview/specimen.models';
 import { SpecimenRendererService } from '@pbl/assembly/preview/specimen-renderer.service';
 import { SpecimenThumbnailService } from '@pbl/assembly/preview/specimen-thumbnail.service';
@@ -26,6 +31,32 @@ import {
   setDragonStyleOverride,
 } from '@pbl/assembly/rendering/dragon-style';
 import { WING_SHAPES } from '@pbl/assembly/rendering/dragon-wing-profile';
+import {
+  DragonCustomMaterialSlot,
+  DragonCustomPartPiece,
+  DragonCustomPartRecipe,
+  DragonCustomPieceMaterial,
+  DragonCustomPieceShape,
+  parseDragonCustomPartRecipe,
+  serializeDragonCustomPartRecipe,
+} from '@pbl/assembly/rendering/dragon-custom-part-recipe';
+import {
+  DesignerImportedPartAsset,
+  ImportedPartAssetsStore,
+} from '../imported-part-assets.store';
+import {
+  SharedDragonPart,
+  SharedDragonPartAccess,
+  SharedDragonPartRevision,
+  SharedDragonPartSnapshot,
+  SharedDragonPartStatus,
+  SharedDragonPartUser,
+  sharedPartAccess,
+} from '../shared-dragon-parts.models';
+import {
+  SharedDragonPartConflictError,
+  SharedDragonPartsService,
+} from '../shared-dragon-parts.service';
 import { PartTuningStore } from './part-tuning.store';
 import {
   DesignerDragonDraftStore,
@@ -33,9 +64,7 @@ import {
 } from '../designer-dragon-draft.store';
 import { MINI_DRAGON_PART_DEFINITIONS } from './mini-dragon-part-definitions';
 import {
-  DragonVisualParameterDefinition,
   dragonParametersForProfile,
-  editableDragonParametersForProfile,
 } from '@pbl/assembly/model-pack/dragon-visual-parameter-registry';
 import { applyDesignerDraft } from '../designer-part-overrides';
 import { buildPartAcceptanceReport, partGroup } from './part-acceptance';
@@ -61,6 +90,11 @@ import {
   applyWorkshopPlacements,
   matchingAssemblyPartIds,
 } from './part-workshop-assembly';
+import {
+  ASSEMBLY_PROJECT_PACKAGES,
+  partProfileSchema,
+  projectPackageForFamily,
+} from '../project-packages/assembly-project-packages';
 
 /**
  * A workbench for the part meshes themselves.
@@ -86,7 +120,15 @@ interface AngleView {
 }
 
 export type PartsLabDragonSpecies = 'lab' | 'mini';
-export type PartInspectorTab = 'shape' | 'features' | 'surface' | 'sockets' | 'genes' | 'test';
+export type PartInspectorTab =
+  | 'shape'
+  | 'features'
+  | 'builder'
+  | 'shared'
+  | 'surface'
+  | 'sockets'
+  | 'genes'
+  | 'test';
 
 interface PartInspectorTabOption {
   readonly id: PartInspectorTab;
@@ -102,19 +144,30 @@ export interface StyleControl {
   max: number;
   step: number;
   value: number;
+  readonly handle?: AssemblyInspectorControlDefinition['handle'];
 }
 
-export interface PartParameterControl extends DragonVisualParameterDefinition {
+export interface PartParameterControl extends AssemblyInspectorControlDefinition {
+  readonly type: 'number';
+  readonly defaultValue: number;
   value: number;
 }
 
-interface InheritedParameterControl extends DragonVisualParameterDefinition {
+interface PartOptionControl extends AssemblyInspectorControlDefinition {
+  readonly type: 'boolean' | 'select' | 'color';
+  readonly value: string | boolean;
+}
+
+interface InheritedParameterControl {
+  readonly key: string;
+  readonly label: string;
   readonly value: string | number | boolean;
 }
 
 interface AnatomyLayerView extends PartAnatomyLayer {
   readonly styleControls: readonly StyleControl[];
   readonly parameterControls: readonly PartParameterControl[];
+  readonly optionControls: readonly PartOptionControl[];
   readonly inheritedParameters: readonly InheritedParameterControl[];
   readonly genes: readonly PartGeneContext[];
   readonly canToggle: boolean;
@@ -181,10 +234,29 @@ const FAMILIES: readonly AssemblyPartFamily[] = ['dragon', 'robot', 'car', 'prim
 const INSPECTOR_TABS: readonly PartInspectorTabOption[] = [
   { id: 'shape', label: 'Shape' },
   { id: 'features', label: 'Layers' },
+  { id: 'builder', label: 'Builder' },
+  { id: 'shared', label: 'Shared' },
   { id: 'surface', label: 'Surface' },
   { id: 'sockets', label: 'Sockets' },
   { id: 'genes', label: 'Genes' },
   { id: 'test', label: 'Test' },
+];
+const CUSTOM_PIECE_SHAPES: readonly { id: DragonCustomPieceShape; label: string }[] = [
+  { id: 'sphere', label: 'Sphere' },
+  { id: 'box', label: 'Box' },
+  { id: 'cylinder', label: 'Cylinder' },
+  { id: 'cone', label: 'Cone' },
+];
+const CUSTOM_MATERIAL_SLOTS: readonly { id: DragonCustomMaterialSlot; label: string }[] = [
+  { id: 'skin', label: 'Primary surface' },
+  { id: 'horn', label: 'Hard accent' },
+  { id: 'tooth', label: 'Light hard material' },
+  { id: 'membrane', label: 'Translucent surface' },
+  { id: 'dark', label: 'Dark detail' },
+];
+const CUSTOM_ASSET_MATERIAL_SLOTS: readonly { id: DragonCustomPieceMaterial; label: string }[] = [
+  { id: 'original', label: 'Keep original' },
+  ...CUSTOM_MATERIAL_SLOTS,
 ];
 const SURFACE_PARAMETER_KEYS = new Set([
   'surfaceRelief',
@@ -244,15 +316,23 @@ export class PartsLabPage implements OnDestroy {
   private readonly router = inject(Router);
   private readonly mounted = signal(false);
   private readonly designerDraft = inject(DesignerDragonDraftStore);
+  private readonly importedAssets = inject(ImportedPartAssetsStore);
+  private readonly sharedPartService = inject(SharedDragonPartsService);
+  private readonly requestedImportedAssets = new Set<string>();
 
   readonly tuning = inject(PartTuningStore);
   readonly families = FAMILIES;
+  readonly projectPackages = ASSEMBLY_PROJECT_PACKAGES;
   readonly inspectorTabs = INSPECTOR_TABS;
   readonly arenaBodyTypes = DRAGON_BODY_TYPE_OPTIONS;
   readonly miniBreedOptions = MINI_DRAGON_BREED_OPTIONS;
   readonly placementHandleKinds = ['move', 'rotate', 'scale'] as const;
   readonly angleViews = ANGLE_VIEWS;
   readonly wingPresetIds = Object.keys(WING_SHAPES) as (keyof typeof WING_SHAPES)[];
+  readonly customPieceShapes = CUSTOM_PIECE_SHAPES;
+  readonly customMaterialSlots = CUSTOM_MATERIAL_SLOTS;
+  readonly customAssetMaterialSlots = CUSTOM_ASSET_MATERIAL_SLOTS;
+  readonly importedAssetLibrary = this.importedAssets.assets;
   readonly contextLost = this.renderer.contextLost;
 
   readonly family = signal<AssemblyPartFamily>('dragon');
@@ -270,6 +350,24 @@ export class PartsLabPage implements OnDestroy {
   readonly compareId = signal<string | null>(null);
   readonly inspectorTab = signal<PartInspectorTab>('features');
   readonly selectedAnatomyLayerId = signal<string | null>(null);
+  readonly selectedCustomPieceId = signal<string | null>(null);
+  readonly assetImporting = signal(false);
+  readonly assetImportError = signal<string | null>(null);
+  readonly lastImportedAsset = signal<DesignerImportedPartAsset | null>(null);
+  readonly sharedUser = signal<SharedDragonPartUser | null>(null);
+  readonly sharedParts = signal<readonly SharedDragonPart[]>([]);
+  readonly selectedSharedPartId = signal<string | null>(null);
+  readonly sharedRevisions = signal<readonly SharedDragonPartRevision[]>([]);
+  readonly sharedBusy = signal(false);
+  readonly sharedError = signal<string | null>(null);
+  readonly sharedMessage = signal<string | null>(null);
+  readonly sharedName = signal('');
+  readonly sharedDescription = signal('');
+  readonly sharedTags = signal('');
+  readonly sharedChangeNote = signal('');
+  readonly sharedEditorUids = signal('');
+  readonly sharedViewerUids = signal('');
+  readonly loadedSharedRevisionId = signal<string | null>(null);
   readonly showBodyHandles = signal(true);
   readonly activeBodyHandleId = signal<string | null>(null);
   readonly showProceduralHandles = signal(true);
@@ -311,6 +409,27 @@ export class PartsLabPage implements OnDestroy {
     return ASSEMBLY_PART_DEFINITIONS.filter(definition => definition.family === family);
   });
 
+  readonly projectPackage = computed<AssemblyProjectPackageManifest>(() =>
+    projectPackageForFamily(this.family()));
+
+  readonly selectedPartSchema = computed<AssemblyPartProfileSchema | null>(() => {
+    const definition = this.selected();
+    return definition ? partProfileSchema(definition) : null;
+  });
+
+  readonly visibleInspectorTabs = computed(() => {
+    const schema = this.selectedPartSchema();
+    if (!schema) return INSPECTOR_TABS;
+    return INSPECTOR_TABS.filter(tab => {
+      if (tab.id === 'features') return schema.capabilities.includes('parameters');
+      if (tab.id === 'builder') return schema.capabilities.includes('custom-pieces');
+      if (tab.id === 'surface') return schema.capabilities.includes('materials') || schema.capabilities.includes('surface');
+      if (tab.id === 'sockets') return schema.capabilities.includes('sockets');
+      if (tab.id === 'genes') return this.family() === 'dragon';
+      return true;
+    });
+  });
+
   readonly groups = computed(() => ['All', ...new Set(this.definitions().map(partGroup))]);
   readonly filteredDefinitions = computed(() => {
     const query = this.search().trim().toLowerCase();
@@ -324,7 +443,7 @@ export class PartsLabPage implements OnDestroy {
   readonly collectionLabel = computed(() =>
     this.family() === 'dragon'
       ? this.dragonSpecies() === 'mini' ? 'Mini Dragon Show' : 'Arena dragon'
-      : this.family());
+      : this.projectPackage().label);
 
   readonly speciesLabel = computed(() =>
     this.dragonSpecies() === 'mini' ? 'Mini Dragon Show' : 'Dragon Arena');
@@ -345,12 +464,14 @@ export class PartsLabPage implements OnDestroy {
 
   /** Feature controls for the selected part, or none if it has no tunables. */
   readonly styleControls = computed<StyleControl[]>(() => {
-    const profile = this.profileId();
     const style = this.style();
-    return editableDragonParametersForProfile(profile)
-      .filter(definition => definition.species === 'classic' && definition.styleSection)
+    return (this.selectedPartSchema()?.controls ?? [])
+      .filter((definition): definition is AssemblyInspectorControlDefinition & {
+        readonly type: 'number'; readonly defaultValue: number; readonly styleSection: string;
+      } => definition.type === 'number' && definition.binding === 'style'
+        && typeof definition.defaultValue === 'number' && Boolean(definition.styleSection))
       .map(definition => {
-        const section = definition.styleSection!;
+        const section = definition.styleSection as keyof DragonStyle;
         const key = definition.key === 'jointBall' ? 'ball' : definition.key;
         return {
           section,
@@ -360,34 +481,40 @@ export class PartsLabPage implements OnDestroy {
           max: definition.max!,
           step: definition.step ?? 0.01,
           value: readStyleValue(style, section, key),
+          handle: definition.handle,
         };
       });
   });
 
-  readonly parameterControls = computed<PartParameterControl[]>(() => {
+  readonly schemaControls = computed<readonly (PartParameterControl | PartOptionControl)[]>(() => {
+    this.commitVersion();
     const definition = this.selected();
-    if (!definition) return [];
+    const schema = this.selectedPartSchema();
+    if (!definition || !schema) return [];
     const values = this.designerDraft.parametersFor(definition.id, definition.visualProfile?.parameters);
-    const species = this.dragonSpecies() === 'mini' ? 'mini' : 'classic';
-    return editableDragonParametersForProfile(this.profileId())
-      .filter(parameter => parameter.species === species
-        && !parameter.styleSection
-        && !parameter.geneticsOwned)
-      .map(parameter => ({
-        ...parameter,
-        value: typeof values[parameter.key] === 'number'
-          ? values[parameter.key] as number
-          : parameter.defaultValue as number,
-      }));
+    return schema.controls
+      .filter(control => control.binding === 'parameter' && !control.readOnly)
+      .flatMap(control => resolvedSchemaControl(control, values));
   });
 
+  readonly parameterControls = computed<PartParameterControl[]>(() =>
+    this.schemaControls().filter((control): control is PartParameterControl => control.type === 'number'));
+
+  readonly optionControls = computed<PartOptionControl[]>(() =>
+    this.schemaControls().filter((control): control is PartOptionControl => control.type !== 'number'));
+
   readonly surfaceControls = computed(() =>
-    this.parameterControls().filter(control => SURFACE_PARAMETER_KEYS.has(control.key)));
+    this.parameterControls().filter(control => control.surface || SURFACE_PARAMETER_KEYS.has(control.key)));
+
+  readonly surfaceOptionControls = computed(() =>
+    this.optionControls().filter(control => control.surface));
 
   readonly partParameterScopeLabel = computed(() =>
     this.dragonSpecies() === 'mini'
       ? 'This Show part'
-      : this.profileId() === 'dragon-body' ? 'This Arena body type' : 'This Arena part');
+      : this.family() === 'dragon'
+        ? this.profileId() === 'dragon-body' ? 'This Arena body type' : 'This Arena part'
+        : `This ${this.projectPackage().label.toLowerCase()} part`);
 
   readonly bodyHandles = computed<BodyHandleControl[]>(() => {
     const layouts = this.profileId() === 'dragon-body'
@@ -417,25 +544,86 @@ export class PartsLabPage implements OnDestroy {
     this.inheritedParameters().filter(control =>
       control.key === 'scalePattern' || control.key === 'patternColor'));
 
+  readonly customBuilderAvailable = computed(() =>
+    this.selectedPartSchema()?.capabilities.includes('custom-pieces') ?? false);
+
+  readonly customRecipe = computed<DragonCustomPartRecipe>(() => {
+    this.commitVersion();
+    const definition = this.selected();
+    if (!definition || !this.customBuilderAvailable()) return { version: 2, pieces: [] };
+    const parameters = this.designerDraft.parametersFor(
+      definition.id,
+      definition.visualProfile?.parameters,
+    );
+    return parseDragonCustomPartRecipe(
+      typeof parameters['customPartRecipe'] === 'string' ? parameters['customPartRecipe'] : '',
+    );
+  });
+
+  readonly selectedCustomPiece = computed<DragonCustomPartPiece | null>(() => {
+    const pieces = this.customRecipe().pieces;
+    const id = this.selectedCustomPieceId();
+    return pieces.find(piece => piece.id === id) ?? pieces[0] ?? null;
+  });
+
+  readonly selectedImportedAsset = computed(() => {
+    const piece = this.selectedCustomPiece();
+    return piece?.kind === 'asset'
+      ? this.importedAssetLibrary().find(asset => asset.id === piece.assetId) ?? null
+      : null;
+  });
+
+  readonly selectedSharedPart = computed<SharedDragonPart | null>(() => {
+    const id = this.selectedSharedPartId();
+    return this.sharedParts().find(part => part.id === id) ?? null;
+  });
+
+  readonly selectedSharedAccess = computed<SharedDragonPartAccess | null>(() => {
+    const part = this.selectedSharedPart();
+    const user = this.sharedUser();
+    return part && user ? sharedPartAccess(part, user.uid) : null;
+  });
+
+  readonly canEditSelectedSharedPart = computed(() =>
+    this.selectedSharedAccess() === 'owner' || this.selectedSharedAccess() === 'editor');
+
+  readonly ownsSelectedSharedPart = computed(() => this.selectedSharedAccess() === 'owner');
+
   readonly geneContext = computed(() =>
     partGeneContext(this.selected(), this.dragonSpecies()));
 
   readonly anatomyLayers = computed<AnatomyLayerView[]>(() => {
     const styleControls = this.styleControls();
     const parameterControls = this.parameterControls();
+    const optionControls = this.optionControls();
     const inheritedParameters = this.inheritedParameters();
     const genes = this.geneContext();
     const availableKeys = [
       ...styleControls.map(control => control.key),
       ...parameterControls.map(control => control.key),
+      ...optionControls.map(control => control.key),
       ...inheritedParameters.map(control => control.key),
     ];
 
-    return partAnatomyLayers(this.profileId(), this.dragonSpecies(), availableKeys)
+    const layers: readonly PartAnatomyLayer[] = this.family() === 'dragon'
+      ? partAnatomyLayers(this.profileId(), this.dragonSpecies(), availableKeys)
+      : (this.selectedPartSchema()?.sections ?? []).map(section => ({
+          id: section.id,
+          label: section.label,
+          description: section.description,
+          category: section.category,
+          parameterKeys: (this.selectedPartSchema()?.controls ?? [])
+            .filter(control => control.sectionId === section.id && control.binding === 'parameter')
+            .map(control => control.key),
+          geneIds: [] as readonly string[],
+          structural: section.structural,
+        }));
+    return layers
       .map(layer => {
         const keySet = new Set(layer.parameterKeys);
         const layerStyleControls = styleControls.filter(control => keySet.has(control.key));
         const layerParameterControls = parameterControls.filter(control => keySet.has(control.key));
+        const layerOptionControls = optionControls.filter(control => keySet.has(control.key));
         const layerInheritedParameters = inheritedParameters.filter(control => keySet.has(control.key));
         const layerGenes = genes.filter(gene => layer.geneIds.includes(gene.id));
         const visibilityStyle = layerStyleControls.find(control => control.key === layer.visibilityKey);
@@ -445,11 +633,13 @@ export class PartsLabPage implements OnDestroy {
           ...layer,
           styleControls: layerStyleControls,
           parameterControls: layerParameterControls,
+          optionControls: layerOptionControls,
           inheritedParameters: layerInheritedParameters,
           genes: layerGenes,
           canToggle: !layer.structural && visibilityValue !== undefined,
           visible: visibilityValue === undefined || visibilityValue !== 0,
-          editable: layerStyleControls.length > 0 || layerParameterControls.length > 0,
+          editable: layerStyleControls.length > 0 || layerParameterControls.length > 0
+            || layerOptionControls.length > 0,
         };
       });
   });
@@ -542,7 +732,7 @@ export class PartsLabPage implements OnDestroy {
     this.previewMode() === 'assembly' && Boolean(this.placementTargetId()));
 
   readonly featureControlCount = computed(() =>
-    this.styleControls().length + this.parameterControls().length);
+    this.styleControls().length + this.schemaControls().length);
 
   readonly selectedArenaBody = computed(() => {
     const definitionId = this.selected()?.id;
@@ -592,6 +782,20 @@ export class PartsLabPage implements OnDestroy {
 
   constructor() {
     setDragonStyleOverride(this.style());
+
+    effect(() => {
+      this.importedAssets.revision();
+      const assetIds = this.customRecipe().pieces
+        .filter(piece => piece.kind === 'asset')
+        .map(piece => piece.assetId);
+      for (const assetId of assetIds) {
+        if (this.requestedImportedAssets.has(assetId)) continue;
+        this.requestedImportedAssets.add(assetId);
+        void this.importedAssets.ensureRegistered(assetId).then(ready => {
+          if (ready) this.scheduleCommit();
+        });
+      }
+    });
 
     effect(() => {
       const definition = this.selected();
@@ -675,7 +879,7 @@ export class PartsLabPage implements OnDestroy {
         );
         this.renderer.setPartFocus(
           preview.matchingPartIds,
-          this.selectedAnatomyLayer()?.meshNamePrefixes ?? [],
+          this.focusedMeshPrefixes(),
         );
         this.schedulePlacementAnchorRefresh();
         return;
@@ -691,7 +895,8 @@ export class PartsLabPage implements OnDestroy {
           frame: exactPartPreviewFrame(blueprint.parts[0]),
         },
       );
-      this.renderer.setPartFocus(null);
+      const prefixes = this.focusedMeshPrefixes();
+      this.renderer.setPartFocus(prefixes.length ? [definition.id] : null, prefixes);
       this.placementAnchor.set(null);
     });
 
@@ -842,6 +1047,17 @@ export class PartsLabPage implements OnDestroy {
   setFamily(family: AssemblyPartFamily): void {
     this.family.set(family);
     this.selectedId.set(null);
+    if (this.inspectorTab() === 'genes') this.inspectorTab.set('features');
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { family, species: family === 'dragon' ? this.dragonSpecies() : null, part: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  familyLabel(family: AssemblyPartFamily): string {
+    return projectPackageForFamily(family).label;
   }
 
   setDragonSpecies(species: PartsLabDragonSpecies): void {
@@ -867,6 +1083,368 @@ export class PartsLabPage implements OnDestroy {
 
   selectAnatomyLayer(layer: AnatomyLayerView): void {
     this.selectedAnatomyLayerId.set(layer.id);
+  }
+
+  selectCustomPiece(piece: DragonCustomPartPiece): void {
+    this.selectedCustomPieceId.set(piece.id);
+    this.reapplyCurrentFocus();
+  }
+
+  addCustomPiece(shape: DragonCustomPieceShape): void {
+    const recipe = this.customRecipe();
+    if (!this.customBuilderAvailable() || recipe.pieces.length >= 32) return;
+    const id = nextCustomPieceId(recipe);
+    const jaw = this.profileId() === 'dragon-upper-jaw' || this.profileId() === 'dragon-lower-jaw';
+    const piece: DragonCustomPartPiece = {
+      id,
+      label: `${CUSTOM_PIECE_SHAPES.find(option => option.id === shape)?.label ?? 'Piece'} ${recipe.pieces.length + 1}`,
+      kind: 'primitive',
+      shape,
+      material: shape === 'cone' ? (jaw ? 'tooth' : 'horn') : 'skin',
+      offset: jaw ? { x: 0.1, y: -0.18, z: 0.25 } : { x: 0, y: 0.32, z: 0.3 },
+      rotationDegrees: shape === 'cone' ? { x: 0, y: 0, z: jaw ? 180 : 0 } : { x: 0, y: 0, z: 0 },
+      scale: shape === 'cone' ? { x: 0.08, y: 0.28, z: 0.08 } : { x: 0.2, y: 0.2, z: 0.2 },
+      mirrored: true,
+      visible: true,
+    };
+    this.selectedCustomPieceId.set(id);
+    this.writeCustomRecipe({ version: 2, pieces: [...recipe.pieces, piece] });
+  }
+
+  async importCustomAsset(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!this.customBuilderAvailable() || this.customRecipe().pieces.length >= 32) {
+      this.assetImportError.set('This recipe already contains the maximum of 32 pieces.');
+      return;
+    }
+    this.assetImporting.set(true);
+    this.assetImportError.set(null);
+    try {
+      const asset = await this.importedAssets.importFile(file);
+      const recipe = this.customRecipe();
+      const id = nextCustomPieceId(recipe);
+      const jaw = this.profileId() === 'dragon-upper-jaw' || this.profileId() === 'dragon-lower-jaw';
+      const piece: DragonCustomPartPiece = {
+        id,
+        label: asset.label,
+        kind: 'asset',
+        assetId: asset.id,
+        sourceFileName: asset.fileName,
+        material: 'original',
+        offset: jaw ? { x: 0.05, y: -0.12, z: 0 } : { x: 0, y: 0.2, z: 0 },
+        rotationDegrees: { x: 0, y: 0, z: 0 },
+        scale: { x: 0.45, y: 0.45, z: 0.45 },
+        mirrored: false,
+        visible: true,
+      };
+      this.lastImportedAsset.set(asset);
+      this.selectedCustomPieceId.set(id);
+      this.writeCustomRecipe({ version: 2, pieces: [...recipe.pieces, piece] });
+    } catch (error) {
+      this.assetImportError.set(error instanceof Error ? error.message : 'The GLB could not be imported.');
+    } finally {
+      this.assetImporting.set(false);
+    }
+  }
+
+  async connectSharedLibrary(): Promise<void> {
+    await this.runSharedWork(async () => {
+      const user = await this.sharedPartService.signIn();
+      this.sharedUser.set(user);
+      if (!this.sharedName().trim()) this.sharedName.set(`${this.selected()?.label ?? 'Part'} custom`);
+      await this.refreshSharedParts();
+      const selected = this.selectedSharedPart();
+      if (selected) await this.selectSharedPart(selected);
+      this.sharedMessage.set(`Connected as ${user.displayName}.`);
+    });
+  }
+
+  async disconnectSharedLibrary(): Promise<void> {
+    await this.runSharedWork(async () => {
+      await this.sharedPartService.signOut();
+      this.sharedUser.set(null);
+      this.sharedParts.set([]);
+      this.selectedSharedPartId.set(null);
+      this.sharedRevisions.set([]);
+      this.loadedSharedRevisionId.set(null);
+      this.sharedMessage.set('Disconnected from the shared library. Local editing is unchanged.');
+    });
+  }
+
+  async reloadSharedLibrary(): Promise<void> {
+    await this.runSharedWork(async () => {
+      await this.refreshSharedParts();
+      const selected = this.selectedSharedPart();
+      if (selected) await this.selectSharedPart(selected);
+      this.sharedMessage.set('Shared parts refreshed.');
+    });
+  }
+
+  async selectSharedPart(part: SharedDragonPart): Promise<void> {
+    this.selectedSharedPartId.set(part.id);
+    this.sharedName.set(part.name);
+    this.sharedDescription.set(part.description);
+    this.sharedTags.set(part.tags.join(', '));
+    this.sharedEditorUids.set(part.editorUids.join('\n'));
+    this.sharedViewerUids.set(part.viewerUids.join('\n'));
+    this.loadedSharedRevisionId.set(null);
+    this.sharedError.set(null);
+    const loadRevisions = async (): Promise<void> => {
+      const access = this.sharedUser() ? sharedPartAccess(part, this.sharedUser()!.uid) : null;
+      this.sharedRevisions.set(
+        access === 'published' || !part.currentRevisionId
+          ? []
+          : await this.sharedPartService.listRevisions(part.id),
+      );
+    };
+    if (this.sharedBusy()) {
+      try {
+        await loadRevisions();
+      } catch (error) {
+        this.sharedError.set(sharedErrorMessage(error));
+      }
+    } else {
+      await this.runSharedWork(loadRevisions, false);
+    }
+  }
+
+  async createSharedPart(): Promise<void> {
+    const snapshot = this.currentSharedSnapshot();
+    if (!snapshot) return;
+    await this.runSharedWork(async () => {
+      const created = await this.sharedPartService.createPart({
+        name: this.sharedName(),
+        description: this.sharedDescription(),
+        tags: splitValues(this.sharedTags()),
+        snapshot,
+        changeNote: this.sharedChangeNote(),
+      }, this.importedAssets);
+      await this.refreshSharedParts(created.id);
+      await this.selectSharedPart(this.sharedParts().find(part => part.id === created.id) ?? created);
+      this.loadedSharedRevisionId.set(created.currentRevisionId);
+      this.sharedChangeNote.set('');
+      this.sharedMessage.set(`Created ${created.name} with revision ${created.revisionNumber}.`);
+    });
+  }
+
+  async saveSharedRevision(): Promise<void> {
+    const part = this.selectedSharedPart();
+    const snapshot = this.currentSharedSnapshot();
+    if (!part || !snapshot) return;
+    if (snapshot.sourceDefinitionId !== part.sourceDefinitionId) {
+      this.sharedError.set(`Open ${part.sourceDefinitionId} before saving a revision to this shared part.`);
+      return;
+    }
+    await this.runSharedWork(async () => {
+      const updated = await this.sharedPartService.saveRevision(
+        part.id,
+        part.currentRevisionId,
+        snapshot,
+        this.sharedChangeNote(),
+        this.importedAssets,
+      );
+      await this.refreshSharedParts(updated.id);
+      const refreshed = this.sharedParts().find(candidate => candidate.id === updated.id) ?? updated;
+      await this.selectSharedPart(refreshed);
+      this.loadedSharedRevisionId.set(updated.currentRevisionId);
+      this.sharedChangeNote.set('');
+      this.sharedMessage.set(`Saved revision ${updated.revisionNumber}. Published revisions remain unchanged.`);
+    });
+  }
+
+  async saveSharedMetadata(): Promise<void> {
+    const part = this.selectedSharedPart();
+    if (!part) return;
+    await this.runSharedWork(async () => {
+      const updated = await this.sharedPartService.updateMetadata(part.id, {
+        name: this.sharedName(),
+        description: this.sharedDescription(),
+        tags: splitValues(this.sharedTags()),
+      });
+      await this.refreshSharedParts(updated.id);
+      this.sharedMessage.set('Part information saved.');
+    });
+  }
+
+  async saveSharedAccess(): Promise<void> {
+    const part = this.selectedSharedPart();
+    if (!part) return;
+    await this.runSharedWork(async () => {
+      const updated = await this.sharedPartService.updateAccess(
+        part.id,
+        splitValues(this.sharedEditorUids()),
+        splitValues(this.sharedViewerUids()),
+      );
+      await this.refreshSharedParts(updated.id);
+      await this.selectSharedPart(this.sharedParts().find(candidate => candidate.id === updated.id) ?? updated);
+      this.sharedMessage.set('Editor and viewer access saved.');
+    });
+  }
+
+  async changeSharedStatus(event: Event): Promise<void> {
+    const part = this.selectedSharedPart();
+    const status = (event.target as HTMLSelectElement).value as SharedDragonPartStatus;
+    if (!part || !['draft', 'review', 'published', 'archived'].includes(status)) return;
+    await this.runSharedWork(async () => {
+      const updated = await this.sharedPartService.setStatus(part.id, status);
+      await this.refreshSharedParts(updated.id);
+      this.sharedMessage.set(status === 'published'
+        ? `Published revision ${updated.revisionNumber}.`
+        : `Part moved to ${status}.`);
+    });
+  }
+
+  async loadSelectedSharedPart(): Promise<void> {
+    const part = this.selectedSharedPart();
+    if (!part) return;
+    const revisionId = this.selectedSharedAccess() === 'published'
+      ? part.publishedRevisionId
+      : part.currentRevisionId;
+    if (!revisionId) {
+      this.sharedError.set('This shared part does not have a loadable revision.');
+      return;
+    }
+    await this.loadSharedRevision(part, revisionId);
+  }
+
+  async loadSharedHistoryRevision(revision: SharedDragonPartRevision): Promise<void> {
+    const part = this.selectedSharedPart();
+    if (part) await this.loadSharedRevision(part, revision.id);
+  }
+
+  async restoreSharedRevision(revision: SharedDragonPartRevision): Promise<void> {
+    const part = this.selectedSharedPart();
+    if (!part) return;
+    await this.runSharedWork(async () => {
+      const updated = await this.sharedPartService.restoreRevision(part, revision.id, this.importedAssets);
+      await this.refreshSharedParts(updated.id);
+      const refreshed = this.sharedParts().find(candidate => candidate.id === updated.id) ?? updated;
+      await this.selectSharedPart(refreshed);
+      await this.loadSharedRevision(refreshed, updated.currentRevisionId, false);
+      this.sharedMessage.set(`Restored revision ${revision.revisionNumber} as new revision ${updated.revisionNumber}.`);
+    });
+  }
+
+  async copySelectedSharedPart(): Promise<void> {
+    const part = this.selectedSharedPart();
+    if (!part) return;
+    const revisionId = this.selectedSharedAccess() === 'published'
+      ? part.publishedRevisionId
+      : part.currentRevisionId;
+    if (!revisionId) return;
+    await this.runSharedWork(async () => {
+      const revision = await this.sharedPartService.loadRevision(part.id, revisionId, this.importedAssets);
+      const copy = await this.sharedPartService.createPart({
+        name: `${part.name} copy`.slice(0, 80),
+        description: part.description,
+        tags: part.tags,
+        snapshot: revision,
+        changeNote: `Copied from ${part.name}`,
+      }, this.importedAssets);
+      await this.refreshSharedParts(copy.id);
+      const refreshed = this.sharedParts().find(candidate => candidate.id === copy.id) ?? copy;
+      await this.selectSharedPart(refreshed);
+      this.applySharedRevision(revision);
+      this.loadedSharedRevisionId.set(copy.currentRevisionId);
+      this.sharedMessage.set(`Created editable copy ${copy.name}.`);
+    });
+  }
+
+  updateSharedField(field: 'name' | 'description' | 'tags' | 'note' | 'editors' | 'viewers', event: Event): void {
+    const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value;
+    if (field === 'name') this.sharedName.set(value.slice(0, 80));
+    else if (field === 'description') this.sharedDescription.set(value.slice(0, 500));
+    else if (field === 'tags') this.sharedTags.set(value.slice(0, 400));
+    else if (field === 'note') this.sharedChangeNote.set(value.slice(0, 300));
+    else if (field === 'editors') this.sharedEditorUids.set(value.slice(0, 3_200));
+    else this.sharedViewerUids.set(value.slice(0, 6_200));
+  }
+
+  async copySharedUserId(): Promise<void> {
+    const uid = this.sharedUser()?.uid;
+    if (!uid) return;
+    try {
+      await navigator.clipboard.writeText(uid);
+      this.sharedMessage.set('Your collaborator UID was copied.');
+    } catch {
+      this.sharedMessage.set(`Your collaborator UID is ${uid}`);
+    }
+  }
+
+  updateCustomPieceLabel(event: Event): void {
+    const label = (event.target as HTMLInputElement).value.slice(0, 48);
+    this.updateCustomPiece(piece => ({ ...piece, label }));
+  }
+
+  updateCustomPieceShape(event: Event): void {
+    const shape = (event.target as HTMLSelectElement).value as DragonCustomPieceShape;
+    if (!CUSTOM_PIECE_SHAPES.some(option => option.id === shape)) return;
+    this.updateCustomPiece(piece => piece.kind === 'primitive' ? { ...piece, shape } : piece);
+  }
+
+  updateCustomPieceMaterial(event: Event): void {
+    const material = (event.target as HTMLSelectElement).value as DragonCustomPieceMaterial;
+    if (!CUSTOM_ASSET_MATERIAL_SLOTS.some(option => option.id === material)) return;
+    this.updateCustomPiece(piece => {
+      if (piece.kind === 'primitive') {
+        return material === 'original' ? piece : { ...piece, material };
+      }
+      return { ...piece, material };
+    });
+  }
+
+  updateCustomPieceVector(
+    group: 'offset' | 'rotationDegrees' | 'scale',
+    axis: keyof Vector3Data,
+    event: Event,
+  ): void {
+    const value = Number((event.target as HTMLInputElement).value);
+    if (!Number.isFinite(value)) return;
+    this.updateCustomPiece(piece => ({
+      ...piece,
+      [group]: { ...piece[group], [axis]: value },
+    }));
+  }
+
+  toggleCustomPieceMirror(): void {
+    this.updateCustomPiece(piece => ({ ...piece, mirrored: !piece.mirrored }));
+  }
+
+  toggleCustomPieceVisibility(): void {
+    this.updateCustomPiece(piece => ({ ...piece, visible: !piece.visible }));
+  }
+
+  duplicateCustomPiece(): void {
+    const selected = this.selectedCustomPiece();
+    const recipe = this.customRecipe();
+    if (!selected || recipe.pieces.length >= 32) return;
+    const id = nextCustomPieceId(recipe);
+    const duplicate: DragonCustomPartPiece = {
+      ...selected,
+      id,
+      label: `${selected.label} copy`.slice(0, 48),
+      offset: { ...selected.offset, x: round(selected.offset.x - 0.08) },
+      rotationDegrees: { ...selected.rotationDegrees },
+      scale: { ...selected.scale },
+    };
+    this.selectedCustomPieceId.set(id);
+    this.writeCustomRecipe({ version: 2, pieces: [...recipe.pieces, duplicate] });
+  }
+
+  removeCustomPiece(): void {
+    const selected = this.selectedCustomPiece();
+    if (!selected) return;
+    const pieces = this.customRecipe().pieces.filter(piece => piece.id !== selected.id);
+    this.selectedCustomPieceId.set(pieces[0]?.id ?? null);
+    this.writeCustomRecipe({ version: 2, pieces });
+  }
+
+  clearCustomPieces(): void {
+    this.selectedCustomPieceId.set(null);
+    this.writeCustomRecipe({ version: 2, pieces: [] });
   }
 
   setPreviewMode(mode: WorkshopPreviewMode): void {
@@ -986,6 +1564,17 @@ export class PartsLabPage implements OnDestroy {
     this.setPartParameter(control, value);
   }
 
+  onOptionControl(control: PartOptionControl, event: Event): void {
+    const definition = this.selected();
+    if (!definition) return;
+    const target = event.target as HTMLInputElement | HTMLSelectElement;
+    const value: string | boolean = control.type === 'boolean'
+      ? (target as HTMLInputElement).checked
+      : target.value;
+    this.designerDraft.setParameter(definition.id, control.key, value);
+    this.scheduleCommit();
+  }
+
   setStyleControl(control: StyleControl, value: number): void {
     this.style.update(current => writeStyleValue(current, control.section, control.key, value));
     this.scheduleCommit();
@@ -1047,6 +1636,9 @@ export class PartsLabPage implements OnDestroy {
     for (const control of layer.parameterControls) {
       this.designerDraft.clearParameter(definition.id, control.key);
     }
+    for (const control of layer.optionControls) {
+      this.designerDraft.clearParameter(definition.id, control.key);
+    }
     this.scheduleCommit();
   }
 
@@ -1054,6 +1646,9 @@ export class PartsLabPage implements OnDestroy {
     const definition = this.selected();
     if (!definition) return;
     for (const control of this.surfaceControls()) {
+      this.designerDraft.clearParameter(definition.id, control.key);
+    }
+    for (const control of this.surfaceOptionControls()) {
       this.designerDraft.clearParameter(definition.id, control.key);
     }
     this.scheduleCommit();
@@ -1340,9 +1935,45 @@ export class PartsLabPage implements OnDestroy {
     if (!preview) return;
     this.renderer.setPartFocus(
       preview.matchingPartIds,
-      this.selectedAnatomyLayer()?.meshNamePrefixes ?? [],
+      this.focusedMeshPrefixes(),
     );
     this.schedulePlacementAnchorRefresh();
+  }
+
+  private reapplyCurrentFocus(): void {
+    if (this.previewMode() === 'assembly') {
+      this.reapplyAssemblyFocus();
+      return;
+    }
+    const definition = this.selected();
+    const prefixes = this.focusedMeshPrefixes();
+    this.renderer.setPartFocus(definition && prefixes.length ? [definition.id] : null, prefixes);
+  }
+
+  private focusedMeshPrefixes(): readonly string[] {
+    if (this.inspectorTab() === 'builder') {
+      const piece = this.selectedCustomPiece();
+      return piece ? [`dragon-custom-piece-${piece.id}-`] : [];
+    }
+    return this.selectedAnatomyLayer()?.meshNamePrefixes ?? [];
+  }
+
+  private updateCustomPiece(update: (piece: DragonCustomPartPiece) => DragonCustomPartPiece): void {
+    const selected = this.selectedCustomPiece();
+    if (!selected) return;
+    this.writeCustomRecipe({
+      version: 2,
+      pieces: this.customRecipe().pieces.map(piece => piece.id === selected.id ? update(piece) : piece),
+    });
+  }
+
+  private writeCustomRecipe(recipe: DragonCustomPartRecipe): void {
+    const definition = this.selected();
+    if (!definition || !this.customBuilderAvailable()) return;
+    const serialized = serializeDragonCustomPartRecipe(recipe);
+    if (serialized) this.designerDraft.setParameter(definition.id, 'customPartRecipe', serialized);
+    else this.designerDraft.clearParameter(definition.id, 'customPartRecipe');
+    this.scheduleCommit();
   }
 
   /**
@@ -1353,15 +1984,125 @@ export class PartsLabPage implements OnDestroy {
   private scheduleCommit(): void {
     if (this.commitTimer) clearTimeout(this.commitTimer);
     this.commitTimer = setTimeout(() => {
-      this.commitTimer = null;
-      setDragonStyleOverride(this.style());
-      this.designerDraft.setStyle(this.style());
-      const definition = this.selected();
-      const dimensions = this.scaledDimensions();
-      if (definition && dimensions) this.designerDraft.setDimensions(definition.id, dimensions);
-      this.committedScale.set(this.scaleVector());
-      this.commitVersion.update(version => version + 1);
+      this.commitDraft();
     }, COMMIT_DELAY_MS);
+  }
+
+  private commitDraft(): void {
+    if (this.commitTimer) clearTimeout(this.commitTimer);
+    this.commitTimer = null;
+    setDragonStyleOverride(this.style());
+    this.designerDraft.setStyle(this.style());
+    const definition = this.selected();
+    const dimensions = this.scaledDimensions();
+    if (definition && dimensions) this.designerDraft.setDimensions(definition.id, dimensions);
+    this.committedScale.set(this.scaleVector());
+    this.commitVersion.update(version => version + 1);
+  }
+
+  private currentSharedSnapshot(): SharedDragonPartSnapshot | null {
+    if (!this.sharedUser()) {
+      this.sharedError.set('Connect to the shared library first.');
+      return null;
+    }
+    const definition = this.selected();
+    if (!definition) {
+      this.sharedError.set('Select a part to share it.');
+      return null;
+    }
+    this.commitDraft();
+    const resolved = applyDesignerDraft(definition, this.designerDraft);
+    return {
+      sourceDefinitionId: definition.id,
+      profileId: definition.visualProfile?.profileId ?? '',
+      dimensions: { ...resolved.dimensions },
+      snapPoints: Object.fromEntries(resolved.snapPoints.map(point => [
+        point.id,
+        { ...point.localPosition },
+      ])),
+      parameters: this.designerDraft.parametersFor(
+        definition.id,
+        definition.visualProfile?.parameters,
+      ),
+    };
+  }
+
+  private async loadSharedRevision(
+    part: SharedDragonPart,
+    revisionId: string,
+    manageBusy = true,
+  ): Promise<void> {
+    const work = async (): Promise<void> => {
+      const revision = await this.sharedPartService.loadRevision(part.id, revisionId, this.importedAssets);
+      this.applySharedRevision(revision);
+      this.loadedSharedRevisionId.set(revision.id);
+      this.sharedMessage.set(`Loaded revision ${revision.revisionNumber} into the local Designer draft.`);
+    };
+    if (manageBusy) await this.runSharedWork(work);
+    else await work();
+  }
+
+  private applySharedRevision(revision: SharedDragonPartRevision): void {
+    const definition = [...ASSEMBLY_PART_DEFINITIONS, ...MINI_DRAGON_PART_DEFINITIONS]
+      .find(candidate => candidate.id === revision.sourceDefinitionId);
+    if (!definition) throw new Error(`This Designer does not contain ${revision.sourceDefinitionId}.`);
+    this.family.set(definition.family);
+    this.dragonSpecies.set(MINI_DRAGON_PART_DEFINITIONS.some(candidate => candidate.id === definition.id)
+      ? 'mini'
+      : 'lab');
+    this.selectedId.set(definition.id);
+    this.designerDraft.replacePartDraft(definition.id, {
+      dimensions: revision.dimensions,
+      snapPoints: { ...revision.snapPoints },
+      parameters: { ...revision.parameters },
+    });
+    const scale = {
+      x: revision.dimensions.x / definition.dimensions.x,
+      y: revision.dimensions.y / definition.dimensions.y,
+      z: revision.dimensions.z / definition.dimensions.z,
+    };
+    this.scaleX.set(scale.x);
+    this.scaleY.set(scale.y);
+    this.scaleZ.set(scale.z);
+    this.committedScale.set(scale);
+    this.selectedCustomPieceId.set(null);
+    this.commitVersion.update(version => version + 1);
+    this.select(definition);
+  }
+
+  private async refreshSharedParts(preferredPartId = this.selectedSharedPartId()): Promise<void> {
+    const parts = await this.sharedPartService.listAccessibleParts();
+    this.sharedParts.set(parts);
+    const selected = parts.find(part => part.id === preferredPartId) ?? parts[0] ?? null;
+    this.selectedSharedPartId.set(selected?.id ?? null);
+    if (selected) {
+      this.sharedName.set(selected.name);
+      this.sharedDescription.set(selected.description);
+      this.sharedTags.set(selected.tags.join(', '));
+      this.sharedEditorUids.set(selected.editorUids.join('\n'));
+      this.sharedViewerUids.set(selected.viewerUids.join('\n'));
+    } else {
+      this.sharedRevisions.set([]);
+    }
+  }
+
+  private async runSharedWork(work: () => Promise<void>, clearMessage = true): Promise<void> {
+    if (this.sharedBusy()) return;
+    this.sharedBusy.set(true);
+    this.sharedError.set(null);
+    if (clearMessage) this.sharedMessage.set(null);
+    try {
+      await work();
+    } catch (error) {
+      if (error instanceof SharedDragonPartConflictError) {
+        this.sharedError.set(error.message);
+        await this.refreshSharedParts();
+      } else {
+        this.sharedError.set(sharedErrorMessage(error));
+      }
+    } finally {
+      this.sharedBusy.set(false);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -1415,8 +2156,7 @@ export class PartsLabPage implements OnDestroy {
    * slider is dragged.
    */
   private cacheKeyFor(definition: AssemblyPartDefinition, colorKey: string): string {
-    const profile = definition.visualProfile?.profileId ?? '';
-    const styled = editableDragonParametersForProfile(profile).length > 0;
+    const styled = partProfileSchema(definition).controls.length > 0;
     return `${definition.id}:${colorKey}${styled ? `:s${this.commitVersion()}` : ''}`;
   }
 
@@ -1476,22 +2216,64 @@ function clonePlacement(placement: DesignerPartPlacement): DesignerPartPlacement
   };
 }
 
+function nextCustomPieceId(recipe: DragonCustomPartRecipe): string {
+  const existing = new Set(recipe.pieces.map(piece => piece.id));
+  let index = 1;
+  while (existing.has(`piece-${index}`)) index += 1;
+  return `piece-${index}`;
+}
+
+function splitValues(value: string): string[] {
+  return value.split(/[\n,]+/).map(entry => entry.trim()).filter(Boolean);
+}
+
+function sharedErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const code = (error as { code?: unknown }).code;
+    if (code === 'permission-denied' || code === 'firestore/permission-denied') {
+      return 'This account does not have permission for that shared-part action.';
+    }
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return 'The shared-part action could not be completed.';
+}
+
+function resolvedSchemaControl(
+  control: AssemblyInspectorControlDefinition,
+  values: Readonly<Record<string, string | number | boolean>>,
+): (PartParameterControl | PartOptionControl)[] {
+  const authored = values[control.key];
+  if (control.type === 'number') {
+    const fallback = typeof control.defaultValue === 'number' ? control.defaultValue : 0;
+    const value = typeof authored === 'number' && Number.isFinite(authored) ? authored : fallback;
+    return [{ ...control, type: 'number', defaultValue: fallback, value }];
+  }
+  if (control.type === 'boolean') {
+    const fallback = typeof control.defaultValue === 'boolean' ? control.defaultValue : false;
+    return [{ ...control, type: 'boolean', defaultValue: fallback, value: typeof authored === 'boolean' ? authored : fallback }];
+  }
+  const fallback = typeof control.defaultValue === 'string' ? control.defaultValue : String(control.defaultValue);
+  const value = typeof authored === 'string' ? authored : fallback;
+  return [{ ...control, type: control.type, defaultValue: fallback, value }];
+}
+
 /** Maps canonical procedural parameter names to a predictable drag gesture. */
 function proceduralHandle(
   control: PartParameterControl | StyleControl,
   source: 'parameter' | 'style',
 ): ProceduralHandleControl | null {
   const key = control.key;
-  const move = /(Offset[XYZ]|Axial|Start)$/i.test(key);
-  const rotate = /(Splay|Rake|Sway|Tilt|Lean)$/i.test(key);
-  const scale = /(Scale|Length|Radius|Width|Depth|Height|Span|Size)$/i.test(key);
+  const explicit = control.handle;
+  const move = explicit?.kind === 'move' || /(Offset[XYZ]|Axial|Start)$/i.test(key);
+  const rotate = explicit?.kind === 'rotate' || /(Splay|Rake|Sway|Tilt|Lean)$/i.test(key);
+  const scale = explicit?.kind === 'scale' || /(Scale|Length|Radius|Width|Depth|Height|Span|Size)$/i.test(key);
   if (!move && !rotate && !scale) return null;
 
-  const axis: ProceduralHandleAxis = /OffsetY|Height|Depth|Rake|Tilt/i.test(key)
+  const axis: ProceduralHandleAxis = explicit?.axis ?? (/OffsetY|Height|Depth|Rake|Tilt/i.test(key)
     ? 'vertical'
     : scale && !/Width|Span/i.test(key)
       ? 'diagonal'
-      : 'horizontal';
+      : 'horizontal');
   const shortLabel = /OffsetX/i.test(key) ? 'X'
     : /OffsetY/i.test(key) ? 'Y'
       : /OffsetZ/i.test(key) ? 'Z'
